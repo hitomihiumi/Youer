@@ -19,8 +19,8 @@
      private int id = ENTITY_COUNTER.incrementAndGet();
 @@ -229,8 +_,10 @@
      public int tickCount;
-     private int remainingFireTicks;
-     protected boolean wasTouchingWater;
+     public int remainingFireTicks;
+     public boolean wasTouchingWater;
 +    @Deprecated // Neo: Use forgeFluidTypeHeight instead
      protected Object2DoubleMap<TagKey<Fluid>> fluidHeight = new Object2DoubleArrayMap<>(2);
      protected boolean wasEyeInWater;
