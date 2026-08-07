@@ -1,6 +1,8 @@
 package org.bukkit.enchantments;
 
 import com.google.common.collect.Lists;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.Locale;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
@@ -229,7 +231,7 @@ public abstract class Enchantment implements Keyed, Translatable, net.kyori.adve
 
     @NotNull
     private static Enchantment getEnchantment(@NotNull String key) {
-        return Registry.ENCHANTMENT.getOrThrow(NamespacedKey.minecraft(key));
+        return RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).getOrThrow(NamespacedKey.minecraft(key));
     }
 
     /**
@@ -239,7 +241,7 @@ public abstract class Enchantment implements Keyed, Translatable, net.kyori.adve
      * @deprecated enchantments are badly named, use {@link #getKey()}.
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.13", forRemoval = true)
     public abstract String getName();
 
     /**
@@ -263,7 +265,7 @@ public abstract class Enchantment implements Keyed, Translatable, net.kyori.adve
      * @deprecated enchantment groupings are now managed by tags, not categories
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.20.5", forRemoval = true) @org.jetbrains.annotations.Contract("-> fail") // Paper
     public abstract EnchantmentTarget getItemTarget();
 
     /**
@@ -275,7 +277,7 @@ public abstract class Enchantment implements Keyed, Translatable, net.kyori.adve
      * @return true if the enchantment is a treasure enchantment
      * @deprecated enchantment types are now managed by tags
      */
-    @Deprecated
+    @Deprecated(since = "1.21")
     public abstract boolean isTreasure();
 
     /**
@@ -501,7 +503,7 @@ public abstract class Enchantment implements Keyed, Translatable, net.kyori.adve
      */
     @Contract("null -> null")
     @Nullable
-    @Deprecated
+    @Deprecated(since = "1.20.3")
     public static Enchantment getByKey(@Nullable NamespacedKey key) {
         if (key == null) {
             return null;
@@ -516,7 +518,7 @@ public abstract class Enchantment implements Keyed, Translatable, net.kyori.adve
      * @return Resulting Enchantment, or null if not found
      * @deprecated enchantments are badly named, use {@link #getByKey(org.bukkit.NamespacedKey)}.
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     @Contract("null -> null")
     @Nullable
     public static Enchantment getByName(@Nullable String name) {
@@ -534,7 +536,7 @@ public abstract class Enchantment implements Keyed, Translatable, net.kyori.adve
      * @deprecated use {@link Registry#iterator() Registry.ENCHANTMENT.iterator()}
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.20.3")
     public static Enchantment[] values() {
         return Lists.newArrayList(Registry.ENCHANTMENT).toArray(new Enchantment[0]);
     }

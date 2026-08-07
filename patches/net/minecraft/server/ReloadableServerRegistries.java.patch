@@ -1,20 +1,20 @@
 --- a/net/minecraft/server/ReloadableServerRegistries.java
 +++ b/net/minecraft/server/ReloadableServerRegistries.java
-@@ -61,14 +_,15 @@
-         return CompletableFuture.supplyAsync(
+@@ -59,7 +_,16 @@
              () -> {
                  WritableRegistry<T> writableregistry = new MappedRegistry<>(p_335741_.registryKey(), Lifecycle.experimental());
-+                io.papermc.paper.registry.PaperRegistryAccess.instance().registerReloadableRegistry(p_335741_.registryKey(), writableregistry); // Paper - register reloadable registry
-                 Map<ResourceLocation, JsonElement> map = new HashMap<>();
-                 String s = Registries.elementsDirPath(p_335741_.registryKey());
-                 SimpleJsonResourceReloadListener.scanDirectory(p_335893_, s, GSON, map);
+                 Map<ResourceLocation, T> map = new HashMap<>();
+-                SimpleJsonResourceReloadListener.scanDirectory(p_335893_, p_335741_.registryKey(), p_336173_, p_335741_.codec(), map);
++                var provider = net.neoforged.neoforge.common.CommonHooks.extractLookupProvider(p_336173_);
++                Map<ResourceLocation, Optional<T>> optionalMap = new HashMap<>();
++                SimpleJsonResourceReloadListener.scanDirectoryWithOptionalValues(p_335893_, p_335741_.registryKey(), p_336173_, p_335741_.conditionalCodec(), optionalMap);
++                optionalMap.forEach((rl, optionalEntry) -> {
++                    optionalEntry.ifPresent(entry -> p_335741_.idSetter().accept(entry, rl));
++                    T value = optionalEntry.orElse(p_335741_.defaultValue());
++                    if (value instanceof LootTable lootTable) value = (T) net.neoforged.neoforge.event.EventHooks.loadLootTable(provider, rl, lootTable);
++                    if (value != null)
++                        map.put(rl, value);
++                });
                  map.forEach(
-                     (p_335614_, p_335474_) -> p_335741_.deserialize(p_335614_, p_336173_, p_335474_)
-                             .ifPresent(
--                                p_335683_ -> writableregistry.register(
--                                        ResourceKey.create(p_335741_.registryKey(), p_335614_), (T)p_335683_, DEFAULT_REGISTRATION_INFO
-+                                p_335683_ ->io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.registerWithListeners(writableregistry,
-+                                        ResourceKey.create(p_335741_.registryKey(), p_335614_), (T)p_335683_, DEFAULT_REGISTRATION_INFO, new io.papermc.paper.registry.data.util.Conversions(p_336173_.lookupProvider)
-                                     )
-                             )
-                 );
+                     (p_335721_, p_335683_) -> writableregistry.register(
+                         ResourceKey.create(p_335741_.registryKey(), p_335721_), (T)p_335683_, DEFAULT_REGISTRATION_INFO

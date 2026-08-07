@@ -68,7 +68,7 @@ public interface Objective {
      * @throws IllegalStateException if this objective has been unregistered
      * @deprecated use {@link #getTrackedCriteria()}
      */
-    @Deprecated
+    @Deprecated(since = "1.19.2")
     @NotNull
     String getCriteria();
 
@@ -148,9 +148,8 @@ public interface Objective {
      * @return Score tracking the Objective and player specified
      * @throws IllegalStateException if this objective has been unregistered
      * @see #getScore(String)
-     * @deprecated Scoreboards can contain entries that aren't players
      */
-    @Deprecated
+    // @Deprecated(since = "1.7.8") // Paper
     @NotNull
     Score getScore(@NotNull OfflinePlayer player);
 
@@ -177,24 +176,6 @@ public interface Objective {
     @NotNull Score getScoreFor(@NotNull org.bukkit.entity.Entity entity) throws IllegalArgumentException, IllegalStateException;
     // Paper end - improve scoreboard entries
 
-    // Paper start - number format api
-    /**
-     * Gets the number format for this objective's scores or null if the client default is used.
-     *
-     * @return this objective's number format, or null if the client default is used
-     * @throws IllegalStateException if this objective has been unregistered
-     */
-    @Nullable io.papermc.paper.scoreboard.numbers.NumberFormat numberFormat();
-
-    /**
-     * Sets the number format for this objective's scores.
-     *
-     * @param format the number format to set, pass null to reset format to default
-     * @throws IllegalStateException if this objective has been unregistered
-     */
-    void numberFormat(@Nullable io.papermc.paper.scoreboard.numbers.NumberFormat format);
-    // Paper end - number format api
-
     // Paper start - add more score API
     /**
      * Gets if this objective will auto update score
@@ -214,4 +195,22 @@ public interface Objective {
      */
     void setAutoUpdateDisplay(boolean autoUpdateDisplay);
     // Paper end - add more score API
+
+    // Paper start - number format api
+    /**
+     * Gets the number format for this objective's scores or null if the client default is used.
+     *
+     * @return this objective's number format, or null if the client default is used
+     * @throws IllegalStateException if this objective has been unregistered
+     */
+    @Nullable io.papermc.paper.scoreboard.numbers.NumberFormat numberFormat();
+
+    /**
+     * Sets the number format for this objective's scores.
+     *
+     * @param format the number format to set, pass null to reset format to default
+     * @throws IllegalStateException if this objective has been unregistered
+     */
+    void numberFormat(@Nullable io.papermc.paper.scoreboard.numbers.NumberFormat format);
+    // Paper end - number format api
 }

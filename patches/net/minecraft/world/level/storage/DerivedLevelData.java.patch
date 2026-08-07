@@ -1,80 +1,9 @@
 --- a/net/minecraft/world/level/storage/DerivedLevelData.java
 +++ b/net/minecraft/world/level/storage/DerivedLevelData.java
-@@ -3,21 +_,37 @@
- import java.util.UUID;
- import net.minecraft.CrashReportCategory;
- import net.minecraft.core.BlockPos;
-+import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.MinecraftServer;
- import net.minecraft.world.Difficulty;
- import net.minecraft.world.level.GameRules;
- import net.minecraft.world.level.GameType;
- import net.minecraft.world.level.LevelHeightAccessor;
- import net.minecraft.world.level.border.WorldBorder;
-+import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.timers.TimerQueue;
- 
- public class DerivedLevelData implements ServerLevelData {
-     private final WorldData worldData;
-     public final ServerLevelData wrapped;
--
-+    private ResourceKey<LevelStem> typeKey;
-+
-+    public void setTypeKey(ResourceKey<LevelStem> typeKey) {
-+        this.typeKey = typeKey;
-+    }
-+
-+    private final GameRules gameRules; // Youer - per-dimension game rules, independent from the main world's
-+
-+    // Youer - keep the vanilla two-arg constructor: precompiled mods (e.g. AE2 spatial storage) link against
-+    // (WorldData, ServerLevelData), so removing it would cause NoSuchMethodError at runtime
-     public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_) {
-+        this(p_78079_, p_78080_, p_78079_.getGameRules());
-+    }
-+
-+    public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_, GameRules gameRules) {
-         this.worldData = p_78079_;
-         this.wrapped = p_78080_;
-+        this.gameRules = gameRules;
-     }
- 
-     @Override
-@@ -42,7 +_,20 @@
- 
-     @Override
-     public String getLevelName() {
--        return this.worldData.getLevelName();
-+        if (typeKey == null || typeKey == LevelStem.OVERWORLD) {
-+            return this.wrapped.getLevelName();
-+        } else {
-+            String worldName = this.wrapped.getLevelName() + "/";
-+            String suffix;
-+            if (typeKey == LevelStem.END) {
-+                suffix = "DIM1";
-+            } else if (typeKey == LevelStem.NETHER) {
-+                suffix = "DIM-1";
-+            } else {
-+                suffix = typeKey.location().getNamespace() + "/" + typeKey.location().getPath();
-+            }
-+            return worldName + suffix;
-+        }
-     }
- 
-     @Override
-@@ -132,7 +_,7 @@
- 
-     @Override
-     public GameRules getGameRules() {
--        return this.worldData.getGameRules();
-+        return this.gameRules; // Youer - the dimension's own game rules instead of the main world's
-     }
- 
-     @Override
-@@ -190,5 +_,27 @@
-     public void fillCrashReportCategory(CrashReportCategory p_164852_, LevelHeightAccessor p_164853_) {
+@@ -191,4 +_,26 @@
          p_164852_.setDetail("Derived", true);
          this.wrapped.fillCrashReportCategory(p_164852_, p_164853_);
-+    }
+     }
 +
 +    // Neo: Variable day time code
 +
@@ -96,5 +25,5 @@
 +    @Override
 +    public void setDayTimePerTick(float dayTimePerTick) {
 +        wrapped.setDayTimePerTick(dayTimePerTick);
-     }
++    }
  }

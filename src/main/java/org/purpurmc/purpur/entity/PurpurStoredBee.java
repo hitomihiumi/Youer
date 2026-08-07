@@ -1,22 +1,30 @@
 package org.purpurmc.purpur.entity;
 
+import com.mojang.logging.LogUtils;
 import io.papermc.paper.adventure.PaperAdventure;
-import java.util.Locale;
 import net.kyori.adventure.text.Component;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.ValueInput;
 import org.bukkit.block.EntityBlockStorage;
 import org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer;
 import org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry;
+import org.bukkit.craftbukkit.util.CraftChatMessage;
 import org.bukkit.entity.Bee;
 import org.bukkit.entity.EntityType;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import java.util.Locale;
 
 public class PurpurStoredBee implements StoredEntity<Bee> {
+    static final Logger LOGGER = LogUtils.getLogger();
+
     private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
 
     private final EntityBlockStorage<Bee> blockStorage;
@@ -25,17 +33,21 @@ public class PurpurStoredBee implements StoredEntity<Bee> {
 
     private Component customName;
 
-    public PurpurStoredBee(BeehiveBlockEntity.BeeData data, EntityBlockStorage<Bee> blockStorage) {
+    public PurpurStoredBee(BeehiveBlockEntity.BeeData data, EntityBlockStorage<Bee> blockStorage, final BeehiveBlockEntity blockEntity) {
         this.handle = data;
         this.blockStorage = blockStorage;
 
         CompoundTag customData = handle.occupant.entityData().copyTag();
-        this.customName = customData.contains("CustomName")
-                ? PaperAdventure.asAdventure(net.minecraft.network.chat.Component.Serializer.fromJson(customData.getString("CustomName"), MinecraftServer.getDefaultRegistryAccess()))
-                : null;
 
-        if(customData.contains("BukkitValues", Tag.TAG_COMPOUND)) {
-            this.persistentDataContainer.putAll(customData.getCompound("BukkitValues"));
+        try (ProblemReporter.ScopedCollector scopedCollector = new ProblemReporter.ScopedCollector(blockEntity.problemPath(), LOGGER)) {
+            ValueInput valueInput = TagValueInput.create(scopedCollector, RegistryAccess.EMPTY, customData);
+
+            net.minecraft.network.chat.Component customNameMinecraft = BlockEntity.parseCustomNameSafe(valueInput, "CustomName");
+            this.customName = customNameMinecraft == null ? null : PaperAdventure.asAdventure(customNameMinecraft);
+
+            if (customData.get("BukkitValues") instanceof CompoundTag compoundTag) {
+                this.persistentDataContainer.putAll(compoundTag);
+            }
         }
     }
 
@@ -98,7 +110,7 @@ public class PurpurStoredBee implements StoredEntity<Bee> {
         if(customName == null) {
             handle.occupant.entityData().copyTag().remove("CustomName");
         } else {
-            handle.occupant.entityData().copyTag().putString("CustomName", net.minecraft.network.chat.Component.Serializer.toJson(PaperAdventure.asVanilla(customName), MinecraftServer.getDefaultRegistryAccess()));
+            handle.occupant.entityData().copyTag().putString("CustomName", CraftChatMessage.toJSON(PaperAdventure.asVanilla(customName)));
         }
     }
 }

@@ -1,27 +1,28 @@
 package io.papermc.paper.plugin.provider.type.paper;
 
-import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
+import com.destroystokyo.paper.util.SneakyThrow;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
-import io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader;
+import io.papermc.paper.plugin.provider.configuration.LoadOrderConfiguration;
+import io.papermc.paper.plugin.provider.configuration.type.DependencyConfiguration;
+import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
 import io.papermc.paper.plugin.entrypoint.dependency.DependencyContextHolder;
+import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
+import io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.provider.ProviderStatus;
 import io.papermc.paper.plugin.provider.ProviderStatusHolder;
-import io.papermc.paper.plugin.provider.configuration.LoadOrderConfiguration;
 import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
-import io.papermc.paper.plugin.provider.configuration.type.DependencyConfiguration;
-import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
 import io.papermc.paper.plugin.provider.util.ProviderUtil;
-import com.destroystokyo.paper.util.SneakyThrow;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.JarFile;
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
 
 public class PaperPluginParent {
 

@@ -1,81 +1,6 @@
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -1,12 +_,16 @@
- package net.minecraft.world.level.chunk;
- 
-+import com.destroystokyo.paper.event.server.ServerExceptionEvent;
-+import com.destroystokyo.paper.exception.ServerInternalException;
- import com.google.common.collect.ImmutableList;
- import com.google.common.collect.Maps;
-+import com.mohistmc.youer.Youer;
- import com.mojang.logging.LogUtils;
- import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
- import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
- import java.util.Map;
- import java.util.Map.Entry;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import java.util.function.Consumer;
- import java.util.function.Supplier;
- import javax.annotation.Nullable;
-@@ -26,6 +_,7 @@
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.Level;
-+import net.minecraft.world.level.block.BaseEntityBlock;
- import net.minecraft.world.level.block.Block;
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.EntityBlock;
-@@ -48,6 +_,7 @@
- import net.minecraft.world.level.material.Fluids;
- import net.minecraft.world.ticks.LevelChunkTicks;
- import net.minecraft.world.ticks.TickContainerAccess;
-+import org.bukkit.craftbukkit.CraftChunk;
- import org.slf4j.Logger;
- 
- public class LevelChunk extends ChunkAccess implements net.neoforged.neoforge.attachment.IAttachmentHolder {
-@@ -82,6 +_,23 @@
-     private final Int2ObjectMap<GameEventListenerRegistry> gameEventListenerRegistrySections;
-     private final LevelChunkTicks<Block> blockTicks;
-     private final LevelChunkTicks<Fluid> fluidTicks;
-+    public ServerLevel r; // Youer
-+	// CraftBukkit start
-+    public boolean mustNotSave;
-+    public boolean needsDecoration;
-+    // CraftBukkit end
-+
-+    // Pufferfish start - instead of using a random every time the chunk is ticked, define when lightning strikes preemptively
-+    private int lightningTick;
-+    // shouldDoLightning compiles down to 29 bytes, which with the default of 35 byte inlining should guarantee an inline
-+    public final boolean shouldDoLightning(net.minecraft.util.RandomSource random) {
-+        if (this.lightningTick-- <= 0) {
-+            this.lightningTick = random.nextInt(this.level.spigotConfig.thunderChance) << 1;
-+            return true;
-+        }
-+        return false;
-+    }
-+    // Pufferfish end
- 
-     public LevelChunk(Level p_187945_, ChunkPos p_187946_) {
-         this(p_187945_, p_187946_, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
-@@ -100,6 +_,9 @@
-     ) {
-         super(p_196855_, p_196856_, p_196854_, p_196854_.registryAccess().registryOrThrow(Registries.BIOME), p_196859_, p_196860_, p_196862_);
-         this.level = p_196854_;
-+        if (p_196854_ != null && p_196854_ instanceof ServerLevel) {
-+            this.r = ((ServerLevel) p_196854_);
-+        }
-         this.gameEventListenerRegistrySections = new Int2ObjectOpenHashMap<>();
- 
-         for (Heightmap.Types heightmap$types : Heightmap.Types.values()) {
-@@ -111,6 +_,7 @@
-         this.postLoad = p_196861_;
-         this.blockTicks = p_196857_;
-         this.fluidTicks = p_196858_;
-+        this.lightningTick = java.util.concurrent.ThreadLocalRandom.current().nextInt(100000) << 1; // Pufferfish - initialize lightning tick // Purpur - any random will do
-     }
- 
-     public LevelChunk(ServerLevel p_196850_, ProtoChunk p_196851_, @Nullable LevelChunk.PostLoadProcessor p_196852_) {
-@@ -139,6 +_,7 @@
+@@ -148,6 +_,7 @@
          this.setAllStarts(p_196851_.getAllStarts());
          this.setAllReferences(p_196851_.getAllReferences());
  
@@ -83,79 +8,25 @@
          for (Entry<Heightmap.Types, Heightmap> entry : p_196851_.getHeightmaps()) {
              if (ChunkStatus.FULL.heightmapsAfter().contains(entry.getKey())) {
                  this.setHeightmap(entry.getKey(), entry.getValue().getRawData());
-@@ -148,7 +_,18 @@
-         this.skyLightSources = p_196851_.skyLightSources;
-         this.setLightCorrect(p_196851_.isLightCorrect());
-         this.unsaved = true;
--    }
-+        this.needsDecoration = true; // CraftBukkit
-+        // CraftBukkit start
-+        this.persistentDataContainer = p_196851_.persistentDataContainer; // SPIGOT-6814: copy PDC to account for 1.17 to 1.18 chunk upgrading.
-+        // CraftBukkit end
-+    }
-+
-+    // Paper start - If loaded util
-+    @Override
-+    public final BlockState getBlockStateIfLoaded(BlockPos blockposition) {
-+        return this.getBlockState(blockposition);
-+    }
-+    // Paper end
- 
-     @Override
-     public TickContainerAccess<Block> getBlockTicks() {
-@@ -165,6 +_,16 @@
-         return new ChunkAccess.TicksToSave(this.blockTicks, this.fluidTicks);
-     }
- 
-+    // Paper start
-+    @Override
-+    public long getInhabitedTime() {
-+        if (r != null) {
-+            return this.r.paperConfig().chunks.fixedChunkInhabitedTime < 0 ? super.getInhabitedTime() : this.r.paperConfig().chunks.fixedChunkInhabitedTime;
-+        }
-+        return super.getInhabitedTime();
-+    }
-+    // Paper end
-+
-     @Override
-     public GameEventListenerRegistry getListenerRegistry(int p_251193_) {
-         return this.level instanceof ServerLevel serverlevel
-@@ -220,7 +_,7 @@
-             if (i >= 0 && i < this.sections.length) {
-                 LevelChunkSection levelchunksection = this.sections[i];
-                 if (!levelchunksection.hasOnlyAir()) {
--                    return levelchunksection.getFluidState(p_62815_ & 15, p_62816_ & 15, p_62817_ & 15);
-+                    return levelchunksection.states.get((p_62816_ & 15) << 8 | (p_62817_ & 15) << 4 | p_62815_ & 15).getFluidState();
+@@ -285,7 +_,7 @@
+                     this.level.getChunkSource().onSectionEmptinessChanged(this.chunkPos.x, SectionPos.blockToSectionCoord(i), this.chunkPos.z, flag1);
                  }
-             }
  
-@@ -233,6 +_,15 @@
-         }
-     }
- 
-+    public AtomicBoolean setBlockState$doPlace = new AtomicBoolean(true);
-+
-+    // CraftBukkit start - ChunkMap#setBlockState() -> ChunkMap#setBlockState(BlockPos, IBlockData, boolean, boolean)
-+    @Nullable
-+    public BlockState setBlockStateCB(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_, boolean doPlace) {
-+        setBlockState$doPlace.set(doPlace);
-+        return setBlockState(p_62865_, p_62866_, p_62867_);
-+    }
-+
-     @Nullable
-     @Override
-     public BlockState setBlockState(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_) {
-@@ -278,7 +_,8 @@
+-                if (LightEngine.hasDifferentLightProperties(blockstate, p_62866_)) {
++                if (LightEngine.hasDifferentLightProperties(this, p_62865_, blockstate, p_62866_)) {
+                     ProfilerFiller profilerfiller = Profiler.get();
+                     profilerfiller.push("updateSkyLightSources");
+                     this.skyLightSources.update(this, j, i, l);
+@@ -315,7 +_,7 @@
                  if (!levelchunksection.getBlockState(j, k, l).is(block)) {
                      return null;
                  } else {
--                    if (!this.level.isClientSide) {
-+                    // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer
-+                    if (!this.level.isClientSide && !this.level.captureBlockSnapshots && setBlockState$doPlace.getAndSet(true) && (!this.level.captureBlockStates || block instanceof BaseEntityBlock)) {
-                         p_62866_.onPlace(this.level, p_62865_, blockstate, p_62867_);
+-                    if (!this.level.isClientSide && (p_393859_ & 512) == 0) {
++                    if (!this.level.isClientSide && !this.level.captureBlockSnapshots && (p_393859_ & 512) == 0) {
+                         p_62866_.onPlace(this.level, p_62865_, blockstate, flag2);
                      }
  
-@@ -327,6 +_,10 @@
+@@ -370,6 +_,10 @@
      @Nullable
      public BlockEntity getBlockEntity(BlockPos p_62868_, LevelChunk.EntityCreationType p_62869_) {
          BlockEntity blockentity = this.blockEntities.get(p_62868_);
@@ -166,7 +37,7 @@
          if (blockentity == null) {
              CompoundTag compoundtag = this.pendingBlockEntities.remove(p_62868_);
              if (compoundtag != null) {
-@@ -344,9 +_,6 @@
+@@ -387,9 +_,6 @@
                      this.addAndRegisterBlockEntity(blockentity);
                  }
              }
@@ -176,23 +47,15 @@
          }
  
          return blockentity;
-@@ -360,6 +_,7 @@
-             }
+@@ -404,6 +_,7 @@
  
+             this.level.onBlockEntityAdded(p_156391_);
              this.updateBlockEntityTicker(p_156391_);
 +            this.level.addFreshBlockEntities(java.util.List.of(p_156391_));
          }
      }
  
-@@ -383,6 +_,7 @@
-         BlockState blockstate = this.getBlockState(blockpos);
-         if (!blockstate.hasBlockEntity()) {
-             LOGGER.warn("Trying to set block entity {} at position {}, but state {} does not allow it", p_156374_, blockpos, blockstate);
-+            new Exception().printStackTrace(); // CraftBukkit
-         } else {
-             BlockState blockstate1 = p_156374_.getBlockState();
-             if (blockstate != blockstate1) {
-@@ -403,6 +_,7 @@
+@@ -447,6 +_,7 @@
              BlockEntity blockentity = this.blockEntities.put(blockpos.immutable(), p_156374_);
              if (blockentity != null && blockentity != p_156374_) {
                  blockentity.setRemoved();
@@ -200,7 +63,7 @@
              }
          }
      }
-@@ -412,9 +_,14 @@
+@@ -456,9 +_,14 @@
      public CompoundTag getBlockEntityNbtForSaving(BlockPos p_62932_, HolderLookup.Provider p_323699_) {
          BlockEntity blockentity = this.getBlockEntity(p_62932_);
          if (blockentity != null && !blockentity.isRemoved()) {
@@ -215,20 +78,7 @@
          } else {
              CompoundTag compoundtag = this.pendingBlockEntities.get(p_62932_);
              if (compoundtag != null) {
-@@ -430,12 +_,20 @@
-     public void removeBlockEntity(BlockPos p_62919_) {
-         if (this.isInLevel()) {
-             BlockEntity blockentity = this.blockEntities.remove(p_62919_);
-+
-+            // CraftBukkit start - SPIGOT-5561: Also remove from pending map
-+            if (!pendingBlockEntities.isEmpty()) {
-+                pendingBlockEntities.remove(p_62919_);
-+            }
-+            // CraftBukkit end
-+
-             if (blockentity != null) {
-                 if (this.level instanceof ServerLevel serverlevel) {
-                     this.removeGameEventListener(blockentity, serverlevel);
+@@ -480,6 +_,7 @@
                  }
  
                  blockentity.setRemoved();
@@ -236,34 +86,16 @@
              }
          }
  
-@@ -496,7 +_,7 @@
-         p_187974_.accept((p_338077_, p_338078_, p_338079_) -> {
-             BlockEntity blockentity = this.getBlockEntity(p_338077_, LevelChunk.EntityCreationType.IMMEDIATE);
-             if (blockentity != null && p_338079_ != null && blockentity.getType() == p_338078_) {
--                blockentity.loadWithComponents(p_338079_, this.level.registryAccess());
-+                blockentity.handleUpdateTag(p_338079_, this.level.registryAccess());
-             }
-         });
-     }
-@@ -559,7 +_,7 @@
-                 blockentity = ((EntityBlock)blockstate.getBlock()).newBlockEntity(p_62871_, blockstate);
-             } else {
-                 blockentity = null;
--                LOGGER.warn("Tried to load a DUMMY block entity @ {} but found not block entity block {} at location", p_62871_, blockstate);
-+                if (Youer.DEBUG) LOGGER.warn("Tried to load a DUMMY block entity @ {} but found not block entity block {} at location", p_62871_, blockstate);
-             }
-         } else {
-             blockentity = BlockEntity.loadStatic(p_62871_, blockstate, p_62872_, this.level.registryAccess());
-@@ -569,7 +_,7 @@
-             blockentity.setLevel(this.level);
-             this.addAndRegisterBlockEntity(blockentity);
-         } else {
--            LOGGER.warn("Tried to load a block entity for block {} but failed at location {}", blockstate, p_62871_);
-+            if (Youer.DEBUG) LOGGER.warn("Tried to load a block entity for block {} but failed at location {}", blockstate, p_62871_);
-         }
- 
-         return blockentity;
-@@ -604,6 +_,7 @@
+@@ -537,7 +_,7 @@
+                 (p_421432_, p_421433_, p_421434_) -> {
+                     BlockEntity blockentity = this.getBlockEntity(p_421432_, LevelChunk.EntityCreationType.IMMEDIATE);
+                     if (blockentity != null && p_421434_ != null && blockentity.getType() == p_421433_) {
+-                        blockentity.loadWithComponents(
++                        blockentity.handleUpdateTag(
+                             TagValueInput.create(problemreporter$scopedcollector.forChild(blockentity.problemPath()), this.level.registryAccess(), p_421434_)
+                         );
+                     }
+@@ -651,6 +_,7 @@
      }
  
      public void clearAllBlockEntities() {
@@ -271,15 +103,15 @@
          this.blockEntities.values().forEach(BlockEntity::setRemoved);
          this.blockEntities.clear();
          this.tickersInLevel.values().forEach(p_187966_ -> p_187966_.rebind(NULL_TICKER));
-@@ -611,6 +_,7 @@
+@@ -658,6 +_,7 @@
      }
  
      public void registerAllBlockEntitiesAfterLevelLoad() {
 +        this.level.addFreshBlockEntities(this.blockEntities.values());
-         this.blockEntities.values().forEach(p_187988_ -> {
+         this.blockEntities.values().forEach(p_427220_ -> {
              if (this.level instanceof ServerLevel serverlevel) {
-                 this.addGameEventListener(p_187988_, serverlevel);
-@@ -662,6 +_,70 @@
+                 this.addGameEventListener(p_427220_, serverlevel);
+@@ -710,6 +_,19 @@
          return new LevelChunk.BoundTickingBlockEntity<>(p_156376_, p_156377_);
      }
  
@@ -296,104 +128,28 @@
 +        net.neoforged.neoforge.attachment.AttachmentSync.syncChunkUpdate(this, getAttachmentHolder(), type);
 +    }
 +
-+    // CraftBukkit start
-+    public void loadCallback() {
-+        org.bukkit.Server server = this.level.getCraftServer();
-+        if (server != null) {
-+            /*
-+             * If it's a new world, the first few chunks are generated inside
-+             * the World constructor. We can't reliably alter that, so we have
-+             * no way of creating a CraftWorld/CraftServer at that point.
-+             */
-+            org.bukkit.Chunk bukkitChunk = new CraftChunk(this);
-+            server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(bukkitChunk, this.needsDecoration));
-+
-+            if (this.needsDecoration) {
-+                this.needsDecoration = false;
-+                java.util.Random random = new java.util.Random();
-+                random.setSeed(r.getSeed());
-+                long xRand = random.nextLong() / 2L * 2L + 1L;
-+                long zRand = random.nextLong() / 2L * 2L + 1L;
-+                random.setSeed((long) this.chunkPos.x * xRand + (long) this.chunkPos.z * zRand ^ r.getSeed());
-+
-+                org.bukkit.World world = this.level.getWorld();
-+                if (world != null) {
-+                    this.level.populating = true;
-+                    try {
-+                        for (org.bukkit.generator.BlockPopulator populator : world.getPopulators()) {
-+                            populator.populate(world, random, bukkitChunk);
-+                        }
-+                    } finally {
-+                        this.level.populating = false;
-+                    }
-+                }
-+                server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkPopulateEvent(bukkitChunk));
-+            }
-+        }
-+    }
-+
-+    public void unloadCallback() {
-+        org.bukkit.Server server = this.level.getCraftServer();
-+        org.bukkit.Chunk bukkitChunk = new CraftChunk(this);
-+        org.bukkit.event.world.ChunkUnloadEvent unloadEvent = new org.bukkit.event.world.ChunkUnloadEvent(bukkitChunk, this.isUnsaved());
-+        server.getPluginManager().callEvent(unloadEvent);
-+        // note: saving can be prevented, but not forced if no saving is actually required
-+        this.mustNotSave = !unloadEvent.isSaveChunk();
-+    }
-+
-+    @Override
-+    public boolean isUnsaved() {
-+        return super.isUnsaved() && !this.mustNotSave;
-+    }
-+    // CraftBukkit end
-+
      class BoundTickingBlockEntity<T extends BlockEntity> implements TickingBlockEntity {
          private final T blockEntity;
          private final BlockEntityTicker<T> ticker;
-@@ -679,20 +_,24 @@
+@@ -727,6 +_,7 @@
                  if (LevelChunk.this.isTicking(blockpos)) {
                      try {
-                         ProfilerFiller profilerfiller = LevelChunk.this.level.getProfiler();
+                         ProfilerFiller profilerfiller = Profiler.get();
 +                        net.neoforged.neoforge.server.timings.TimeTracker.BLOCK_ENTITY_UPDATE.trackStart(blockEntity);
                          profilerfiller.push(this::getType);
                          BlockState blockstate = LevelChunk.this.getBlockState(blockpos);
                          if (this.blockEntity.getType().isValid(blockstate)) {
-                             this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockstate, this.blockEntity);
-                             this.loggedInvalidBlockState = false;
--                        } else if (!this.loggedInvalidBlockState) {
--                            this.loggedInvalidBlockState = true;
--                            LevelChunk.LOGGER
--                                .warn(
--                                    "Block entity {} @ {} state {} invalid for ticking:",
--                                    LogUtils.defer(this::getType),
--                                    LogUtils.defer(this::getPos),
--                                    blockstate
--                                );
-+                        } else {
-+                            LevelChunk.this.removeBlockEntity(this.getPos());
-+                            if (!this.loggedInvalidBlockState) {
-+                                this.loggedInvalidBlockState = true;
-+                                LevelChunk.LOGGER
-+                                        .warn(
-+                                                "Block entity {} @ {} state {} invalid for ticking:",
-+                                                LogUtils.defer(this::getType),
-+                                                LogUtils.defer(this::getPos),
-+                                                blockstate
-+                                        );
-+                            }
-                         }
- 
-                         profilerfiller.pop();
-@@ -700,7 +_,13 @@
+@@ -748,7 +_,15 @@
                          CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking block entity");
                          CrashReportCategory crashreportcategory = crashreport.addCategory("Block entity being ticked");
                          this.blockEntity.fillCrashReportCategory(crashreportcategory);
--                        throw new ReportedException(crashreport);
-+                        final String msg = String.format("BlockEntity threw exception at %s:%s,%s,%s", LevelChunk.this.getLevel().getWorld().getName(), this.getPos().getX(), this.getPos().getY(), this.getPos().getZ());
-+                        LOGGER.error(msg, throwable);
-+                        blockEntity.setRemoved();
-+                        net.minecraft.world.level.chunk.LevelChunk.this.level.getCraftServer().getPluginManager().callEvent(new ServerExceptionEvent(new ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
-+                        LevelChunk.this.removeBlockEntity(blockEntity.getBlockPos());
++
++                        if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.removeErroringBlockEntities.get()) {
++                            LOGGER.error("{}", crashreport.getFriendlyReport(net.minecraft.ReportType.CRASH));
++                            blockEntity.setRemoved();
++                            LevelChunk.this.removeBlockEntity(blockEntity.getBlockPos());
++                        } else
+                         throw new ReportedException(crashreport);
 +                    } finally {
 +                        net.neoforged.neoforge.server.timings.TimeTracker.BLOCK_ENTITY_UPDATE.trackEnd(blockEntity);
                      }

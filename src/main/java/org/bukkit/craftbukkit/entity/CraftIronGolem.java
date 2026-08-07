@@ -14,11 +14,6 @@ public class CraftIronGolem extends CraftGolem implements IronGolem {
     }
 
     @Override
-    public String toString() {
-        return "CraftIronGolem";
-    }
-
-    @Override
     public boolean isPlayerCreated() {
         return this.getHandle().isPlayerCreated();
     }
@@ -27,17 +22,4 @@ public class CraftIronGolem extends CraftGolem implements IronGolem {
     public void setPlayerCreated(boolean playerCreated) {
         this.getHandle().setPlayerCreated(playerCreated);
     }
-
-    // Purpur start
-    @Override
-    @org.jetbrains.annotations.Nullable
-    public java.util.UUID getSummoner() {
-        return getHandle().getSummoner();
-    }
-
-    @Override
-    public void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner) {
-        getHandle().setSummoner(summoner);
-    }
-    // Purpur end
 }

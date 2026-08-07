@@ -1,8 +1,9 @@
 package io.papermc.paper.adventure.providers;
 
-import java.util.function.Consumer;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Consumer;
 
 @SuppressWarnings("UnstableApiUsage") // permitted provider
 public class GsonComponentSerializerProviderImpl implements GsonComponentSerializer.Provider {

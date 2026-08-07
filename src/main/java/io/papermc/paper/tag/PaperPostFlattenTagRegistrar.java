@@ -2,6 +2,7 @@ package io.papermc.paper.tag;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.papermc.paper.adventure.PaperAdventure;
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.lifecycle.event.registrar.PaperRegistrar;
@@ -26,13 +27,13 @@ import org.checkerframework.framework.qual.DefaultQualifier;
 @DefaultQualifier(NonNull.class)
 public class PaperPostFlattenTagRegistrar<M, T> implements PaperRegistrar<BootstrapContext>, PostFlattenTagRegistrar<T> {
 
-    public final Map<ResourceLocation, Collection<M>> tags;
+    public final Map<ResourceLocation, List<M>> tags;
     private final Function<ResourceLocation, Optional<? extends M>> fromIdConverter;
     private final Function<M, ResourceLocation> toIdConverter;
     private final RegistryKey<T> registryKey;
 
     public PaperPostFlattenTagRegistrar(
-        final Map<ResourceLocation, Collection<M>> tags,
+        final Map<ResourceLocation, List<M>> tags,
         final TagEventConfig<M, T> config
     ) {
         this.tags = tags;
@@ -53,16 +54,16 @@ public class PaperPostFlattenTagRegistrar<M, T> implements PaperRegistrar<Bootst
     @Override
     public Map<TagKey<T>, Collection<TypedKey<T>>> getAllTags() {
         final ImmutableMap.Builder<TagKey<T>, Collection<TypedKey<T>>> tags = ImmutableMap.builderWithExpectedSize(this.tags.size());
-        for (final Map.Entry<ResourceLocation, Collection<M>> entry : this.tags.entrySet()) {
+        for (final Map.Entry<ResourceLocation, List<M>> entry : this.tags.entrySet()) {
             final TagKey<T> key = TagKey.create(this.registryKey, CraftNamespacedKey.fromMinecraft(entry.getKey()));
             tags.put(key, this.convert(entry.getValue()));
         }
         return tags.build();
     }
 
-    private Collection<TypedKey<T>> convert(final Collection<M> nms) {
-        return Collections.unmodifiableCollection(
-            Collections2.transform(nms, m -> this.convert(this.toIdConverter.apply(m)))
+    private List<TypedKey<T>> convert(final List<M> nms) {
+        return Collections.unmodifiableList(
+            Lists.transform(nms, m -> this.convert(this.toIdConverter.apply(m)))
         );
     }
 
@@ -83,9 +84,9 @@ public class PaperPostFlattenTagRegistrar<M, T> implements PaperRegistrar<Bootst
         return this.tags.containsKey(PaperAdventure.asVanilla(tagKey.key()));
     }
 
-    private Collection<M> getNmsTag(final TagKey<T> tagKey, final boolean create) {
+    private List<M> getNmsTag(final TagKey<T> tagKey, final boolean create) {
         final ResourceLocation vanillaKey = PaperAdventure.asVanilla(tagKey.key());
-        Collection<M> tag = this.tags.get(vanillaKey);
+        List<M> tag = this.tags.get(vanillaKey);
         if (tag == null) {
             if (create) {
                 tag = this.tags.computeIfAbsent(vanillaKey, k -> new ArrayList<>());
@@ -103,7 +104,7 @@ public class PaperPostFlattenTagRegistrar<M, T> implements PaperRegistrar<Bootst
 
     @Override
     public void addToTag(final TagKey<T> tagKey, final Collection<TypedKey<T>> values) {
-        final Collection<M> nmsTag = new ArrayList<>(this.getNmsTag(tagKey, true));
+        final List<M> nmsTag = new ArrayList<>(this.getNmsTag(tagKey, true));
         for (final TypedKey<T> key : values) {
             nmsTag.add(this.convert(key));
         }

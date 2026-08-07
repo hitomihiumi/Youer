@@ -1,6 +1,8 @@
 package org.bukkit;
 
+import io.papermc.paper.raytracing.PositionedRayTraceConfigurationBuilder;
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -66,7 +68,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     void setVoidDamageEnabled(boolean enabled);
 
     /**
-     * Gets the damage applied to the player when they are in the void in this world.
+     * Gets the damage applied to the entities when they are in the void in this world.
      * Check {@link #isVoidDamageEnabled()} to see if void damage is enabled.
      *
      * @return amount of damage to apply
@@ -75,7 +77,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     float getVoidDamageAmount();
 
     /**
-     * Sets the damage applied to the player when they are in the void in this world.
+     * Sets the damage applied to the entities when they are in the void in this world.
      * Check {@link #isVoidDamageEnabled()} to see if void damage is enabled.
      *
      * @param voidDamageAmount amount of damage to apply
@@ -100,31 +102,30 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     // Paper start
     /**
-     * @return The amount of Entities in this world
+     * @return The amount of entities in this world
      */
     int getEntityCount();
 
     /**
-     * @return The amount of Tile Entities in this world
+     * @return The amount of block entities in this world
      */
     int getTileEntityCount();
 
     /**
-     * @return The amount of Tickable Tile Entities in this world
+     * @return The amount of tickable block entities in this world
      */
     int getTickableTileEntityCount();
 
     /**
-     * @return The amount of Chunks in this world
+     * @return The amount of chunks in this world
      */
     int getChunkCount();
 
     /**
-     * @return The amount of Players in this world
+     * @return The amount of players in this world
      */
     int getPlayerCount();
     // Paper end
-
     // Paper start - structure check API
     /**
      * Check if the naturally-generated structure exists at the position.
@@ -345,8 +346,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *
      * @return Chunk[] containing all loaded chunks
      */
-    @NotNull
-    public Chunk[] getLoadedChunks();
+    public @NotNull Chunk @NotNull [] getLoadedChunks();
 
     /**
      * Loads the specified {@link Chunk}.
@@ -389,7 +389,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     As of the current Minecraft version chunks are now strictly managed and
      *     will not be loaded for more than 1 tick unless they are in use.
      */
-    @Deprecated
+    @Deprecated(since = "1.14")
     public boolean isChunkInUse(int x, int z);
 
     /**
@@ -475,12 +475,15 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param z Z-coordinate of the chunk
      * @return Whether the chunk was actually regenerated
      *
+     * @throws UnsupportedOperationException not implemented
      * @deprecated regenerating a single chunk is not likely to produce the same
      * chunk as before as terrain decoration may be spread across chunks. It may
      * or may not change blocks in the adjacent chunks as well.
      */
-    @Deprecated
-    public boolean regenerateChunk(int x, int z);
+    @Deprecated(since = "1.13", forRemoval = true)
+    default boolean regenerateChunk(int x, int z) {
+        throw new UnsupportedOperationException("Not supported in this Minecraft version! This is not a bug.");
+    }
 
     /**
      * Resends the {@link Chunk} to all clients
@@ -489,9 +492,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param z Z-coordinate of the chunk
      * @return Whether the chunk was actually refreshed
      *
-     * @deprecated This method is not guaranteed to work suitably across all client implementations.
      */
-    @Deprecated
     public boolean refreshChunk(int x, int z);
 
     /**
@@ -729,7 +730,10 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param location Location to spawn the tree
      * @param type Type of the tree to create
      * @return true if the tree was created successfully, otherwise false
+     * @deprecated in favor of {@link #generateTree(Location, java.util.Random, TreeType)} to specify its own random instance
+     * and this method is not accessible through {@link RegionAccessor}
      */
+    @Deprecated(since = "1.21.6")
     public boolean generateTree(@NotNull Location location, @NotNull TreeType type);
 
     /**
@@ -741,9 +745,9 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     this method
      * @return true if the tree was created successfully, otherwise false
      * @see #generateTree(org.bukkit.Location, java.util.Random, org.bukkit.TreeType, java.util.function.Consumer)
-     * @deprecated this method does not handle tile entities (bee nests)
+     * @deprecated this method does not handle block entities (bee nests)
      */
-    @Deprecated
+    @Deprecated(since = "1.17.1")
     public boolean generateTree(@NotNull Location loc, @NotNull TreeType type, @NotNull BlockChangeDelegate delegate);
 
     /**
@@ -820,7 +824,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return A List of all Entities currently residing in this world that
      *     match the given class/interface
      */
-    @Deprecated
+    @Deprecated(since = "1.1")
     @NotNull
     public <T extends Entity> Collection<T> getEntitiesByClass(@NotNull Class<T>... classes);
 
@@ -850,6 +854,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     // Paper start - additional getNearbyEntities API
     /**
      * Gets nearby LivingEntities within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param radius Radius
      * @return the collection of entities near location. This will always be a non-null collection.
@@ -860,6 +865,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby LivingEntities within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param xzRadius X/Z Radius
      * @param yRadius Y Radius
@@ -871,6 +877,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby LivingEntities within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param xRadius X Radius
      * @param yRadius Y Radius
@@ -883,6 +890,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby LivingEntities within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param radius X Radius
      * @param predicate a predicate used to filter results
@@ -894,6 +902,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby LivingEntities within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param xzRadius X/Z Radius
      * @param yRadius Y Radius
@@ -906,6 +915,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby LivingEntities within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param xRadius X Radius
      * @param yRadius Y Radius
@@ -919,6 +929,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby players within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param radius X/Y/Z Radius
      * @return the collection of living entities near location. This will always be a non-null collection.
@@ -929,6 +940,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby players within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param xzRadius X/Z Radius
      * @param yRadius Y Radius
@@ -940,6 +952,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby players within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param xRadius X Radius
      * @param yRadius Y Radius
@@ -952,6 +965,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby players within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param radius X/Y/Z Radius
      * @param predicate a predicate used to filter results
@@ -963,6 +977,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby players within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param xzRadius X/Z Radius
      * @param yRadius Y Radius
@@ -975,6 +990,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets nearby players within the specified radius (bounding box)
+     *
      * @param loc Center location
      * @param xRadius X Radius
      * @param yRadius Y Radius
@@ -988,6 +1004,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets all nearby entities of the specified type, within the specified radius (bounding box)
+     *
      * @param clazz Type to filter by
      * @param loc Center location
      * @param radius X/Y/Z radius to search within
@@ -1000,6 +1017,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets all nearby entities of the specified type, within the specified radius, with x and x radius matching (bounding box)
+     *
      * @param clazz Type to filter by
      * @param loc Center location
      * @param xzRadius X/Z radius to search within
@@ -1013,6 +1031,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets all nearby entities of the specified type, within the specified radius (bounding box)
+     *
      * @param clazz Type to filter by
      * @param loc Center location
      * @param xRadius X Radius
@@ -1027,6 +1046,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets all nearby entities of the specified type, within the specified radius (bounding box)
+     *
      * @param clazz Type to filter by
      * @param loc Center location
      * @param radius X/Y/Z radius to search within
@@ -1040,6 +1060,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     /**
      * Gets all nearby entities of the specified type, within the specified radius, with x and x radius matching (bounding box)
+     *
      * @param clazz Type to filter by
      * @param loc Center location
      * @param xzRadius X/Z radius to search within
@@ -1052,32 +1073,553 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
         return this.getNearbyEntitiesByType(clazz, loc, xzRadius, yRadius, xzRadius, predicate);
     }
 
-    /**
-     * Gets all nearby entities of the specified type, within the specified radius (bounding box)
-     * @param clazz Type to filter by
-     * @param loc Center location
-     * @param xRadius X Radius
-     * @param yRadius Y Radius
-     * @param zRadius Z Radius
-     * @param predicate a predicate used to filter results
-     * @param <T> the entity type
-     * @return the collection of entities near location. This will always be a non-null collection.
-     */
-    default <T extends Entity> @NotNull Collection<T> getNearbyEntitiesByType(@Nullable Class<? extends Entity> clazz, final @NotNull Location loc, final double xRadius, final double yRadius, final double zRadius, final @Nullable Predicate<? super T> predicate) {
-        if (clazz == null) {
-            clazz = Entity.class;
-        }
+     /**
+      * Gets all nearby entities of the specified type, within the specified radius (bounding box)
+      *
+      * @param clazz Type to filter by
+      * @param loc Center location
+      * @param xRadius X Radius
+      * @param yRadius Y Radius
+      * @param zRadius Z Radius
+      * @param predicate a predicate used to filter results
+      * @param <T> the entity type
+      * @return the collection of entities near location. This will always be a non-null collection.
+      */
+    default <T extends Entity> @NotNull Collection<T> getNearbyEntitiesByType(@Nullable Class<? extends T> clazz, final @NotNull Location loc, final double xRadius, final double yRadius, final double zRadius, final @Nullable Predicate<? super T> predicate) {
         final List<T> nearby = new ArrayList<>();
-        for (final Entity bukkitEntity : this.getNearbyEntities(loc, xRadius, yRadius, zRadius)) {
+        for (final Entity entity : this.getNearbyEntities(loc, xRadius, yRadius, zRadius)) {
             //noinspection unchecked
-            if (clazz.isAssignableFrom(bukkitEntity.getClass()) && (predicate == null || predicate.test((T) bukkitEntity))) {
+            if ((clazz == null || clazz.isInstance(entity)) && (predicate == null || predicate.test((T) entity))) {
                 //noinspection unchecked
-                nearby.add((T) bukkitEntity);
+                nearby.add((T) entity);
             }
         }
         return nearby;
     }
     // Paper end - additional getNearbyEntities API
+
+    // Paper start - async chunks API
+    /**
+     * This is the Legacy API before Java 8 was supported. Java 8 Consumer is provided,
+     * as well as future support
+     *
+     * Used by {@link World#getChunkAtAsync(Location,ChunkLoadCallback)} methods
+     * to request a {@link Chunk} to be loaded, with this callback receiving
+     * the chunk when it is finished.
+     *
+     * This callback will be executed on synchronously on the main thread.
+     *
+     * Timing and order this callback is fired is intentionally not defined and
+     * and subject to change.
+     *
+     * @deprecated Use either the Future or the Consumer based methods
+     */
+    @Deprecated(since = "1.13.1")
+    public static interface ChunkLoadCallback extends java.util.function.Consumer<Chunk> {
+        public void onLoad(@NotNull Chunk chunk);
+
+        // backwards compat to old api
+        @Override
+        default void accept(@NotNull Chunk chunk) {
+            onLoad(chunk);
+        }
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link ChunkLoadCallback} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @deprecated Use either the Future or the Consumer based methods
+     * @param x Chunk x-coordinate
+     * @param z Chunk z-coordinate
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    @Deprecated(since = "1.13.1")
+    public default void getChunkAtAsync(int x, int z, @NotNull ChunkLoadCallback cb) {
+        this.getChunkAtAsync(x, z, (java.util.function.Consumer<Chunk>)cb);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given {@link Location}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link ChunkLoadCallback} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @deprecated Use either the Future or the Consumer based methods
+     * @param loc Location of the chunk
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    @Deprecated(since = "1.13.1")
+    public default void getChunkAtAsync(@NotNull Location loc, @NotNull ChunkLoadCallback cb) {
+        this.getChunkAtAsync(loc.getBlockX() >> 4, loc.getBlockZ() >> 4, cb);
+    }
+
+    /**
+     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link ChunkLoadCallback} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @deprecated Use either the Future or the Consumer based methods
+     * @param block Block to get the containing chunk from
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    @Deprecated(since = "1.13.1")
+    public default void getChunkAtAsync(@NotNull Block block, @NotNull ChunkLoadCallback cb) {
+        this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, cb);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk x-coordinate
+     * @param z Chunk z-coordinate
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final int x, final int z, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync(x, z, true, cb);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk x-coordinate
+     * @param z Chunk z-coordinate
+     * @param gen Should we generate a chunk if it doesn't exist or not
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final int x, final int z, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync(x, z, gen, false, cb);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk x-coordinate
+     * @param z Chunk z-coordinate
+     * @param gen Should we generate a chunk if it doesn't exist or not
+     * @param urgent If true, the chunk may be prioritised to be loaded above other chunks in queue
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    void getChunkAtAsync(final int x, final int z, final boolean gen, final boolean urgent, final @NotNull Consumer<? super Chunk> cb);
+
+    /**
+     * Requests all chunks with x between [minX, maxZ] and z
+     * between [minZ, maxZ] to be loaded.
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will invoke the callback at possibly a later time.
+     *
+     * You should use this method if you need chunks loaded but do not need them
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link Runnable} will always be executed synchronously
+     * on the main Server Thread, and when invoked all chunks requested will be loaded.
+     *
+     * @param minX Minimum Chunk x-coordinate
+     * @param minZ Minimum Chunk z-coordinate
+     * @param maxX Maximum Chunk x-coordinate
+     * @param maxZ Maximum Chunk z-coordinate
+     * @param urgent If true, the chunks may be prioritised to be loaded above other chunks in queue
+     * @param cb Callback to invoke when all chunks are loaded.
+     *           Will be executed synchronously
+     * @see Chunk
+     */
+    void getChunksAtAsync(final int minX, final int minZ, final int maxX, final int maxZ, final boolean urgent,
+                          final @NotNull Runnable cb);
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given {@link Location}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param loc Location of the chunk
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final @NotNull Location loc, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true, cb);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given {@link Location}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param loc Location of the chunk
+     * @param gen Should the chunk generate if it doesn't exist
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final @NotNull Location loc, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen, cb);
+    }
+
+    /**
+     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param block Block to get the containing chunk from
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final @NotNull Block block, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true, cb);
+    }
+
+    /**
+     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param block Block to get the containing chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final @NotNull Block block, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen, cb);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param loc Location to load the corresponding chunk from
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Location loc) {
+        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param loc Location to load the corresponding chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Location loc, final boolean gen) {
+        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param block Block to load the corresponding chunk from
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Block block) {
+        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param block Block to load the corresponding chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Block block, final boolean gen) {
+        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk x-coordinate
+     * @param z Chunk z-coordinate
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final int x, final int z) {
+        return this.getChunkAtAsync(x, z, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk x-coordinate
+     * @param z Chunk z-coordinate
+     * @param gen Should we generate a chunk if it doesn't exist or not
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final int x, final int z, final boolean gen) {
+        return this.getChunkAtAsync(x, z, gen, false);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     * <p>
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     * <p>
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish for it to be prioritised over other
+     * chunk loads in queue.
+     * <p>
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param loc Location to load the corresponding chunk from
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Location loc) {
+        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     * <p>
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     * <p>
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish for it to be prioritised over other
+     * chunk loads in queue.
+     * <p>
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param loc Location to load the corresponding chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Location loc, final boolean gen) {
+        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     * <p>
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     * <p>
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish for it to be prioritised over other
+     * chunk loads in queue.
+     * <p>
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param block Block to load the corresponding chunk from
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Block block) {
+        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     * <p>
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     * <p>
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish for it to be prioritised over other
+     * chunk loads in queue.
+     * <p>
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param block Block to load the corresponding chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Block block, final boolean gen) {
+        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     * <p>
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will complete the future at a later time.
+     * <p>
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish for it to be prioritised over other
+     * chunk loads in queue.
+     * <p>
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk x-coordinate
+     * @param z Chunk z-coordinate
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final int x, final int z) {
+        return this.getChunkAtAsync(x, z, true, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates.
+     * <p>
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     * <p>
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     * <p>
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk x-coordinate
+     * @param z Chunk z-coordinate
+     * @param gen Should the chunk generate if it doesn't exist
+     * @param urgent If true, the chunk may be prioritised to be loaded above other chunks in queue
+     *
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
+        java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
+        this.getChunkAtAsync(x, z, gen, urgent, ret::complete);
+        return ret;
+    }
+    // Paper end - async chunks API
 
     /**
      * Get a list of all players in this World
@@ -1123,7 +1665,6 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     @Nullable
     public Entity getEntity(@NotNull java.util.UUID uuid);
     // Paper end
-
 
     /**
      * Returns a list of entities within a bounding box centered around a
@@ -1236,6 +1777,26 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     @Nullable
     public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, @Nullable Predicate<? super Entity> filter);
 
+    /**
+     * Performs a ray trace that checks for entity collisions.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the maximum
+     * distance.
+     *
+     * @param start the start position
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @param raySize entity bounding boxes will be uniformly expanded (or
+     *     shrunk) by this value before doing collision checks
+     * @param filter only entities that fulfill this predicate are considered,
+     *     or <code>null</code> to consider all entities
+     * @return the closest ray trace hit result, or <code>null</code> if there
+     *     is no hit
+     */
+    @Nullable
+    public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, double raySize, @Nullable Predicate<? super Entity> filter);
+
     // Paper start
     /**
      * Performs a ray trace that checks for entity collisions.
@@ -1256,26 +1817,6 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     @Nullable RayTraceResult rayTraceEntities(io.papermc.paper.math.@NotNull Position start, @NotNull Vector direction, double maxDistance, double raySize, @Nullable Predicate<? super Entity> filter);
     // Paper end
-
-    /**
-     * Performs a ray trace that checks for entity collisions.
-     * <p>
-     * This may not consider entities in currently unloaded chunks. Some
-     * implementations may impose artificial restrictions on the maximum
-     * distance.
-     *
-     * @param start the start position
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @param raySize entity bounding boxes will be uniformly expanded (or
-     *     shrunk) by this value before doing collision checks
-     * @param filter only entities that fulfill this predicate are considered,
-     *     or <code>null</code> to consider all entities
-     * @return the closest ray trace hit result, or <code>null</code> if there
-     *     is no hit
-     */
-    @Nullable
-    public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, double raySize, @Nullable Predicate<? super Entity> filter);
 
     /**
      * Performs a ray trace that checks for block collisions using the blocks'
@@ -1438,6 +1979,20 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     // Paper end
 
     /**
+     * Performs a ray trace that checks for collisions with the specified
+     * targets.
+     * <p>
+     * This may cause loading of chunks! Some implementations may impose
+     * artificial restrictions on the maximum distance.
+     *
+     * @param builderConsumer a consumer to configure the ray trace configuration.
+     *     The received builder is not valid for use outside the consumer
+     * @return the closest ray trace hit result with either a block or an
+     *     entity, or <code>null</code> if there is no hit
+     */
+    @Nullable RayTraceResult rayTrace(@NotNull Consumer<PositionedRayTraceConfigurationBuilder> builderConsumer);
+
+    /**
      * Gets the default spawn {@link Location} of this world
      *
      * @return The spawn location of this world
@@ -1521,6 +2076,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     public void setFullTime(long time);
 
     // Paper start
+
     /**
      * Check if it is currently daytime in this world
      *
@@ -1711,6 +2267,104 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     public boolean createExplosion(@NotNull Location loc, float power, boolean setFire);
 
+    // Paper start
+    /**
+     * Creates explosion at given location with given power and optionally
+     * setting blocks on fire, with the specified entity as the source.
+     *
+     * @param source The source entity of the explosion
+     * @param loc Location to blow up
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether or not to set blocks on fire
+     * @param breakBlocks Whether or not to have blocks be destroyed
+     * @param excludeSourceFromDamage whether the explosion should exclude the passed source from taking damage like vanilla explosions do.
+     * @return false if explosion was canceled, otherwise true
+     */
+    public boolean createExplosion(@Nullable Entity source, @NotNull Location loc, float power, boolean setFire, boolean breakBlocks, boolean excludeSourceFromDamage);
+
+    /**
+     * Creates explosion at given location with given power and optionally
+     * setting blocks on fire, with the specified entity as the source.
+     *
+     * @param source The source entity of the explosion
+     * @param loc Location to blow up
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether or not to set blocks on fire
+     * @param breakBlocks Whether or not to have blocks be destroyed
+     * @return false if explosion was canceled, otherwise true
+     */
+    default boolean createExplosion(@Nullable Entity source, @NotNull Location loc, float power, boolean setFire, boolean breakBlocks) {
+        return createExplosion(source, loc, power, setFire, breakBlocks, true);
+    }
+
+    /**
+     * Creates explosion at given location with given power and optionally
+     * setting blocks on fire, with the specified entity as the source.
+     *
+     * Will destroy other blocks
+     *
+     * @param source The source entity of the explosion
+     * @param loc Location to blow up
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether or not to set blocks on fire
+     * @return false if explosion was canceled, otherwise true
+     */
+    public default boolean createExplosion(@Nullable Entity source, @NotNull Location loc, float power, boolean setFire) {
+        return createExplosion(source, loc, power, setFire, true);
+    }
+    /**
+     * Creates explosion at given location with given power, with the specified entity as the source.
+     * Will set blocks on fire and destroy blocks.
+     *
+     * @param source The source entity of the explosion
+     * @param loc Location to blow up
+     * @param power The power of explosion, where 4F is TNT
+     * @return false if explosion was canceled, otherwise true
+     */
+    public default boolean createExplosion(@Nullable Entity source, @NotNull Location loc, float power) {
+        return createExplosion(source, loc, power, true, true);
+    }
+    /**
+     * Creates explosion at given entities location with given power and optionally
+     * setting blocks on fire, with the specified entity as the source.
+     *
+     * @param source The source entity of the explosion
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether or not to set blocks on fire
+     * @param breakBlocks Whether or not to have blocks be destroyed
+     * @return false if explosion was canceled, otherwise true
+     */
+    public default boolean createExplosion(@NotNull Entity source, float power, boolean setFire, boolean breakBlocks) {
+        return createExplosion(source, source.getLocation(), power, setFire, breakBlocks);
+    }
+    /**
+     * Creates explosion at given entities location with given power and optionally
+     * setting blocks on fire, with the specified entity as the source.
+     *
+     * Will destroy blocks.
+     *
+     * @param source The source entity of the explosion
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether or not to set blocks on fire
+     * @return false if explosion was canceled, otherwise true
+     */
+    public default boolean createExplosion(@NotNull Entity source, float power, boolean setFire) {
+        return createExplosion(source, source.getLocation(), power, setFire, true);
+    }
+
+    /**
+     * Creates explosion at given entities location with given power and optionally
+     * setting blocks on fire, with the specified entity as the source.
+     *
+     * @param source The source entity of the explosion
+     * @param power The power of explosion, where 4F is TNT
+     * @return false if explosion was canceled, otherwise true
+     */
+    public default boolean createExplosion(@NotNull Entity source, float power) {
+        return createExplosion(source, source.getLocation(), power, true, true);
+    }
+    // Paper end
+
     /**
      * Creates explosion at given coordinates with given power and optionally
      * setting blocks on fire or breaking blocks.
@@ -1773,9 +2427,17 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     public BiomeProvider getBiomeProvider();
 
     /**
-     * Saves world to disk
+     * Saves the world to disk
      */
-    public void save();
+    default void save() {
+        save(false);
+    }
+
+    /**
+     * Saves the world to disk
+     * @param flush Whether to wait for the chunk writer to finish
+     */
+    void save(boolean flush);
 
     /**
      * Gets a list of all applied {@link BlockPopulator}s for this World
@@ -1837,8 +2499,10 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The spawned {@link FallingBlock} instance
      * @throws IllegalArgumentException if {@link Location} or {@link
      *     MaterialData} are null or {@link Material} of the {@link MaterialData} is not a block
+     * @deprecated Use {@link #spawn(Location, Class, Consumer)} (or a variation thereof) in combination with {@link FallingBlock#setBlockData(BlockData)}
      */
     @NotNull
+    @Deprecated(since = "1.20.2", forRemoval = true)
     public FallingBlock spawnFallingBlock(@NotNull Location location, @NotNull MaterialData data) throws IllegalArgumentException;
 
     /**
@@ -1851,8 +2515,10 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The spawned {@link FallingBlock} instance
      * @throws IllegalArgumentException if {@link Location} or {@link
      *     BlockData} are null
+     * @deprecated Use {@link #spawn(Location, Class, Consumer)} (or a variation thereof) in combination with {@link FallingBlock#setBlockData(BlockData)}
      */
     @NotNull
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.2") // Paper
     public FallingBlock spawnFallingBlock(@NotNull Location location, @NotNull BlockData data) throws IllegalArgumentException;
 
     /**
@@ -1869,9 +2535,9 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The spawned {@link FallingBlock} instance
      * @throws IllegalArgumentException if {@link Location} or {@link
      *     Material} are null or {@link Material} is not a block
-     * @deprecated Magic value
+     * @deprecated Magic value. Use {@link #spawn(Location, Class, Consumer)} (or a variation thereof) in combination with {@link FallingBlock#setBlockData(BlockData)}
      */
-    @Deprecated
+    @Deprecated(since = "1.7.5", forRemoval = true)
     @NotNull
     public FallingBlock spawnFallingBlock(@NotNull Location location, @NotNull Material material, byte data) throws IllegalArgumentException;
 
@@ -1970,7 +2636,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @deprecated biomes are now 3-dimensional
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.15")
     Biome getBiome(int x, int z);
 
     /**
@@ -1981,7 +2647,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param bio new Biome type for this block
      * @deprecated biomes are now 3-dimensional
      */
-    @Deprecated
+    @Deprecated(since = "1.15")
     void setBiome(int x, int z, @NotNull Biome bio);
 
     /**
@@ -1989,16 +2655,13 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * <p>
      * It is safe to run this method when the block does not exist, it will
      * not create the block.
-     * <p>
-     * This method will return the raw temperature without adjusting for block
-     * height effects.
      *
      * @param x X coordinate of the block
      * @param z Z coordinate of the block
      * @return Temperature of the requested block
      * @deprecated biomes are now 3-dimensional
      */
-    @Deprecated
+    @Deprecated(since = "1.15")
     public double getTemperature(int x, int z);
 
     /**
@@ -2006,9 +2669,6 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * <p>
      * It is safe to run this method when the block does not exist, it will
      * not create the block.
-     * <p>
-     * This method will return the raw temperature without adjusting for block
-     * height effects.
      *
      * @param x X coordinate of the block
      * @param y Y coordinate of the block
@@ -2028,7 +2688,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return Humidity of the requested block
      * @deprecated biomes are now 3-dimensional
      */
-    @Deprecated
+    @Deprecated(since = "1.15")
     public double getHumidity(int x, int z);
 
     /**
@@ -2142,7 +2802,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return true if the world's spawn area will be kept loaded into memory.
      * @deprecated use {@link GameRule#SPAWN_CHUNK_RADIUS} for finer control
      */
-    @Deprecated
+    @Deprecated(since = "1.20.5")
     public boolean getKeepSpawnInMemory();
 
     /**
@@ -2153,7 +2813,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     loaded into memory.
      * @deprecated use {@link GameRule#SPAWN_CHUNK_RADIUS} for finer control
      */
-    @Deprecated
+    @Deprecated(since = "1.20.5")
     public void setKeepSpawnInMemory(boolean keepLoaded);
 
     /**
@@ -2168,6 +2828,8 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *
      * @param value true if the world should automatically save, otherwise
      *     false
+     * @apiNote This does not disable saving entirely, the world will still be saved on shutdown.<br>
+     * The intended use of this method is to disable the periodical autosave by the game.
      */
     public void setAutoSave(boolean value);
 
@@ -2206,7 +2868,17 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The folder of this world.
      */
     @NotNull
-    public File getWorldFolder();
+    default File getWorldFolder() {
+        return getWorldPath().toFile();
+    }
+    
+    /**
+     * Gets the path of this world on disk.
+     *
+     * @return The path of this world.
+     */
+    @NotNull
+    Path getWorldPath();
 
     /**
      * Gets the type of this world.
@@ -2217,7 +2889,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * this method to always return the correct value.
      */
     @Nullable
-    @Deprecated
+    @Deprecated(since = "1.16.1")
     public WorldType getWorldType();
 
     /**
@@ -2226,6 +2898,13 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return True if structures are being generated.
      */
     public boolean canGenerateStructures();
+
+    /**
+     * Checks if the bonus chest is enabled.
+     *
+     * @return {@code true} if the bonus chest is enabled, {@code false} otherwise
+     */
+    boolean hasBonusChest();
 
     /**
      * Gets whether the world is hardcore or not.
@@ -2270,7 +2949,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The world's ticks per animal spawns value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public long getTicksPerAnimalSpawns();
 
     /**
@@ -2299,7 +2978,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     to set the world to
      * @deprecated Deprecated in favor of {@link #setTicksPerSpawns(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public void setTicksPerAnimalSpawns(int ticksPerAnimalSpawns);
 
     /**
@@ -2327,7 +3006,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The world's ticks per monster spawns value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public long getTicksPerMonsterSpawns();
 
     /**
@@ -2356,7 +3035,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     want to set the world to
      * @deprecated Deprecated in favor of {@link #setTicksPerSpawns(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public void setTicksPerMonsterSpawns(int ticksPerMonsterSpawns);
 
     /**
@@ -2382,7 +3061,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The world's ticks per water mob spawns value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public long getTicksPerWaterSpawns();
 
     /**
@@ -2409,7 +3088,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     want to set the world to
      * @deprecated Deprecated in favor of {@link #setTicksPerSpawns(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public void setTicksPerWaterSpawns(int ticksPerWaterSpawns);
 
     /**
@@ -2431,7 +3110,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return the default ticks per water ambient mobs spawn value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public long getTicksPerWaterAmbientSpawns();
 
     /**
@@ -2458,7 +3137,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     want to set the world to
      * @deprecated Deprecated in favor of {@link #setTicksPerSpawns(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public void setTicksPerWaterAmbientSpawns(int ticksPerAmbientSpawns);
 
     /**
@@ -2480,7 +3159,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return the default ticks per water underground creature spawn value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public long getTicksPerWaterUndergroundCreatureSpawns();
 
     /**
@@ -2507,7 +3186,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     want to set the world to
      * @deprecated Deprecated in favor of {@link #setTicksPerSpawns(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public void setTicksPerWaterUndergroundCreatureSpawns(int ticksPerWaterUndergroundCreatureSpawns);
 
     /**
@@ -2533,7 +3212,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return the default ticks per ambient mobs spawn value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public long getTicksPerAmbientSpawns();
 
     /**
@@ -2560,7 +3239,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     want to set the world to
      * @deprecated Deprecated in favor of {@link #setTicksPerSpawns(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public void setTicksPerAmbientSpawns(int ticksPerAmbientSpawns);
 
     /**
@@ -2621,7 +3300,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The monster spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     int getMonsterSpawnLimit();
 
     /**
@@ -2634,7 +3313,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param limit the new mob limit
      * @deprecated Deprecated in favor of {@link #setSpawnLimit(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     void setMonsterSpawnLimit(int limit);
 
     /**
@@ -2644,7 +3323,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The animal spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     int getAnimalSpawnLimit();
 
     /**
@@ -2657,7 +3336,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param limit the new mob limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     void setAnimalSpawnLimit(int limit);
 
     /**
@@ -2667,7 +3346,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The water animal spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     int getWaterAnimalSpawnLimit();
 
     /**
@@ -2680,7 +3359,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param limit the new mob limit
      * @deprecated Deprecated in favor of {@link #setSpawnLimit(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     void setWaterAnimalSpawnLimit(int limit);
 
     /**
@@ -2690,7 +3369,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The water underground creature spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     int getWaterUndergroundCreatureSpawnLimit();
 
     /**
@@ -2703,7 +3382,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param limit the new mob limit
      * @deprecated Deprecated in favor of {@link #setSpawnLimit(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     void setWaterUndergroundCreatureSpawnLimit(int limit);
 
     /**
@@ -2713,7 +3392,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return the water ambient spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     int getWaterAmbientSpawnLimit();
 
     /**
@@ -2726,7 +3405,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param limit the new mob limit
      * @deprecated Deprecated in favor of {@link #setSpawnLimit(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     void setWaterAmbientSpawnLimit(int limit);
 
     /**
@@ -2736,7 +3415,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return The ambient spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     int getAmbientSpawnLimit();
 
     /**
@@ -2749,7 +3428,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @param limit the new mob limit
      * @deprecated Deprecated in favor of {@link #setSpawnLimit(SpawnCategory, int)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     void setAmbientSpawnLimit(int limit);
 
     /**
@@ -2958,8 +3637,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *
      * @return An array of {@link GameRule} names.
      */
-    @NotNull
-    public String[] getGameRules();
+    public @NotNull String @NotNull [] getGameRules();
 
     /**
      * Gets the current state of the specified rule
@@ -2970,7 +3648,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return String value of rule
      * @deprecated use {@link #getGameRuleValue(GameRule)} instead
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     @Contract("null -> null; !null -> !null")
     @Nullable
     public String getGameRuleValue(@Nullable String rule);
@@ -2988,7 +3666,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return True if rule was set
      * @deprecated use {@link #setGameRule(GameRule, Object)} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     public boolean setGameRuleValue(@NotNull String rule, @NotNull String value);
 
     /**
@@ -3285,6 +3963,8 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     public <T> void spawnParticle(@NotNull Particle particle, @Nullable List<Player> receivers, @Nullable Player source, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, @Nullable T data, boolean force);
     // Paper end
+
+
     /**
      * Spawns the particle (the number of times specified by count)
      * at the target location. The position of each particle will be
@@ -3336,7 +4016,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     /**
      * Find the closest nearby structure of a given {@link StructureType}.
      * Finding unexplored structures can, and will, block if the world is
-     * looking in chunks that gave not generated yet. This can lead to the world
+     * looking in chunks that have not generated yet. This can lead to the world
      * temporarily freezing while locating an unexplored structure.
      * <p>
      * The {@code radius} is not a rigid square radius. Each structure may alter
@@ -3364,13 +4044,13 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * instead.
      */
     @Nullable
-    @Deprecated
+    @Deprecated(since = "1.19")
     public Location locateNearestStructure(@NotNull Location origin, @NotNull org.bukkit.StructureType structureType, int radius, boolean findUnexplored);
 
     /**
      * Find the closest nearby structure of a given {@link StructureType}.
      * Finding unexplored structures can, and will, block if the world is
-     * looking in chunks that gave not generated yet. This can lead to the world
+     * looking in chunks that have not generated yet. This can lead to the world
      * temporarily freezing while locating an unexplored structure.
      * <p>
      * The {@code radius} is not a rigid square radius. Each structure may alter
@@ -3403,7 +4083,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     /**
      * Find the closest nearby structure of a given {@link Structure}. Finding
      * unexplored structures can, and will, block if the world is looking in
-     * chunks that gave not generated yet. This can lead to the world
+     * chunks that have not generated yet. This can lead to the world
      * temporarily freezing while locating an unexplored structure.
      * <p>
      * The {@code radius} is not a rigid square radius. Each structure may alter
@@ -3500,6 +4180,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     // Paper end
 
     // Spigot start
+    @Deprecated(forRemoval = true) // Paper
     public class Spigot {
 
         /**
@@ -3512,7 +4193,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
          * @see World#strikeLightning(org.bukkit.Location)
          */
         @NotNull
-        @Deprecated
+        @Deprecated(since = "1.20.4")
         public LightningStrike strikeLightning(@NotNull Location loc, boolean isSilent) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
@@ -3527,13 +4208,17 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
          * @see World#strikeLightningEffect(org.bukkit.Location)
          */
         @NotNull
-        @Deprecated
+        @Deprecated(since = "1.20.4")
         public LightningStrike strikeLightningEffect(@NotNull Location loc, boolean isSilent) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     }
 
+    /**
+     * @deprecated Unsupported api
+     */
     @NotNull
+    @Deprecated // Paper
     Spigot spigot();
     // Spigot end
 
@@ -3633,86 +4318,6 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     @Nullable
     public DragonBattle getEnderDragonBattle();
-
-    // Purpur start
-    /**
-     * Gets the local difficulty (based on inhabited time) at a location
-     *
-     * @param location Location to check
-     * @return The local difficulty
-     */
-    public float getLocalDifficultyAt(@NotNull Location location);
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on this world.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     */
-    void sendBlockHighlight(@NotNull Location location, int duration);
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on this world.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
-     */
-    void sendBlockHighlight(@NotNull Location location, int duration, int argb);
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on this world.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param text Text to show above the highlight
-     */
-    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text);
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on this world.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param text Text to show above the highlight
-     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
-     */
-    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, int argb);
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on this world.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
-     * @param transparency Transparency of the highlight
-     * @throws IllegalArgumentException If transparency is outside 0-255 range
-     */
-    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull org.bukkit.Color color, int transparency);
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on this world.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param text Text to show above the highlight
-     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
-     * @param transparency Transparency of the highlight
-     * @throws IllegalArgumentException If transparency is outside 0-255 range
-     */
-    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, @NotNull org.bukkit.Color color, int transparency);
-
-    /**
-     * Clears all debug block highlights for all players on this world.
-     */
-    void clearBlockHighlights();
-    // Purpur end
 
     /**
      * Get all {@link FeatureFlag} enabled in this world.
@@ -3842,9 +4447,9 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
          * Gets the dimension ID of this environment
          *
          * @return dimension ID
-         * @deprecated Magic value
+         * @apiNote Internal Use Only
          */
-        @Deprecated
+        @org.jetbrains.annotations.ApiStatus.Internal // Paper
         public int getId() {
             return id;
         }
@@ -3854,9 +4459,9 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
          *
          * @param id The ID of the environment
          * @return The environment
-         * @deprecated Magic value
+         * @apiNote Internal Use Only
          */
-        @Deprecated
+        @org.jetbrains.annotations.ApiStatus.Internal // Paper
         @Nullable
         public static Environment getEnvironment(int id) {
             return lookup.get(id);
@@ -3868,499 +4473,4 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
             }
         }
     }
-
-    // Youer start
-
-    /**
-     * Returns whether the current world was created by a plugin.
-     *
-     * @return whether the current world was created by a plugin
-     */
-    boolean isBukkit();
-    void setBukkit(boolean b);
-
-    boolean isVoid();
-    void setVoid(boolean b);
-    boolean isFlat();
-    void setFlat(boolean b);
-    /**
-     * Returns whether the current world was created by a mod.
-     *
-     * @return whether the current world was created by a mod
-     */
-    boolean isMods();
-
-    /**
-     * Returns the mod source for this world.
-     *
-     * @return the mod source for this world
-     */
-    String getModid();
-    // Youer end
-
-    // Paper start - async chunks API
-    /**
-     * This is the Legacy API before Java 8 was supported. Java 8 Consumer is provided,
-     * as well as future support
-     *
-     * Used by {@link World#getChunkAtAsync(Location,ChunkLoadCallback)} methods
-     * to request a {@link Chunk} to be loaded, with this callback receiving
-     * the chunk when it is finished.
-     *
-     * This callback will be executed on synchronously on the main thread.
-     *
-     * Timing and order this callback is fired is intentionally not defined and
-     * and subject to change.
-     *
-     * @deprecated Use either the Future or the Consumer based methods
-     */
-    @Deprecated(since = "1.13.1")
-    public static interface ChunkLoadCallback extends java.util.function.Consumer<Chunk> {
-        public void onLoad(@NotNull Chunk chunk);
-
-        // backwards compat to old api
-        @Override
-        default void accept(@NotNull Chunk chunk) {
-            onLoad(chunk);
-        }
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link ChunkLoadCallback} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @deprecated Use either the Future or the Consumer based methods
-     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
-     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    @Deprecated(since = "1.13.1")
-    public default void getChunkAtAsync(int x, int z, @NotNull ChunkLoadCallback cb) {
-        getChunkAtAsync(x, z, true).thenAccept(cb::onLoad).exceptionally((ex) -> {
-            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
-            return null;
-        });
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given {@link Location}
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link ChunkLoadCallback} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @deprecated Use either the Future or the Consumer based methods
-     * @param loc Location of the chunk
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    @Deprecated(since = "1.13.1")
-    public default void getChunkAtAsync(@NotNull Location loc, @NotNull ChunkLoadCallback cb) {
-        getChunkAtAsync(loc, true).thenAccept(cb::onLoad).exceptionally((ex) -> {
-            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
-            return null;
-        });
-    }
-
-    /**
-     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link ChunkLoadCallback} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @deprecated Use either the Future or the Consumer based methods
-     * @param block Block to get the containing chunk from
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    @Deprecated(since = "1.13.1")
-    public default void getChunkAtAsync(@NotNull Block block, @NotNull ChunkLoadCallback cb) {
-        getChunkAtAsync(block, true).thenAccept(cb::onLoad).exceptionally((ex) -> {
-            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
-            return null;
-        });
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link java.util.function.Consumer} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
-     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    default void getChunkAtAsync(final int x, final int z, final @NotNull Consumer<? super Chunk> cb) {
-        this.getChunkAtAsync(x, z, true).thenAccept(cb).exceptionally((ex) -> {
-            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
-            return null;
-        });
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link java.util.function.Consumer} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
-     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
-     * @param gen Should we generate a chunk if it doesn't exist or not
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    default void getChunkAtAsync(final int x, final int z, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
-        this.getChunkAtAsync(x, z, gen).thenAccept(cb).exceptionally((ex) -> {
-            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
-            return null;
-        });
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given {@link Location}
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link java.util.function.Consumer} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param loc Location of the chunk
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    default void getChunkAtAsync(final @NotNull Location loc, final @NotNull Consumer<? super Chunk> cb) {
-        this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true, cb);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given {@link Location}
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link java.util.function.Consumer} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param loc Location of the chunk
-     * @param gen Should the chunk generate if it doesn't exist
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    default void getChunkAtAsync(final @NotNull Location loc, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
-        this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen, cb);
-    }
-
-    /**
-     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link java.util.function.Consumer} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param block Block to get the containing chunk from
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    default void getChunkAtAsync(final @NotNull Block block, final @NotNull Consumer<? super Chunk> cb) {
-        this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true, cb);
-    }
-
-    /**
-     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The {@link java.util.function.Consumer} will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param block Block to get the containing chunk from
-     * @param gen Should the chunk generate if it doesn't exist
-     * @param cb Callback to receive the chunk when it is loaded.
-     *           will be executed synchronously
-     */
-    default void getChunkAtAsync(final @NotNull Block block, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
-        this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen, cb);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     * @param loc Location to load the corresponding chunk from
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Location loc) {
-        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     * @param loc Location to load the corresponding chunk from
-     * @param gen Should the chunk generate if it doesn't exist
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Location loc, final boolean gen) {
-        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     * @param block Block to load the corresponding chunk from
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Block block) {
-        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     * @param block Block to load the corresponding chunk from
-     * @param gen Should the chunk generate if it doesn't exist
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Block block, final boolean gen) {
-        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
-     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final int x, final int z) {
-        return this.getChunkAtAsync(x, z, true);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
-     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
-     * @param gen Should we generate a chunk if it doesn't exist or not
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final int x, final int z, final boolean gen) {
-        return this.getChunkAtAsync(x, z, gen, false);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     * @param loc Location to load the corresponding chunk from
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Location loc) {
-        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true, true);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     * @param loc Location to load the corresponding chunk from
-     * @param gen Should the chunk generate if it doesn't exist
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Location loc, final boolean gen) {
-        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen, true);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     * @param block Block to load the corresponding chunk from
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Block block) {
-        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true, true);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     * @param block Block to load the corresponding chunk from
-     * @param gen Should the chunk generate if it doesn't exist
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Block block, final boolean gen) {
-        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen, true);
-    }
-
-    /**
-     * Requests a {@link Chunk} to be loaded at the given coordinates
-     *
-     * This method makes no guarantee on how fast the chunk will load,
-     * and will return the chunk to the callback at a later time.
-     *
-     * You should use this method if you need a chunk but do not need it
-     * immediately, and you wish to let the server control the speed
-     * of chunk loads, keeping performance in mind.
-     *
-     * The future will always be executed synchronously
-     * on the main Server Thread.
-     *
-     * @param x X Coord
-     * @param z Z Coord
-     * @return Future that will resolve when the chunk is loaded
-     */
-    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final int x, final int z) {
-        return this.getChunkAtAsync(x, z, true, true);
-    }
-
-    java.util.concurrent.@NotNull CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent);
-    // Paper end - async chunks API
 }

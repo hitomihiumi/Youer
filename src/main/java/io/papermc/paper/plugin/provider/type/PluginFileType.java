@@ -6,13 +6,14 @@ import io.papermc.paper.plugin.entrypoint.EntrypointHandler;
 import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
 import io.papermc.paper.plugin.provider.type.paper.PaperPluginParent;
 import io.papermc.paper.plugin.provider.type.spigot.SpigotPluginProvider;
+import org.bukkit.plugin.PluginDescriptionFile;
+import org.jetbrains.annotations.Nullable;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import org.bukkit.plugin.PluginDescriptionFile;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * This is where spigot/paper plugins are registered.

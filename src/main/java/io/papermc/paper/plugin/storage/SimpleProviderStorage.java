@@ -7,14 +7,15 @@ import io.papermc.paper.plugin.entrypoint.dependency.SimpleMetaDependencyTree;
 import io.papermc.paper.plugin.entrypoint.strategy.PluginGraphCycleException;
 import io.papermc.paper.plugin.entrypoint.strategy.ProviderLoadingStrategy;
 import io.papermc.paper.plugin.provider.PluginProvider;
+import org.slf4j.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
 
 public abstract class SimpleProviderStorage<T> implements ProviderStorage<T> {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     protected final List<PluginProvider<T>> providers = new ArrayList<>();
     protected ProviderLoadingStrategy<T> strategy;

@@ -6,9 +6,9 @@ import com.google.common.graph.MutableGraph;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
+import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.Set;
-import org.jetbrains.annotations.NotNull;
 
 public abstract class MetaDependencyTree implements DependencyContext {
 

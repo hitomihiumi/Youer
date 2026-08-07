@@ -23,7 +23,6 @@
 
 package com.destroystokyo.paper.event.profile;
 
-import com.mohistmc.youer.api.ColorAPI;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -51,12 +50,6 @@ public class ProfileWhitelistVerifyEvent extends Event {
     private boolean whitelisted;
     private @Nullable Component kickMessage;
 
-    @Deprecated
-    @ApiStatus.Internal
-    public ProfileWhitelistVerifyEvent(final PlayerProfile profile, final boolean whitelistEnabled, final boolean whitelisted, final boolean isOp, final @Nullable String kickMessage) {
-        this(profile, whitelistEnabled, whitelisted, isOp, kickMessage == null ? null : ColorAPI.adventure(kickMessage));
-    }
-
     @ApiStatus.Internal
     public ProfileWhitelistVerifyEvent(final PlayerProfile profile, final boolean whitelistEnabled, final boolean whitelisted, final boolean isOp, final @Nullable Component kickMessage) {
         this.profile = profile;
@@ -81,7 +74,7 @@ public class ProfileWhitelistVerifyEvent extends Event {
      */
     @Deprecated
     public void setKickMessage(final @Nullable String kickMessage) {
-        this.kickMessage(kickMessage == null ? null : ColorAPI.adventure(kickMessage));
+        this.kickMessage(kickMessage == null ? null : LegacyComponentSerializer.legacySection().deserialize(kickMessage));
     }
 
     /**

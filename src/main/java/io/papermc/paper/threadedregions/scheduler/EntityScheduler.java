@@ -1,9 +1,10 @@
 package io.papermc.paper.threadedregions.scheduler;
 
-import java.util.function.Consumer;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Consumer;
 
 /**
  * An entity can move between worlds with an arbitrary tick delay, be temporarily removed
@@ -60,7 +61,7 @@ public interface EntityScheduler {
      * @return The {@link ScheduledTask} that represents the scheduled task, or {@code null} if the entity has been removed.
      */
     @Nullable ScheduledTask run(@NotNull Plugin plugin, @NotNull Consumer<ScheduledTask> task,
-                                       @Nullable Runnable retired);
+                                @Nullable Runnable retired);
 
     /**
      * Schedules a task with the given delay. If the task failed to schedule because the scheduler is retired (entity
@@ -79,7 +80,7 @@ public interface EntityScheduler {
      * @return The {@link ScheduledTask} that represents the scheduled task, or {@code null} if the entity has been removed.
      */
     @Nullable ScheduledTask runDelayed(@NotNull Plugin plugin, @NotNull Consumer<ScheduledTask> task,
-                                              @Nullable Runnable retired, long delayTicks);
+                                       @Nullable Runnable retired, long delayTicks);
 
     /**
      * Schedules a repeating task with the given delay and period. If the task failed to schedule because the scheduler
@@ -99,5 +100,5 @@ public interface EntityScheduler {
      * @return The {@link ScheduledTask} that represents the scheduled task, or {@code null} if the entity has been removed.
      */
     @Nullable ScheduledTask runAtFixedRate(@NotNull Plugin plugin, @NotNull Consumer<ScheduledTask> task,
-                                                  @Nullable Runnable retired, long initialDelayTicks, long periodTicks);
+                                           @Nullable Runnable retired, long initialDelayTicks, long periodTicks);
 }

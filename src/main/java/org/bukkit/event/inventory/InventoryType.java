@@ -2,6 +2,7 @@ package org.bukkit.event.inventory;
 
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.MenuType;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,10 +62,12 @@ public enum InventoryType {
     BREWING(5, "Brewing", MenuType.BREWING_STAND),
     /**
      * A player's inventory, with 9 QUICKBAR slots, 27 CONTAINER slots, 4 ARMOR
-     * slots and 1 offhand slot. The ARMOR and offhand slots may not be visible
-     * to the player, though.
+     * slots, 1 offhand slot, 1 body slot and 1 saddle slot.
+     * <p>
+     * The ARMOR and offhand slots are conditionally visible to the player,
+     * while body and saddle slot are never visible.
      */
-    PLAYER(41, "Player", MenuType.GENERIC_9X4),
+    PLAYER(43, "Player", MenuType.GENERIC_9X4),
     /**
      * The creative mode inventory, with only 9 QUICKBAR slots and nothing
      * else. (The actual creative interface with the items is client-side and
@@ -159,15 +162,14 @@ public enum InventoryType {
      *
      * @deprecated use {@link #SMITHING}
      */
-    @Deprecated
+    @Deprecated(since = "1.20.1", forRemoval = true) // Paper
     SMITHING_NEW(4, "Upgrade Gear", MenuType.SMITHING),
     ;
 
-    private int size; public void setDefaultSize(int size) { this.size = size; } // Purpur - remove final and add setter
+    private final int size;
     private final String title;
     private final MenuType menuType;
     private final boolean isCreatable;
-    private boolean isMods;
     // Paper start
     private final net.kyori.adventure.text.Component defaultTitleComponent;
 
@@ -232,14 +234,6 @@ public enum InventoryType {
      */
     public boolean isCreatable() {
         return isCreatable;
-    }
-
-    public boolean isMods() {
-        return isMods;
-    }
-
-    public void setMods(boolean isMods) {
-        this.isMods = isMods;
     }
 
     public enum SlotType {

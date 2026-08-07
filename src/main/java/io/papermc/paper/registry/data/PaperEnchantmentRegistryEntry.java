@@ -1,11 +1,9 @@
 package io.papermc.paper.registry.data;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.papermc.paper.registry.PaperRegistryBuilder;
 import io.papermc.paper.registry.RegistryKey;
-import io.papermc.paper.registry.TypedKey;
 import io.papermc.paper.registry.data.util.Checks;
 import io.papermc.paper.registry.data.util.Conversions;
 import io.papermc.paper.registry.set.PaperRegistrySets;
@@ -23,31 +21,27 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.enchantment.Enchantment;
 import org.bukkit.craftbukkit.CraftEquipmentSlot;
 import org.bukkit.inventory.ItemType;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.framework.qual.DefaultQualifier;
 import org.jetbrains.annotations.Range;
+import org.jspecify.annotations.Nullable;
 
 import static io.papermc.paper.registry.data.util.Checks.asArgument;
 import static io.papermc.paper.registry.data.util.Checks.asArgumentMin;
 import static io.papermc.paper.registry.data.util.Checks.asConfigured;
 
-@DefaultQualifier(NonNull.class)
 public class PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry {
 
     // Top level
-    protected @MonotonicNonNull Component description;
+    protected @Nullable Component description;
 
     // Definition
-    protected @MonotonicNonNull HolderSet<Item> supportedItems;
+    protected @Nullable HolderSet<Item> supportedItems;
     protected @Nullable HolderSet<Item> primaryItems;
     protected OptionalInt weight = OptionalInt.empty();
     protected OptionalInt maxLevel = OptionalInt.empty();
-    protected Enchantment.@MonotonicNonNull Cost minimumCost;
-    protected Enchantment.@MonotonicNonNull Cost maximumCost;
+    protected Enchantment.@Nullable Cost minimumCost;
+    protected Enchantment.@Nullable Cost maximumCost;
     protected OptionalInt anvilCost = OptionalInt.empty();
-    protected @MonotonicNonNull List<EquipmentSlotGroup> activeSlots;
+    protected @Nullable List<EquipmentSlotGroup> activeSlots;
 
     // Exclusive
     protected HolderSet<Enchantment> exclusiveWith = HolderSet.empty(); // Paper added default to empty.
@@ -59,7 +53,6 @@ public class PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry {
 
     public PaperEnchantmentRegistryEntry(
         final Conversions conversions,
-        final TypedKey<org.bukkit.enchantments.Enchantment> ignoredKey,
         final @Nullable Enchantment internal
     ) {
         this.conversions = conversions;
@@ -116,13 +109,13 @@ public class PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry {
 
     @Override
     public EnchantmentCost minimumCost() {
-        final Enchantment.@MonotonicNonNull Cost cost = asConfigured(this.minimumCost, "minimumCost");
+        final Enchantment.Cost cost = asConfigured(this.minimumCost, "minimumCost");
         return EnchantmentRegistryEntry.EnchantmentCost.of(cost.base(), cost.perLevelAboveFirst());
     }
 
     @Override
     public EnchantmentCost maximumCost() {
-        final Enchantment.@MonotonicNonNull Cost cost = asConfigured(this.maximumCost, "maximumCost");
+        final Enchantment.Cost cost = asConfigured(this.maximumCost, "maximumCost");
         return EnchantmentRegistryEntry.EnchantmentCost.of(cost.base(), cost.perLevelAboveFirst());
     }
 
@@ -133,7 +126,7 @@ public class PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry {
 
     @Override
     public List<org.bukkit.inventory.EquipmentSlotGroup> activeSlots() {
-        return Collections.unmodifiableList(Lists.transform(asConfigured(this.activeSlots, "activeSlots"), CraftEquipmentSlot::getSlot));
+        return Collections.unmodifiableList(Lists.transform(asConfigured(this.activeSlots, "activeSlots"), CraftEquipmentSlot::getSlotGroup));
     }
 
     @Override
@@ -144,8 +137,8 @@ public class PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry {
     public static final class PaperBuilder extends PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry.Builder,
         PaperRegistryBuilder<Enchantment, org.bukkit.enchantments.Enchantment> {
 
-        public PaperBuilder(final Conversions conversions, final TypedKey<org.bukkit.enchantments.Enchantment> key, final @Nullable Enchantment internal) {
-            super(conversions, key, internal);
+        public PaperBuilder(final Conversions conversions, final @Nullable Enchantment internal) {
+            super(conversions, internal);
         }
 
         @Override
@@ -194,7 +187,6 @@ public class PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry {
 
         @Override
         public Builder anvilCost(final @Range(from = 0, to = Integer.MAX_VALUE) int anvilCost) {
-            Preconditions.checkArgument(anvilCost >= 0, "anvilCost must be non-negative");
             this.anvilCost = OptionalInt.of(asArgumentMin(anvilCost, "anvilCost", 0));
             return this;
         }

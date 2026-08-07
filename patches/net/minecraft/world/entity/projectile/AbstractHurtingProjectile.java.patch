@@ -1,51 +1,21 @@
 --- a/net/minecraft/world/entity/projectile/AbstractHurtingProjectile.java
 +++ b/net/minecraft/world/entity/projectile/AbstractHurtingProjectile.java
-@@ -17,11 +_,14 @@
- import net.minecraft.world.level.Level;
- import net.minecraft.world.phys.HitResult;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public abstract class AbstractHurtingProjectile extends Projectile {
-     public static final double INITAL_ACCELERATION_POWER = 0.1;
-     public static final double DEFLECTION_SCALE = 0.5;
-     public double accelerationPower = 0.1;
-+    public float bukkitYield = 1; // CraftBukkit
-+    public boolean isIncendiary = true; // CraftBukkit
- 
-     protected AbstractHurtingProjectile(EntityType<? extends AbstractHurtingProjectile> p_36833_, Level p_36834_) {
-         super(p_36833_, p_36834_);
-@@ -78,8 +_,14 @@
-             }
- 
+@@ -73,7 +_,8 @@
+         if (this.level().isClientSide || (entity == null || !entity.isRemoved()) && this.level().hasChunkAt(this.blockPosition())) {
              HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, this.getClipType());
+             Vec3 vec3;
 -            if (hitresult.getType() != HitResult.Type.MISS) {
--                this.hitTargetOrDeflectSelf(hitresult);
-+            if (hitresult.getType() != HitResult.Type.MISS && !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, hitresult)) {
-+                this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
-+
-+                // CraftBukkit start - Fire ProjectileHitEvent
-+                if (this.isRemoved()) {
-+                    CraftEventFactory.callProjectileHitEvent(this, hitresult);
-+                }
-+                // CraftBukkit end
++            boolean impacted = hitresult.getType() != HitResult.Type.MISS && !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, hitresult);
++            if (impacted) {
+                 vec3 = hitresult.getLocation();
+             } else {
+                 vec3 = this.position().add(this.getDeltaMovement());
+@@ -87,7 +_,7 @@
+                 this.igniteForSeconds(1.0F);
              }
  
-             this.checkInsideBlocks();
-@@ -108,6 +_,7 @@
- 
-             this.setPos(d0, d1, d2);
-         } else {
-+            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
-             this.discard();
-         }
-     }
-@@ -118,7 +_,7 @@
-     }
- 
-     @Override
--    protected boolean canHitEntity(Entity p_36842_) {
-+    public boolean canHitEntity(Entity p_36842_) {
-         return super.canHitEntity(p_36842_) && !p_36842_.noPhysics;
-     }
+-            if (hitresult.getType() != HitResult.Type.MISS && this.isAlive()) {
++            if (hitresult.getType() != HitResult.Type.MISS && this.isAlive() && impacted) {
+                 this.hitTargetOrDeflectSelf(hitresult);
+             }
  

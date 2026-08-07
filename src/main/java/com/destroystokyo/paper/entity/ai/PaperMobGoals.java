@@ -20,8 +20,8 @@ public class PaperMobGoals implements MobGoals {
         CraftMob craftMob = (CraftMob) mob;
         net.minecraft.world.entity.ai.goal.Goal mojangGoal;
 
-        if (goal instanceof PaperVanillaGoal vanillaGoal) {
-            mojangGoal = vanillaGoal.getHandle();
+        if (goal instanceof PaperGoal<?> paperGoal) {
+            mojangGoal = paperGoal.getHandle();
         } else {
             mojangGoal = new PaperCustomGoal<>(goal);
         }
@@ -34,8 +34,8 @@ public class PaperMobGoals implements MobGoals {
         CraftMob craftMob = (CraftMob) mob;
         if (goal instanceof PaperCustomGoal) {
             getHandle(craftMob, goal.getTypes()).removeGoal((net.minecraft.world.entity.ai.goal.Goal) goal);
-        } else if (goal instanceof PaperVanillaGoal) {
-            getHandle(craftMob, goal.getTypes()).removeGoal(((PaperVanillaGoal<?>) goal).getHandle());
+        } else if (goal instanceof PaperGoal) {
+            getHandle(craftMob, goal.getTypes()).removeGoal(((PaperGoal<?>) goal).getHandle());
         } else {
             List<net.minecraft.world.entity.ai.goal.Goal> toRemove = new LinkedList<>();
             for (WrappedGoal item : getHandle(craftMob, goal.getTypes()).getAvailableGoals()) {
@@ -119,7 +119,7 @@ public class PaperMobGoals implements MobGoals {
         CraftMob craftMob = (CraftMob) mob;
         Set<Goal<T>> goals = new HashSet<>();
         for (WrappedGoal item : getHandle(craftMob, type).getAvailableGoals()) {
-            if (!item.getGoal().getFlags().contains(MobGoalHelper.paperToVanilla(type))) {
+            if (!item.getGoal().hasFlag(MobGoalHelper.paperToVanilla(type))) {
                 continue;
             }
 
@@ -127,7 +127,7 @@ public class PaperMobGoals implements MobGoals {
                 //noinspection unchecked
                 goals.add(((PaperCustomGoal<T>) item.getGoal()).getHandle());
             } else {
-                goals.add(item.getGoal().asPaperVanillaGoal());
+                goals.add(item.getGoal().asPaperGoal());
             }
         }
         return goals;
@@ -142,7 +142,7 @@ public class PaperMobGoals implements MobGoals {
                 continue;
             }
             for (WrappedGoal item : getHandle(craftMob, internalType).getAvailableGoals()) {
-                if (item.getGoal().getFlags().contains(MobGoalHelper.paperToVanilla(type))) {
+                if (item.getGoal().hasFlag(MobGoalHelper.paperToVanilla(type))) {
                     continue;
                 }
 
@@ -150,7 +150,7 @@ public class PaperMobGoals implements MobGoals {
                     //noinspection unchecked
                     goals.add(((PaperCustomGoal<T>) item.getGoal()).getHandle());
                 } else {
-                    goals.add(item.getGoal().asPaperVanillaGoal());
+                    goals.add(item.getGoal().asPaperGoal());
                 }
             }
         }
@@ -172,13 +172,13 @@ public class PaperMobGoals implements MobGoals {
         Set<Goal<T>> goals = new HashSet<>();
         getHandle(craftMob, type).getAvailableGoals()
             .stream().filter(WrappedGoal::isRunning)
-            .filter(item -> item.getGoal().getFlags().contains(MobGoalHelper.paperToVanilla(type)))
+            .filter(item -> item.getGoal().hasFlag(MobGoalHelper.paperToVanilla(type)))
             .forEach(item -> {
                 if (item.getGoal() instanceof PaperCustomGoal) {
                     //noinspection unchecked
                     goals.add(((PaperCustomGoal<T>) item.getGoal()).getHandle());
                 } else {
-                    goals.add(item.getGoal().asPaperVanillaGoal());
+                    goals.add(item.getGoal().asPaperGoal());
                 }
             });
         return goals;
@@ -195,13 +195,13 @@ public class PaperMobGoals implements MobGoals {
             getHandle(craftMob, internalType).getAvailableGoals()
                 .stream()
                 .filter(WrappedGoal::isRunning)
-                .filter(item -> !item.getGoal().getFlags().contains(MobGoalHelper.paperToVanilla(type)))
+                .filter(item -> !item.getGoal().hasFlag(MobGoalHelper.paperToVanilla(type)))
                 .forEach(item -> {
                     if (item.getGoal() instanceof PaperCustomGoal) {
                         //noinspection unchecked
                         goals.add(((PaperCustomGoal<T>) item.getGoal()).getHandle());
                     } else {
-                        goals.add(item.getGoal().asPaperVanillaGoal());
+                        goals.add(item.getGoal().asPaperGoal());
                     }
                 });
         }

@@ -1,10 +1,10 @@
 package io.papermc.paper.configuration.transformation.world.versioned;
 
-import com.mohistmc.org.spongepowered.configurate.NodePath;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import org.spongepowered.configurate.NodePath;
+import org.spongepowered.configurate.transformation.ConfigurationTransformation;
 
-import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
-import static com.mohistmc.org.spongepowered.configurate.transformation.TransformAction.rename;
+import static org.spongepowered.configurate.NodePath.path;
+import static org.spongepowered.configurate.transformation.TransformAction.rename;
 
 /**
  * The {@code filter-nbt-data-from-spawn-eggs-and-related} setting had nothing

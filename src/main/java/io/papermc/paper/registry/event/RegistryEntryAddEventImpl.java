@@ -12,7 +12,6 @@ import io.papermc.paper.registry.tag.TagKey;
 import net.minecraft.core.HolderSet;
 import net.minecraft.resources.RegistryOps;
 import org.bukkit.Keyed;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 public record RegistryEntryAddEventImpl<T, B extends RegistryBuilder<T>>(
     TypedKey<T> key,
@@ -22,7 +21,7 @@ public record RegistryEntryAddEventImpl<T, B extends RegistryBuilder<T>>(
 ) implements RegistryEntryAddEvent<T, B>, PaperLifecycleEvent {
 
     @Override
-    public @NonNull <V extends Keyed> Tag<V> getOrCreateTag(final TagKey<V> tagKey) {
+    public <V extends Keyed> Tag<V> getOrCreateTag(final TagKey<V> tagKey) {
         final RegistryOps.RegistryInfo<Object> registryInfo = this.conversions.lookup().lookup(PaperRegistries.registryToNms(tagKey.registryKey())).orElseThrow();
         final HolderSet.Named<?> tagSet = registryInfo.getter().getOrThrow(PaperRegistries.toNms(tagKey));
         return new NamedRegistryKeySetImpl<>(tagKey, tagSet);

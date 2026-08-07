@@ -1,28 +1,11 @@
 --- a/net/minecraft/server/commands/SetSpawnCommand.java
 +++ b/net/minecraft/server/commands/SetSpawnCommand.java
-@@ -1,7 +_,7 @@
- package net.minecraft.server.commands;
- 
-+import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent;
- import com.mojang.brigadier.CommandDispatcher;
--import com.mojang.brigadier.context.CommandContext;
- import java.util.Collection;
- import java.util.Collections;
- import net.minecraft.commands.CommandSourceStack;
-@@ -68,6 +_,7 @@
-         ResourceKey<Level> resourcekey = p_138650_.getLevel().dimension();
- 
-         for (ServerPlayer serverplayer : p_138651_) {
-+            serverplayer.setRespawnPosition$setSpawnCause(PlayerSetSpawnEvent.Cause.COMMAND); // CraftBukkit
-             serverplayer.setRespawnPosition(resourcekey, p_138652_, p_138653_, true, false);
-         }
- 
 @@ -80,7 +_,7 @@
-                         p_138652_.getY(),
-                         p_138652_.getZ(),
-                         p_138653_,
--                        s,
-+                        p_138650_.getLevel().getDescription(), // Neo: Use dimension translation, if one exists
-                         p_138651_.iterator().next().getDisplayName()
-                     ),
+                     p_138652_.getY(),
+                     p_138652_.getZ(),
+                     p_138653_,
+-                    s,
++                    p_138650_.getLevel().getDescription(), // Neo: Use dimension translation, if one exists
+                     p_138651_.iterator().next().getDisplayName()
+                 ),
                  true

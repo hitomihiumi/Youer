@@ -1,6 +1,7 @@
 package io.papermc.paper.plugin.provider.type;
 
 import io.papermc.paper.plugin.configuration.PluginMeta;
+
 import java.nio.file.Path;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;

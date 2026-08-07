@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents the different growth states of crops
  */
+@Deprecated(forRemoval = true, since = "1.13")
 public enum CropState {
 
     /**
@@ -55,7 +56,7 @@ public enum CropState {
      * @return A byte containing the data value of this growth state
      * @deprecated Magic value
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2")
     public byte getData() {
         return data;
     }
@@ -68,7 +69,7 @@ public enum CropState {
      *     it doesn't exist
      * @deprecated Magic value
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2")
     @Nullable
     public static CropState getByData(final byte data) {
         return BY_DATA.get(data);

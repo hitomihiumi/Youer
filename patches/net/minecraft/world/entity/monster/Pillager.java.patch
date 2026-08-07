@@ -1,6 +1,15 @@
 --- a/net/minecraft/world/entity/monster/Pillager.java
 +++ b/net/minecraft/world/entity/monster/Pillager.java
-@@ -116,7 +_,7 @@
+@@ -96,7 +_,7 @@
+ 
+     @Override
+     public boolean canFireProjectileWeapon(ProjectileWeaponItem p_33280_) {
+-        return p_33280_ == Items.CROSSBOW;
++        return p_33280_.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Items.PILLAGER_USABLE_CROSSBOWS);
+     }
+ 
+     public boolean isChargingCrossbow() {
+@@ -128,7 +_,7 @@
      public AbstractIllager.IllagerArmPose getArmPose() {
          if (this.isChargingCrossbow()) {
              return AbstractIllager.IllagerArmPose.CROSSBOW_CHARGE;
@@ -9,21 +18,3 @@
              return AbstractIllager.IllagerArmPose.CROSSBOW_HOLD;
          } else {
              return this.isAggressive() ? AbstractIllager.IllagerArmPose.ATTACKING : AbstractIllager.IllagerArmPose.NEUTRAL;
-@@ -173,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.PILLAGER_DEATH;
-     }
- 
-@@ -201,7 +_,7 @@
-             this.onItemPickup(p_33296_);
-             ItemStack itemstack1 = this.inventory.addItem(itemstack);
-             if (itemstack1.isEmpty()) {
--                p_33296_.discard();
-+                p_33296_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
-             } else {
-                 itemstack.setCount(itemstack1.getCount());
-             }

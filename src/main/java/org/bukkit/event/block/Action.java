@@ -29,6 +29,7 @@ public enum Action {
      * <li>Triggering tripwire
      * </ul>
      */
+    // Paper start
     PHYSICAL;
 
     /**

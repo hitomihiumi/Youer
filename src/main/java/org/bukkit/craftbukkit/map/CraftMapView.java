@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -19,14 +20,14 @@ import org.bukkit.map.MapView;
 
 public final class CraftMapView implements MapView {
 
-    private final Map<CraftPlayer, RenderData> renderCache = new HashMap<CraftPlayer, RenderData>();
-    private final List<MapRenderer> renderers = new ArrayList<MapRenderer>();
-    private final Map<MapRenderer, Map<CraftPlayer, CraftMapCanvas>> canvases = new HashMap<MapRenderer, Map<CraftPlayer, CraftMapCanvas>>();
-    protected final MapItemSavedData worldMap;
+    private final Map<CraftPlayer, RenderData> renderCache = new WeakHashMap<>();
+    private final List<MapRenderer> renderers = new ArrayList<>();
+    private final Map<MapRenderer, Map<CraftPlayer, CraftMapCanvas>> canvases = new HashMap<>();
+    final MapItemSavedData worldMap;
 
     public CraftMapView(MapItemSavedData worldMap) {
         this.worldMap = worldMap;
-        this.addRenderer(new CraftMapRenderer(this, worldMap));
+        this.addRenderer(new CraftMapRenderer(worldMap));
     }
 
     @Override
@@ -36,7 +37,7 @@ public final class CraftMapView implements MapView {
 
     @Override
     public boolean isVirtual() {
-        return this.renderers.size() > 0 && !(this.renderers.get(0) instanceof CraftMapRenderer);
+        return !this.renderers.isEmpty() && !(this.renderers.get(0) instanceof CraftMapRenderer);
     }
 
     @Override
@@ -99,7 +100,7 @@ public final class CraftMapView implements MapView {
     public void addRenderer(MapRenderer renderer) {
         if (!this.renderers.contains(renderer)) {
             this.renderers.add(renderer);
-            this.canvases.put(renderer, new HashMap<CraftPlayer, CraftMapCanvas>());
+            this.canvases.put(renderer, new WeakHashMap<>());
             renderer.initialize(this);
         }
     }

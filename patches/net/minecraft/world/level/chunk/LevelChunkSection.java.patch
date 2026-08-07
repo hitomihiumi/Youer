@@ -1,46 +1,6 @@
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -18,23 +_,38 @@
-     public static final int SECTION_HEIGHT = 16;
-     public static final int SECTION_SIZE = 4096;
-     public static final int BIOME_CONTAINER_BITS = 2;
--    private short nonEmptyBlockCount;
-+    short nonEmptyBlockCount;
-     private short tickingBlockCount;
-     private short tickingFluidCount;
-     public PalettedContainer<BlockState> states;
-     private PalettedContainerRO<Holder<Biome>> biomes;
- 
-+    public LevelChunkSection(){
-+    }
-+
-     public LevelChunkSection(PalettedContainer<BlockState> p_282846_, PalettedContainerRO<Holder<Biome>> p_281695_) {
-         this.states = p_282846_;
-         this.biomes = p_281695_;
-         this.recalcBlockCounts();
-     }
- 
-+    public LevelChunkSection(PalettedContainer<BlockState> pStates, PalettedContainer<Holder<Biome>> pBiomes) {
-+        this.states = pStates;
-+        this.biomes = pBiomes;
-+        this.recalcBlockCounts();
-+    }
-+
-     public LevelChunkSection(Registry<Biome> p_282873_) {
-         this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
-         this.biomes = new PalettedContainer<>(p_282873_.asHolderIdMap(), p_282873_.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES);
-     }
- 
-+    public LevelChunkSection fix(Registry<Biome> p_282873_) {
-+        this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
-+        this.biomes = new PalettedContainer<>(p_282873_.asHolderIdMap(), p_282873_.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES);
-+        return this;
-+    }
-+
-     public BlockState getBlockState(int p_62983_, int p_62984_, int p_62985_) {
-         return this.states.get(p_62983_, p_62984_, p_62985_);
-     }
-@@ -65,7 +_,7 @@
+@@ -73,7 +_,7 @@
  
          FluidState fluidstate = blockstate.getFluidState();
          FluidState fluidstate1 = p_62995_.getFluidState();
@@ -49,7 +9,7 @@
              this.nonEmptyBlockCount--;
              if (blockstate.isRandomlyTicking()) {
                  this.tickingBlockCount--;
-@@ -76,7 +_,7 @@
+@@ -84,7 +_,7 @@
              this.tickingFluidCount--;
          }
  
@@ -58,7 +18,7 @@
              this.nonEmptyBlockCount++;
              if (p_62995_.isRandomlyTicking()) {
                  this.tickingBlockCount++;
-@@ -114,7 +_,7 @@
+@@ -122,7 +_,7 @@
  
              public void accept(BlockState p_204444_, int p_204445_) {
                  FluidState fluidstate = p_204444_.getFluidState();
@@ -67,16 +27,3 @@
                      this.nonEmptyBlockCount += p_204445_;
                      if (p_204444_.isRandomlyTicking()) {
                          this.tickingBlockCount += p_204445_;
-@@ -176,6 +_,12 @@
-     public Holder<Biome> getNoiseBiome(int p_204434_, int p_204435_, int p_204436_) {
-         return this.biomes.get(p_204434_, p_204435_, p_204436_);
-     }
-+
-+    // CraftBukkit start
-+    public void setBiome(int i, int j, int k, Holder<Biome> biome) {
-+        this.biomes.recreate().set(i, j, k, biome);
-+    }
-+    // CraftBukkit end
- 
-     public void fillBiomesFromNoise(BiomeResolver p_282075_, Climate.Sampler p_283084_, int p_282310_, int p_281510_, int p_283057_) {
-         PalettedContainer<Holder<Biome>> palettedcontainer = this.biomes.recreate();

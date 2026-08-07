@@ -1,17 +1,18 @@
 package org.purpurmc.purpur.command;
 
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import org.purpurmc.purpur.PurpurConfig;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.purpurmc.purpur.PurpurConfig;
 
 public class PurpurCommand extends Command {
     public PurpurCommand(String name) {
@@ -48,7 +49,7 @@ public class PurpurCommand extends Command {
             PurpurConfig.init((File) console.options.valueOf("purpur-settings"));
             for (ServerLevel level : console.getAllLevels()) {
                 level.purpurConfig.init();
-                level.resetBreedingCooldowns();
+                level.resetBreedingCooldowns(); // Purpur - Add adjustable breeding cooldown to config
             }
             console.server.reloadCount++;
 

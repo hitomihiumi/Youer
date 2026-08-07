@@ -1,16 +1,17 @@
 package io.papermc.paper.plugin.provider.configuration.serializer;
 
 import com.google.common.collect.ImmutableCollection;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationOptions;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.serialize.TypeSerializer;
-import com.mohistmc.org.spongepowered.configurate.util.CheckedConsumer;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.ConfigurationOptions;
+import org.spongepowered.configurate.serialize.SerializationException;
+import org.spongepowered.configurate.serialize.TypeSerializer;
+import org.spongepowered.configurate.util.CheckedConsumer;
+
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 @SuppressWarnings("unchecked")
 public abstract class ImmutableCollectionSerializer<B extends ImmutableCollection.Builder<?>, T extends Collection<?>> implements TypeSerializer<T> {

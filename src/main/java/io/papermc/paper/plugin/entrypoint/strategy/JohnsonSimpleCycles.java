@@ -26,6 +26,7 @@ import com.google.common.graph.Graph;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 import com.mojang.datafixers.util.Pair;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;

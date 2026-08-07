@@ -1,9 +1,8 @@
 package com.destroystokyo.paper.network;
 
-import com.destroystokyo.paper.event.server.PaperServerListPingEvent;
+import com.destroystokyo.paper.profile.PlayerProfile;
 import com.mojang.authlib.GameProfile;
 import io.papermc.paper.adventure.AdventureComponent;
-import com.destroystokyo.paper.profile.PlayerProfile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,12 +27,12 @@ public final class StandardPaperServerListPingEventImpl extends PaperServerListP
 
     @Nonnull
     @Override
-    public List<PaperServerListPingEvent.ListedPlayerInfo> getListedPlayers() {
-        List<PaperServerListPingEvent.ListedPlayerInfo> sample = super.getListedPlayers();
+    public List<ListedPlayerInfo> getListedPlayers() {
+        List<ListedPlayerInfo> sample = super.getListedPlayers();
 
         if (this.originalSample != null) {
             for (GameProfile profile : this.originalSample) {
-                sample.add(new PaperServerListPingEvent.ListedPlayerInfo(profile.getName(), profile.getId()));
+                sample.add(new ListedPlayerInfo(profile.getName(), profile.getId()));
             }
             this.originalSample = null;
         }
@@ -52,19 +51,19 @@ public final class StandardPaperServerListPingEventImpl extends PaperServerListP
             return this.originalSample;
         }
 
-        List<PaperServerListPingEvent.ListedPlayerInfo> entries = super.getListedPlayers();
+        List<ListedPlayerInfo> entries = super.getListedPlayers();
         if (entries.isEmpty()) {
             return Collections.emptyList();
         }
 
         final List<GameProfile> profiles = new ArrayList<>();
-        for (PaperServerListPingEvent.ListedPlayerInfo playerInfo : entries) {
+        for (ListedPlayerInfo playerInfo : entries) {
             profiles.add(new GameProfile(playerInfo.id(), playerInfo.name()));
         }
         return profiles;
     }
 
-    public static void processRequest(MinecraftServer server, Connection networkManager, String statusCache) {
+    public static void processRequest(MinecraftServer server, Connection networkManager) {
         StandardPaperServerListPingEventImpl event = new StandardPaperServerListPingEventImpl(server, networkManager, server.getStatus());
         server.server.getPluginManager().callEvent(event);
 
@@ -100,7 +99,7 @@ public final class StandardPaperServerListPingEventImpl extends PaperServerListP
         final ServerStatus ping = new ServerStatus(description, players, Optional.of(version), favicon, server.enforceSecureProfile());
 
         // Send response
-        networkManager.send(new ClientboundStatusResponsePacket(ping, statusCache));
+        networkManager.send(new ClientboundStatusResponsePacket(ping));
     }
 
 }

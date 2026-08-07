@@ -11,9 +11,7 @@ import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
 import net.neoforged.neoforge.network.configuration.CheckExtensibleEnums;
 import net.neoforged.neoforge.network.configuration.CheckFeatureFlags;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.network.handlers.ClientPayloadHandler;
 import net.neoforged.neoforge.network.handlers.ServerPayloadHandler;
-import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.payload.AdvancedAddEntityPayload;
 import net.neoforged.neoforge.network.payload.AdvancedContainerSetDataPayload;
 import net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload;
@@ -29,41 +27,39 @@ import net.neoforged.neoforge.network.payload.FrozenRegistrySyncCompletedPayload
 import net.neoforged.neoforge.network.payload.FrozenRegistrySyncStartPayload;
 import net.neoforged.neoforge.network.payload.KnownRegistryDataMapsPayload;
 import net.neoforged.neoforge.network.payload.KnownRegistryDataMapsReplyPayload;
+import net.neoforged.neoforge.network.payload.RecipeContentPayload;
 import net.neoforged.neoforge.network.payload.RegistryDataMapSyncPayload;
 import net.neoforged.neoforge.network.payload.SyncAttachmentsPayload;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
-import net.neoforged.neoforge.registries.ClientRegistryManager;
 import net.neoforged.neoforge.registries.RegistryManager;
 import org.jetbrains.annotations.ApiStatus;
 
 @ApiStatus.Internal
 @EventBusSubscriber(modid = NeoForgeVersion.MOD_ID)
-public class NetworkInitialization {
+final class NetworkInitialization {
+    private NetworkInitialization() {}
+
     @SubscribeEvent
     private static void register(final RegisterPayloadHandlersEvent event) {
         final PayloadRegistrar registrar = event.registrar("1") // Update this version if the payload semantics change.
                 .optional();
         registrar
-                .configurationToClient(
+                .commonToClient(
                         ConfigFilePayload.TYPE,
-                        ConfigFilePayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle)
+                        ConfigFilePayload.STREAM_CODEC)
                 .configurationToClient(
                         FrozenRegistrySyncStartPayload.TYPE,
-                        FrozenRegistrySyncStartPayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle)
+                        FrozenRegistrySyncStartPayload.STREAM_CODEC)
                 .configurationToClient(
                         FrozenRegistryPayload.TYPE,
-                        FrozenRegistryPayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle)
+                        FrozenRegistryPayload.STREAM_CODEC)
                 .configurationBidirectional(
                         FrozenRegistrySyncCompletedPayload.TYPE,
                         FrozenRegistrySyncCompletedPayload.STREAM_CODEC,
-                        new DirectionalPayloadHandler<>(ClientPayloadHandler::handle, ServerPayloadHandler::handle))
+                        ServerPayloadHandler::handle)
                 .configurationToClient(
                         KnownRegistryDataMapsPayload.TYPE,
-                        KnownRegistryDataMapsPayload.STREAM_CODEC,
-                        ClientRegistryManager::handleKnownDataMaps)
+                        KnownRegistryDataMapsPayload.STREAM_CODEC)
                 .configurationToClient(
                         ExtensibleEnumDataPayload.TYPE,
                         ExtensibleEnumDataPayload.STREAM_CODEC,
@@ -86,30 +82,26 @@ public class NetworkInitialization {
                         CheckFeatureFlags::handleServerboundPayload)
                 .playToClient(
                         AdvancedAddEntityPayload.TYPE,
-                        AdvancedAddEntityPayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle)
+                        AdvancedAddEntityPayload.STREAM_CODEC)
                 .playToClient(
                         AdvancedOpenScreenPayload.TYPE,
-                        AdvancedOpenScreenPayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle)
+                        AdvancedOpenScreenPayload.STREAM_CODEC)
                 .playToClient(
                         AuxiliaryLightDataPayload.TYPE,
-                        AuxiliaryLightDataPayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle)
+                        AuxiliaryLightDataPayload.STREAM_CODEC)
                 .playToClient(
                         RegistryDataMapSyncPayload.TYPE,
-                        RegistryDataMapSyncPayload.STREAM_CODEC,
-                        ClientRegistryManager::handleDataMapSync)
+                        RegistryDataMapSyncPayload.STREAM_CODEC)
                 .playToClient(AdvancedContainerSetDataPayload.TYPE,
-                        AdvancedContainerSetDataPayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle)
+                        AdvancedContainerSetDataPayload.STREAM_CODEC)
                 .playToClient(
                         ClientboundCustomSetTimePayload.TYPE,
-                        ClientboundCustomSetTimePayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle)
+                        ClientboundCustomSetTimePayload.STREAM_CODEC)
+                .playToClient(
+                        RecipeContentPayload.TYPE,
+                        RecipeContentPayload.STREAM_CODEC)
                 .playToClient(
                         SyncAttachmentsPayload.TYPE,
-                        SyncAttachmentsPayload.STREAM_CODEC,
-                        ClientPayloadHandler::handle);
+                        SyncAttachmentsPayload.STREAM_CODEC);
     }
 }

@@ -28,6 +28,10 @@ public final class ComponentUtils {
     }
 
     public static String retrieveTranslationString(final String possibleJson) {
+        if (possibleJson == null) {
+            return null;
+        }
+
         try {
             final JsonElement element = JsonParser.parseString(possibleJson);
 
@@ -72,6 +76,15 @@ public final class ComponentUtils {
         }
 
         return createPlainTextComponent(input);
+    }
+
+    public static boolean isValidJson(final String input) {
+        try {
+            JsonParser.parseString(input);
+            return true;
+        } catch (final JsonParseException ex) {
+            return false;
+        }
     }
 
     private ComponentUtils() {}

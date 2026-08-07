@@ -71,8 +71,6 @@ public interface IRegistryExtension<T> {
      *
      * @param from the source registry name to alias from
      * @param to   the target registry name to alias to
-     * @throws IllegalArgumentException if an alias already exists for the source registry name that does not point to the
-     *                                  same target registry name, or if the alias would cause a resolution loop
      */
     void addAlias(ResourceLocation from, ResourceLocation to);
 
@@ -124,16 +122,6 @@ public interface IRegistryExtension<T> {
      * @param value the object whose existence to check for
      */
     boolean containsValue(T value);
-
-    /**
-     * {@return the data map value attached with the object with the key, or {@code null} if there's no attached value}
-     *
-     * @param type the type of the data map
-     * @param key  the object to get the value for
-     * @param <A>  the data type
-     */
-    @Nullable
-    <A> A getData(DataMapType<T, A> type, ResourceKey<T> key);
 
     /**
      * {@return the data map of the given {@code type}}

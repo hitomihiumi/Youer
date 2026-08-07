@@ -3,20 +3,17 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 import ca.spottedleaf.dataconverter.converters.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
 import ca.spottedleaf.dataconverter.types.MapType;
 
 public final class V1904 {
 
     private static final int VERSION = MCVersions.V18W43C + 1;
 
-    private static void registerMob(final String id) {
-        V100.registerEquipment(VERSION, id);
-    }
-
     public static void register() {
         MCTypeRegistry.ENTITY.addConverterForId("minecraft:ocelot", new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final int catType = data.getInt("CatType");
 
                 if (catType == 0) {
@@ -34,7 +31,7 @@ public final class V1904 {
             }
         });
 
-        registerMob("minecraft:cat");
+        //registerMob("minecraft:cat"); // changed to simple in 1.21.5
     }
 
     private V1904() {}

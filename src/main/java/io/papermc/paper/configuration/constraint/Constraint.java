@@ -12,16 +12,16 @@ import java.lang.reflect.Type;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.TYPE, ElementType.PARAMETER})
 public @interface Constraint {
-    Class<? extends com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Constraint<?>> value();
+    Class<? extends org.spongepowered.configurate.objectmapping.meta.Constraint<?>> value();
 
-    class Factory implements com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Constraint.Factory<Constraint, Object> {
+    class Factory implements org.spongepowered.configurate.objectmapping.meta.Constraint.Factory<Constraint, Object> {
         @SuppressWarnings("unchecked")
         @Override
-        public com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Constraint<Object> make(final Constraint data, final Type type) {
+        public org.spongepowered.configurate.objectmapping.meta.Constraint<Object> make(final Constraint data, final Type type) {
             try {
-                final Constructor<? extends com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Constraint<?>> constructor = data.value().getDeclaredConstructor();
+                final Constructor<? extends org.spongepowered.configurate.objectmapping.meta.Constraint<?>> constructor = data.value().getDeclaredConstructor();
                 constructor.trySetAccessible();
-                return (com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Constraint<Object>) constructor.newInstance();
+                return (org.spongepowered.configurate.objectmapping.meta.Constraint<Object>) constructor.newInstance();
             } catch (final ReflectiveOperationException e) {
                 throw new RuntimeException("Could not create constraint", e);
             }

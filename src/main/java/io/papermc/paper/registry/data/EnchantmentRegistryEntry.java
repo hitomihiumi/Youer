@@ -3,6 +3,7 @@ package io.papermc.paper.registry.data;
 import io.papermc.paper.registry.RegistryBuilder;
 import io.papermc.paper.registry.RegistryKey;
 import io.papermc.paper.registry.TypedKey;
+import io.papermc.paper.registry.event.RegistryComposeEvent;
 import io.papermc.paper.registry.set.RegistryKeySet;
 import io.papermc.paper.registry.set.RegistrySet;
 import io.papermc.paper.registry.tag.TagKey;
@@ -15,14 +16,12 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Range;
 import org.jetbrains.annotations.Unmodifiable;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /**
  * A data-centric version-specific registry entry for the {@link Enchantment} type.
  */
 @ApiStatus.Experimental
-@NullMarked
 @ApiStatus.NonExtendable
 public interface EnchantmentRegistryEntry {
 
@@ -147,23 +146,23 @@ public interface EnchantmentRegistryEntry {
          * sharpness enchantment.
          *
          * @param description the description component.
-         * @return this builder.
+         * @return this builder instance.
          */
         @Contract(value = "_ -> this", mutates = "this")
         Builder description(Component description);
 
         /**
          * Configures the set of supported items this enchantment can be applied on. This
-         * can be a {@link RegistryKeySet} created via {@link RegistrySet#keySet(RegistryKey, Iterable)} or
-         * a tag obtained via {@link io.papermc.paper.registry.event.RegistryFreezeEvent#getOrCreateTag(TagKey)} with
+         * can be a {@link RegistryKeySet} created via {@link RegistrySet#keySet(io.papermc.paper.registry.RegistryKey, Iterable)} or
+         * a tag obtained via {@link RegistryComposeEvent#getOrCreateTag(TagKey)} with
          * tag keys found in {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys} such as
          * {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys#ENCHANTABLE_ARMOR} and
          * {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys#ENCHANTABLE_SWORD}.
          *
          * @param supportedItems the registry key set representing the supported items.
-         * @return this builder.
+         * @return this builder instance.
          * @see RegistrySet#keySet(RegistryKey, TypedKey[])
-         * @see io.papermc.paper.registry.event.RegistryFreezeEvent#getOrCreateTag(TagKey)
+         * @see RegistryComposeEvent#getOrCreateTag(TagKey)
          */
         @Contract(value = "_ -> this", mutates = "this")
         Builder supportedItems(RegistryKeySet<ItemType> supportedItems);
@@ -171,8 +170,8 @@ public interface EnchantmentRegistryEntry {
         /**
          * Configures a set of item types this enchantment can naturally be applied to, when enchanting in an
          * enchantment table.This can be a {@link RegistryKeySet} created via
-         * {@link RegistrySet#keySet(RegistryKey, Iterable)} or a tag obtained via
-         * {@link io.papermc.paper.registry.event.RegistryFreezeEvent#getOrCreateTag(TagKey)} with
+         * {@link RegistrySet#keySet(io.papermc.paper.registry.RegistryKey, Iterable)} or a tag obtained via
+         * {@link RegistryComposeEvent#getOrCreateTag(TagKey)} with
          * tag keys found in {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys} such as
          * {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys#ENCHANTABLE_ARMOR} and
          * {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys#ENCHANTABLE_SWORD}.
@@ -182,9 +181,9 @@ public interface EnchantmentRegistryEntry {
          * which enchantments can even show up in an enchantment table.
          *
          * @param primaryItems the registry key set representing the primary items.
-         * @return this builder.
+         * @return this builder instance.
          * @see RegistrySet#keySet(RegistryKey, TypedKey[])
-         * @see io.papermc.paper.registry.event.RegistryFreezeEvent#getOrCreateTag(TagKey)
+         * @see RegistryComposeEvent#getOrCreateTag(TagKey)
          */
         @Contract(value = "_ -> this", mutates = "this")
         Builder primaryItems(@Nullable RegistryKeySet<ItemType> primaryItems);
@@ -193,7 +192,7 @@ public interface EnchantmentRegistryEntry {
          * Configures the weight of this enchantment used by the weighted random when selecting enchantments.
          *
          * @param weight the weight value.
-         * @return this builder.
+         * @return this builder instance.
          * @see <a href="https://minecraft.wiki/w/Enchanting">https://minecraft.wiki/w/Enchanting</a> for examplary weights.
          */
         @Contract(value = "_ -> this", mutates = "this")
@@ -203,7 +202,7 @@ public interface EnchantmentRegistryEntry {
          * Configures the maximum level this enchantment can have when applied.
          *
          * @param maxLevel the maximum level.
-         * @return this builder.
+         * @return this builder instance.
          */
         @Contract(value = "_ -> this", mutates = "this")
         Builder maxLevel(@Range(from = 1, to = 255) int maxLevel);
@@ -214,7 +213,7 @@ public interface EnchantmentRegistryEntry {
          * Note that a cost is not directly related to the consumed xp.
          *
          * @param minimumCost the enchantment cost.
-         * @return this builder.
+         * @return this builder instance.
          * @see <a href="https://minecraft.wiki/w/Enchanting/Levels">https://minecraft.wiki/w/Enchanting/Levels</a> for
          * examplary costs.
          */
@@ -227,7 +226,7 @@ public interface EnchantmentRegistryEntry {
          * Note that a cost is not directly related to the consumed xp.
          *
          * @param maximumCost the enchantment cost.
-         * @return this builder.
+         * @return this builder instance.
          * @see <a href="https://minecraft.wiki/w/Enchanting/Levels">https://minecraft.wiki/w/Enchanting/Levels</a> for
          * examplary costs.
          */
@@ -242,7 +241,7 @@ public interface EnchantmentRegistryEntry {
          * </p>
          *
          * @param anvilCost the anvil cost of this enchantment
-         * @return this builder.
+         * @return this builder instance.
          * @see Enchantment#getAnvilCost()
          */
         @Contract(value = "_ -> this", mutates = "this")
@@ -255,7 +254,7 @@ public interface EnchantmentRegistryEntry {
          * groups, the enchantment's effects, like attribute modifiers, will not activate.
          *
          * @param activeSlots a list of equipment slot groups.
-         * @return this builder.
+         * @return this builder instance.
          * @see Enchantment#getActiveSlotGroups()
          */
         @Contract(value = "_ -> this", mutates = "this")
@@ -270,7 +269,7 @@ public interface EnchantmentRegistryEntry {
          * groups, the enchantment's effects, like attribute modifiers, will not activate.
          *
          * @param activeSlots a list of equipment slot groups.
-         * @return this builder.
+         * @return this builder instance.
          * @see Enchantment#getActiveSlotGroups()
          */
         @Contract(value = "_ -> this", mutates = "this")
@@ -285,9 +284,9 @@ public interface EnchantmentRegistryEntry {
          * Defaults to an empty set allowing this enchantment to be applied regardless of other enchantments.
          *
          * @param exclusiveWith a registry set of enchantments exclusive to this one.
-         * @return this builder.
+         * @return this builder instance.
          * @see RegistrySet#keySet(RegistryKey, TypedKey[])
-         * @see io.papermc.paper.registry.event.RegistryFreezeEvent#getOrCreateTag(TagKey)
+         * @see RegistryComposeEvent#getOrCreateTag(TagKey)
          */
         @Contract(value = "_ -> this", mutates = "this")
         Builder exclusiveWith(RegistryKeySet<Enchantment> exclusiveWith);
@@ -328,5 +327,4 @@ public interface EnchantmentRegistryEntry {
             return new Impl(baseCost, additionalPerLevelCost);
         }
     }
-
 }

@@ -16,8 +16,7 @@ public interface PlayerInventory extends Inventory {
      * null and are returned in a fixed order starting from the boots and going
      * up to the helmet
      */
-    @NotNull
-    public ItemStack[] getArmorContents();
+    public @Nullable ItemStack @NotNull [] getArmorContents(); // Paper - make array elements nullable instead array
 
     /**
      * Get all additional ItemStacks stored in this inventory.
@@ -28,8 +27,7 @@ public interface PlayerInventory extends Inventory {
      *
      * @return All additional ItemStacks. Individual items can be null.
      */
-    @NotNull
-    public ItemStack[] getExtraContents();
+    public @Nullable ItemStack @NotNull [] getExtraContents(); // Paper - make array elements nullable instead array
 
     /**
      * Return the ItemStack from the helmet slot
@@ -76,12 +74,15 @@ public interface PlayerInventory extends Inventory {
      * Index 40 refers to the off hand (shield) item slot. Though you can set off hand with this method using this index,
      * you are encouraged to use the provided method for this slot.
      * <p>
-     * If you attempt to use this method with an index less than 0 or greater than 40, an ArrayIndexOutOfBounds
+     * Index 41 refers to the body item slot and 42 is the saddle item slot. Note that these are not visible in the player
+     * inventory menu.
+     * <p>
+     * If you attempt to use this method with an index less than 0 or greater than 42, an ArrayIndexOutOfBounds
      * exception will be thrown.
      *
      * @param index The index where to put the ItemStack
      * @param item The ItemStack to set
-     * @throws ArrayIndexOutOfBoundsException when index &lt; 0 || index &gt; 40
+     * @throws ArrayIndexOutOfBoundsException when index &lt; 0 || index &gt; 42
      * @see #setBoots(ItemStack)
      * @see #setChestplate(ItemStack)
      * @see #setHelmet(ItemStack)
@@ -97,6 +98,8 @@ public interface PlayerInventory extends Inventory {
      * @param slot the slot to put the ItemStack
      * @param item the ItemStack to set
      *
+     * @throws IllegalArgumentException if the slot is invalid for the player
+     * @see org.bukkit.entity.LivingEntity#canUseEquipmentSlot(EquipmentSlot)
      * @see #setItem(int, ItemStack)
      */
     public void setItem(@NotNull EquipmentSlot slot, @Nullable ItemStack item);
@@ -106,9 +109,11 @@ public interface PlayerInventory extends Inventory {
      *
      * @param slot the slot to get the ItemStack
      *
-     * @return the ItemStack in the given slot or null if there is not one
+     * @return the ItemStack in the given slot
+     * @throws IllegalArgumentException if the slot is invalid for the player
+     * @see org.bukkit.entity.LivingEntity#canUseEquipmentSlot(EquipmentSlot)
      */
-    @Nullable
+    @NotNull // Paper
     public ItemStack getItem(@NotNull EquipmentSlot slot);
 
     /**
@@ -116,7 +121,7 @@ public interface PlayerInventory extends Inventory {
      *
      * @param items The ItemStacks to use as armour
      */
-    public void setArmorContents(@Nullable ItemStack[] items);
+    public void setArmorContents(@Nullable ItemStack @NotNull [] items);
 
     /**
      * Put the given ItemStacks into the extra slots
@@ -125,7 +130,7 @@ public interface PlayerInventory extends Inventory {
      *
      * @param items The ItemStacks to use as extra
      */
-    public void setExtraContents(@Nullable ItemStack[] items);
+    public void setExtraContents(@Nullable ItemStack @NotNull [] items);
 
     /**
      * Put the given ItemStack into the helmet slot. This does not check if
@@ -160,7 +165,7 @@ public interface PlayerInventory extends Inventory {
     public void setBoots(@Nullable ItemStack boots);
 
     /**
-     * Gets a copy of the item the player is currently holding
+     * Gets the item the player is currently holding
      * in their main hand.
      *
      * @return the currently held item
@@ -176,7 +181,7 @@ public interface PlayerInventory extends Inventory {
     void setItemInMainHand(@Nullable ItemStack item);
 
     /**
-     * Gets a copy of the item the player is currently holding
+     * Gets the item the player is currently holding
      * in their off hand.
      *
      * @return the currently held item
@@ -192,7 +197,7 @@ public interface PlayerInventory extends Inventory {
     void setItemInOffHand(@Nullable ItemStack item);
 
     /**
-     * Gets a copy of the item the player is currently holding
+     * Gets the item the player is currently holding
      *
      * @return the currently held item
      * @see #getItemInMainHand()
@@ -200,7 +205,7 @@ public interface PlayerInventory extends Inventory {
      * @deprecated players can duel wield now use the methods for the
      *      specific hand instead
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     @NotNull
     public ItemStack getItemInHand();
 
@@ -213,7 +218,7 @@ public interface PlayerInventory extends Inventory {
      * @deprecated players can duel wield now use the methods for the
      *      specific hand instead
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public void setItemInHand(@Nullable ItemStack stack);
 
     /**

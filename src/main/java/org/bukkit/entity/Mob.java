@@ -1,67 +1,63 @@
 package org.bukkit.entity;
 
+import com.destroystokyo.paper.entity.Pathfinder;
+import io.papermc.paper.entity.Leashable;
+import net.kyori.adventure.util.TriState;
+import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.loot.LootTable;
 import org.bukkit.loot.Lootable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents a Mob. Mobs are living entities with simple AI.
  */
-public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Leashable { // Paper - Leashable API
+@NullMarked
+public interface Mob extends LivingEntity, Lootable, Leashable {
 
     /**
-     * Instructs this Mob to set the specified LivingEntity as its target.
-     * <p>
-     * Hostile creatures may attack their target, and friendly creatures may
-     * follow their target.
+     * Check if a mob should be despawned when the world is set to peaceful difficulty.
+     * This also takes the {@link Mob#getDespawnInPeacefulOverride()} into account.
      *
-     * @param target New LivingEntity to target, or null to clear the target
+     * @return True if the entity should be removed in peaceful
      */
-    public void setTarget(@Nullable LivingEntity target);
+    boolean shouldDespawnInPeaceful();
 
     /**
-     * Gets the current target of this Mob
+     * Sets if the entity should be despawned when the game is set to peaceful difficulty.
+     * <ul>
+     *     <li>{@link TriState#NOT_SET} – Use the default behavior for the entity</li>
+     *     <li>{@link TriState#TRUE} – The entity will be removed in Peaceful difficulty</li>
+     *     <li>{@link TriState#FALSE} – The entity will not automatically be removed in Peaceful difficulty</li>
+     * </ul>
      *
-     * @return Current target of this creature, or null if none exists
+     * @param state a TriState representing the state of the override
      */
-    @Nullable
-    public LivingEntity getTarget();
+    void setDespawnInPeacefulOverride(TriState state);
 
     /**
-     * Sets whether this mob is aware of its surroundings.
+     * Gets the current override value for whether this entity should despawn in peaceful difficulty.
+     * <ul>
+     *     <li>{@link TriState#NOT_SET} – Use the default behavior for the entity</li>
+     *     <li>{@link TriState#TRUE} – The entity will be removed in Peaceful difficulty</li>
+     *     <li>{@link TriState#FALSE} – The entity will not automatically be removed in Peaceful difficulty</li>
+     * </ul>
      *
-     * Unaware mobs will still move if pushed, attacked, etc. but will not move
-     * or perform any actions on their own. Unaware mobs may also have other
-     * unspecified behaviours disabled, such as drowning.
-     *
-     * @param aware whether the mob is aware
+     * @return a TriState representing the state of the override
+     * @see Mob#setDespawnInPeacefulOverride(TriState)
      */
-    public void setAware(boolean aware);
+    TriState getDespawnInPeacefulOverride();
+
+    @Override
+    EntityEquipment getEquipment();
 
     /**
-     * Gets whether this mob is aware of its surroundings.
-     *
-     * Unaware mobs will still move if pushed, attacked, etc. but will not move
-     * or perform any actions on their own. Unaware mobs may also have other
-     * unspecified behaviours disabled, such as drowning.
-     *
-     * @return whether the mob is aware
+     * Enables access to control the pathing of an Entity
+     * @return Pathfinding Manager for this entity
      */
-    public boolean isAware();
-
-    /**
-     * Get the {@link Sound} this mob makes while ambiently existing. This sound
-     * may change depending on the current state of the entity, and may also
-     * return null under specific conditions. This sound is not constant.
-     * For instance, villagers will make different passive noises depending
-     * on whether or not they are actively trading with a player, or make no
-     * ambient noise while sleeping.
-     *
-     * @return the ambient sound, or null if this entity is ambiently quiet
-     */
-    @Nullable
-    public Sound getAmbientSound();
+    Pathfinder getPathfinder();
 
     /**
      * Check if this mob is exposed to daylight
@@ -77,7 +73,7 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
      *
      * @param location location to look at
      */
-    void lookAt(@NotNull org.bukkit.Location location);
+    void lookAt(Location location);
 
     /**
      * Instruct this Mob to look at a specific Location
@@ -88,7 +84,7 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
      * @param headRotationSpeed head rotation speed
      * @param maxHeadPitch max head pitch rotation
      */
-    void lookAt(@NotNull org.bukkit.Location location, float headRotationSpeed, float maxHeadPitch);
+    void lookAt(Location location, float headRotationSpeed, float maxHeadPitch);
 
     /**
      * Instruct this Mob to look at a specific Entity
@@ -99,7 +95,7 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
      *
      * @param entity entity to look at
      */
-    void lookAt(@NotNull Entity entity);
+    void lookAt(Entity entity);
 
     /**
      * Instruct this Mob to look at a specific Entity
@@ -112,7 +108,7 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
      * @param headRotationSpeed head rotation speed
      * @param maxHeadPitch max head pitch rotation
      */
-    void lookAt(@NotNull Entity entity, float headRotationSpeed, float maxHeadPitch);
+    void lookAt(Entity entity, float headRotationSpeed, float maxHeadPitch);
 
     /**
      * Instruct this Mob to look at a specific position
@@ -151,17 +147,64 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
      * @return the max head pitch rotation
      */
     int getMaxHeadPitch();
-    // Paper end
 
-    // Paper start - LootTable API
+    /**
+     * Instructs this Mob to set the specified LivingEntity as its target.
+     * <p>
+     * Hostile creatures may attack their target, and friendly creatures may
+     * follow their target.
+     *
+     * @param target New LivingEntity to target, or null to clear the target
+     */
+    void setTarget(@Nullable LivingEntity target);
+
+    /**
+     * Gets the current target of this Mob
+     *
+     * @return Current target of this creature, or null if none exists
+     */
+    @Nullable LivingEntity getTarget();
+
+    /**
+     * Sets whether this mob is aware of its surroundings.
+     * <p>
+     * Unaware mobs will still move if pushed, attacked, etc. but will not move
+     * or perform any actions on their own. Unaware mobs may also have other
+     * unspecified behaviours disabled, such as drowning.
+     *
+     * @param aware whether the mob is aware
+     */
+    void setAware(boolean aware);
+
+    /**
+     * Gets whether this mob is aware of its surroundings.
+     *
+     * Unaware mobs will still move if pushed, attacked, etc. but will not move
+     * or perform any actions on their own. Unaware mobs may also have other
+     * unspecified behaviours disabled, such as drowning.
+     *
+     * @return whether the mob is aware
+     */
+    boolean isAware();
+
+    /**
+     * Get the {@link Sound} this mob makes while ambiently existing. This sound
+     * may change depending on the current state of the entity, and may also
+     * return null under specific conditions. This sound is not constant.
+     * For instance, villagers will make different passive noises depending
+     * on whether or not they are actively trading with a player, or make no
+     * ambient noise while sleeping.
+     *
+     * @return the ambient sound, or null if this entity is ambiently quiet
+     */
+    @Nullable Sound getAmbientSound();
+
     @Override
-    default void setLootTable(final @Nullable org.bukkit.loot.LootTable table, final long seed) {
+    default void setLootTable(final @Nullable LootTable table, final long seed) {
         this.setLootTable(table);
         this.setSeed(seed);
     }
-    // Paper end - LootTable API
 
-    // Paper start - Missing Entity API
     /**
      * Some mobs will raise their arm(s) when aggressive:
      * <ul>
@@ -181,7 +224,7 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
      * set by {@link #setAggressive(boolean)}. {@link Panda}'s are always
      * aggressive if their combined {@link Panda.Gene} is {@link Panda.Gene#AGGRESSIVE}.
      *
-     * @return wether the mob is aggressive or not
+     * @return whether the mob is aggressive or not
      */
     boolean isAggressive();
 
@@ -189,34 +232,29 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
      * Some mobs will raise their arm(s) when aggressive,
      * see {@link #isAggressive()} for full list.
      *
-     * @param aggressive wether the mob should be aggressive or not
+     * @param aggressive whether the mob should be aggressive or not
      * @see #isAggressive()
      */
     void setAggressive(boolean aggressive);
-    // Paper end - Missing Entity API
 
-    // Paper start - left-handed API
     /**
      * Check if Mob is left-handed
      *
      * @return True if left-handed
      */
-    public boolean isLeftHanded();
+    boolean isLeftHanded();
 
     /**
-     * Set if Mob is left-handed
-     *
-     * @param leftHanded True if left-handed
-     */
-    public void setLeftHanded(boolean leftHanded);
-    // Paper end - left-handed API
+      * Set if Mob is left-handed
+      *
+      * @param leftHanded True if left-handed
+      */
+    void setLeftHanded(boolean leftHanded);
 
-    // Paper start - mob xp reward API
     /**
      * Gets the amount of experience the mob will possibly drop. This value is randomized and it can give different results
      *
      * @return the amount of experience the mob will possibly drop
      */
-    public int getPossibleExperienceReward();
-    // Paper end - mob xp reward API
+    int getPossibleExperienceReward();
 }

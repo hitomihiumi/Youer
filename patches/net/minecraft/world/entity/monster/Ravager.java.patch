@@ -1,65 +1,20 @@
 --- a/net/minecraft/world/entity/monster/Ravager.java
 +++ b/net/minecraft/world/entity/monster/Ravager.java
-@@ -30,7 +_,6 @@
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.entity.raid.Raider;
- import net.minecraft.world.entity.vehicle.Boat;
--import net.minecraft.world.level.GameRules;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.LevelReader;
- import net.minecraft.world.level.block.Block;
-@@ -40,6 +_,7 @@
- import net.minecraft.world.level.pathfinder.PathType;
- import net.minecraft.world.phys.AABB;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
+@@ -145,7 +_,7 @@
  
- public class Ravager extends Raider {
-     private static final Predicate<Entity> NO_RAVAGER_AND_ALIVE = p_33346_ -> p_33346_.isAlive() && !(p_33346_ instanceof Ravager);
-@@ -134,7 +_,7 @@
-                 this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(Mth.lerp(0.1, d1, d0));
-             }
- 
--            if (this.horizontalCollision && this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+            if (this.horizontalCollision && net.neoforged.neoforge.event.EventHooks.canEntityGrief(this.level(), this)) {
+             if (this.level() instanceof ServerLevel serverlevel
+                 && this.horizontalCollision
+-                && serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
++                && net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, this)) {
                  boolean flag = false;
                  AABB aabb = this.getBoundingBox().inflate(0.2);
  
-@@ -144,12 +_,19 @@
-                     BlockState blockstate = this.level().getBlockState(blockpos);
-                     Block block = blockstate.getBlock();
-                     if (block instanceof LeavesBlock) {
-+                        // CraftBukkit start
-+                        if (!CraftEventFactory.callEntityChangeBlockEvent(this, blockpos, blockstate.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
-+                            continue;
-+                        }
-+                        // CraftBukkit end
-                         flag = this.level().destroyBlock(blockpos, true, this) || flag;
-                     }
-                 }
+@@ -223,7 +_,7 @@
  
-                 if (!flag && this.onGround()) {
--                    this.jumpFromGround();
-+                    if (new com.destroystokyo.paper.event.entity.EntityJumpEvent(getBukkitLivingEntity()).callEvent()) { // Paper - Entity Jump API
-+                        this.jumpFromGround();
-+                    } else { this.setJumping(false); } // Paper - Entity Jump API; setJumping(false) stops a potential loop
-                 }
-             }
- 
-@@ -241,6 +_,7 @@
-         double d0 = p_33340_.getX() - this.getX();
-         double d1 = p_33340_.getZ() - this.getZ();
-         double d2 = Math.max(d0 * d0 + d1 * d1, 0.001);
-+        p_33340_.pushingEntity = this; // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
-         p_33340_.push(d0 / d2 * 4.0, 0.2, d1 / d2 * 4.0);
-     }
- 
-@@ -288,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.RAVAGER_DEATH;
-     }
+     private void roar() {
+         if (this.isAlive() && this.level() instanceof ServerLevel serverlevel) {
+-            Predicate<Entity> predicate = serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
++            Predicate<Entity> predicate = net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, this)
+                 ? ROAR_TARGET_WITH_GRIEFING
+                 : ROAR_TARGET_WITHOUT_GRIEFING;
  

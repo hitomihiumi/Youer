@@ -17,7 +17,7 @@ public class PlayerTeleportEndGatewayEvent extends PlayerTeleportEvent {
 
     @ApiStatus.Internal
     public PlayerTeleportEndGatewayEvent(final Player player, final Location from, final Location to, final EndGateway gateway) {
-        super(player, from, to, TeleportCause.END_GATEWAY);
+        super(player, from, to, PlayerTeleportEvent.TeleportCause.END_GATEWAY);
         this.gateway = gateway;
     }
 

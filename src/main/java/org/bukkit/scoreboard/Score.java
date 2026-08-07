@@ -18,7 +18,7 @@ public interface Score {
      * @see #getEntry()
      * @deprecated Scoreboards can contain entries that aren't players
      */
-    @Deprecated
+    @Deprecated(since = "1.7.8")
     @NotNull
     OfflinePlayer getPlayer();
 
@@ -150,4 +150,5 @@ public interface Score {
      */
     void numberFormat(@Nullable io.papermc.paper.scoreboard.numbers.NumberFormat format);
     // Paper end - number format api
+
 }

@@ -20,7 +20,7 @@ public interface AbstractHorse extends Vehicle, InventoryHolder, Tameable {
      * @return a {@link Horse.Variant} representing the horse's variant
      * @deprecated different variants are different classes
      */
-    @Deprecated
+    @Deprecated(since = "1.11", forRemoval = true)
     @NotNull
     public Horse.Variant getVariant();
 
@@ -28,7 +28,7 @@ public interface AbstractHorse extends Vehicle, InventoryHolder, Tameable {
      * @param variant variant
      * @deprecated you are required to spawn a different entity
      */
-    @Deprecated
+    @Deprecated(since = "1.11", forRemoval = true)
     @Contract("_ -> fail")
     public void setVariant(Horse.Variant variant);
 
@@ -106,14 +106,18 @@ public interface AbstractHorse extends Vehicle, InventoryHolder, Tameable {
      * Gets whether the horse is currently grazing hay.
      *
      * @return true if eating hay
+     * @deprecated use {@link #isEatingGrass()}, this name is incorrect
      */
+    @Deprecated(forRemoval = true)
     boolean isEatingHaystack();
 
     /**
      * Sets whether the horse is grazing hay.
      *
      * @param eatingHaystack new hay grazing status
+     * @deprecated use {@link #setEatingGrass(boolean)}, this name is incorrect
      */
+    @Deprecated(forRemoval = true)
     void setEatingHaystack(boolean eatingHaystack);
 
     @NotNull

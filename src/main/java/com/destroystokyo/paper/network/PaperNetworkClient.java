@@ -1,6 +1,7 @@
 package com.destroystokyo.paper.network;
 
 import java.net.InetSocketAddress;
+
 import javax.annotation.Nullable;
 import net.minecraft.network.Connection;
 

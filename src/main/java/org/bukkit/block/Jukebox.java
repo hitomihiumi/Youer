@@ -1,6 +1,7 @@
 package org.bukkit.block;
 
 import org.bukkit.Material;
+import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.JukeboxInventory;
 import org.jetbrains.annotations.NotNull;

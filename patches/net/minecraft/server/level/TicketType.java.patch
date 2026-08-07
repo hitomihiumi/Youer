@@ -1,20 +1,14 @@
 --- a/net/minecraft/server/level/TicketType.java
 +++ b/net/minecraft/server/level/TicketType.java
-@@ -7,6 +_,8 @@
- import net.minecraft.world.level.ChunkPos;
+@@ -3,7 +_,10 @@
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.registries.BuiltInRegistries;
  
- public class TicketType<T> {
-+    public static final TicketType<Long> FUTURE_AWAIT = create("future_await", Long::compareTo); // Paper
-+
-     private final String name;
-     private final Comparator<T> comparator;
-     public long timeout;
-@@ -17,6 +_,8 @@
-     public static final TicketType<BlockPos> PORTAL = create("portal", Vec3i::compareTo, 300);
-     public static final TicketType<Integer> POST_TELEPORT = create("post_teleport", Integer::compareTo, 5);
-     public static final TicketType<ChunkPos> UNKNOWN = create("unknown", Comparator.comparingLong(ChunkPos::toLong), 1);
-+    public static final TicketType<Unit> PLUGIN = create("plugin", (a, b) -> 0); // CraftBukkit
-+    public static final TicketType<org.bukkit.plugin.Plugin> PLUGIN_TICKET = create("plugin_ticket", (plugin1, plugin2) -> plugin1.getClass().getName().compareTo(plugin2.getClass().getName())); // CraftBukkit
- 
-     public static <T> TicketType<T> create(String p_9463_, Comparator<T> p_9464_) {
-         return new TicketType<>(p_9463_, p_9464_, 0L);
+-public record TicketType(long timeout, boolean persist, TicketType.TicketUse use) {
++public record TicketType(long timeout, boolean persist, TicketType.TicketUse use, boolean forceNaturalSpawning) {
++    public TicketType(long timeout, boolean persist, TicketType.TicketUse use) {
++        this(timeout, persist, use, false);
++    }
+     public static final long NO_TIMEOUT = 0L;
+     public static final TicketType START = register("start", 0L, false, TicketType.TicketUse.LOADING_AND_SIMULATION);
+     public static final TicketType DRAGON = register("dragon", 0L, false, TicketType.TicketUse.LOADING_AND_SIMULATION);

@@ -27,70 +27,70 @@ public enum Effect {
      * @deprecated no longer exists
      * @see Sound#BLOCK_WOODEN_DOOR_OPEN
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     DOOR_TOGGLE(1006, Type.SOUND),
     /**
      * Sound of a door opening.
      * @deprecated no longer exists
      * @see Sound#BLOCK_IRON_DOOR_OPEN
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     IRON_DOOR_TOGGLE(1005, Type.SOUND),
     /**
      * Sound of a trapdoor opening.
      * @deprecated no longer exists
      * @see Sound#BLOCK_WOODEN_TRAPDOOR_OPEN
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     TRAPDOOR_TOGGLE(1007, Type.SOUND),
     /**
      * Sound of a door opening.
      * @deprecated no longer exists
      * @see Sound#BLOCK_IRON_TRAPDOOR_OPEN
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     IRON_TRAPDOOR_TOGGLE(1037, Type.SOUND),
     /**
      * Sound of a door opening.
      * @deprecated no longer exists
      * @see Sound#BLOCK_FENCE_GATE_OPEN
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     FENCE_GATE_TOGGLE(1008, Type.SOUND),
     /**
      * Sound of a door closing.
      * @deprecated no longer exists
      * @see Sound#BLOCK_WOODEN_DOOR_CLOSE
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     DOOR_CLOSE(1012, Type.SOUND),
     /**
      * Sound of a door closing.
      * @deprecated no longer exists
      * @see Sound#BLOCK_IRON_DOOR_CLOSE
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     IRON_DOOR_CLOSE(1011, Type.SOUND),
     /**
      * Sound of a trapdoor closing.
      * @deprecated no longer exists
      * @see Sound#BLOCK_WOODEN_TRAPDOOR_CLOSE
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     TRAPDOOR_CLOSE(1013, Type.SOUND),
     /**
      * Sound of a door closing.
      * @deprecated no longer exists
      * @see Sound#BLOCK_IRON_TRAPDOOR_CLOSE
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     IRON_TRAPDOOR_CLOSE(1036, Type.SOUND),
     /**
      * Sound of a door closing.
      * @deprecated no longer exists
      * @see Sound#BLOCK_FENCE_GATE_CLOSE
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     FENCE_GATE_CLOSE(1014, Type.SOUND),
     /**
      * Sound of fire being extinguished.
@@ -171,7 +171,7 @@ public enum Effect {
      * @deprecated No longer exists
      */
     @Deprecated(forRemoval = true, since = "1.21") // Paper
-            ENDEREYE_LAUNCH(1003, Type.SOUND),
+    ENDEREYE_LAUNCH(1003, Type.SOUND),
     /**
      * The sound played when launching a firework
      */
@@ -182,7 +182,7 @@ public enum Effect {
      * @deprecated partially replaced by {@link #BEE_GROWTH}
      */
     @Deprecated(forRemoval = true, since = "1.20.5") // Paper
-            VILLAGER_PLANT_GROW(2005, Type.VISUAL, Integer.class),
+    VILLAGER_PLANT_GROW(2005, Type.VISUAL, Integer.class),
     /**
      * The sound/particles used by the enderdragon's breath
      * attack.
@@ -513,7 +513,7 @@ public enum Effect {
     static {
         for (Effect effect : values()) {
             if (!isDeprecated(effect)) // Paper
-                BY_ID.put(effect.id, effect);
+            BY_ID.put(effect.id, effect);
         }
     }
 

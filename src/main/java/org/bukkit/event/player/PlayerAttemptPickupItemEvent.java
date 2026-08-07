@@ -4,24 +4,31 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.ApiStatus;
+import org.jspecify.annotations.NullMarked;
 
 /**
  * Thrown when a player attempts to pick an item up from the ground
  */
+@NullMarked
 public class PlayerAttemptPickupItemEvent extends PlayerEvent implements Cancellable {
-    private static final HandlerList handlers = new HandlerList();
-    @NotNull private final Item item;
+
+    private static final HandlerList HANDLER_LIST = new HandlerList();
+
+    private final Item item;
     private final int remaining;
     private boolean flyAtPlayer = true;
-    private boolean isCancelled = false;
 
-    @Deprecated // Remove in 1.13 // Remove in 1.14?
-    public PlayerAttemptPickupItemEvent(@NotNull final Player player, @NotNull final Item item) {
+    private boolean cancelled;
+
+    @ApiStatus.Internal
+    @Deprecated(forRemoval = true)
+    public PlayerAttemptPickupItemEvent(final Player player, final Item item) {
         this(player, item, 0);
     }
 
-    public PlayerAttemptPickupItemEvent(@NotNull final Player player, @NotNull final Item item, final int remaining) {
+    @ApiStatus.Internal
+    public PlayerAttemptPickupItemEvent(final Player player, final Item item, final int remaining) {
         super(player);
         this.item = item;
         this.remaining = remaining;
@@ -32,9 +39,8 @@ public class PlayerAttemptPickupItemEvent extends PlayerEvent implements Cancell
      *
      * @return Item
      */
-    @NotNull
     public Item getItem() {
-        return item;
+        return this.item;
     }
 
     /**
@@ -43,14 +49,14 @@ public class PlayerAttemptPickupItemEvent extends PlayerEvent implements Cancell
      * @return amount that will remain on the ground
      */
     public int getRemaining() {
-        return remaining;
+        return this.remaining;
     }
 
     /**
      * Set if the item will fly at the player
-     * <p>Cancelling the event will set this value to false.</p>
+     * <p>Cancelling the event will set this value to {@code false}.</p>
      *
-     * @param flyAtPlayer True for item to fly at player
+     * @param flyAtPlayer {@code true} for item to fly at player
      */
     public void setFlyAtPlayer(boolean flyAtPlayer) {
         this.flyAtPlayer = flyAtPlayer;
@@ -59,7 +65,7 @@ public class PlayerAttemptPickupItemEvent extends PlayerEvent implements Cancell
     /**
      * Gets if the item will fly at the player
      *
-     * @return True if the item will fly at the player
+     * @return {@code true} if the item will fly at the player
      */
     public boolean getFlyAtPlayer() {
         return this.flyAtPlayer;
@@ -68,23 +74,21 @@ public class PlayerAttemptPickupItemEvent extends PlayerEvent implements Cancell
 
     @Override
     public boolean isCancelled() {
-        return this.isCancelled;
+        return this.cancelled;
     }
 
     @Override
     public void setCancelled(boolean cancel) {
-        this.isCancelled = cancel;
+        this.cancelled = cancel;
         this.flyAtPlayer = !cancel;
     }
 
-    @NotNull
     @Override
     public HandlerList getHandlers() {
-        return handlers;
+        return HANDLER_LIST;
     }
 
-    @NotNull
     public static HandlerList getHandlerList() {
-        return handlers;
+        return HANDLER_LIST;
     }
 }

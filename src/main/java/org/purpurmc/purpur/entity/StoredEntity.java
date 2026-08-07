@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents an entity stored in a block
  *
- * @see EntityBlockStorage
+ * @see org.bukkit.block.EntityBlockStorage
  */
 public interface StoredEntity<T extends Entity> extends PersistentDataHolder, Nameable {
     /**

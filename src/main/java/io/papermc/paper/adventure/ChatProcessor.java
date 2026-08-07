@@ -1,7 +1,5 @@
 package io.papermc.paper.adventure;
 
-import com.mohistmc.youer.ai.deepseek.DeepSeek;
-import com.mohistmc.youer.api.ColorAPI;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AbstractChatEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -25,10 +23,12 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Optionull;
 import net.minecraft.Util;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.OutgoingChatMessage;
 import net.minecraft.network.chat.PlayerChatMessage;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.command.ConsoleCommandSender;
@@ -50,6 +50,7 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 
 @DefaultQualifier(NonNull.class)
 public final class ChatProcessor {
+    static final ResourceKey<ChatType> PAPER_RAW = ResourceKey.create(Registries.CHAT_TYPE, ResourceLocation.fromNamespaceAndPath(ResourceLocation.PAPER_NAMESPACE, "raw"));
     static final String DEFAULT_LEGACY_FORMAT = "<%1$s> %2$s"; // copied from PlayerChatEvent/AsyncPlayerChatEvent
     final MinecraftServer server;
     final ServerPlayer player;
@@ -76,41 +77,38 @@ public final class ChatProcessor {
 
     @SuppressWarnings("deprecated")
     public void process() {
-        final CraftPlayer player = this.player.getBukkitEntity();
-        if (DeepSeek.init(player, craftbukkit$originalMessage)) {
-            return;
-        }
         final boolean listenersOnAsyncEvent = canYouHearMe(AsyncPlayerChatEvent.getHandlerList());
         final boolean listenersOnSyncEvent = canYouHearMe(PlayerChatEvent.getHandlerList());
         if (listenersOnAsyncEvent || listenersOnSyncEvent) {
-            final AsyncPlayerChatEvent ae = new AsyncPlayerChatEvent(this.async, player, this.craftbukkit$originalMessage, new LazyPlayerSet(this.server));
-            this.post(ae);
+            final CraftPlayer player = this.player.getBukkitEntity();
+            final AsyncPlayerChatEvent asyncChatEvent = new AsyncPlayerChatEvent(this.async, player, this.craftbukkit$originalMessage, new LazyPlayerSet(this.server));
+            this.post(asyncChatEvent);
             if (listenersOnSyncEvent) {
-                final PlayerChatEvent se = new PlayerChatEvent(player, ae.getMessage(), ae.getFormat(), ae.getRecipients());
-                se.setCancelled(ae.isCancelled()); // propagate cancelled state
-                this.queueIfAsyncOrRunImmediately(new Waitable<Void>() {
+                final PlayerChatEvent chatEvent = new PlayerChatEvent(player, asyncChatEvent.getMessage(), asyncChatEvent.getFormat(), asyncChatEvent.getRecipients());
+                chatEvent.setCancelled(asyncChatEvent.isCancelled()); // propagate cancelled state
+                this.queueIfAsyncOrRunImmediately(new Waitable<>() {
                     @Override
                     protected Void evaluate() {
-                        ChatProcessor.this.post(se);
+                        ChatProcessor.this.post(chatEvent);
                         return null;
                     }
                 });
-                this.readLegacyModifications(se.getMessage(), se.getFormat(), se.getPlayer());
+                this.readLegacyModifications(chatEvent.getMessage(), chatEvent.getFormat(), chatEvent.getPlayer());
                 this.processModern(
-                    this.modernRenderer(se.getFormat()),
-                    this.viewersFromLegacy(se.getRecipients()),
-                    this.modernMessage(se.getMessage()),
-                    se.getPlayer(),
-                    se.isCancelled()
+                    this.modernRenderer(chatEvent.getFormat()),
+                    this.viewersFromLegacy(chatEvent.getRecipients()),
+                    this.modernMessage(chatEvent.getMessage()),
+                    chatEvent.getPlayer(),
+                    chatEvent.isCancelled()
                 );
             } else {
-                this.readLegacyModifications(ae.getMessage(), ae.getFormat(), ae.getPlayer());
+                this.readLegacyModifications(asyncChatEvent.getMessage(), asyncChatEvent.getFormat(), asyncChatEvent.getPlayer());
                 this.processModern(
-                    this.modernRenderer(ae.getFormat()),
-                    this.viewersFromLegacy(ae.getRecipients()),
-                    this.modernMessage(ae.getMessage()),
-                    ae.getPlayer(),
-                    ae.isCancelled()
+                    this.modernRenderer(asyncChatEvent.getFormat()),
+                    this.viewersFromLegacy(asyncChatEvent.getRecipients()),
+                    this.modernMessage(asyncChatEvent.getMessage()),
+                    asyncChatEvent.getPlayer(),
+                    asyncChatEvent.isCancelled()
                 );
             }
         } else {
@@ -134,7 +132,7 @@ public final class ChatProcessor {
 
     private Component modernMessage(final String legacyMessage) {
         if (this.flags.get(MESSAGE_CHANGED)) {
-            return ColorAPI.adventure(legacyMessage);
+            return legacySection().deserialize(legacyMessage);
         } else {
             return this.paper$originalMessage;
         }
@@ -153,14 +151,14 @@ public final class ChatProcessor {
         this.post(ae);
         final boolean listenersOnSyncEvent = canYouHearMe(ChatEvent.getHandlerList());
         if (listenersOnSyncEvent) {
-            this.queueIfAsyncOrRunImmediately(new Waitable<Void>() {
+            this.queueIfAsyncOrRunImmediately(new Waitable<>() {
                 @Override
                 protected Void evaluate() {
-                    final ChatEvent se = new ChatEvent(player, ae.viewers(), ae.renderer(), ae.message(), ChatProcessor.this.paper$originalMessage/*, ae.usePreviewComponent()*/, signedMessage);
-                    se.setCancelled(ae.isCancelled()); // propagate cancelled state
-                    ChatProcessor.this.post(se);
-                    ChatProcessor.this.readModernModifications(se, renderer);
-                    ChatProcessor.this.complete(se);
+                    final ChatEvent chatEvent = new ChatEvent(player, ae.viewers(), ae.renderer(), ae.message(), ChatProcessor.this.paper$originalMessage/*, ae.usePreviewComponent()*/, signedMessage);
+                    chatEvent.setCancelled(ae.isCancelled()); // propagate cancelled state
+                    ChatProcessor.this.post(chatEvent);
+                    ChatProcessor.this.readModernModifications(chatEvent, renderer);
+                    ChatProcessor.this.complete(chatEvent);
                     return null;
                 }
             });
@@ -188,7 +186,7 @@ public final class ChatProcessor {
         final ChatRenderer renderer = event.renderer();
 
         final Set<Audience> viewers = event.viewers();
-        final ResourceKey<ChatType> chatTypeKey = renderer instanceof ChatRenderer.Default ? ChatType.CHAT : ChatType.PAPER_RAW;
+        final ResourceKey<ChatType> chatTypeKey = renderer instanceof ChatRenderer.Default ? ChatType.CHAT : PAPER_RAW;
         final ChatType.Bound chatType = ChatType.bind(chatTypeKey, this.player.level().registryAccess(), PaperAdventure.asVanilla(displayName(player)));
 
         OutgoingChat outgoingChat = viewers instanceof LazyChatAudienceSet lazyAudienceSet && lazyAudienceSet.isLazy() ? new ServerOutgoingChat() : new ViewersOutgoingChat();
@@ -333,7 +331,7 @@ public final class ChatProcessor {
     }
 
     static String legacyDisplayName(final CraftPlayer player) {
-        if (((CraftWorld) player.getWorld()).getHandle().paperConfig().scoreboards.useVanillaWorldScoreboardNameColoring) {
+        if (((org.bukkit.craftbukkit.CraftWorld) player.getWorld()).getHandle().paperConfig().scoreboards.useVanillaWorldScoreboardNameColoring) {
             return legacySection().serialize(player.teamDisplayName()) + ChatFormatting.RESET;
         }
         return player.getDisplayName();
@@ -354,7 +352,7 @@ public final class ChatProcessor {
         if (DEFAULT_LEGACY_FORMAT.equals(format)) {
             return defaultRenderer();
         }
-        return ChatRenderer.viewerUnaware((player, sourceDisplayName, message) -> ColorAPI.adventure(legacyFormat(format, player, legacySection().serialize(message))));
+        return ChatRenderer.viewerUnaware((player, sourceDisplayName, message) -> legacySection().deserialize(legacyFormat(format, player, legacySection().serialize(message))));
     }
 
     static String legacyFormat(final String format, Player player, String message) {

@@ -2,11 +2,13 @@ package io.papermc.paper.adventure;
 
 import com.google.common.base.Suppliers;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.JavaOps;
 import java.util.function.Supplier;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.RegistryOps;
+import org.bukkit.craftbukkit.CraftRegistry;
 
 public final class WrapperAwareSerializer implements ComponentSerializer<Component, Component, net.minecraft.network.chat.Component> {
 
@@ -21,16 +23,12 @@ public final class WrapperAwareSerializer implements ComponentSerializer<Compone
         if (input instanceof AdventureComponent) {
             return ((AdventureComponent) input).adventure;
         }
-        try {
-            final RegistryOps<Object> ops = this.javaOps.get();
-            final Object obj = ComponentSerialization.CODEC.encodeStart(ops, input)
-                    .getOrThrow(s -> new RuntimeException("Failed to encode Minecraft Component: " + input + "; " + s));
-            final Pair<Component, Object> converted = AdventureCodecs.COMPONENT_CODEC.decode(ops, obj)
-                    .getOrThrow(s -> new RuntimeException("Failed to decode to adventure Component: " + obj + "; " + s));
-            return converted.getFirst();
-        } catch (Exception e) {
-            return Component.empty();
-        }
+        final RegistryOps<Object> ops = this.javaOps.get();
+        final Object obj = ComponentSerialization.CODEC.encodeStart(ops, input)
+            .getOrThrow(s -> new RuntimeException("Failed to encode Minecraft Component: " + input + "; " + s));
+        final Pair<Component, Object> converted = AdventureCodecs.COMPONENT_CODEC.decode(ops, obj)
+            .getOrThrow(s -> new RuntimeException("Failed to decode to adventure Component: " + obj + "; " + s));
+        return converted.getFirst();
     }
 
     @Override

@@ -1,36 +1,27 @@
 package org.bukkit.craftbukkit.attribute;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
+import io.papermc.paper.registry.RegistryKey;
+import io.papermc.paper.util.OldEnumHolderable;
 import java.util.Locale;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.legacy.FieldRename;
 import org.bukkit.craftbukkit.util.ApiVersion;
-import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 
-public class CraftAttribute {
+public class CraftAttribute extends OldEnumHolderable<Attribute, net.minecraft.world.entity.ai.attributes.Attribute> implements Attribute {
+
+    private static int count = 0;
 
     public static Attribute minecraftToBukkit(net.minecraft.world.entity.ai.attributes.Attribute minecraft) {
-        Preconditions.checkArgument(minecraft != null);
-
-        net.minecraft.core.Registry<net.minecraft.world.entity.ai.attributes.Attribute> registry = CraftRegistry.getMinecraftRegistry(Registries.ATTRIBUTE);
-        var registryKey = registry.getResourceKey(minecraft).orElseThrow().location();
-        Attribute bukkit = Registry.ATTRIBUTE.get(CraftNamespacedKey.fromMinecraft(registryKey));
-        if (!NeoForgeInjectBukkit.attributemap.isEmpty() && NeoForgeInjectBukkit.attributemap.containsKey(registryKey)) {
-            bukkit = NeoForgeInjectBukkit.attributemap.get(registryKey);
-        }
-        Preconditions.checkArgument(bukkit != null, "Bukkit attribute not found for registry key: " + registryKey);
-
-        return bukkit;
+        return CraftRegistry.minecraftToBukkit(minecraft, Registries.ATTRIBUTE);
     }
 
     public static Attribute minecraftHolderToBukkit(Holder<net.minecraft.world.entity.ai.attributes.Attribute> minecraft) {
-        return CraftAttribute.minecraftToBukkit(minecraft.value());
+        return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.ATTRIBUTE);
     }
 
     public static Attribute stringToBukkit(String string) {
@@ -44,32 +35,39 @@ public class CraftAttribute {
         if (key == null) return null; // Paper - Fixup NamespacedKey handling
 
         // Now also convert from when keys where saved
-        return CraftRegistry.get(Registry.ATTRIBUTE, key, ApiVersion.CURRENT);
+        return CraftRegistry.get(RegistryKey.ATTRIBUTE, key, ApiVersion.CURRENT);
     }
 
     public static net.minecraft.world.entity.ai.attributes.Attribute bukkitToMinecraft(Attribute bukkit) {
-        Preconditions.checkArgument(bukkit != null);
-
-        return CraftRegistry.getMinecraftRegistry(Registries.ATTRIBUTE)
-                .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
+        return CraftRegistry.bukkitToMinecraft(bukkit);
     }
 
     public static Holder<net.minecraft.world.entity.ai.attributes.Attribute> bukkitToMinecraftHolder(Attribute bukkit) {
-        Preconditions.checkArgument(bukkit != null);
-
-        net.minecraft.core.Registry<net.minecraft.world.entity.ai.attributes.Attribute> registry = CraftRegistry.getMinecraftRegistry(Registries.ATTRIBUTE);
-
-        if (registry.wrapAsHolder(CraftAttribute.bukkitToMinecraft(bukkit)) instanceof Holder.Reference<net.minecraft.world.entity.ai.attributes.Attribute> holder) {
-            return holder;
-        }
-
-        throw new IllegalArgumentException("No Reference holder found for " + bukkit
-                + ", this can happen if a plugin creates its own sound effect with out properly registering it.");
+        return CraftRegistry.bukkitToMinecraftHolder(bukkit);
     }
 
     public static String bukkitToString(Attribute bukkit) {
         Preconditions.checkArgument(bukkit != null);
 
         return bukkit.getKey().toString();
+    }
+
+    public CraftAttribute(final Holder<net.minecraft.world.entity.ai.attributes.Attribute> holder) {
+        super(holder, count++);
+    }
+
+    @Override
+    public Sentiment getSentiment() {
+        return Sentiment.valueOf(this.getHandle().sentiment.name());
+    }
+
+    @Override
+    public String getTranslationKey() {
+        return this.getHandle().getDescriptionId();
+    }
+
+    @Override
+    public String translationKey() {
+        return this.getHandle().getDescriptionId();
     }
 }

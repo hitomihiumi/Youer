@@ -1,48 +1,6 @@
 --- a/net/minecraft/server/dedicated/Settings.java
 +++ b/net/minecraft/server/dedicated/Settings.java
-@@ -20,17 +_,33 @@
- import java.util.function.Supplier;
- import java.util.function.UnaryOperator;
- import javax.annotation.Nullable;
-+
-+import joptsimple.OptionSet;
- import net.minecraft.core.RegistryAccess;
- import org.slf4j.Logger;
- 
- public abstract class Settings<T extends Settings<T>> {
-     private static final Logger LOGGER = LogUtils.getLogger();
-     public final Properties properties;
-+    private OptionSet options = null;
- 
-     public Settings(Properties p_139801_) {
-         this.properties = p_139801_;
-     }
- 
-+    public Settings(Properties p_139801_, final OptionSet options) {
-+        this(p_139801_);
-+        this.options = options;
-+    }
-+
-+    private String getOverride(String name, String value) {
-+        if ((this.options != null) && (this.options.has(name))) {
-+            return String.valueOf(this.options.valueOf(name));
-+        }
-+
-+        return value;
-+    }
-+
-     public static Properties loadFromFile(Path p_139840_) {
-         try {
-             try {
-@@ -59,14 +_,14 @@
-                 return properties1;
-             }
-         } catch (IOException ioexception) {
--            LOGGER.error("Failed to load properties from file: {}", p_139840_, ioexception);
-+            if (false) LOGGER.error("Failed to load properties from file: {}", p_139840_, ioexception);
-             return new Properties();
-         }
-     }
+@@ -66,7 +_,7 @@
  
      public void store(Path p_139877_) {
          try (Writer writer = Files.newBufferedWriter(p_139877_, StandardCharsets.UTF_8)) {
@@ -51,12 +9,3 @@
          } catch (IOException ioexception) {
              LOGGER.error("Failed to store properties to file: {}", p_139877_);
          }
-@@ -93,7 +_,7 @@
-     }
- 
-     @Nullable
--    private String getStringRaw(String p_139879_) {
-+    public String getStringRaw(String p_139879_) {
-         return (String)this.properties.get(p_139879_);
-     }
- 

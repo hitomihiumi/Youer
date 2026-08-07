@@ -82,41 +82,11 @@ public interface AnvilView extends InventoryView {
     boolean bypassesEnchantmentLevelRestriction();
 
     /**
-      * Sets if enchantments applied via this anvil view may bypass vanilla's level restrictions.
-      *
-      * @param bypassEnchantmentLevelRestriction if this view bypasses the vanilla level restrictions.
-      * @see AnvilView#bypassesEnchantmentLevelRestriction()
+     * Sets if enchantments applied via this anvil view may bypass vanilla's level restrictions.
+     *
+     * @param bypassEnchantmentLevelRestriction if this view bypasses the vanilla level restrictions.
+     * @see AnvilView#bypassesEnchantmentLevelRestriction()
      */
     void bypassEnchantmentLevelRestriction(boolean bypassEnchantmentLevelRestriction);
     // Paper end - bypass anvil level restrictions
-
-    // Purpur start
-    /**
-     * Gets if the player viewing the anvil inventory can bypass experience cost
-     *
-     * @return whether the player viewing the anvil inventory can bypass the experience cost
-     */
-    boolean canBypassCost();
-
-    /**
-     * Set if the player viewing the anvil inventory can bypass the experience cost
-     *
-     * @param bypassCost whether the player viewing the anvil inventory can bypass the experience cost
-     */
-    void setBypassCost(boolean bypassCost);
-
-    /**
-     * Gets if the player viewing the anvil inventory can do unsafe enchants
-     *
-     * @return whether the player viewing the anvil inventory can do unsafe enchants
-     */
-    boolean canDoUnsafeEnchants();
-
-    /**
-     * Set if the player viewing the anvil inventory can do unsafe enchants
-     *
-     * @param canDoUnsafeEnchants whether the player viewing the anvil inventory can do unsafe enchants
-     */
-    void setDoUnsafeEnchants(boolean canDoUnsafeEnchants);
-    // Purpur end
 }

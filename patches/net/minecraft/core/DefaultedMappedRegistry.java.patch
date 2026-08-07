@@ -12,4 +12,4 @@
 +
      @Nonnull
      @Override
-     public T get(@Nullable ResourceLocation p_260004_) {
+     public T getValue(@Nullable ResourceLocation p_368576_) {

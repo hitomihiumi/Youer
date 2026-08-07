@@ -1,10 +1,14 @@
 package io.papermc.paper.plugin.provider.source;
 
 import com.mojang.logging.LogUtils;
+import io.papermc.paper.SparksFly;
 import io.papermc.paper.plugin.PluginInitializerManager;
+import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.entrypoint.EntrypointHandler;
 import io.papermc.paper.plugin.provider.type.PluginFileType;
-import java.io.File;
+import org.bukkit.plugin.InvalidPluginException;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -15,8 +19,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.jar.JarFile;
-import org.bukkit.plugin.InvalidPluginException;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 /**
@@ -24,7 +26,7 @@ import org.slf4j.Logger;
  */
 public class FileProviderSource implements ProviderSource<Path, Path> {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
     private final Function<Path, String> contextChecker;
     private final boolean applyRemap;
 
@@ -84,13 +86,19 @@ public class FileProviderSource implements ProviderSource<Path, Path> {
             );
         }
 
+        final PluginMeta config = type.getConfig(file);
+        if ((config.getName().equals("spark") && config.getMainClass().equals("me.lucko.spark.bukkit.BukkitSparkPlugin")) && !SparksFly.isPluginPreferred()) {
+            LOGGER.info("The spark plugin will not be loaded as this server bundles the spark profiler.");
+            return;
+        }
+
         type.register(entrypointHandler, file, context);
     }
 
     /**
      * Replaces a plugin with a plugin of the same plugin name in the update folder.
      *
-     * @param file
+     * @param file The plugin jar file to look for updates for.
      */
     private Path checkUpdate(Path file) throws InvalidPluginException {
         PluginInitializerManager pluginSystem = PluginInitializerManager.instance();
@@ -112,11 +120,22 @@ public class FileProviderSource implements ProviderSource<Path, Path> {
                     throw new RuntimeException("Could not copy '" + updateLocation + "' to '" + file + "' in update plugin process", exception);
                 }
 
-                // Idk what this is about, TODO
-                File newName = new File(file.toFile().getParentFile(), updateLocation.toFile().getName());
-                file.toFile().renameTo(newName);
-                updateLocation.toFile().delete();
-                return newName.toPath();
+                // Rename the plugin file to the update file's name.
+                final Path renamedFile = file.resolveSibling(updateLocation.getFileName());
+                try {
+                    Files.move(file, renamedFile, StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException exception) {
+                    throw new RuntimeException("Could not rename '" + file + "' to '" + renamedFile + "' in update plugin process", exception);
+                }
+
+                // Delete the file from the update folder now that it's copied over successfully
+                try {
+                    Files.delete(updateLocation);
+                } catch (IOException exception) {
+                    throw new RuntimeException("Could not delete '" + updateLocation + "' from update folder in update plugin process", exception);
+                }
+
+                return renamedFile;
             }
         } catch (Exception e) {
             throw new InvalidPluginException(e);

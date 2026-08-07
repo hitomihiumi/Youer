@@ -2,14 +2,15 @@ package io.papermc.paper.threadedregions.scheduler;
 
 import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
 import ca.spottedleaf.concurrentutil.util.Validate;
-import java.lang.invoke.VarHandle;
-import java.util.function.Consumer;
-import java.util.logging.Level;
 import net.minecraft.world.entity.Entity;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
+
+import java.lang.invoke.VarHandle;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 
 public final class FoliaEntityScheduler implements EntityScheduler {
 

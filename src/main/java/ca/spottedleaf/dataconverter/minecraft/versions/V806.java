@@ -3,8 +3,8 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 import ca.spottedleaf.dataconverter.converters.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
+import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.Types;
 
 public final class V806 {
@@ -12,10 +12,10 @@ public final class V806 {
     private static final int VERSION = MCVersions.V16W36A + 1;
 
     public static void register() {
-        final DataConverter<MapType<String>, MapType<String>> potionWaterUpdater = new DataConverter<>(VERSION) {
+        final DataConverter<MapType, MapType> potionWaterUpdater = new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
-                MapType<String> tag = data.getMap("tag");
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                MapType tag = data.getMap("tag");
                 if (tag == null) {
                     tag = Types.NBT.createEmptyMap();
                     data.setMap("tag", tag);

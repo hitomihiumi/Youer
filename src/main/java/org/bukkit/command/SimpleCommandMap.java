@@ -1,7 +1,6 @@
 package org.bukkit.command;
 
 import com.google.common.base.Preconditions;
-import io.papermc.paper.command.PaperPluginsCommand;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -15,29 +14,27 @@ import org.bukkit.Server;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.command.defaults.HelpCommand;
 import org.bukkit.command.defaults.ReloadCommand;
-import org.bukkit.command.defaults.VersionCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class SimpleCommandMap implements CommandMap {
-    public final Map<String, Command> knownCommands; // Paper
+    protected final Map<String, Command> knownCommands;
     private final Server server;
 
-    // Paper start
     @org.jetbrains.annotations.ApiStatus.Internal
     public SimpleCommandMap(@NotNull final Server server, Map<String, Command> backing) {
         this.knownCommands = backing;
-        // Paper end
         this.server = server;
         setDefaultCommands();
     }
 
     private void setDefaultCommands() {
-        register("bukkit", new VersionCommand("version"));
-        register("bukkit", new ReloadCommand("reload"));
-        register("bukkit", new PaperPluginsCommand());
+        final ReloadCommand reload = new ReloadCommand("reload");
+        this.knownCommands.put("bukkit:reload", reload);
+        this.knownCommands.put("bukkit:rl", reload);
+        register("bukkit", new co.aikar.timings.TimingsCommand("timings"));
     }
 
     public void setFallbackCommands() {
@@ -69,6 +66,7 @@ public class SimpleCommandMap implements CommandMap {
      */
     @Override
     public boolean register(@NotNull String label, @NotNull String fallbackPrefix, @NotNull Command command) {
+        command.timings = co.aikar.timings.TimingsManager.getCommandTiming(fallbackPrefix, command); // Paper
         label = label.toLowerCase(Locale.ROOT).trim();
         fallbackPrefix = fallbackPrefix.toLowerCase(Locale.ROOT).trim();
         boolean registered = register(label, command, false, fallbackPrefix);
@@ -107,7 +105,7 @@ public class SimpleCommandMap implements CommandMap {
         // Paper start
         Command known = knownCommands.get(label);
         if ((command instanceof BukkitCommand || isAlias) && (known != null && !known.canBeOverriden())) {
-            // Paper end
+        // Paper end
             // Request is for an alias/fallback command and it conflicts with
             // a existing command or previous alias ignore it
             // Note: This will mean it gets removed from the commands list of active aliases
@@ -120,7 +118,7 @@ public class SimpleCommandMap implements CommandMap {
         Command conflict = knownCommands.get(label);
         if (conflict != null && conflict.getLabel().equals(label)) {
             if (!conflict.canBeOverriden()) { // Paper
-                return false;
+            return false;
             } // Paper
         }
 
@@ -150,26 +148,26 @@ public class SimpleCommandMap implements CommandMap {
             return false;
         }
 
-        // Purpur start
-        String[] parsedArgs = Arrays.copyOfRange(args, 1, args.length);
-        org.purpurmc.purpur.event.ExecuteCommandEvent event = new org.purpurmc.purpur.event.ExecuteCommandEvent(sender, target, sentCommandLabel, parsedArgs);
-        if (!event.callEvent()) {
-            return true; // cancelled
+        // Paper start - Plugins do weird things to workaround normal registration
+        if (target.timings == null) {
+            target.timings = co.aikar.timings.TimingsManager.getCommandTiming(null, target);
         }
-
-        sender = event.getSender();
-        target = event.getCommand();
-        sentCommandLabel = event.getLabel();
-        parsedArgs = event.getArgs();
-        // Purpur end
+        // Paper end
 
         try {
+            try (co.aikar.timings.Timing ignored = target.timings.startTiming()) { // Paper - use try with resources
             // Note: we don't return the result of target.execute as thats success / failure, we return handled (true) or not handled (false)
-            target.execute(sender, sentCommandLabel, parsedArgs);
+            target.execute(sender, sentCommandLabel, Arrays.copyOfRange(args, 1, args.length));
+            } // target.timings.stopTiming(); // Spigot // Paper
         } catch (CommandException ex) {
+            server.getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
+            //target.timings.stopTiming(); // Spigot // Paper
             throw ex;
         } catch (Throwable ex) {
-            throw new CommandException("Unhandled exception executing '" + commandLine + "' in " + target, ex);
+            //target.timings.stopTiming(); // Spigot // Paper
+            String msg = "Unhandled exception executing '" + commandLine + "' in " + target;
+            server.getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
+            throw new CommandException(msg, ex);
         }
 
         // return true as command was handled

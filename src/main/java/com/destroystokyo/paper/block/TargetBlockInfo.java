@@ -50,7 +50,7 @@ public class TargetBlockInfo {
     }
 
     /**
-     * @deprecated use {@link FluidCollisionMode}
+     * @deprecated use {@link org.bukkit.FluidCollisionMode}
      */
     @Deprecated(forRemoval = true, since = "1.19.3")
     public enum FluidMode {

@@ -7,12 +7,12 @@ import ca.spottedleaf.dataconverter.types.MapType;
 
 public final class V3943 {
 
-    private static final int VERSION = MCVersions.V2419WB + 1;
+    private static final int VERSION = MCVersions.V24W19B + 1;
 
     public static void register() {
         MCTypeRegistry.OPTIONS.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final String oldRange = data.getString("menuBackgroundBlurriness", "0.5");
 
                 int newRange;

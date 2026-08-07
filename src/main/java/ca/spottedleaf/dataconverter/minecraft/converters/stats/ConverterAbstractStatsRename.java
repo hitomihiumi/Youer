@@ -4,6 +4,7 @@ import ca.spottedleaf.dataconverter.converters.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.types.MapType;
+import java.util.ArrayList;
 import java.util.function.Function;
 
 public final class ConverterAbstractStatsRename  {
@@ -17,8 +18,8 @@ public final class ConverterAbstractStatsRename  {
     public static void register(final int version, final int subVersion, final Function<String, String> renamer) {
         MCTypeRegistry.OBJECTIVE.addStructureConverter(new DataConverter<>(version, subVersion) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
-                final MapType<String> criteriaType = data.getMap("CriteriaType");
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final MapType criteriaType = data.getMap("CriteriaType");
                 if (criteriaType == null) {
                     return null;
                 }
@@ -44,14 +45,14 @@ public final class ConverterAbstractStatsRename  {
 
         MCTypeRegistry.STATS.addStructureConverter(new DataConverter<>(version, subVersion) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
-                final MapType<String> stats = data.getMap("stats");
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final MapType stats = data.getMap("stats");
 
                 if (stats == null) {
                     return null;
                 }
 
-                final MapType<String> custom = stats.getMap("minecraft:custom");
+                final MapType custom = stats.getMap("minecraft:custom");
                 if (custom == null) {
                     return null;
                 }

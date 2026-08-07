@@ -1,11 +1,12 @@
 package io.papermc.paper.threadedregions.scheduler;
 
-import java.util.function.Consumer;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Consumer;
 
 /**
  * The region task scheduler can be used to schedule tasks by location to be executed on the region which owns the location.

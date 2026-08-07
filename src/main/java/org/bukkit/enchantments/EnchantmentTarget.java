@@ -6,14 +6,17 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents the applicable target for a {@link Enchantment}
+ *
+ * @deprecated enchantment groupings are now managed by tags, not categories
  */
+@Deprecated(since = "1.20.5", forRemoval = true)
 public enum EnchantmentTarget {
     /**
      * Allows the Enchantment to be placed on all items
      *
      * @deprecated this target no longer exists in Vanilla
      */
-    @Deprecated
+    @Deprecated(since = "1.16.1", forRemoval = true)
     ALL {
         @Override
         public boolean includes(@NotNull Material item) {
@@ -227,28 +230,6 @@ public enum EnchantmentTarget {
         public boolean includes(@NotNull Material item) {
             return BREAKABLE.includes(item) || (WEARABLE.includes(item) && !item.equals(Material.ELYTRA)) || item.equals(Material.COMPASS);
         }
-        // Purpur start
-    },
-
-    /**
-     * Allow the Enchantment to be placed on bows and crossbows.
-     */
-    BOW_AND_CROSSBOW {
-        @Override
-        public boolean includes(@NotNull Material item) {
-            return item.equals(Material.BOW) || item.equals(Material.CROSSBOW);
-        }
-    },
-
-    /**
-     * Allow the Enchantment to be placed on shears.
-     */
-    WEAPON_AND_SHEARS {
-        @Override
-        public boolean includes(@NotNull Material item) {
-            return WEAPON.includes(item) || item.equals(Material.SHEARS);
-        }
-        // Purpur end
     };
 
     /**

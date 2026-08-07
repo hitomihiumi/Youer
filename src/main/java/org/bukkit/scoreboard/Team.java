@@ -235,7 +235,7 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * @throws IllegalArgumentException if this team has been unregistered
      * @deprecated see {@link #getOption(Team.Option)}
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     @NotNull
     NameTagVisibility getNameTagVisibility();
 
@@ -246,7 +246,7 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * @throws IllegalArgumentException if this team has been unregistered
      * @deprecated see {@link #setOption(Team.Option, Team.OptionStatus)}
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     void setNameTagVisibility(@NotNull NameTagVisibility visibility);
 
     /**
@@ -257,7 +257,7 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * @see #getEntries()
      * @deprecated Teams can contain entries that aren't players
      */
-    @Deprecated
+    @Deprecated(since = "1.8.6")
     @NotNull
     Set<OfflinePlayer> getPlayers();
 
@@ -265,7 +265,7 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * Gets the Set of entries on the team
      *
      * @return entries on the team
-     * @throws IllegalStateException if this entries has been unregistered
+     * @throws IllegalStateException if this team has been unregistered
      */
     @NotNull
     Set<String> getEntries();
@@ -295,9 +295,8 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * @param player the player to add
      * @throws IllegalStateException if this team has been unregistered
      * @see #addEntry(String)
-     * @deprecated Teams can contain entries that aren't players
      */
-    @Deprecated
+    // @Deprecated(since = "1.8.6") // Paper
     void addPlayer(@NotNull OfflinePlayer player);
 
     /**
@@ -371,9 +370,8 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * @return if the player was on this team
      * @throws IllegalStateException if this team has been unregistered
      * @see #removeEntry(String)
-     * @deprecated Teams can contain entries that aren't players
      */
-    @Deprecated
+    // @Deprecated(since = "1.8.6") // Paper
     boolean removePlayer(@NotNull OfflinePlayer player);
 
     /**
@@ -449,9 +447,8 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * @return true if the player is a member of this team
      * @throws IllegalStateException if this team has been unregistered
      * @see #hasEntry(String)
-     * @deprecated Teams can contain entries that aren't players
      */
-    @Deprecated
+    // @Deprecated(since = "1.8.6") // Paper
     boolean hasPlayer(@NotNull OfflinePlayer player);
     /**
      * Checks to see if the specified entry is a member of this team.

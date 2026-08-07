@@ -40,7 +40,7 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
      * @return block specific metadata
      * @deprecated Magic value
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2", forRemoval = true)
     byte getData();
 
     /**
@@ -364,7 +364,7 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     // Paper start
     /**
      * @see #getState() optionally disables use of snapshot, to operate on real block data
-     * @param useSnapshot if this block is a TE, should we create a fully copy of the TileEntity
+     * @param useSnapshot if this block is a block entity, should we create a full copy of the BlockEntity
      * @return BlockState with the current state of this block
      */
     @NotNull
@@ -375,6 +375,7 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
      * Returns the biome that this block resides in
      *
      * @return Biome type containing this block
+     * @see #getComputedBiome()
      */
     @NotNull
     Biome getBiome();
@@ -508,9 +509,6 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
 
     /**
      * Gets the temperature of this block.
-     * <p>
-     * If the raw biome temperature without adjusting for height effects is
-     * required then please use {@link World#getTemperature(int, int)}.
      *
      * @return Temperature of this block
      */
@@ -594,6 +592,18 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     boolean breakNaturally(@NotNull ItemStack tool, boolean triggerEffect, boolean dropExperience);
 
     /**
+     * Breaks the block and spawns item drops as if a player had broken it
+     * with a specific tool
+     *
+     * @param tool The tool or item in hand used for digging
+     * @param triggerEffect Play the block break particle effect and sound
+     * @param dropExperience drop exp if the block normally does so
+     * @param forceEffect Forces the break effect to be triggered even if the tool is not the correct tool for the block
+     * @return true if the block was destroyed
+     */
+    boolean breakNaturally(@NotNull ItemStack tool, boolean triggerEffect, boolean dropExperience, boolean forceEffect);
+
+    /**
      * Causes the block to be ticked, this is different from {@link Block#randomTick()},
      * in that it is usually scheduled to occur, for example
      * redstone components being activated, sand falling, etc.
@@ -627,8 +637,8 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
      * @see #fluidTick()
      */
     void randomTick();
-
     // Paper end
+
     /**
      * Simulate bone meal application to this block (if possible).
      *
@@ -639,7 +649,10 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     boolean applyBoneMeal(@NotNull BlockFace face);
 
     /**
-     * Returns a list of items which would drop by destroying this block
+     * Returns a list of items which could drop by destroying this block.
+     * <p>
+     * The items are not guaranteed to be consistent across multiple calls to this
+     * method as this just uses the block type's loot table.
      *
      * @return a list of dropped items for this type of block
      */
@@ -647,8 +660,11 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     Collection<ItemStack> getDrops();
 
     /**
-     * Returns a list of items which would drop by destroying this block with
-     * a specific tool
+     * Returns a list of items which could drop by destroying this block with
+     * a specific tool.
+     * <p>
+     * The items are not guaranteed to be consistent across multiple calls to this
+     * method as this just uses the block type's loot table.
      *
      * @param tool The tool or item in hand used for digging
      * @return a list of dropped items for this type of block
@@ -657,15 +673,18 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     Collection<ItemStack> getDrops(@Nullable ItemStack tool);
 
     /**
-     * Returns a list of items which would drop by the entity destroying this
-     * block with a specific tool
+     * Returns a list of items which could drop by the entity destroying this
+     * block with a specific tool.
+     * <p>
+     * The items are not guaranteed to be consistent across multiple calls to this
+     * method as this just uses the block type's loot table.
      *
      * @param tool The tool or item in hand used for digging
      * @param entity the entity destroying the block
      * @return a list of dropped items for this type of block
      */
     @NotNull
-    Collection<ItemStack> getDrops(@NotNull ItemStack tool, @Nullable Entity entity);
+    Collection<ItemStack> getDrops(@Nullable ItemStack tool, @Nullable Entity entity); // Paper
 
     /**
      * Returns if the given item is a preferred choice to break this Block.
@@ -758,7 +777,7 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
 
     // Paper start
     /**
-     * Gets the {@link io.papermc.paper.block.BlockSoundGroup} for this block.
+     * Gets the {@link com.destroystokyo.paper.block.BlockSoundGroup} for this block.
      * <p>
      * This object contains the block, step, place, hit, and fall sounds.
      *
@@ -810,4 +829,11 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
         return this.getBlockData().getDestroySpeed(itemStack, considerEnchants);
     }
     // Paper end - destroy speed API
+
+    /**
+     * Checks if the block can suffocate.
+     *
+     * @return {@code true} if the block can suffocate
+     */
+    boolean isSuffocating();
 }

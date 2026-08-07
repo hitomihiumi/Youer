@@ -1,11 +1,7 @@
 package io.papermc.paper.adventure;
 
-import com.google.gson.JsonElement;
-import com.mohistmc.youer.api.ColorAPI;
-import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JavaOps;
-import com.mojang.serialization.JsonOps;
 import io.netty.util.AttributeKey;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,12 +32,9 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
-import net.kyori.adventure.text.serializer.gson.GsonDataComponentValue;
 import net.kyori.adventure.text.serializer.plain.PlainComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.translation.GlobalTranslator;
-import net.kyori.adventure.translation.TranslationRegistry;
-import net.kyori.adventure.translation.Translator;
 import net.kyori.adventure.util.Codec;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -60,6 +53,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.network.Filterable;
 import net.minecraft.sounds.SoundEvent;
@@ -72,7 +66,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.command.VanillaCommandWrapper;
 import org.bukkit.craftbukkit.entity.CraftEntity;
-import org.bukkit.craftbukkit.util.CraftChatMessage;
 import org.intellij.lang.annotations.Subst;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -83,16 +76,16 @@ import static java.util.Objects.requireNonNull;
 public final class PaperAdventure {
     private static final Pattern LOCALIZATION_PATTERN = Pattern.compile("%(?:(\\d+)\\$)?s");
     public static final ComponentFlattener FLATTENER = ComponentFlattener.basic().toBuilder()
+        .nestingLimit(30) // todo: should this be configurable? a system property or config value?
         .complexMapper(TranslatableComponent.class, (translatable, consumer) -> {
-            if (!Language.getInstance().has(translatable.key())) {
-                for (final Translator source : GlobalTranslator.translator().sources()) {
-                    if (source instanceof TranslationRegistry registry && registry.contains(translatable.key())) {
-                        consumer.accept(GlobalTranslator.render(translatable, Locale.US));
-                        return;
-                    }
+            final Language language = Language.getInstance();
+            final @Nullable String fallback = translatable.fallback();
+            if (!language.has(translatable.key()) && (fallback == null || !language.has(fallback))) {
+                if (GlobalTranslator.translator().canTranslate(translatable.key(), Locale.US)) {
+                    consumer.accept(GlobalTranslator.render(translatable, Locale.US));
+                    return;
                 }
             }
-            final @Nullable String fallback = translatable.fallback();
             final @NotNull String translated = Language.getInstance().getOrDefault(translatable.key(), fallback != null ? fallback : translatable.key());
 
             final Matcher matcher = LOCALIZATION_PATTERN.matcher(translated);
@@ -135,10 +128,11 @@ public final class PaperAdventure {
     @Deprecated
     public static final PlainComponentSerializer PLAIN = PlainComponentSerializer.builder().flattener(FLATTENER).build();
     public static final ANSIComponentSerializer ANSI_SERIALIZER = ANSIComponentSerializer.builder().flattener(FLATTENER).build();
+    private static final TagParser<Tag> NBT_PARSER = TagParser.create(NbtOps.INSTANCE);
     public static final Codec<Tag, String, CommandSyntaxException, RuntimeException> NBT_CODEC = new Codec<>() {
         @Override
         public @NotNull Tag decode(final @NotNull String encoded) throws CommandSyntaxException {
-            return new TagParser(new StringReader(encoded)).readValue();
+            return NBT_PARSER.parseFully(encoded);
         }
 
         @Override
@@ -153,15 +147,41 @@ public final class PaperAdventure {
 
     // Key
 
+    public static Key asAdventure(final ResourceLocation key) {
+        return Key.key(key.getNamespace(), key.getPath());
+    }
+
     public static ResourceLocation asVanilla(final Key key) {
         return ResourceLocation.fromNamespaceAndPath(key.namespace(), key.value());
     }
 
-    public static ResourceLocation asVanillaNullable(final Key key) {
+    public static <T> ResourceKey<T> asVanilla(
+        final ResourceKey<? extends net.minecraft.core.Registry<T>> registry,
+        final Key key
+    ) {
+        return ResourceKey.create(registry, asVanilla(key));
+    }
+
+    public static Key asAdventureKey(final ResourceKey<?> key) {
+        return asAdventure(key.location());
+    }
+
+    public static @Nullable ResourceLocation asVanillaNullable(final Key key) {
         if (key == null) {
             return null;
         }
         return asVanilla(key);
+    }
+
+    public static Holder<SoundEvent> resolveSound(final Key key) {
+        ResourceLocation id = asVanilla(key);
+        Optional<Holder.Reference<SoundEvent>> vanilla = BuiltInRegistries.SOUND_EVENT.get(id);
+        if (vanilla.isPresent()) {
+            return vanilla.get();
+        }
+
+        // sound is not known so not in the registry but might be used by the client with a resource pack
+        return Holder.direct(SoundEvent.createVariableRangeEvent(id));
     }
 
     // Component
@@ -358,6 +378,7 @@ public final class PaperAdventure {
             case PLAYER -> SoundSource.PLAYERS;
             case AMBIENT -> SoundSource.AMBIENT;
             case VOICE -> SoundSource.VOICE;
+            case UI -> SoundSource.UI;
         };
     }
 
@@ -423,7 +444,7 @@ public final class PaperAdventure {
         }
         final DataComponentPatch.Builder builder = DataComponentPatch.builder();
         map.forEach((key, dataComponentValue) -> {
-            final DataComponentType<?> type = requireNonNull(BuiltInRegistries.DATA_COMPONENT_TYPE.get(asVanilla(key)));
+            final DataComponentType<?> type = requireNonNull(BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(asVanilla(key)));
             if (dataComponentValue instanceof DataComponentValue.Removed) {
                 builder.remove(type);
                 return;
@@ -434,16 +455,11 @@ public final class PaperAdventure {
         return builder.build();
     }
 
-    public record DataComponentValueImpl<T>(com.mojang.serialization.Codec<T> codec, T value) implements DataComponentValue.TagSerializable, GsonDataComponentValue {
+    public record DataComponentValueImpl<T>(com.mojang.serialization.Codec<T> codec, T value) implements DataComponentValue.TagSerializable {
 
         @Override
         public @NotNull BinaryTagHolder asBinaryTag() {
             return BinaryTagHolder.encode(this.codec.encodeStart(CraftRegistry.getMinecraftRegistry().createSerializationContext(NbtOps.INSTANCE), this.value).getOrThrow(IllegalArgumentException::new), NBT_CODEC);
-        }
-
-        @Override
-        public @NotNull JsonElement element() {
-            return this.codec.encodeStart(CraftRegistry.getMinecraftRegistry().createSerializationContext(JsonOps.INSTANCE), this.value).getOrThrow(IllegalArgumentException::new);
         }
     }
 

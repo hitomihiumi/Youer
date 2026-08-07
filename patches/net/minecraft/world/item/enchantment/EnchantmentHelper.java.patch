@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/item/enchantment/EnchantmentHelper.java
 +++ b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
-@@ -1,6 +_,7 @@
- package net.minecraft.world.item.enchantment;
- 
- import com.google.common.collect.Lists;
-+import com.mohistmc.youer.feature.ban.bans.BanEnchantment;
- import com.mojang.datafixers.util.Pair;
- import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
- import java.util.ArrayList;
 @@ -47,7 +_,19 @@
  import org.apache.commons.lang3.mutable.MutableObject;
  
@@ -28,7 +20,7 @@
          ItemEnchantments itemenchantments = p_44845_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
          return itemenchantments.getLevel(p_346179_);
      }
-@@ -122,6 +_,12 @@
+@@ -128,6 +_,12 @@
      public static void runIterationOnItem(ItemStack p_345425_, EnchantmentHelper.EnchantmentVisitor p_345023_) {
          ItemEnchantments itemenchantments = p_345425_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
  
@@ -41,7 +33,7 @@
          for (Entry<Holder<Enchantment>> entry : itemenchantments.entrySet()) {
              p_345023_.accept(entry.getKey(), entry.getIntValue());
          }
-@@ -132,6 +_,10 @@
+@@ -138,6 +_,10 @@
      ) {
          if (!p_44852_.isEmpty()) {
              ItemEnchantments itemenchantments = p_44852_.get(DataComponents.ENCHANTMENTS);
@@ -52,7 +44,7 @@
              if (itemenchantments != null && !itemenchantments.isEmpty()) {
                  EnchantedItemInUse enchantediteminuse = new EnchantedItemInUse(p_44852_, p_345566_, p_345792_);
  
-@@ -417,6 +_,12 @@
+@@ -438,6 +_,12 @@
      public static boolean hasTag(ItemStack p_345665_, TagKey<Enchantment> p_345928_) {
          ItemEnchantments itemenchantments = p_345665_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
  
@@ -65,36 +57,7 @@
          for (Entry<Holder<Enchantment>> entry : itemenchantments.entrySet()) {
              Holder<Enchantment> holder = entry.getKey();
              if (holder.is(p_345928_)) {
-@@ -484,7 +_,7 @@
- 
-     public static int getEnchantmentCost(RandomSource p_220288_, int p_220289_, int p_220290_, ItemStack p_220291_) {
-         Item item = p_220291_.getItem();
--        int i = item.getEnchantmentValue();
-+        int i = p_220291_.getEnchantmentValue();
-         if (i <= 0) {
-             return 0;
-         } else {
-@@ -520,7 +_,9 @@
-         }
- 
-         for (EnchantmentInstance enchantmentinstance : list) {
--            p_220294_.enchant(enchantmentinstance.enchantment, enchantmentinstance.level);
-+            if (!BanEnchantment.check(p_220294_)) {
-+                p_220294_.enchant(enchantmentinstance.enchantment, enchantmentinstance.level);
-+            }
-         }
- 
-         return p_220294_;
-@@ -529,7 +_,7 @@
-     public static List<EnchantmentInstance> selectEnchantment(RandomSource p_220298_, ItemStack p_220299_, int p_220300_, Stream<Holder<Enchantment>> p_346061_) {
-         List<EnchantmentInstance> list = Lists.newArrayList();
-         Item item = p_220299_.getItem();
--        int i = item.getEnchantmentValue();
-+        int i = p_220299_.getEnchantmentValue();
-         if (i <= 0) {
-             return list;
-         } else {
-@@ -575,11 +_,12 @@
+@@ -594,7 +_,9 @@
      public static List<EnchantmentInstance> getAvailableEnchantmentResults(int p_44818_, ItemStack p_44819_, Stream<Holder<Enchantment>> p_345348_) {
          List<EnchantmentInstance> list = Lists.newArrayList();
          boolean flag = p_44819_.is(Items.BOOK);
@@ -103,10 +66,5 @@
 +        // The original logic is recorded in the default implementation of IItemExtension#isPrimaryItemFor.
 +        p_345348_.filter(p_44819_::isPrimaryItemFor).forEach(p_344478_ -> {
              Enchantment enchantment = p_344478_.value();
--
+ 
              for (int i = enchantment.getMaxLevel(); i >= enchantment.getMinLevel(); i--) {
--                if (p_44818_ >= enchantment.getMinCost(i) && p_44818_ <= enchantment.getMaxCost(i)) {
-+                if (!BanEnchantment.check(p_44819_) && p_44818_ >= enchantment.getMinCost(i) && p_44818_ <= enchantment.getMaxCost(i)) {
-                     list.add(new EnchantmentInstance((Holder<Enchantment>)p_344478_, i));
-                     break;
-                 }

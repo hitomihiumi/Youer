@@ -1,32 +1,10 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
-@@ -49,6 +_,8 @@
- import net.minecraft.world.level.pathfinder.Path;
- import net.minecraft.world.phys.AABB;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- import org.slf4j.Logger;
- 
- public class EnderDragon extends Mob implements Enemy {
-@@ -87,6 +_,11 @@
-     private final Node[] nodes = new Node[24];
-     private final int[] nodeAdjacency = new int[24];
-     private final BinaryHeap openSet = new BinaryHeap();
-+    private final net.minecraft.world.level.Explosion explosionSource; // CraftBukkit - reusable source for CraftTNTPrimed.getSource()
-+    // Paper start - Allow changing the EnderDragon podium
-+    @Nullable
-+    private BlockPos podium;
-+    // Paper end - Allow changing the EnderDragon podium
- 
-     public EnderDragon(EntityType<? extends EnderDragon> p_31096_, Level p_31097_) {
-         super(EntityType.ENDER_DRAGON, p_31097_);
-@@ -103,6 +_,15 @@
+@@ -103,6 +_,14 @@
+         this.setHealth(this.getMaxHealth());
          this.noPhysics = true;
-         this.noCulling = true;
          this.phaseManager = new EnderDragonPhaseManager(this);
 +        this.setId(ENTITY_COUNTER.getAndAdd(this.subEntities.length + 1) + 1); // Forge: Fix MC-158205: Make sure part ids are successors of parent mob id
-+        this.explosionSource = new net.minecraft.world.level.Explosion(p_31097_, this, null, null, Double.NaN, Double.NaN, Double.NaN, Float.NaN, true, net.minecraft.world.level.Explosion.BlockInteraction.DESTROY, ParticleTypes.EXPLOSION, ParticleTypes.EXPLOSION_EMITTER, SoundEvents.GENERIC_EXPLODE); // CraftBukkit
 +    }
 +
 +    @Override
@@ -37,265 +15,57 @@
      }
  
      public void setDragonFight(EndDragonFight p_287736_) {
-@@ -121,6 +_,19 @@
-         return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 200.0);
+@@ -151,8 +_,20 @@
+         p_326491_.define(DATA_PHASE, EnderDragonPhase.HOVERING.getId());
      }
  
-+    // Paper start - Allow changing the EnderDragon podium
-+    public BlockPos getPodium() {
-+        if (this.podium == null) {
-+            return EndPodiumFeature.getLocation(this.getFightOrigin());
-+        }
-+        return this.podium;
-+    }
++    @org.jetbrains.annotations.Nullable
++    private net.minecraft.world.entity.EntityReference<Player> unlimitedLastHurtByPlayer = null;
 +
-+    public void setPodium(@Nullable BlockPos blockPos) {
-+        this.podium = blockPos;
-+    }
-+    // Paper end - Allow changing the EnderDragon podium
-+
-     @Override
-     public boolean isFlapping() {
-         float f = Mth.cos(this.flapTime * (float) (Math.PI * 2));
-@@ -170,8 +_,12 @@
-         return adouble;
-     }
- 
-+    @org.jetbrains.annotations.Nullable private Player unlimitedLastHurtByPlayer = null;
      @Override
      public void aiStep() {
 +        // lastHurtByPlayer is cleared after 100 ticks, capture it indefinitely in unlimitedLastHurtByPlayer for LivingExperienceDropEvent
 +        if (this.lastHurtByPlayer != null) this.unlimitedLastHurtByPlayer = lastHurtByPlayer;
-+        if (this.unlimitedLastHurtByPlayer != null && this.unlimitedLastHurtByPlayer.isRemoved()) this.unlimitedLastHurtByPlayer = null;
++        if (this.unlimitedLastHurtByPlayer != null) {
++            Player p = this.unlimitedLastHurtByPlayer.getEntity(this.level(), Player.class);
++            if (p == null || p.isRemoved()) {
++                this.unlimitedLastHurtByPlayer = null;
++            }
++        }
++
          this.processFlappingMovement();
          if (this.level().isClientSide) {
              this.setHealth(this.getHealth());
-@@ -251,7 +_,7 @@
-                     }
- 
-                     Vec3 vec3 = dragonphaseinstance.getFlyTargetLocation();
--                    if (vec3 != null) {
-+                    if (vec3 != null && dragonphaseinstance.getPhase() != EnderDragonPhase.HOVERING) { // CraftBukkit - Don't move when hovering
-                         double d0 = vec3.x - this.getX();
-                         double d1 = vec3.y - this.getY();
-                         double d2 = vec3.z - this.getZ();
-@@ -402,7 +_,14 @@
-             if (this.nearestCrystal.isRemoved()) {
-                 this.nearestCrystal = null;
-             } else if (this.tickCount % 10 == 0 && this.getHealth() < this.getMaxHealth()) {
--                this.setHealth(this.getHealth() + 1.0F);
-+                // CraftBukkit start
-+                org.bukkit.event.entity.EntityRegainHealthEvent event = new org.bukkit.event.entity.EntityRegainHealthEvent(this.getBukkitEntity(), 1.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.ENDER_CRYSTAL);
-+                this.level().getCraftServer().getPluginManager().callEvent(event);
-+
-+                if (!event.isCancelled()) {
-+                    this.setHealth((float) (this.getHealth() + event.getAmount()));
-+                }
-+                // CraftBukkit end
-             }
-         }
- 
-@@ -433,6 +_,7 @@
-                 double d2 = entity.getX() - d0;
-                 double d3 = entity.getZ() - d1;
-                 double d4 = Math.max(d2 * d2 + d3 * d3, 0.1);
-+                entity.pushingEntity = this; // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
-                 entity.push(d2 / d4 * 4.0, 0.2F, d3 / d4 * 4.0);
-                 if (!this.phaseManager.getCurrentPhase().isSitting() && livingentity.getLastHurtByMobTimestamp() < entity.tickCount - 2) {
-                     DamageSource damagesource = this.damageSources().mobAttack(this);
-@@ -468,6 +_,9 @@
-         int j1 = Mth.floor(p_31140_.maxZ);
-         boolean flag = false;
-         boolean flag1 = false;
-+        // CraftBukkit start - Create a list to hold all the destroyed blocks
-+        List<org.bukkit.block.Block> destroyedBlocks = new java.util.ArrayList<org.bukkit.block.Block>();
-+        // CraftBukkit end
- 
-         for (int k1 = i; k1 <= l; k1++) {
-             for (int l1 = j; l1 <= i1; l1++) {
-@@ -475,8 +_,11 @@
+@@ -441,7 +_,7 @@
                      BlockPos blockpos = new BlockPos(k1, l1, i2);
-                     BlockState blockstate = this.level().getBlockState(blockpos);
+                     BlockState blockstate = p_376795_.getBlockState(blockpos);
                      if (!blockstate.isAir() && !blockstate.is(BlockTags.DRAGON_TRANSPARENT)) {
--                        if (this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && !blockstate.is(BlockTags.DRAGON_IMMUNE)) {
--                            flag1 = this.level().removeBlock(blockpos, false) || flag1;
-+                        if (net.neoforged.neoforge.common.CommonHooks.canEntityDestroy(this.level(), blockpos, this) && !blockstate.is(BlockTags.DRAGON_IMMUNE)) {
-+                            // CraftBukkit start - Add blocks to list rather than destroying them
-+                            flag1 = true;
-+                            destroyedBlocks.add(CraftBlock.at(this.level(), blockpos));
-+                            // CraftBukkit end
+-                        if (p_376795_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && !blockstate.is(BlockTags.DRAGON_IMMUNE)) {
++                        if (net.neoforged.neoforge.common.CommonHooks.canEntityDestroy(p_376795_, blockpos, this) && !blockstate.is(BlockTags.DRAGON_IMMUNE)) {
+                             flag1 = p_376795_.removeBlock(blockpos, false) || flag1;
                          } else {
                              flag = true;
-                         }
-@@ -485,6 +_,54 @@
-             }
-         }
+@@ -533,7 +_,8 @@
  
-+        // CraftBukkit start - Set off an EntityExplodeEvent for the dragon exploding all these blocks
-+        // SPIGOT-4882: don't fire event if nothing hit
-+        if (!flag1) {
-+            return flag;
-+        }
-+
-+        org.bukkit.event.entity.EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this, destroyedBlocks, 0F, explosionSource.getBlockInteraction());
-+        if (event.isCancelled()) {
-+            // This flag literally means 'Dragon hit something hard' (Obsidian, White Stone or Bedrock) and will cause the dragon to slow down.
-+            // We should consider adding an event extension for it, or perhaps returning true if the event is cancelled.
-+            return flag;
-+        } else if (event.getYield() == 0F) {
-+            // Yield zero ==> no drops
-+            for (org.bukkit.block.Block block : event.blockList()) {
-+                this.level().removeBlock(new BlockPos(block.getX(), block.getY(), block.getZ()), false);
-+            }
-+        } else {
-+            for (org.bukkit.block.Block block : event.blockList()) {
-+                org.bukkit.Material blockId = block.getType();
-+                if (blockId.isAir()) {
-+                    continue;
-+                }
-+
-+                CraftBlock craftBlock = ((CraftBlock) block);
-+                BlockPos blockposition = craftBlock.getPosition();
-+
-+                net.minecraft.world.level.block.Block nmsBlock = craftBlock.getNMS().getBlock();
-+                if (nmsBlock.dropFromExplosion(explosionSource)) {
-+                    net.minecraft.world.level.block.entity.BlockEntity tileentity = craftBlock.getNMS().hasBlockEntity() ? this.level().getBlockEntity(blockposition) : null;
-+                    net.minecraft.world.level.storage.loot.LootParams.Builder loottableinfo_builder = (new net.minecraft.world.level.storage.loot.LootParams.Builder((ServerLevel) this.level())).withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, Vec3.atCenterOf(blockposition)).withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.TOOL, net.minecraft.world.item.ItemStack.EMPTY).withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.EXPLOSION_RADIUS, 1.0F / event.getYield()).withOptionalParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.BLOCK_ENTITY, tileentity);
-+
-+                    craftBlock.getNMS().getDrops(loottableinfo_builder).forEach((itemstack) -> {
-+                        net.minecraft.world.level.block.Block.popResource(this.level(), blockposition, itemstack);
-+                    });
-+                    craftBlock.getNMS().spawnAfterBreak((ServerLevel) this.level(), blockposition, net.minecraft.world.item.ItemStack.EMPTY, false);
-+                }
-+                // Paper start - TNTPrimeEvent
-+                org.bukkit.block.Block tntBlock = CraftBlock.at(this.level(), blockposition);
-+                if (!new com.destroystokyo.paper.event.block.TNTPrimeEvent(tntBlock, com.destroystokyo.paper.event.block.TNTPrimeEvent.PrimeReason.EXPLOSION, explosionSource.getIndirectSourceEntity().getBukkitEntity()).callEvent())
-+                    continue;
-+                // Paper end - TNTPrimeEvent
-+                nmsBlock.wasExploded(this.level(), blockposition, explosionSource);
-+
-+                this.level().removeBlock(blockposition, false);
-+            }
-+        }
-+        // CraftBukkit end
-+
-         if (flag1) {
-             BlockPos blockpos1 = new BlockPos(i + this.random.nextInt(l - i + 1), j + this.random.nextInt(i1 - j + 1), k + this.random.nextInt(j1 - k + 1));
-             this.level().levelEvent(2008, blockpos1, 0);
-@@ -538,6 +_,15 @@
- 
-     @Override
-     public void kill() {
-+        // Paper start - Fire entity death event
-+        this.silentDeath = true;
-+        org.bukkit.event.entity.EntityDeathEvent deathEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityDeathEvent(this, this.damageSources().genericKill());
-+        if (deathEvent.isCancelled()) {
-+            this.silentDeath = false; // Reset to default if event was cancelled
-+            return;
-+        }
-+        // Paper end - Fire entity death event
-+        this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
-         this.remove(Entity.RemovalReason.KILLED);
-         this.gameEvent(GameEvent.ENTITY_DIE);
-         if (this.dragonFight != null) {
-@@ -569,25 +_,43 @@
- 
-         if (this.level() instanceof ServerLevel) {
-             if (this.dragonDeathTime > 150 && this.dragonDeathTime % 5 == 0 && flag) {
--                ExperienceOrb.award((ServerLevel)this.level(), this.position(), Mth.floor((float)i * 0.08F));
-+                int award = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, this.unlimitedLastHurtByPlayer, Mth.floor((float)i * 0.08F));
-+                ExperienceOrb.award((ServerLevel) this.level(), this.position(), award, org.bukkit.entity.ExperienceOrb.SpawnReason.ENTITY_DEATH, this.lastHurtByPlayer, this); // Paper
+         if (this.level() instanceof ServerLevel serverlevel) {
+             if (this.dragonDeathTime > 150 && this.dragonDeathTime % 5 == 0 && serverlevel.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
+-                ExperienceOrb.award(serverlevel, this.position(), Mth.floor(i * 0.08F));
++                int award = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, net.minecraft.world.entity.EntityReference.get(this.unlimitedLastHurtByPlayer, serverlevel, Player.class), Mth.floor((float)i * 0.08F));
++                ExperienceOrb.award((ServerLevel) this.level(), this.position(), award);
              }
  
              if (this.dragonDeathTime == 1 && !this.isSilent()) {
--                this.level().globalLevelEvent(1028, this.blockPosition(), 0);
-+                // CraftBukkit start - Use relative location for far away sounds
-+                int viewDistance = ((net.minecraft.server.level.ServerLevel) this.level()).getCraftServer().getViewDistance() * 16;
-+                for (net.minecraft.server.level.ServerPlayer player : this.level().getServer().getPlayerList().players) {
-+                    double deltaX = this.getX() - player.getX();
-+                    double deltaZ = this.getZ() - player.getZ();
-+                    double distanceSquared = deltaX * deltaX + deltaZ * deltaZ;
-+                    if ( this.level().spigotConfig.dragonDeathSoundRadius > 0 && distanceSquared > this.level().spigotConfig.dragonDeathSoundRadius * this.level().spigotConfig.dragonDeathSoundRadius ) continue; // Spigot
-+                    if (distanceSquared > viewDistance * viewDistance) {
-+                        double deltaLength = Math.sqrt(distanceSquared);
-+                        double relativeX = player.getX() + (deltaX / deltaLength) * viewDistance;
-+                        double relativeZ = player.getZ() + (deltaZ / deltaLength) * viewDistance;
-+                        player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelEventPacket(1028, new BlockPos((int) relativeX, (int) this.getY(), (int) relativeZ), 0, true));
-+                    } else {
-+                        player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelEventPacket(1028, new BlockPos((int) this.getX(), (int) this.getY(), (int) this.getZ()), 0, true));
-+                    }
-+                }
-+                // CraftBukkit end
-             }
-         }
+@@ -551,7 +_,8 @@
  
-         this.move(MoverType.SELF, new Vec3(0.0, 0.1F, 0.0));
-         if (this.dragonDeathTime == 200 && this.level() instanceof ServerLevel) {
-             if (flag) {
--                ExperienceOrb.award((ServerLevel)this.level(), this.position(), Mth.floor((float)i * 0.2F));
-+                int award = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, this.unlimitedLastHurtByPlayer, Mth.floor((float)i * 0.2F));
-+                ExperienceOrb.award((ServerLevel) this.level(), this.position(), award, org.bukkit.entity.ExperienceOrb.SpawnReason.ENTITY_DEATH, this.lastHurtByPlayer, this); // Paper
+         if (this.dragonDeathTime == 200 && this.level() instanceof ServerLevel serverlevel1) {
+             if (serverlevel1.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
+-                ExperienceOrb.award(serverlevel1, this.position(), Mth.floor(i * 0.2F));
++                int award = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, net.minecraft.world.entity.EntityReference.get(this.unlimitedLastHurtByPlayer, serverlevel1, Player.class), Mth.floor((float)i * 0.2F));
++                ExperienceOrb.award((ServerLevel) this.level(), this.position(), award);
              }
  
              if (this.dragonFight != null) {
-                 this.dragonFight.setDragonKilled(this);
-             }
--
--            this.remove(Entity.RemovalReason.KILLED);
-+            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH);
-+            this.remove(Entity.RemovalReason.KILLED); // CraftBukkit - add Bukkit remove cause
-             this.gameEvent(GameEvent.ENTITY_DIE);
-         }
-     }
-@@ -771,6 +_,7 @@
-         super.addAdditionalSaveData(p_31144_);
-         p_31144_.putInt("DragonPhase", this.phaseManager.getCurrentPhase().getPhase().getId());
-         p_31144_.putInt("DragonDeathTime", this.dragonDeathTime);
-+        p_31144_.putInt("Bukkit.expToDrop", expToDrop); // CraftBukkit - SPIGOT-2420: The ender dragon drops xp over time which can also happen between server starts
-     }
- 
-     @Override
-@@ -783,6 +_,12 @@
-         if (p_31134_.contains("DragonDeathTime")) {
-             this.dragonDeathTime = p_31134_.getInt("DragonDeathTime");
-         }
-+
-+        // CraftBukkit start - SPIGOT-2420: The ender dragon drops xp over time which can also happen between server starts
-+        if (p_31134_.contains("Bukkit.expToDrop")) {
-+            this.expToDrop = p_31134_.getInt("Bukkit.expToDrop");
-+        }
-+        // CraftBukkit end
-     }
- 
-     @Override
-@@ -814,7 +_,7 @@
-     }
- 
-     @Override
--    protected float getSoundVolume() {
-+    public float getSoundVolume() {
-         return 5.0F;
-     }
- 
-@@ -823,7 +_,7 @@
-         EnderDragonPhase<? extends DragonPhaseInstance> enderdragonphase = dragonphaseinstance.getPhase();
-         double d0;
-         if (enderdragonphase == EnderDragonPhase.LANDING || enderdragonphase == EnderDragonPhase.TAKEOFF) {
--            BlockPos blockpos = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.fightOrigin));
-+            BlockPos blockpos = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,this.getPodium()); // Paper - Allow changing the EnderDragon podium
-             double d1 = Math.max(Math.sqrt(blockpos.distToCenterSqr(this.position())) / 4.0, 1.0);
-             d0 = (double)p_31109_ / d1;
-         } else if (dragonphaseinstance.isSitting()) {
-@@ -842,7 +_,7 @@
-         EnderDragonPhase<? extends DragonPhaseInstance> enderdragonphase = dragonphaseinstance.getPhase();
-         Vec3 vec3;
-         if (enderdragonphase == EnderDragonPhase.LANDING || enderdragonphase == EnderDragonPhase.TAKEOFF) {
--            BlockPos blockpos = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.fightOrigin));
-+            BlockPos blockpos = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, this.getPodium()); // Paper - Allow changing the EnderDragon podium
-             float f5 = Math.max((float)Math.sqrt(blockpos.distToCenterSqr(this.position())) / 4.0F, 1.0F);
-             float f2 = 6.0F / f5;
-             float f3 = this.getXRot();
-@@ -912,8 +_,19 @@
+@@ -857,8 +_,19 @@
      }
  
      @Override

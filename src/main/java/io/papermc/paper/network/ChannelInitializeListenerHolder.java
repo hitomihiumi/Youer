@@ -1,12 +1,13 @@
 package io.papermc.paper.network;
 
 import io.netty.channel.Channel;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import net.kyori.adventure.key.Key;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Internal API to register channel initialization listeners.
@@ -15,7 +16,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class ChannelInitializeListenerHolder {
 
-    private static final Map<Key, ChannelInitializeListener> LISTENERS = new HashMap<>();
+    private static final Map<Key, ChannelInitializeListener> LISTENERS = new LinkedHashMap<>();
     private static final Map<Key, ChannelInitializeListener> IMMUTABLE_VIEW = Collections.unmodifiableMap(LISTENERS);
 
     private ChannelInitializeListenerHolder() {

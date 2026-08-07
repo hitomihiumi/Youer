@@ -1,18 +1,15 @@
 package com.destroystokyo.paper.event.server;
 
-import com.google.common.base.Preconditions;
+import static java.util.Objects.requireNonNull;
+
 import com.destroystokyo.paper.network.StatusClient;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import com.google.common.base.Preconditions;
 import io.papermc.paper.util.TransformingRandomAccessList;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -20,11 +17,16 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.profile.PlayerTextures;
 import org.bukkit.util.CachedServerIcon;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Extended version of {@link ServerListPingEvent} that allows full control
@@ -52,18 +54,6 @@ public class PaperServerListPingEvent extends ServerListPingEvent implements Can
 
     private boolean originalPlayerCount = true;
     private Object[] players;
-
-    @Deprecated
-    @ApiStatus.Internal
-    public PaperServerListPingEvent(@NotNull StatusClient client, @NotNull String motd, int numPlayers, int maxPlayers,
-                                    @NotNull String version, int protocolVersion, @Nullable CachedServerIcon favicon) {
-        super("", client.getAddress().getAddress(), motd, numPlayers, maxPlayers);
-        this.client = client;
-        this.numPlayers = numPlayers;
-        this.version = version;
-        this.protocolVersion = protocolVersion;
-        setServerIcon(favicon);
-    }
 
     @ApiStatus.Internal
     public PaperServerListPingEvent(@NotNull StatusClient client, @NotNull net.kyori.adventure.text.Component motd, int numPlayers, int maxPlayers,
@@ -302,8 +292,7 @@ public class PaperServerListPingEvent extends ServerListPingEvent implements Can
         return new PlayerIterator();
     }
 
-    @NotNull
-    protected Object[] getOnlinePlayers() {
+    protected @NotNull Object @NotNull [] getOnlinePlayers() {
         return Bukkit.getOnlinePlayers().toArray();
     }
 
@@ -488,7 +477,7 @@ public class PaperServerListPingEvent extends ServerListPingEvent implements Can
         }
 
         @Override
-        public org.bukkit.profile.@NotNull PlayerProfile clone() {
+        public @NotNull PlayerProfile clone() {
             throw new UnsupportedOperationException();
         }
 

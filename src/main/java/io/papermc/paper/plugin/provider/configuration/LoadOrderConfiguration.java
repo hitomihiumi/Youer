@@ -1,8 +1,9 @@
 package io.papermc.paper.plugin.provider.configuration;
 
 import io.papermc.paper.plugin.configuration.PluginMeta;
-import java.util.List;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 /**
  * This is used for plugins to configure the load order of strategies.

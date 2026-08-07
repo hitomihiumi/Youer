@@ -1,5 +1,6 @@
 package org.bukkit.entity;
 
+import org.bukkit.GameRule;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.material.MaterialData;
@@ -10,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a minecart entity.
  */
-public interface Minecart extends Vehicle {
+public interface Minecart extends Vehicle, io.papermc.paper.entity.Frictional { // Paper
 
     /**
      * Sets a minecart's damage.
@@ -36,7 +37,7 @@ public interface Minecart extends Vehicle {
 
     /**
      * Sets the maximum speed of a minecart. Must be nonnegative. Default is
-     * 0.4D.
+     * 0.4D or {@link GameRule#MINECART_MAX_SPEED}.
      *
      * @param speed The max speed
      */
@@ -102,7 +103,9 @@ public interface Minecart extends Vehicle {
      * Passing a null value will set the minecart to have no display block.
      *
      * @param material the material to set as display block.
+     * @deprecated use {@link #setDisplayBlockData(BlockData)}
      */
+    @Deprecated(forRemoval = true, since = "1.13")
     public void setDisplayBlock(@Nullable MaterialData material);
 
     /**
@@ -110,8 +113,10 @@ public interface Minecart extends Vehicle {
      * This function will return the type AIR if none is set.
      *
      * @return the block displayed by this minecart.
+     * @deprecated use {@link #getDisplayBlockData()}
      */
     @NotNull
+    @Deprecated(forRemoval = true, since = "1.13")
     public MaterialData getDisplayBlock();
 
     /**

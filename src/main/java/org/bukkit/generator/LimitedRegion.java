@@ -3,10 +3,13 @@ package org.bukkit.generator;
 import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.RegionAccessor;
+import org.bukkit.block.BlockState;
+// Paper start
 import org.bukkit.World;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
+// Paper end
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -56,6 +59,7 @@ public interface LimitedRegion extends RegionAccessor {
      */
     @NotNull
     List<BlockState> getTileEntities();
+
 
     // Paper start
     /**

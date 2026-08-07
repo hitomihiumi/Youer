@@ -22,11 +22,6 @@ public class CraftAllay extends CraftCreature implements org.bukkit.entity.Allay
     }
 
     @Override
-    public String toString() {
-        return "CraftAllay";
-    }
-
-    @Override
     public Inventory getInventory() {
         return new CraftInventory(this.getHandle().getInventory());
     }
@@ -83,7 +78,7 @@ public class CraftAllay extends CraftCreature implements org.bukkit.entity.Allay
 
     @Override
     public org.bukkit.entity.Allay duplicateAllay() {
-        Allay nmsAllay = this.getHandle().duplicateAllay0();
+        Allay nmsAllay = this.getHandle().duplicateAllay();
         return (nmsAllay != null) ? (org.bukkit.entity.Allay) nmsAllay.getBukkitEntity() : null;
     }
 

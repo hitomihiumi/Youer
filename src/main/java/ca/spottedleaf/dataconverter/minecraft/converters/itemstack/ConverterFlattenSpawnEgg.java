@@ -1,11 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.itemstack;
 
 import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.types.MapType;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class ConverterFlattenSpawnEgg extends DataConverter<MapType<String>, MapType<String>> {
+public final class ConverterFlattenSpawnEgg extends DataConverter<MapType, MapType> {
 
     private static final Map<String, String> ENTITY_ID_TO_NEW_EGG_ID = new HashMap<>();
     static {
@@ -17,12 +18,12 @@ public final class ConverterFlattenSpawnEgg extends DataConverter<MapType<String
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:creeper", "minecraft:creeper_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:donkey", "minecraft:donkey_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:elder_guardian", "minecraft:elder_guardian_spawn_egg");
+        ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:ender_dragon", "minecraft:ender_dragon_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:enderman", "minecraft:enderman_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:endermite", "minecraft:endermite_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:evocation_illager", "minecraft:evocation_illager_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:ghast", "minecraft:ghast_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:guardian", "minecraft:guardian_spawn_egg");
-        ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:ender_dragon", "minecraft:ender_dragon_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:horse", "minecraft:horse_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:husk", "minecraft:husk_spawn_egg");
         ENTITY_ID_TO_NEW_EGG_ID.put("minecraft:iron_golem", "minecraft:iron_golem_spawn_egg");
@@ -65,13 +66,13 @@ public final class ConverterFlattenSpawnEgg extends DataConverter<MapType<String
     }
 
     @Override
-    public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
-        final MapType<String> tag = data.getMap("tag");
+    public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+        final MapType tag = data.getMap("tag");
         if (tag == null) {
             return null;
         }
 
-        final MapType<String> entityTag = tag.getMap("EntityTag");
+        final MapType entityTag = tag.getMap("EntityTag");
         if (entityTag == null) {
             return null;
         }

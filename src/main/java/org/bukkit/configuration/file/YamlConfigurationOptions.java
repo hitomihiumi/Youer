@@ -47,7 +47,7 @@ public class YamlConfigurationOptions extends FileConfigurationOptions {
 
     @NotNull
     @Override
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public YamlConfigurationOptions header(@Nullable String value) {
         super.header(value);
         return this;
@@ -69,7 +69,7 @@ public class YamlConfigurationOptions extends FileConfigurationOptions {
 
     @NotNull
     @Override
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public YamlConfigurationOptions copyHeader(boolean value) {
         super.copyHeader(value);
         return this;

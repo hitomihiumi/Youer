@@ -2,19 +2,11 @@ package org.purpurmc.purpur;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
+import java.util.regex.Pattern;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.core.Registry;
@@ -27,12 +19,23 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.purpurmc.purpur.command.PurpurCommand;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import org.purpurmc.purpur.task.TPSBarTask;
 
 @SuppressWarnings("unused")
@@ -71,12 +74,12 @@ public class PurpurConfig {
         commands = new HashMap<>();
         commands.put("purpur", new PurpurCommand("purpur"));
 
-        version = getInt("config-version", 37);
-        set("config-version", 37);
+        version = getInt("config-version", 43);
+        set("config-version", 43);
 
         readConfig(PurpurConfig.class, null);
 
-        Blocks.rebuildCache();
+        Block.BLOCK_STATE_REGISTRY.forEach(BlockBehaviour.BlockStateBase::initCache);
     }
 
     protected static void log(String s) {
@@ -329,6 +332,7 @@ public class PurpurConfig {
     public static boolean cryingObsidianValidForPortalFrame = false;
     public static int beeInsideBeeHive = 3;
     public static boolean anvilCumulativeCost = true;
+    public static int smoothSnowAccumulationStep = 0;
     public static int lightningRodRange = 128;
     public static Set<Enchantment> grindstoneIgnoredEnchants = new HashSet<>();
     public static boolean grindstoneRemoveAttributes = false;
@@ -372,6 +376,16 @@ public class PurpurConfig {
         cryingObsidianValidForPortalFrame = getBoolean("settings.blocks.crying_obsidian.valid-for-portal-frame", cryingObsidianValidForPortalFrame);
         beeInsideBeeHive = getInt("settings.blocks.beehive.max-bees-inside", beeInsideBeeHive);
         anvilCumulativeCost = getBoolean("settings.blocks.anvil.cumulative-cost", anvilCumulativeCost);
+        smoothSnowAccumulationStep = getInt("settings.blocks.snow.smooth-accumulation-step", smoothSnowAccumulationStep);
+        if (smoothSnowAccumulationStep > 7) {
+            smoothSnowAccumulationStep = 7;
+            log(Level.WARNING, "blocks.snow.smooth-accumulation-step is set to above maximum allowed value of 7");
+            log(Level.WARNING, "Using value of 7 to prevent issues");
+        } else if (smoothSnowAccumulationStep < 0) {
+            smoothSnowAccumulationStep = 0;
+            log(Level.WARNING, "blocks.snow.smooth-accumulation-step is set to below minimum allowed value of 0");
+            log(Level.WARNING, "Using value of 0 to prevent issues");
+        }
         lightningRodRange = getInt("settings.blocks.lightning_rod.range", lightningRodRange);
         ArrayList<String> defaultCurses = new ArrayList<>(){{
             add("minecraft:binding_curse");
@@ -381,8 +395,8 @@ public class PurpurConfig {
             defaultCurses.clear();
         }
         getList("settings.blocks.grindstone.ignored-enchants", defaultCurses).forEach(key -> {
-            Registry<Enchantment> registry = MinecraftServer.getServer().registryAccess().registryOrThrow(Registries.ENCHANTMENT);
-            Enchantment enchantment = registry.get(ResourceLocation.parse(key.toString()));
+            Registry<Enchantment> registry = MinecraftServer.getServer().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+            Enchantment enchantment = registry.getValue(ResourceLocation.parse(key.toString()));
             if (enchantment == null) return;
             grindstoneIgnoredEnchants.add(enchantment);
         });
@@ -416,7 +430,6 @@ public class PurpurConfig {
         soulSandBlockReverseBubbleColumnFlow = getBoolean("settings.blocks.soul-sand.reverse-bubble-column-flow", soulSandBlockReverseBubbleColumnFlow);
     }
 
-    public static boolean allowShearsLooting = false;
     public static boolean allowInapplicableEnchants = false;
     public static boolean allowIncompatibleEnchants = false;
     public static boolean allowHigherEnchantsLevels = false;
@@ -441,7 +454,6 @@ public class PurpurConfig {
             }
             set("settings.enchantment.anvil.allow-unsafe-enchants", null);
         }
-        allowShearsLooting = getBoolean("settings.enchantment.allow-looting-on-shears", allowShearsLooting);
         allowInapplicableEnchants = getBoolean("settings.enchantment.anvil.allow-inapplicable-enchants", allowInapplicableEnchants);
         allowIncompatibleEnchants = getBoolean("settings.enchantment.anvil.allow-incompatible-enchants", allowIncompatibleEnchants);
         allowHigherEnchantsLevels = getBoolean("settings.enchantment.anvil.allow-higher-enchants-levels", allowHigherEnchantsLevels);
@@ -453,7 +465,7 @@ public class PurpurConfig {
     public static boolean endermanShortHeight = false;
     private static void entitySettings() {
         endermanShortHeight = getBoolean("settings.entity.enderman.short-height", endermanShortHeight);
-        if (endermanShortHeight) EntityType.ENDERMAN.setDimensions(EntityDimensions.scalable(0.6F, 1.9F));
+        if (endermanShortHeight) EntityType.ENDERMAN.dimensions = EntityDimensions.scalable(0.6F, 1.9F);
     }
 
     public static boolean allowWaterPlacementInTheEnd = true;
@@ -466,11 +478,11 @@ public class PurpurConfig {
         beeCountPayload = getBoolean("settings.bee-count-payload", beeCountPayload);
     }
 
-    public static boolean loggerSuppressInitLegacyMaterialError = true;
-    public static boolean loggerSuppressIgnoredAdvancementWarnings = true;
-    public static boolean loggerSuppressUnrecognizedRecipeErrors = true;
-    public static boolean loggerSuppressSetBlockFarChunk = true;
-    public static boolean loggerSuppressLibraryLoader = true;
+    public static boolean loggerSuppressInitLegacyMaterialError = false;
+    public static boolean loggerSuppressIgnoredAdvancementWarnings = false;
+    public static boolean loggerSuppressUnrecognizedRecipeErrors = false;
+    public static boolean loggerSuppressSetBlockFarChunk = false;
+    public static boolean loggerSuppressLibraryLoader = false;
     private static void loggerSettings() {
         loggerSuppressInitLegacyMaterialError = getBoolean("settings.logger.suppress-init-legacy-material-errors", loggerSuppressInitLegacyMaterialError);
         loggerSuppressIgnoredAdvancementWarnings = getBoolean("settings.logger.suppress-ignored-advancement-warnings", loggerSuppressIgnoredAdvancementWarnings);
@@ -494,11 +506,11 @@ public class PurpurConfig {
         kickForOutOfOrderChat = getBoolean("settings.network.kick-for-out-of-order-chat", kickForOutOfOrderChat);
     }
 
-    public static java.util.regex.Pattern usernameValidCharactersPattern;
+    public static Pattern usernameValidCharactersPattern;
     private static void usernameValidationSettings() {
         String defaultPattern = "^[a-zA-Z0-9_.]*$";
         String setPattern = getString("settings.username-valid-characters", defaultPattern);
-        usernameValidCharactersPattern = java.util.regex.Pattern.compile(setPattern == null || setPattern.isBlank() ? defaultPattern : setPattern);
+        usernameValidCharactersPattern = Pattern.compile(setPattern == null || setPattern.isBlank() ? defaultPattern : setPattern);
     }
 
     public static boolean fixProjectileLootingTransfer = false;
@@ -518,7 +530,7 @@ public class PurpurConfig {
 
     private static void blastResistanceSettings() {
         getMap("settings.blast-resistance-overrides", Collections.emptyMap()).forEach((blockId, value) -> {
-            Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockId));
+            Block block = BuiltInRegistries.BLOCK.getValue(ResourceLocation.parse(blockId));
             if (block == Blocks.AIR) {
                 log(Level.SEVERE, "Invalid block for `settings.blast-resistance-overrides`: " + blockId);
                 return;
@@ -550,7 +562,7 @@ public class PurpurConfig {
                 Map.entry("minecraft:purple_bed", Map.of("distance", 0.5F)),
                 Map.entry("minecraft:magenta_bed", Map.of("distance", 0.5F))
         )).forEach((blockId, value) -> {
-            Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockId));
+            Block block = BuiltInRegistries.BLOCK.getValue(ResourceLocation.parse(blockId));
             if (block == Blocks.AIR) {
                 log(Level.SEVERE, "Invalid block for `settings.block-fall-multipliers`: " + blockId);
                 return;
@@ -587,6 +599,11 @@ public class PurpurConfig {
         registerMinecraftDebugCommands = getBoolean("settings.register-minecraft-debug-commands", registerMinecraftDebugCommands);
     }
 
+    public static boolean registerMinecraftDisabledCommands = false;
+    private static void registerMinecraftDisabledCommands() {
+        registerMinecraftDisabledCommands = getBoolean("settings.register-minecraft-disabled-commands", registerMinecraftDebugCommands);
+    }
+
     public static List<String> startupCommands = new ArrayList<>();
     private static void startupCommands() {
         startupCommands.clear();
@@ -597,5 +614,10 @@ public class PurpurConfig {
             }
             startupCommands.add(command);
         });
+    }
+    
+    public static boolean generateEndVoidRings = false;
+    private static void generateEndVoidRings() {
+        generateEndVoidRings = getBoolean("settings.generate-end-void-rings", generateEndVoidRings);
     }
 }

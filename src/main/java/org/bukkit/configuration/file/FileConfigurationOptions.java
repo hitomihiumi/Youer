@@ -70,7 +70,7 @@ public class FileConfigurationOptions extends MemoryConfigurationOptions {
      * @deprecated use getHeader() instead.
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public String header() {
         StringBuilder stringHeader = new StringBuilder();
         for (String line : header) {
@@ -108,7 +108,7 @@ public class FileConfigurationOptions extends MemoryConfigurationOptions {
      * @deprecated use setHeader() instead
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public FileConfigurationOptions header(@Nullable String value) {
         this.header = (value == null) ? Collections.emptyList() : Collections.unmodifiableList(Arrays.asList(value.split("\\n")));
         return this;
@@ -186,7 +186,7 @@ public class FileConfigurationOptions extends MemoryConfigurationOptions {
      *
      * @deprecated Call {@link #parseComments()} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public boolean copyHeader() {
         return parseComments;
     }
@@ -198,7 +198,7 @@ public class FileConfigurationOptions extends MemoryConfigurationOptions {
      * @deprecated Call {@link #parseComments(boolean)} instead.
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public FileConfigurationOptions copyHeader(boolean value) {
         parseComments = value;
         return this;

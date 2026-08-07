@@ -8,8 +8,8 @@ import io.papermc.paper.registry.RegistryBuilder;
 import io.papermc.paper.registry.TypedKey;
 import io.papermc.paper.registry.event.RegistryEntryAddEvent;
 import java.util.function.Predicate;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.Contract;
+import org.jspecify.annotations.Nullable;
 
 public class RegistryEntryAddHandlerConfiguration<T, B extends RegistryBuilder<T>> extends PrioritizedLifecycleEventHandlerConfigurationImpl<BootstrapContext, RegistryEntryAddEvent<T, B>> implements RegistryEntryAddConfiguration<T> {
 

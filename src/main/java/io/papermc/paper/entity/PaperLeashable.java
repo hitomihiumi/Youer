@@ -25,7 +25,7 @@ public interface PaperLeashable extends io.papermc.paper.entity.Leashable {
             return false;
         }
 
-        this.getHandle().dropLeash(true, false);
+        this.getHandle().removeLeash();
         return true;
     }
 

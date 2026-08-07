@@ -2,10 +2,11 @@ package io.papermc.paper.plugin.entrypoint.classloader.group;
 
 import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
 import io.papermc.paper.plugin.provider.classloader.PluginClassLoaderGroup;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @ApiStatus.Internal
 public abstract class SimpleListPluginClassLoaderGroup implements PluginClassLoaderGroup {

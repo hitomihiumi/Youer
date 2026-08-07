@@ -44,9 +44,9 @@ public enum Difficulty implements net.kyori.adventure.translation.Translatable {
      * Gets the difficulty value associated with this Difficulty.
      *
      * @return An integer value of this difficulty
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     public int getValue() {
         return value;
     }
@@ -57,16 +57,15 @@ public enum Difficulty implements net.kyori.adventure.translation.Translatable {
         return "options.difficulty." + this.name().toLowerCase(java.util.Locale.ENGLISH);
     }
     // Paper end
-
     /**
      * Gets the Difficulty represented by the specified value
      *
      * @param value Value to check
      * @return Associative {@link Difficulty} with the given value, or null if
      *     it doesn't exist
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     @Nullable
     public static Difficulty getByValue(final int value) {
         return BY_ID.get(value);

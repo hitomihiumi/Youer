@@ -54,12 +54,4 @@ public abstract class MapRenderer {
      */
     public abstract void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player player);
 
-    // Purpur - start
-    /**
-     * Check if this is an explorer (aka treasure) map.
-     *
-     * @return True if explorer map
-     */
-    public abstract boolean isExplorerMap();
-    // Purpur - end
 }

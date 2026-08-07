@@ -1,22 +1,6 @@
 --- a/net/minecraft/world/level/block/StemBlock.java
 +++ b/net/minecraft/world/level/block/StemBlock.java
-@@ -3,7 +_,6 @@
- import com.mojang.datafixers.DataFixUtils;
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
--import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
- import java.util.Optional;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
-@@ -26,6 +_,7 @@
- import net.minecraft.world.level.block.state.properties.IntegerProperty;
- import net.minecraft.world.phys.shapes.CollisionContext;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class StemBlock extends BushBlock implements BonemealableBlock {
-     public static final MapCodec<StemBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -74,32 +_,38 @@
+@@ -64,23 +_,23 @@
  
      @Override
      protected boolean mayPlaceOn(BlockState p_57053_, BlockGetter p_57054_, BlockPos p_57055_) {
@@ -31,30 +15,22 @@
 -            float f = CropBlock.getGrowthSpeed(this, p_222539_, p_222540_);
 -            if (p_222541_.nextInt((int)(25.0F / f) + 1) == 0) {
 +            float f = CropBlock.getGrowthSpeed(p_222538_, p_222539_, p_222540_);
-+            if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_222539_, p_222540_, p_222538_, p_222541_.nextFloat() < ((this == Blocks.PUMPKIN_STEM ? p_222539_.spigotConfig.pumpkinModifier : p_222539_.spigotConfig.melonModifier) / (100.0f * (Math.floor((25.0F / f) + 1)))))) { // Spigot - SPIGOT-7159: Better modifier resolution
++            if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_222539_, p_222540_, p_222538_, p_222541_.nextInt((int)(25.0F / f) + 1) == 0)) {
                  int i = p_222538_.getValue(AGE);
                  if (i < 7) {
--                    p_222538_ = p_222538_.setValue(AGE, Integer.valueOf(i + 1));
+-                    p_222538_ = p_222538_.setValue(AGE, i + 1);
 -                    p_222539_.setBlock(p_222540_, p_222538_, 2);
-+                    BlockState blockstate = p_222538_.setValue(AGE, Integer.valueOf(i + 1));
-+                    CraftEventFactory.handleBlockGrowEvent(p_222539_, p_222540_, blockstate, 2); // CraftBukkit
++                    p_222539_.setBlock(p_222540_, p_222538_.setValue(AGE, i + 1), 2);
                  } else {
                      Direction direction = Direction.Plane.HORIZONTAL.getRandomDirection(p_222541_);
                      BlockPos blockpos = p_222540_.relative(direction);
                      BlockState blockstate = p_222539_.getBlockState(blockpos.below());
 -                    if (p_222539_.getBlockState(blockpos).isAir() && (blockstate.is(Blocks.FARMLAND) || blockstate.is(BlockTags.DIRT))) {
 +                    if (p_222539_.isEmptyBlock(blockpos) && (blockstate.getBlock() instanceof net.minecraft.world.level.block.FarmBlock || blockstate.is(BlockTags.DIRT))) {
-                         Registry<Block> registry = p_222539_.registryAccess().registryOrThrow(Registries.BLOCK);
+                         Registry<Block> registry = p_222539_.registryAccess().lookupOrThrow(Registries.BLOCK);
                          Optional<Block> optional = registry.getOptional(this.fruit);
                          Optional<Block> optional1 = registry.getOptional(this.attachedStem);
-                         if (optional.isPresent() && optional1.isPresent()) {
--                            p_222539_.setBlockAndUpdate(blockpos, optional.get().defaultBlockState());
-+                            // CraftBukkit start
-+                            if (!CraftEventFactory.handleBlockGrowEvent(p_222539_, blockpos, optional.get().defaultBlockState())) {
-+                                return;
-+                            }
-+                            // CraftBukkit end
-                             p_222539_.setBlockAndUpdate(p_222540_, optional1.get().defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, direction));
+@@ -90,6 +_,7 @@
                          }
                      }
                  }
@@ -62,12 +38,3 @@
              }
          }
      }
-@@ -123,7 +_,7 @@
-     public void performBonemeal(ServerLevel p_222528_, RandomSource p_222529_, BlockPos p_222530_, BlockState p_222531_) {
-         int i = Math.min(7, p_222531_.getValue(AGE) + Mth.nextInt(p_222528_.random, 2, 5));
-         BlockState blockstate = p_222531_.setValue(AGE, Integer.valueOf(i));
--        p_222528_.setBlock(p_222530_, blockstate, 2);
-+        CraftEventFactory.handleBlockGrowEvent(p_222528_, p_222530_, blockstate, 2); // CraftBukkit
-         if (i == 7) {
-             blockstate.randomTick(p_222528_, p_222530_, p_222528_.random);
-         }

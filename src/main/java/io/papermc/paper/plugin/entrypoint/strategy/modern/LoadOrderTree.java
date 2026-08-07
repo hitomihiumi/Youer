@@ -11,16 +11,17 @@ import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.provider.configuration.LoadOrderConfiguration;
 import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
 import io.papermc.paper.plugin.provider.type.spigot.SpigotPluginProvider;
+import org.slf4j.Logger;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.slf4j.Logger;
 
 class LoadOrderTree {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private final Map<String, PluginProvider<?>> providerMap;
     private final MutableGraph<String> graph;

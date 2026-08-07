@@ -12,16 +12,17 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.features.TreeFeatures;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChorusFlowerBlock;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.level.portal.TeleportTransition;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.RegionAccessor;
@@ -35,20 +36,19 @@ import org.bukkit.craftbukkit.block.CraftBlockType;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftEntityTypes;
-import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.util.BlockStateListPopulator;
 import org.bukkit.craftbukkit.util.CraftLocation;
-import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.craftbukkit.util.RandomSourceWrapper;
 import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.AbstractCow;
 import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Cow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Fireball;
 import org.bukkit.entity.Horse;
 import org.bukkit.entity.LargeFireball;
-import org.bukkit.entity.LingeringPotion;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.SizedFireball;
@@ -57,7 +57,6 @@ import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.TippedArrow;
 import org.bukkit.entity.minecart.RideableMinecart;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionType;
 
 public abstract class CraftRegionAccessor implements RegionAccessor {
@@ -78,12 +77,10 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         return CraftBiome.minecraftHolderToBukkit(this.getHandle().getNoiseBiome(x >> 2, y >> 2, z >> 2));
     }
 
-    // Paper start
     @Override
     public Biome getComputedBiome(int x, int y, int z) {
         return CraftBiome.minecraftHolderToBukkit(this.getHandle().getBiome(new BlockPos(x, y, z)));
     }
-    // Paper end
 
     @Override
     public void setBiome(Location location, Biome biome) {
@@ -109,12 +106,10 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         return CraftBlock.at(this.getHandle(), new BlockPos(x, y, z)).getState();
     }
 
-    // Paper start - FluidState API
     @Override
     public io.papermc.paper.block.fluid.FluidData getFluidData(final int x, final int y, final int z) {
         return io.papermc.paper.block.fluid.PaperFluidData.createData(getHandle().getFluidState(new BlockPos(x, y, z)));
     }
-    // Paper end
 
     @Override
     public BlockData getBlockData(Location location) {
@@ -151,7 +146,7 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         BlockPos pos = new BlockPos(x, y, z);
         net.minecraft.world.level.block.state.BlockState old = this.getHandle().getBlockState(pos);
 
-        CraftBlock.setTypeAndData(world, pos, old, ((CraftBlockData) blockData).getState(), true);
+        CraftBlock.setBlockState(world, pos, old, ((CraftBlockData) blockData).getState(), true);
     }
 
     @Override
@@ -161,9 +156,6 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
 
     @Override
     public void setType(int x, int y, int z, Material material) {
-        if (material == null) {
-            return;
-        }
         this.setBlockData(x, y, z, material.createBlockData());
     }
 
@@ -206,14 +198,7 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         BlockPos pos = CraftLocation.toBlockPosition(location);
         BlockStateListPopulator populator = new BlockStateListPopulator(this.getHandle());
         boolean result = this.generateTree(populator, this.getHandle().getMinecraftWorld().getChunkSource().getGenerator(), pos, new RandomSourceWrapper(random), treeType);
-        populator.refreshTiles();
-
-        for (BlockState blockState : populator.getList()) {
-            if (predicate == null || predicate.test(blockState)) {
-                blockState.update(true, true);
-            }
-        }
-
+        populator.placeSomeBlocks(predicate == null ? ($ -> true) : predicate);
         return result;
     }
 
@@ -269,7 +254,7 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
                 gen = TreeFeatures.SUPER_BIRCH_BEES_0002;
                 break;
             case CHORUS_PLANT:
-                ((ChorusFlowerBlock) Blocks.CHORUS_FLOWER).generatePlant(access, pos, random, 8);
+                ChorusFlowerBlock.generatePlant(access, pos, random, 8);
                 return true;
             case CRIMSON_FUNGUS:
                 gen = this.isNormalWorld() ? TreeFeatures.CRIMSON_FUNGUS_PLANTED : TreeFeatures.CRIMSON_FUNGUS; // Paper - Fix async entity add due to fungus trees; if world gen, don't use planted version
@@ -289,14 +274,20 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
             case CHERRY:
                 gen = TreeFeatures.CHERRY;
                 break;
+            case PALE_OAK:
+                gen = TreeFeatures.PALE_OAK;
+                break;
+            case PALE_OAK_CREAKING:
+                gen = TreeFeatures.PALE_OAK_CREAKING;
+                break;
             case TREE:
             default:
                 gen = TreeFeatures.OAK;
                 break;
         }
 
-        Holder<ConfiguredFeature<?, ?>> holder = access.registryAccess().registryOrThrow(Registries.CONFIGURED_FEATURE).getHolder(gen).orElse(null);
-        return (holder != null) ? holder.value().place(access, chunkGenerator, random, pos) : false;
+        Holder<ConfiguredFeature<?, ?>> holder = access.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(gen).orElse(null);
+        return holder != null && holder.value().place(access, chunkGenerator, random, pos);
     }
 
     @Override
@@ -311,7 +302,7 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
 
     @Override
     public List<Entity> getEntities() {
-        List<Entity> list = new ArrayList<Entity>();
+        List<Entity> list = new ArrayList<>();
 
         this.getNMSEntities().forEach(entity -> {
             Entity bukkitEntity = entity.getBukkitEntity();
@@ -327,13 +318,13 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
 
     @Override
     public List<LivingEntity> getLivingEntities() {
-        List<LivingEntity> list = new ArrayList<LivingEntity>();
+        List<LivingEntity> list = new ArrayList<>();
 
         this.getNMSEntities().forEach(entity -> {
             Entity bukkitEntity = entity.getBukkitEntity();
 
             // Assuming that bukkitEntity isn't null
-            if (bukkitEntity != null && bukkitEntity instanceof LivingEntity && (!this.isNormalWorld() || bukkitEntity.isValid())) {
+            if (bukkitEntity instanceof LivingEntity && (!this.isNormalWorld() || bukkitEntity.isValid())) {
                 list.add((LivingEntity) bukkitEntity);
             }
         });
@@ -365,7 +356,7 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
 
     @Override
     public Collection<Entity> getEntitiesByClasses(Class<?>... classes) {
-        Collection<Entity> list = new ArrayList<Entity>();
+        Collection<Entity> list = new ArrayList<>();
 
         this.getNMSEntities().forEach(entity -> {
             Entity bukkitEntity = entity.getBukkitEntity();
@@ -434,7 +425,7 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         Preconditions.checkArgument(!entity.isInWorld(), "Entity has already been added to a world");
         net.minecraft.world.entity.Entity nmsEntity = ((CraftEntity) entity).getHandle();
         if (nmsEntity.level() != this.getHandle().getLevel()) {
-            nmsEntity = nmsEntity.changeDimension(new DimensionTransition(getHandle().getLevel(), nmsEntity, DimensionTransition.DO_NOTHING));
+            nmsEntity = nmsEntity.teleport(new TeleportTransition(this.getHandle().getLevel(), nmsEntity, TeleportTransition.DO_NOTHING));
         }
 
         this.addEntityWithPassengers(nmsEntity, CreatureSpawnEvent.SpawnReason.CUSTOM);
@@ -451,7 +442,7 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         Preconditions.checkArgument(entity != null, "Cannot spawn null entity");
 
         if (randomizeData && entity instanceof Mob) {
-            ((Mob) entity).finalizeSpawn(this.getHandle(), this.getHandle().getCurrentDifficultyAt(entity.blockPosition()), MobSpawnType.COMMAND, (SpawnGroupData) null);
+            ((Mob) entity).finalizeSpawn(this.getHandle(), this.getHandle().getCurrentDifficultyAt(entity.blockPosition()), EntitySpawnReason.COMMAND, (SpawnGroupData) null);
         }
 
         if (!this.isNormalWorld()) {
@@ -471,11 +462,6 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
     public abstract void addEntityWithPassengers(net.minecraft.world.entity.Entity entity, CreatureSpawnEvent.SpawnReason reason);
 
     @SuppressWarnings("unchecked")
-    public net.minecraft.world.entity.Entity makeEntity(Location location, Class<? extends Entity> clazz) throws IllegalArgumentException {
-        return this.createEntity(location, clazz, true);
-    }
-
-    @SuppressWarnings("unchecked")
     public net.minecraft.world.entity.Entity createEntity(Location location, Class<? extends Entity> clazz, boolean randomizeData) throws IllegalArgumentException {
         Preconditions.checkArgument(location != null, "Location cannot be null");
         Preconditions.checkArgument(clazz != null, "Entity class cannot be null");
@@ -486,17 +472,16 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
             clazz = Arrow.class;
         } else if (clazz == AbstractHorse.class) {
             clazz = Horse.class;
+        } else if (clazz == AbstractCow.class) {
+            clazz = Cow.class;
         } else if (clazz == Fireball.class) {
             clazz = LargeFireball.class;
-        } else if (clazz == LingeringPotion.class) {
-            clazz = ThrownPotion.class;
-            runOld = other -> ((net.minecraft.world.entity.projectile.ThrownPotion) other).setItem(CraftItemStack.asNMSCopy(new ItemStack(org.bukkit.Material.LINGERING_POTION, 1)));
+        } else if (clazz == ThrownPotion.class) {
+            clazz = SplashPotion.class;
         } else if (clazz == Minecart.class) {
             clazz = RideableMinecart.class;
         } else if (clazz == SizedFireball.class) {
             clazz = LargeFireball.class;
-        } else if (clazz == SplashPotion.class) {
-            clazz = ThrownPotion.class;
         } else if (clazz == TippedArrow.class) {
             clazz = Arrow.class;
             runOld = other -> ((Arrow) other.getBukkitEntity()).setBasePotionType(PotionType.WATER);
@@ -528,23 +513,16 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         throw new IllegalArgumentException("Cannot spawn an entity for " + clazz.getName());
     }
 
-    // Paper start - feature flag API
-    @Override
-    public java.util.Set<org.bukkit.FeatureFlag> getFeatureFlags() {
-        return io.papermc.paper.world.flag.PaperFeatureFlagProviderImpl.fromNms(this.getHandle().enabledFeatures());
-    }
-    // Paper end - feature flag API
-
-    // Paper start
     @Override
     public io.papermc.paper.world.MoonPhase getMoonPhase() {
-        return io.papermc.paper.world.MoonPhase.getPhase(this.getHandle().dayTime() / 24000L);
+        return io.papermc.paper.world.MoonPhase.getPhase(this.getHandle().dayTime() / Level.TICKS_PER_DAY);
     }
 
     @Override
     public org.bukkit.NamespacedKey getKey() {
-        return CraftNamespacedKey.fromMinecraft(this.getHandle().getLevel().dimension().location());
+        return org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(this.getHandle().getLevel().dimension().location());
     }
+
     public boolean lineOfSightExists(Location from, Location to) {
         Preconditions.checkArgument(from != null, "from parameter in lineOfSightExists cannot be null");
         Preconditions.checkArgument(to != null, "to parameter in lineOfSightExists cannot be null");
@@ -554,7 +532,7 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
 
         net.minecraft.world.phys.Vec3 start = new net.minecraft.world.phys.Vec3(from.getX(), from.getY(), from.getZ());
         net.minecraft.world.phys.Vec3 end = new net.minecraft.world.phys.Vec3(to.getX(), to.getY(), to.getZ());
-        if (end.distanceToSqr(start) > 128D * 128D) {
+        if (end.distanceToSqr(start) > Mth.square(128D)) {
             return false; // Return early if the distance is greater than 128 blocks
         }
 
@@ -567,6 +545,9 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
 
         return !this.getHandle().noCollision(aabb);
     }
-    // Paper end
 
+    @Override
+    public java.util.Set<org.bukkit.FeatureFlag> getFeatureFlags() {
+        return io.papermc.paper.world.flag.PaperFeatureFlagProviderImpl.fromNms(this.getHandle().enabledFeatures());
+    }
 }

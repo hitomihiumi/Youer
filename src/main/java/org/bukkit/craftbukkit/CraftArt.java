@@ -1,50 +1,64 @@
 package org.bukkit.craftbukkit;
 
-import com.google.common.base.Preconditions;
-import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
+import io.papermc.paper.adventure.PaperAdventure;
+import io.papermc.paper.util.OldEnumHolderable;
+import net.kyori.adventure.text.Component;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.decoration.PaintingVariant;
 import org.bukkit.Art;
-import org.bukkit.Registry;
-import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 
-public class CraftArt {
+public class CraftArt extends OldEnumHolderable<Art, PaintingVariant> implements Art {
+
+    private static int count = 0;
 
     public static Art minecraftToBukkit(PaintingVariant minecraft) {
-        Preconditions.checkArgument(minecraft != null);
-        if (NeoForgeInjectBukkit.MODD_ART.containsKey(minecraft)) {
-            return NeoForgeInjectBukkit.MODD_ART.get(minecraft);
-        }
-        net.minecraft.core.Registry<PaintingVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT);
-        Art bukkit = Registry.ART.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
-
-        Preconditions.checkArgument(bukkit != null);
-
-        return bukkit;
+        return CraftRegistry.minecraftToBukkit(minecraft, Registries.PAINTING_VARIANT);
     }
 
     public static Art minecraftHolderToBukkit(Holder<PaintingVariant> minecraft) {
-        return CraftArt.minecraftToBukkit(minecraft.value());
+        return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.PAINTING_VARIANT);
     }
 
     public static PaintingVariant bukkitToMinecraft(Art bukkit) {
-        Preconditions.checkArgument(bukkit != null);
-
-        return CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT)
-                .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
+        return CraftRegistry.bukkitToMinecraft(bukkit);
     }
 
     public static Holder<PaintingVariant> bukkitToMinecraftHolder(Art bukkit) {
-        Preconditions.checkArgument(bukkit != null);
+        return CraftRegistry.bukkitToMinecraftHolder(bukkit);
+    }
 
-        net.minecraft.core.Registry<PaintingVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT);
+    public CraftArt(Holder<PaintingVariant> paintingVariant) {
+        super(paintingVariant, count++);
+    }
 
-        if (registry.wrapAsHolder(CraftArt.bukkitToMinecraft(bukkit)) instanceof Holder.Reference<PaintingVariant> holder) {
-            return holder;
-        }
+    @Override
+    public int getBlockWidth() {
+        return this.getHandle().width();
+    }
 
-        throw new IllegalArgumentException("No Reference holder found for " + bukkit
-                + ", this can happen if a plugin creates its own painting variant with out properly registering it.");
+    @Override
+    public int getBlockHeight() {
+        return this.getHandle().height();
+    }
+
+    @Override
+    public Component title() {
+        return this.getHandle().title().map(PaperAdventure::asAdventure).orElse(null);
+    }
+
+    @Override
+    public net.kyori.adventure.text.Component author() {
+        return this.getHandle().author().map(PaperAdventure::asAdventure).orElse(null);
+    }
+
+    @Override
+    public net.kyori.adventure.key.Key assetId() {
+        return PaperAdventure.asAdventure(this.getHandle().assetId());
+    }
+
+    @Override
+    public int getId() {
+        return CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT).getId(this.getHandle());
     }
 }

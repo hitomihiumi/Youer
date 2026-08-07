@@ -2,12 +2,6 @@ package io.papermc.paper.plugin.manager;
 
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.provider.type.PluginFileType;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.Map;
-import java.util.Set;
-import java.util.jar.JarFile;
-import java.util.regex.Pattern;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
@@ -20,6 +14,14 @@ import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+import java.util.jar.JarFile;
+import java.util.regex.Pattern;
 
 /**
  * A purely internal type that implements the now deprecated {@link PluginLoader} after the implementation

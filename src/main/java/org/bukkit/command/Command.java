@@ -2,7 +2,6 @@ package org.bukkit.command;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.mohistmc.youer.api.ColorAPI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +32,16 @@ public abstract class Command {
     protected String usageMessage;
     private String permission;
     private net.kyori.adventure.text.Component permissionMessage; // Paper
+    /**
+     * @deprecated Timings will be removed in the future
+     */
+    @Deprecated(forRemoval = true)
+    public co.aikar.timings.Timing timings; // Paper
+    /**
+     * @deprecated Timings will be removed in the future
+     */
+    @Deprecated(forRemoval = true)
+    @NotNull public String getTimingName() {return getName();} // Paper
 
     protected Command(@NotNull String name) {
         this(name, "", "/" + name, new ArrayList<String>());
@@ -56,7 +65,7 @@ public abstract class Command {
      * @param args All arguments passed to the command, split via ' '
      * @return true if the command was successful, otherwise false
      */
-    public abstract boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args);
+    public abstract boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String @NotNull [] args);
 
     /**
      * Executed on tab completion for this command, returning a list of
@@ -70,7 +79,7 @@ public abstract class Command {
      * @throws IllegalArgumentException if sender, alias, or args is null
      */
     @NotNull
-    public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
+    public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String @NotNull [] args) throws IllegalArgumentException {
         return tabComplete0(sender, alias, args, null);
     }
 
@@ -87,7 +96,7 @@ public abstract class Command {
      * @throws IllegalArgumentException if sender, alias, or args is null
      */
     @NotNull
-    public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args, @Nullable Location location) throws IllegalArgumentException {
+    public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String @NotNull [] args, @Nullable Location location) throws IllegalArgumentException {
         return tabComplete(sender, alias, args);
     }
 
@@ -182,7 +191,7 @@ public abstract class Command {
             return true;
         }
 
-        // Paper start - use components for permissionMessage
+            // Paper start - use components for permissionMessage
         net.kyori.adventure.text.Component permissionMessage = this.permissionMessage != null ? this.permissionMessage : Bukkit.permissionMessage();
         if (!permissionMessage.equals(net.kyori.adventure.text.Component.empty())) {
             target.sendMessage(permissionMessage.replaceText(net.kyori.adventure.text.TextReplacementConfig.builder().matchLiteral("<permission>").replacement(permission).build()));
@@ -320,7 +329,7 @@ public abstract class Command {
      * consoles or when this command is executed with
      * {@link Bukkit#dispatchCommand(CommandSender, String)}.
      */
-    @Deprecated
+    @Deprecated(since = "1.20.4")
     @Nullable
     public String getPermissionMessage() {
         return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serializeOrNull(permissionMessage); // Paper
@@ -391,10 +400,10 @@ public abstract class Command {
      * consoles or when this command is executed with
      * {@link Bukkit#dispatchCommand(CommandSender, String)}.
      */
-    @Deprecated
+    @Deprecated(since = "1.20.4")
     @NotNull
     public Command setPermissionMessage(@Nullable String permissionMessage) {
-        this.permissionMessage = ColorAPI.adventure(permissionMessage); // Paper
+        this.permissionMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(permissionMessage); // Paper
         return this;
     }
 
@@ -449,7 +458,7 @@ public abstract class Command {
 
     public static void broadcastCommandMessage(@NotNull CommandSender source, @NotNull String message, boolean sendToSource) {
         // Paper start
-        broadcastCommandMessage(source, ColorAPI.adventure(message), sendToSource);
+        broadcastCommandMessage(source, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message), sendToSource);
     }
 
     public static void broadcastCommandMessage(@NotNull CommandSender source, net.kyori.adventure.text.@NotNull Component message) {

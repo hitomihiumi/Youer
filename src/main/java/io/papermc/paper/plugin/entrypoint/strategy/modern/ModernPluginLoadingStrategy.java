@@ -4,21 +4,24 @@ import com.google.common.collect.Maps;
 import com.google.common.graph.GraphBuilder;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.plugin.configuration.PluginMeta;
+import io.papermc.paper.plugin.entrypoint.dependency.GraphDependencyContext;
 import io.papermc.paper.plugin.entrypoint.dependency.MetaDependencyTree;
 import io.papermc.paper.plugin.entrypoint.strategy.ProviderConfiguration;
 import io.papermc.paper.plugin.entrypoint.strategy.ProviderLoadingStrategy;
 import io.papermc.paper.plugin.provider.PluginProvider;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings("UnstableApiUsage")
 public class ModernPluginLoadingStrategy<T> implements ProviderLoadingStrategy<T> {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
     private final ProviderConfiguration<T> configuration;
 
     public ModernPluginLoadingStrategy(ProviderConfiguration<T> onLoad) {

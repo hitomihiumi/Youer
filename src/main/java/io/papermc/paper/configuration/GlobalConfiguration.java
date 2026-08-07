@@ -1,28 +1,35 @@
 package io.papermc.paper.configuration;
 
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Comment;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.PostProcess;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Setting;
 import com.mojang.logging.LogUtils;
+import io.papermc.paper.FeatureHooks;
 import io.papermc.paper.configuration.constraint.Constraints;
+import io.papermc.paper.configuration.serializer.collection.map.WriteKeyBack;
 import io.papermc.paper.configuration.type.number.DoubleOr;
 import io.papermc.paper.configuration.type.number.IntOr;
+import io.papermc.paper.util.sanitizer.ItemObfuscationBinding;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
+import net.minecraft.resources.ResourceLocation;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import org.spongepowered.configurate.objectmapping.meta.Comment;
+import org.spongepowered.configurate.objectmapping.meta.PostProcess;
+import org.spongepowered.configurate.objectmapping.meta.Required;
+import org.spongepowered.configurate.objectmapping.meta.Setting;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.slf4j.Logger;
+import java.util.Set;
 
 @SuppressWarnings({"CanBeFinal", "FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic"})
 public class GlobalConfiguration extends ConfigurationPart {
     private static final Logger LOGGER = LogUtils.getLogger();
-    static final int CURRENT_VERSION = 29; // (when you change the version, change the comment, so it conflicts on rebases): <insert changes here>
+    static final int CURRENT_VERSION = 30; // (when you change the version, change the comment, so it conflicts on rebases): upgrade packet to use ids
     private static GlobalConfiguration instance;
     public static boolean isFirstStart = false;
     public static GlobalConfiguration get() {
@@ -67,7 +74,7 @@ public class GlobalConfiguration extends ConfigurationPart {
         )
         public int playerMaxConcurrentChunkGenerates = 0;
     }
-    static void set(GlobalConfiguration instance) {
+    static void set(final GlobalConfiguration instance) {
         GlobalConfiguration.instance = instance;
     }
 
@@ -162,10 +169,10 @@ public class GlobalConfiguration extends ConfigurationPart {
     public UnsupportedSettings unsupportedSettings;
 
     public class UnsupportedSettings extends ConfigurationPart {
-        @Comment("This setting controls if the broken behavior of disarmed tripwires not breaking should be allowed. This also allows for dupes")
-        public boolean allowTripwireDisarmingExploits = false;
         @Comment("This setting allows for exploits related to end portals, for example sand duping")
         public boolean allowUnsafeEndPortalTeleportation = false;
+        @Comment("This setting controls the ability to enable dupes related to tripwires.")
+        public boolean skipTripwireHookPlacementValidation = false;
         @Comment("This setting controls if players should be able to break bedrock, end portals and other intended to be permanent blocks.")
         public boolean allowPermanentBlockBreakExploits = false;
         @Comment("This setting controls if player should be able to use TNT duplication, but this also allows duplicating carpet, rails and potentially other items")
@@ -177,14 +184,13 @@ public class GlobalConfiguration extends ConfigurationPart {
         public boolean skipVanillaDamageTickWhenShieldBlocked = false;
         @Comment("This setting controls what compression format is used for region files.")
         public CompressionFormat compressionFormat = CompressionFormat.ZLIB;
-        @Comment("Only checks an item's amount and type instead of its full data during inventory desync checks.")
-        public boolean simplifyRemoteItemMatching = false;
+        @Comment("This setting controls if equipment should be updated when handling certain player actions.")
+        public boolean updateEquipmentOnPlayerActions = true;
 
         public enum CompressionFormat {
             GZIP,
             ZLIB,
             LZ4,
-            ZSTD,
             NONE
         }
     }
@@ -193,8 +199,9 @@ public class GlobalConfiguration extends ConfigurationPart {
 
     public class Commands extends ConfigurationPart {
         public boolean suggestPlayerNamesWhenNullTabCompletions = true;
-        public boolean fixTargetSelectorTagCompletion = true;
         public boolean timeCommandAffectsAllWorlds = false;
+        @Comment("Allow mounting entities to a player in the Vanilla '/ride' command.")
+        public boolean rideCommandAllowPlayerAsVehicle = false;
     }
 
     public Logging logging;
@@ -208,6 +215,37 @@ public class GlobalConfiguration extends ConfigurationPart {
     public class Scoreboards extends ConfigurationPart {
         public boolean trackPluginScoreboards = false;
         public boolean saveEmptyScoreboardTeams = true;
+    }
+
+    @SuppressWarnings("unused") // used in postProcess
+    public ChunkSystem chunkSystem;
+
+    public class ChunkSystem extends ConfigurationPart {
+
+        public int ioThreads = -1;
+        public int workerThreads = -1;
+        public String genParallelism = "default";
+
+        @PostProcess
+        private void postProcess() {
+            ca.spottedleaf.moonrise.common.util.MoonriseCommon.adjustWorkerThreads(this.workerThreads, this.ioThreads);
+            String newChunkSystemGenParallelism = this.genParallelism;
+            if (newChunkSystemGenParallelism.equalsIgnoreCase("default")) {
+                newChunkSystemGenParallelism = "true";
+            }
+
+            final boolean useParallelGen;
+            if (newChunkSystemGenParallelism.equalsIgnoreCase("on") || newChunkSystemGenParallelism.equalsIgnoreCase("enabled")
+                || newChunkSystemGenParallelism.equalsIgnoreCase("true")) {
+                useParallelGen = true;
+            } else if (newChunkSystemGenParallelism.equalsIgnoreCase("off") || newChunkSystemGenParallelism.equalsIgnoreCase("disabled")
+                || newChunkSystemGenParallelism.equalsIgnoreCase("false")) {
+                useParallelGen = false;
+            } else {
+                throw new IllegalStateException("Invalid option for gen-parallelism: must be one of [on, off, enabled, disabled, true, false, default]");
+            }
+            FeatureHooks.initChunkTaskScheduler(useParallelGen);
+        }
     }
 
     public ItemValidation itemValidation;
@@ -236,8 +274,8 @@ public class GlobalConfiguration extends ConfigurationPart {
 
     public class PacketLimiter extends ConfigurationPart {
         public Component kickMessage = Component.translatable("disconnect.exceeded_packet_rate", NamedTextColor.RED);
-        public PacketLimit allPackets = new PacketLimit(7.0, 8192.0, PacketLimit.ViolateAction.KICK);
-        public Map<Class<? extends Packet<?>>, PacketLimit> overrides = Map.of(ServerboundPlaceRecipePacket.class, new PacketLimit(4.0, 5.0, PacketLimit.ViolateAction.DROP));
+        public PacketLimit allPackets = new PacketLimit(7.0, 500.0, PacketLimit.ViolateAction.KICK);
+        public Map<@WriteKeyBack Class<? extends Packet<?>>, PacketLimit> overrides = Map.of(ServerboundPlaceRecipePacket.class, new PacketLimit(4.0, 5.0, PacketLimit.ViolateAction.DROP));
 
         @ConfigSerializable
         public record PacketLimit(@Required double interval, @Required double maxPacketRate, ViolateAction action) {
@@ -283,8 +321,30 @@ public class GlobalConfiguration extends ConfigurationPart {
 
     public class Misc extends ConfigurationPart {
 
+        @SuppressWarnings("unused") // used in postProcess
+        public ChatThreads chatThreads;
+        public class ChatThreads extends ConfigurationPart {
+            private int chatExecutorCoreSize = -1;
+            private int chatExecutorMaxSize = -1;
+
+            @PostProcess
+            private void postProcess() {
+                //noinspection ConstantConditions
+                if (net.minecraft.server.MinecraftServer.getServer() == null) return; // In testing env, this will be null here
+                int _chatExecutorMaxSize = (this.chatExecutorMaxSize <= 0) ? Integer.MAX_VALUE : this.chatExecutorMaxSize; // This is somewhat dumb, but, this is the default, do we cap this?;
+                int _chatExecutorCoreSize = Math.max(this.chatExecutorCoreSize, 0);
+
+                if (_chatExecutorMaxSize < _chatExecutorCoreSize) {
+                    _chatExecutorMaxSize = _chatExecutorCoreSize;
+                }
+
+                java.util.concurrent.ThreadPoolExecutor executor = (java.util.concurrent.ThreadPoolExecutor) net.minecraft.server.MinecraftServer.getServer().chatExecutor;
+                executor.setCorePoolSize(_chatExecutorCoreSize);
+                executor.setMaximumPoolSize(_chatExecutorMaxSize);
+            }
+        }
         public int maxJoinsPerTick = 5;
-        public boolean fixEntityPositionDesync = true;
+        public boolean sendFullPosForItemEntities = false;
         public boolean loadPermissionsYmlBeforePlugins = true;
         @Constraints.Min(4)
         public int regionFileCacheSize = 256;
@@ -295,6 +355,11 @@ public class GlobalConfiguration extends ConfigurationPart {
         public IntOr.Default compressionLevel = IntOr.Default.USE_DEFAULT;
         @Comment("Defines the leniency distance added on the server to the interaction range of a player when validating interact packets.")
         public DoubleOr.Default clientInteractionLeniencyDistance = DoubleOr.Default.USE_DEFAULT;
+        @Comment("Defines how many orbs groups can exist in an area.")
+        @Constraints.Min(1)
+        public IntOr.Default xpOrbGroupsPerArea = IntOr.Default.USE_DEFAULT;
+        @Comment("See Fix MC-163962; prevent villager demand from going negative.")
+        public boolean preventNegativeVillagerDemand = false;
     }
 
     public BlockUpdates blockUpdates;
@@ -304,5 +369,42 @@ public class GlobalConfiguration extends ConfigurationPart {
         public boolean disableTripwireUpdates = false;
         public boolean disableChorusPlantUpdates = false;
         public boolean disableMushroomBlockUpdates = false;
+    }
+
+    public Anticheat anticheat;
+
+    public class Anticheat extends ConfigurationPart {
+
+        public Obfuscation obfuscation;
+
+        public class Obfuscation extends ConfigurationPart {
+            public Items items;
+
+            public class Items extends ConfigurationPart {
+
+                public boolean enableItemObfuscation = false;
+                public ItemObfuscationBinding.AssetObfuscationConfiguration allModels = new ItemObfuscationBinding.AssetObfuscationConfiguration(
+                    true,
+                    Set.of(DataComponents.LODESTONE_TRACKER),
+                    Set.of()
+                );
+
+                public Map<ResourceLocation, ItemObfuscationBinding.AssetObfuscationConfiguration> modelOverrides = Map.of(
+                    Objects.requireNonNull(net.minecraft.world.item.Items.ELYTRA.components().get(DataComponents.ITEM_MODEL)),
+                    new ItemObfuscationBinding.AssetObfuscationConfiguration(
+                        true,
+                        Set.of(DataComponents.DAMAGE),
+                        Set.of()
+                    )
+                );
+
+                public transient ItemObfuscationBinding binding;
+
+                @PostProcess
+                public void bindDataSanitizer() {
+                    this.binding = new ItemObfuscationBinding(this);
+                }
+            }
+        }
     }
 }

@@ -3,17 +3,15 @@ package io.papermc.paper.event.inventory;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
-@DefaultQualifier(NonNull.class)
+@NullMarked
 public class PaperInventoryMoveItemEvent extends InventoryMoveItemEvent {
 
     public boolean calledSetItem;
     public boolean calledGetItem;
 
-    public PaperInventoryMoveItemEvent(final @NotNull Inventory sourceInventory, final @NotNull ItemStack itemStack, final @NotNull Inventory destinationInventory, final boolean didSourceInitiate) {
+    public PaperInventoryMoveItemEvent(final Inventory sourceInventory, final ItemStack itemStack, final Inventory destinationInventory, final boolean didSourceInitiate) {
         super(sourceInventory, itemStack, destinationInventory, didSourceInitiate);
     }
 

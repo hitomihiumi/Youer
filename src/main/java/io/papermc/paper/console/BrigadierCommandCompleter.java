@@ -1,14 +1,17 @@
 package io.papermc.paper.console;
 
+import com.destroystokyo.paper.event.server.AsyncTabCompleteEvent;
+import com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion;
 import com.google.common.base.Suppliers;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.suggestion.Suggestion;
 import io.papermc.paper.adventure.PaperAdventure;
-import com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import net.kyori.adventure.text.Component;
 import net.minecraft.commands.CommandSourceStack;
@@ -43,7 +46,10 @@ public final class BrigadierCommandCompleter {
         final ParseResults<CommandSourceStack> results = dispatcher.parse(new StringReader(line.line()), this.commandSourceStack.get());
         this.addCandidates(
             candidates,
-            dispatcher.getCompletionSuggestions(results, line.cursor()).join().getList(),
+            CompletableFuture.supplyAsync(() -> dispatcher.getCompletionSuggestions(results, line.cursor()), this.server::scheduleOnMain)
+                .thenCompose(Function.identity())
+                .join()
+                .getList(),
             existing,
             new ParseContext(line.line(), results.getContext().findSuggestionContext(line.cursor()).startPos)
         );
@@ -59,7 +65,7 @@ public final class BrigadierCommandCompleter {
             if (it.getText().isEmpty()) return;
             candidates.add(toCandidate(it, context));
         });
-        for (final Completion completion : existing) {
+        for (final AsyncTabCompleteEvent.Completion completion : existing) {
             if (completion.suggestion().isEmpty() || brigSuggestions.stream().anyMatch(it -> it.getText().equals(completion.suggestion()))) {
                 continue;
             }

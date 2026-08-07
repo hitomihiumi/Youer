@@ -1,8 +1,6 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
-import com.mohistmc.youer.api.ColorAPI;
-import com.mohistmc.youer.util.I18n;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;
@@ -16,7 +14,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
+import io.papermc.paper.configuration.ServerConfiguration;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Warning.WarningState;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.block.data.BlockData;
@@ -43,6 +42,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemCraftResult;
 import org.bukkit.inventory.ItemFactory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MenuType;
 import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -117,19 +117,14 @@ public final class Bukkit {
         server.getLogger().info(getVersionMessage());
     }
     /**
-     * Gets message describing the version server is running.
-     *
-     * @return message describing the version server is running
-     */
+      * Gets message describing the version server is running.
+      *
+      * @return message describing the version server is running
+      */
     @NotNull
     public static String getVersionMessage() {
         final io.papermc.paper.ServerBuildInfo version = io.papermc.paper.ServerBuildInfo.buildInfo();
-        return I18n.as("server.version.message",
-                getName(),
-                version.asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_FULL),
-                getBukkitVersion(),
-                NeoForgeVersion.getVersion()
-        );
+        return "This server is running " + getName() + " version " + version.asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_FULL) + " (Implementing API version " + getBukkitVersion() + ")";
         // Paper end
     }
 
@@ -137,6 +132,7 @@ public final class Bukkit {
      * Gets the name of this server implementation.
      *
      * @return name of this server implementation
+     * @see io.papermc.paper.ServerBuildInfo#brandName()
      */
     @NotNull
     public static String getName() {
@@ -147,6 +143,7 @@ public final class Bukkit {
      * Gets the version string of this server implementation.
      *
      * @return version of this server implementation
+     * @see io.papermc.paper.ServerBuildInfo
      */
     @NotNull
     public static String getVersion() {
@@ -194,8 +191,8 @@ public final class Bukkit {
      * uses. Normal and immediate iterator use without consequences that
      * affect the collection are fully supported. The effects following
      * (non-exhaustive) {@link Entity#teleport(Location) teleportation},
-     * {@link Player#setHealth(double) death}, and {@link Player#kickPlayer(
-     * String) kicking} are undefined. Any use of this collection from
+     * {@link Player#setHealth(double) death}, and {@link Player#kick(
+     * Component) kicking} are undefined. Any use of this collection from
      * asynchronous threads is unsafe.
      * <p>
      * For safe consequential iteration or mimicking the old array behavior,
@@ -334,20 +331,13 @@ public final class Bukkit {
     /**
      * Get the DataPack Manager.
      *
+     * @deprecated use {@link #getDatapackManager()}
      * @return the manager
      */
     @NotNull
+    @Deprecated(forRemoval = true, since = "1.20")
     public static DataPackManager getDataPackManager() {
         return server.getDataPackManager();
-    }
-
-    /**
-     * Gets the potion brewer.
-     *
-     * @return the potion brewer
-     */
-    public static @NotNull org.bukkit.potion.PotionBrewer getPotionBrewer() {
-        return server.getPotionBrewer();
     }
 
     /**
@@ -480,9 +470,11 @@ public final class Bukkit {
      *
      * @param message the message
      * @return the number of players
+     * @deprecated in favour of {@link Server#broadcast(Component)}
      */
+    @Deprecated // Paper
     public static int broadcastMessage(@NotNull String message) {
-        return server.broadcast(ColorAPI.adventure(message));
+        return server.broadcastMessage(message);
     }
 
     // Paper start
@@ -490,7 +482,7 @@ public final class Bukkit {
      * Sends the component to all online players.
      *
      * @param component the component to send
-     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link net.kyori.adventure.text.Component}
+     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link Component}
      */
     @Deprecated
     public static void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
@@ -501,7 +493,7 @@ public final class Bukkit {
      * Sends an array of components as a single message to all online players.
      *
      * @param components the components to send
-     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link net.kyori.adventure.text.Component}
+     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link Component}
      */
     @Deprecated
     public static void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
@@ -562,7 +554,7 @@ public final class Bukkit {
      * @return the default ticks per animal spawns value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getTicksPerAnimalSpawns() {
         return server.getTicksPerAnimalSpawns();
     }
@@ -587,7 +579,7 @@ public final class Bukkit {
      * @return the default ticks per monsters spawn value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getTicksPerMonsterSpawns() {
         return server.getTicksPerMonsterSpawns();
     }
@@ -611,7 +603,7 @@ public final class Bukkit {
      * @return the default ticks per water mobs spawn value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getTicksPerWaterSpawns() {
         return server.getTicksPerWaterSpawns();
     }
@@ -635,7 +627,7 @@ public final class Bukkit {
      * @return the default ticks per ambient mobs spawn value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getTicksPerAmbientSpawns() {
         return server.getTicksPerAmbientSpawns();
     }
@@ -659,7 +651,7 @@ public final class Bukkit {
      * @return the default ticks per water ambient mobs spawn value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getTicksPerWaterAmbientSpawns() {
         return server.getTicksPerAmbientSpawns();
     }
@@ -683,7 +675,7 @@ public final class Bukkit {
      * @return the default ticks per water underground creature spawn value
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getTicksPerWaterUndergroundCreatureSpawns() {
         return server.getTicksPerWaterUndergroundCreatureSpawns();
     }
@@ -832,21 +824,14 @@ public final class Bukkit {
     // Paper end
 
     /**
-     * Gets a list of all world name on this server.
-     *
-     * @return a set of worlds
-     */
-    @NotNull
-    public static Set<String> getWorldsByName() {
-        return server.getWorldsByName();
-    }
-
-    /**
      * Creates or loads a world with the given name using the specified
      * options.
      * <p>
      * If the world is already loaded, it will just return the equivalent of
      * getWorld(creator.name()).
+     * <p>
+     * Do note that un/loading worlds mid-tick may have potential side effects, we strongly recommend
+     * ensuring that you're not un/loading worlds midtick by checking {@link Bukkit#isTickingWorlds()}
      *
      * @param creator the options to use when creating the world
      * @return newly created or loaded world
@@ -858,6 +843,9 @@ public final class Bukkit {
 
     /**
      * Unloads a world with the given name.
+     * <p>
+     * Do note that un/loading worlds mid-tick may have potential side effects, we strongly recommend
+     * ensuring that you're not un/loading worlds midtick by checking {@link Bukkit#isTickingWorlds()}
      *
      * @param name Name of the world to unload
      * @param save whether to save the chunks before unloading
@@ -869,6 +857,9 @@ public final class Bukkit {
 
     /**
      * Unloads the given world.
+     * <p>
+     * Do note that un/loading worlds mid-tick may have potential side effects, we strongly recommend
+     * ensuring that you're not un/loading worlds midtick by checking {@link Bukkit#isTickingWorlds()}
      *
      * @param world the world to unload
      * @param save whether to save the chunks before unloading
@@ -899,7 +890,6 @@ public final class Bukkit {
     public static World getWorld(@NotNull UUID uid) {
         return server.getWorld(uid);
     }
-
     // Paper start
     /**
      * Gets the world from the given NamespacedKey
@@ -961,9 +951,6 @@ public final class Bukkit {
     /**
      * Create a new explorer map targeting the closest nearby structure of a
      * given {@link StructureType}.
-     * <br>
-     * This method uses implementation default values for radius and
-     * findUnexplored (usually 100, true).
      *
      * @param world the world the map will belong to
      * @param location the origin location to find the nearest structure
@@ -972,7 +959,9 @@ public final class Bukkit {
      *
      * @see World#locateNearestStructure(org.bukkit.Location,
      *      org.bukkit.StructureType, int, boolean)
+     * @deprecated use {@link #createExplorerMap(World, Location, org.bukkit.generator.structure.StructureType, org.bukkit.map.MapCursor.Type)}
      */
+    @Deprecated // Paper
     @NotNull
     public static ItemStack createExplorerMap(@NotNull World world, @NotNull Location location, @NotNull StructureType structureType) {
         return server.createExplorerMap(world, location, structureType);
@@ -995,12 +984,13 @@ public final class Bukkit {
      *
      * @see World#locateNearestStructure(org.bukkit.Location,
      *      org.bukkit.StructureType, int, boolean)
+     * @deprecated use {@link #createExplorerMap(World, Location, org.bukkit.generator.structure.StructureType, org.bukkit.map.MapCursor.Type, int, boolean)}
      */
+    @Deprecated // Paper
     @NotNull
     public static ItemStack createExplorerMap(@NotNull World world, @NotNull Location location, @NotNull StructureType structureType, int radius, boolean findUnexplored) {
         return server.createExplorerMap(world, location, structureType, radius, findUnexplored);
     }
-
     // Paper start
     /**
      * Create a new explorer map targeting the closest nearby structure of a
@@ -1078,15 +1068,20 @@ public final class Bukkit {
     }
     // Paper end - update reloadable data
 
-    public static final Logger logger = Logger.getLogger("Bukkit");
     /**
      * Returns the primary logger associated with this server instance.
      *
      * @return Logger associated with this server
+     * @see org.bukkit.plugin.Plugin#getSLF4JLogger()
+     * @apiNote This logger is for the Minecraft server software, not for specific plugins. You should
+     * use a logger for a specific plugin, either via {@link org.bukkit.plugin.Plugin#getSLF4JLogger()}
+     * or {@link org.bukkit.plugin.Plugin#getLogger()} or create a specific logger for a class via slf4j.
+     * That way, log messages contain contextual information about the source of the message.
      */
     @NotNull
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper - internalize Bukkit#getLogger
     public static Logger getLogger() {
-        return logger;
+        return server.getLogger();
     }
 
     /**
@@ -1123,20 +1118,24 @@ public final class Bukkit {
 
     /**
      * Adds a recipe to the crafting manager.
+     * Recipes added with this method won't be sent to the client automatically.
+     * <p>
+     * Players still have to discover recipes via {@link Player#discoverRecipe(NamespacedKey)}
+     * before seeing them in their recipe book.
      *
      * @param recipe the recipe to add
-     * @return true if the recipe was added, false if it wasn't for some
-     *     reason
+     * @return true if the recipe was added, false if it wasn't for some reason
+     * @see #addRecipe(Recipe, boolean)
      */
     @Contract("null -> false")
     public static boolean addRecipe(@Nullable Recipe recipe) {
         return server.addRecipe(recipe);
     }
 
-    // Paper start - method to send recipes immediately
     /**
      * Adds a recipe to the crafting manager.
      *
+     * @apiNote resendRecipes is ignored at the moment for stability reasons, recipes will always be updated
      * @param recipe the recipe to add
      * @param resendRecipes true to update the client with the full set of recipes
      * @return true if the recipe was added, false if it wasn't for some reason
@@ -1145,7 +1144,6 @@ public final class Bukkit {
     public static boolean addRecipe(@Nullable Recipe recipe, boolean resendRecipes) {
         return server.addRecipe(recipe, resendRecipes);
     }
-    // Paper end - method to send recipes immediately
 
     /**
      * Get a list of all recipes for a given item. The stack size is ignored
@@ -1191,7 +1189,7 @@ public final class Bukkit {
      * @return the {@link Recipe} resulting from the given crafting matrix.
      */
     @Nullable
-    public static Recipe getCraftingRecipe(@NotNull ItemStack[] craftingMatrix, @NotNull World world) {
+    public static Recipe getCraftingRecipe(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world) {
         return server.getCraftingRecipe(craftingMatrix, world);
     }
 
@@ -1220,7 +1218,7 @@ public final class Bukkit {
      * @return resulting {@link ItemCraftResult} containing the resulting item, matrix and any overflow items.
      */
     @NotNull
-    public static ItemCraftResult craftItemResult(@NotNull ItemStack[] craftingMatrix, @NotNull World world, @NotNull Player player) {
+    public static ItemCraftResult craftItemResult(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world, @NotNull Player player) {
         return server.craftItemResult(craftingMatrix, world, player);
     }
 
@@ -1242,7 +1240,7 @@ public final class Bukkit {
      * @return resulting {@link ItemCraftResult} containing the resulting item, matrix and any overflow items.
      */
     @NotNull
-    public static ItemCraftResult craftItemResult(@NotNull ItemStack[] craftingMatrix, @NotNull World world) {
+    public static ItemCraftResult craftItemResult(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world) {
         return server.craftItemResult(craftingMatrix, world);
     }
 
@@ -1273,7 +1271,7 @@ public final class Bukkit {
      * an ItemStack of {@link Material#AIR} is returned.
      */
     @NotNull
-    public static ItemStack craftItem(@NotNull ItemStack[] craftingMatrix, @NotNull World world, @NotNull Player player) {
+    public static ItemStack craftItem(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world, @NotNull Player player) {
         return server.craftItem(craftingMatrix, world, player);
     }
 
@@ -1296,7 +1294,7 @@ public final class Bukkit {
      * an ItemStack of {@link Material#AIR} is returned.
      */
     @NotNull
-    public static ItemStack craftItem(@NotNull ItemStack[] craftingMatrix, @NotNull World world) {
+    public static ItemStack craftItem(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world) {
         return server.craftItem(craftingMatrix, world);
     }
 
@@ -1338,6 +1336,24 @@ public final class Bukkit {
         return server.removeRecipe(key);
     }
 
+    // Paper start - method to resend recipes
+    /**
+     * Remove a recipe from the server.
+     * <p>
+     * <b>Note that removing a recipe may cause permanent loss of data
+     * associated with that recipe (eg whether it has been discovered by
+     * players).</b>
+     *
+     * @param key NamespacedKey of recipe to remove.
+     * @param resendRecipes true to update all clients on the new recipe list.
+     *                      Will only update if a recipe was actually removed
+     * @return True if recipe was removed
+     */
+    public static boolean removeRecipe(@NotNull NamespacedKey key, boolean resendRecipes) {
+        return server.removeRecipe(key, resendRecipes);
+    }
+    // Paper end - method to resend recipes
+
     /**
      * Gets a list of command aliases defined in the server properties.
      *
@@ -1361,7 +1377,11 @@ public final class Bukkit {
      * Sets the radius, in blocks, around each worlds spawn point to protect.
      *
      * @param value new spawn radius, or 0 if none
+     * @deprecated has not functioned for a long time as the spawn radius is defined by the server.properties file.
+     * There is no API replacement for this method. It is generally recommended to implement "protection"-like behaviour
+     * via events or third-party plugin APIs.
      */
+    @Deprecated(since = "1.21.4", forRemoval = true)
     public static void setSpawnRadius(int value) {
         server.setSpawnRadius(value);
     }
@@ -1373,7 +1393,7 @@ public final class Bukkit {
      * @return true if the server should send a preview, false otherwise
      * @deprecated chat previews have been removed
      */
-    @Deprecated
+    @Deprecated(since = "1.19.3", forRemoval = true)
     public static boolean shouldSendChatPreviews() {
         return server.shouldSendChatPreviews();
     }
@@ -1417,6 +1437,15 @@ public final class Bukkit {
     }
 
     /**
+     * Retrieves the server configuration.
+     *
+     * @return the instance of ServerConfiguration containing the server's configuration details
+     */
+    public static @NotNull ServerConfiguration getServerConfig() {
+        return server.getServerConfig();
+    }
+
+    /**
      * Gets whether this server allows flying or not.
      *
      * @return true if the server allows flight, false otherwise
@@ -1445,7 +1474,7 @@ public final class Bukkit {
     /**
      * Broadcast a message to all players.
      * <p>
-     * This is the same as calling {@link #broadcast(net.kyori.adventure.text.Component,
+     * This is the same as calling {@link #broadcast(Component,
      * java.lang.String)} with the {@link Server#BROADCAST_CHANNEL_USERS} permission.
      *
      * @param message the message
@@ -1475,7 +1504,7 @@ public final class Bukkit {
      * @param permission the required permission {@link Permissible
      *     permissibles} must have to receive the broadcast
      * @return number of message recipients
-     * @deprecated in favour of {@link #broadcast(net.kyori.adventure.text.Component, String)}
+     * @deprecated in favour of {@link #broadcast(Component, String)}
      */
     @Deprecated // Paper
     public static int broadcast(@NotNull String message, @NotNull String permission) {
@@ -1495,10 +1524,7 @@ public final class Bukkit {
      * @param name the name the player to retrieve
      * @return an offline player
      * @see #getOfflinePlayer(java.util.UUID)
-     * @deprecated Persistent storage of users should be by UUID as names are no longer
-     *             unique past a single session.
      */
-    @Deprecated
     @NotNull
     public static OfflinePlayer getOfflinePlayer(@NotNull String name) {
         return server.getOfflinePlayer(name);
@@ -1548,8 +1574,10 @@ public final class Bukkit {
      * @return the new PlayerProfile
      * @throws IllegalArgumentException if both the unique id is
      * <code>null</code> and the name is <code>null</code> or blank
+     * @deprecated use {@link #createProfile(UUID, String)}
      */
     @NotNull
+    @Deprecated(since = "1.18.1") // Paper
     public static PlayerProfile createPlayerProfile(@Nullable UUID uniqueId, @Nullable String name) {
         return server.createPlayerProfile(uniqueId, name);
     }
@@ -1560,8 +1588,10 @@ public final class Bukkit {
      * @param uniqueId the unique id
      * @return the new PlayerProfile
      * @throws IllegalArgumentException if the unique id is <code>null</code>
+     * @deprecated use {@link #createProfile(UUID)}
      */
     @NotNull
+    @Deprecated(since = "1.18.1") // Paper
     public static PlayerProfile createPlayerProfile(@NotNull UUID uniqueId) {
         return server.createPlayerProfile(uniqueId);
     }
@@ -1573,8 +1603,10 @@ public final class Bukkit {
      * @return the new PlayerProfile
      * @throws IllegalArgumentException if the name is <code>null</code> or
      * blank
+     * @deprecated use {@link #createProfile(String)}
      */
     @NotNull
+    @Deprecated(since = "1.18.1") // Paper
     public static PlayerProfile createPlayerProfile(@NotNull String name) {
         return server.createPlayerProfile(name);
     }
@@ -1596,7 +1628,7 @@ public final class Bukkit {
      *
      * @deprecated see {@link #banIP(InetAddress)}
      */
-    @Deprecated
+    @Deprecated(since = "1.20.1")
     public static void banIP(@NotNull String address) {
         server.banIP(address);
     }
@@ -1608,7 +1640,7 @@ public final class Bukkit {
      *
      * @deprecated see {@link #unbanIP(InetAddress)}
      */
-    @Deprecated
+    @Deprecated(since = "1.20.1")
     public static void unbanIP(@NotNull String address) {
         server.unbanIP(address);
     }
@@ -1648,6 +1680,7 @@ public final class Bukkit {
      * @param <T> The ban target
      *
      * @return a ban list of the specified type
+     * @deprecated use {@link #getBanList(io.papermc.paper.ban.BanListType)} to enforce the correct return value at compile time.
      */
     @NotNull
     @Deprecated(since = "1.20.4") // Paper - add BanListType (which has a generic)
@@ -1697,6 +1730,15 @@ public final class Bukkit {
     public static void setDefaultGameMode(@NotNull GameMode mode) {
         server.setDefaultGameMode(mode);
     }
+    
+    /**
+     * Gets whether the default gamemode is being enforced.
+     *
+     * @return {@code true} if the default gamemode is being forced, {@code false} otherwise
+     */
+    public static boolean forcesDefaultGameMode() {
+        return server.forcesDefaultGameMode();
+    }
 
     /**
      * Gets a {@link ConsoleCommandSender} that may be used as an input source
@@ -1718,7 +1760,7 @@ public final class Bukkit {
      * @return a command sender
      */
     @NotNull
-    public static CommandSender createCommandSender(final @NotNull java.util.function.Consumer<? super net.kyori.adventure.text.Component> feedback) {
+    public static CommandSender createCommandSender(final @NotNull java.util.function.Consumer<? super Component> feedback) {
         return server.createCommandSender(feedback);
     }
     // Paper end
@@ -1735,11 +1777,12 @@ public final class Bukkit {
 
     /**
      * Gets every player that has ever played on this server.
+     * <p>
+     * <b>This method can be expensive as it loads all the player data files from the disk.</b>
      *
      * @return an array containing all previous players
      */
-    @NotNull
-    public static OfflinePlayer[] getOfflinePlayers() {
+    public static @NotNull OfflinePlayer @NotNull [] getOfflinePlayers() {
         return server.getOfflinePlayers();
     }
 
@@ -1841,7 +1884,7 @@ public final class Bukkit {
      * @return The new inventory.
      * @throws IllegalArgumentException if the {@link InventoryType} cannot be
      * viewed.
-     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, Component)}
      *
      * @see InventoryType#isCreatable()
      */
@@ -1893,7 +1936,7 @@ public final class Bukkit {
      *     viewed
      * @return a new inventory
      * @throws IllegalArgumentException if the size is not a multiple of 9
-     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, Component)}
      */
     @Deprecated // Paper
     @NotNull
@@ -1908,7 +1951,10 @@ public final class Bukkit {
      * @param title the title of the corresponding merchant inventory, displayed
      * when the merchant inventory is viewed
      * @return a new merchant
+     * @deprecated The title parameter is no-longer needed when used with
+     * {@link MenuType#MERCHANT} and {@link MenuType.Typed#builder()}.
      */
+    @Deprecated(since = "1.21.4")
     public static @NotNull Merchant createMerchant(net.kyori.adventure.text.@Nullable Component title) {
         return server.createMerchant(title);
     }
@@ -1919,12 +1965,23 @@ public final class Bukkit {
      * @param title the title of the corresponding merchant inventory, displayed
      * when the merchant inventory is viewed
      * @return a new merchant
-     * @deprecated in favour of {@link #createMerchant(net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createMerchant(Component)}. The title parameter is
+     * no-longer needed when used with {@link MenuType#MERCHANT} and {@link MenuType.Typed#builder()}
      */
     @NotNull
     @Deprecated // Paper
     public static Merchant createMerchant(@Nullable String title) {
         return server.createMerchant(title);
+    }
+
+    /**
+     * Creates an empty merchant.
+     *
+     * @return a new merchant
+     */
+    @NotNull
+    public static Merchant createMerchant() {
+        return server.createMerchant();
     }
 
     /**
@@ -1945,7 +2002,7 @@ public final class Bukkit {
      * @return the monster spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getMonsterSpawnLimit() {
         return server.getMonsterSpawnLimit();
     }
@@ -1957,7 +2014,7 @@ public final class Bukkit {
      * @return the animal spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getAnimalSpawnLimit() {
         return server.getAnimalSpawnLimit();
     }
@@ -1969,7 +2026,7 @@ public final class Bukkit {
      * @return the water animal spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getWaterAnimalSpawnLimit() {
         return server.getWaterAnimalSpawnLimit();
     }
@@ -1981,7 +2038,7 @@ public final class Bukkit {
      * @return the water ambient spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getWaterAmbientSpawnLimit() {
         return server.getAmbientSpawnLimit();
     }
@@ -1993,7 +2050,7 @@ public final class Bukkit {
      * @return the water underground creature limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getWaterUndergroundCreatureSpawnLimit() {
         return server.getWaterUndergroundCreatureSpawnLimit();
     }
@@ -2005,7 +2062,7 @@ public final class Bukkit {
      * @return the ambient spawn limit
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
-    @Deprecated
+    @Deprecated(since = "1.18.1")
     public static int getAmbientSpawnLimit() {
         return server.getAmbientSpawnLimit();
     }
@@ -2045,7 +2102,7 @@ public final class Bukkit {
      *
      * @return the server's MOTD
      */
-    @NotNull public static net.kyori.adventure.text.Component motd() {
+    @NotNull public static Component motd() {
         return server.motd();
     }
 
@@ -2084,7 +2141,7 @@ public final class Bukkit {
      * Set the message that is displayed on the server list.
      *
      * @param motd The message to be displayed
-     * @deprecated in favour of {@link #motd(net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #motd(Component)}
      */
     @Deprecated // Paper
     public static void setMotd(@NotNull String motd) {
@@ -2241,6 +2298,30 @@ public final class Bukkit {
     }
 
     /**
+     * Gets the pause when empty threshold seconds. To save resources, the
+     * server will pause most functions after this time if there are no players
+     * online.
+     *
+     * @return the pause threshold in seconds
+     */
+    public static int getPauseWhenEmptyTime() {
+        return server.getPauseWhenEmptyTime();
+    }
+
+    /**
+     * Sets the pause when empty threshold seconds. To save resources, the
+     * server will pause most functions after this time if there are no players
+     * online.
+     * <p>
+     * A value of less than 1 will disable the setting
+     *
+     * @param seconds the pause threshold in seconds
+     */
+    public static void setPauseWhenEmptyTime(int seconds) {
+        server.setPauseWhenEmptyTime(seconds);
+    }
+
+    /**
      * Create a ChunkData for use in a generator.
      *
      * See {@link ChunkGenerator#generateChunkData(org.bukkit.World, java.util.Random, int, int, org.bukkit.generator.ChunkGenerator.BiomeGrid)}
@@ -2362,8 +2443,7 @@ public final class Bukkit {
      * Gets the current server TPS
      * @return current server TPS (1m, 5m, 15m in Paper-Server)
      */
-    @NotNull
-    public static double[] getTPS() {
+    public static double @NotNull [] getTPS() {
         return server.getTPS();
     }
 
@@ -2372,8 +2452,7 @@ public final class Bukkit {
      *
      * @return A sample of the servers last tick times (in nanos)
      */
-    @NotNull
-    public static long[] getTickTimes() {
+    public static long @NotNull [] getTickTimes() {
         return server.getTickTimes();
     }
 
@@ -2561,8 +2640,11 @@ public final class Bukkit {
      * @param tClass of the registry to get
      * @param <T> type of the registry
      * @return the corresponding registry or null if not present
+     * @deprecated use {@link io.papermc.paper.registry.RegistryAccess#getRegistry(io.papermc.paper.registry.RegistryKey)}
+     * with keys from {@link io.papermc.paper.registry.RegistryKey}
      */
     @Nullable
+    @Deprecated(since = "1.20.6")
     public static <T extends Keyed> Registry<T> getRegistry(@NotNull Class<T> tClass) {
         return server.getRegistry(tClass);
     }
@@ -2571,11 +2653,12 @@ public final class Bukkit {
      * @return the unsafe values instance
      * @see UnsafeValues
      */
-    @Deprecated
+    @Deprecated(since = "1.7.2")
     @NotNull
     public static UnsafeValues getUnsafe() {
         return server.getUnsafe();
     }
+
 
     // Paper start
     /**
@@ -2593,6 +2676,47 @@ public final class Bukkit {
      */
     public static void reloadPermissions() {
         server.reloadPermissions();
+    }
+
+    /**
+     * Reload the Command Aliases in commands.yml
+     *
+     * @return Whether the reload was successful
+     */
+    public static boolean reloadCommandAliases() {
+        return server.reloadCommandAliases();
+    }
+
+    /**
+     * Checks if player names should be suggested when a command returns {@code null} as
+     * their tab completion result.
+     *
+     * @return true if player names should be suggested
+     */
+    public static boolean suggestPlayerNamesWhenNullTabCompletions() {
+        return server.suggestPlayerNamesWhenNullTabCompletions();
+    }
+
+    /**
+     * Gets the default no permission message used on the server
+     *
+     * @return the default message
+     * @deprecated use {@link #permissionMessage()}
+     */
+    @NotNull
+    @Deprecated
+    public static String getPermissionMessage() {
+        return server.getPermissionMessage();
+    }
+
+    /**
+     * Gets the default no permission message used on the server
+     *
+     * @return the default message
+     */
+    @NotNull
+    public static Component permissionMessage() {
+        return server.permissionMessage();
     }
 
     /**
@@ -2677,12 +2801,6 @@ public final class Bukkit {
     public static com.destroystokyo.paper.profile.PlayerProfile createProfileExact(@Nullable UUID uuid, @Nullable String name) {
         return server.createProfileExact(uuid, name);
     }
-    // Paper end
-
-    @NotNull
-    public static Server.Spigot spigot() {
-        return server.spigot();
-    }
 
     public static int getCurrentTick() {
         return server.getCurrentTick();
@@ -2714,6 +2832,16 @@ public final class Bukkit {
     public static io.papermc.paper.datapack.DatapackManager getDatapackManager() {
         return server.getDatapackManager();
     }
+
+    /**
+     * Gets the potion brewer.
+     *
+     * @return the potion brewer
+     */
+    public static @NotNull org.bukkit.potion.PotionBrewer getPotionBrewer() {
+        return server.getPotionBrewer();
+    }
+    // Paper end
 
     // Paper start - Folia region threading API
     /**
@@ -2840,6 +2968,21 @@ public final class Bukkit {
 
     /**
      * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunks in the rectangle specified by the min and max parameters.
+     * Specifically, this function checks that every chunk with position x in [minChunkX, maxChunkX] and
+     * position z in [minChunkZ, maxChunkZ] is owned by the current ticking region.
+     * @param world Specified world.
+     * @param minChunkX Specified x-coordinate of the minimum chunk position.
+     * @param minChunkZ Specified z-coordinate of the minimum chunk position.
+     * @param maxChunkX Specified x-coordinate of the maximum chunk position.
+     * @param maxChunkZ Specified z-coordinate of the maximum chunk position.
+     */
+    public static boolean isOwnedByCurrentRegion(@NotNull World world, int minChunkX, int minChunkZ, int maxChunkX, int maxChunkZ) {
+        return server.isOwnedByCurrentRegion(world, minChunkX, minChunkZ, maxChunkX, maxChunkZ);
+    }
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
      * owns the specified entity. Note that this function is the only appropriate method of checking
      * for ownership of an entity, as retrieving the entity's location is undefined unless the entity is owned
      * by the current region.
@@ -2848,169 +2991,29 @@ public final class Bukkit {
     public static boolean isOwnedByCurrentRegion(@NotNull Entity entity) {
         return server.isOwnedByCurrentRegion(entity);
     }
+
+    /**
+     * Returns whether the current thread is ticking the global region.
+     * @see io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler
+     */
+    public static boolean isGlobalTickThread() {
+        return server.isGlobalTickThread();
+    }
     // Paper end - Folia region threading API
 
     /**
-     * Reload the Command Aliases in commands.yml
-     *
-     * @return Whether the reload was successful
+     * @deprecated All methods on this class have been deprecated, see the individual methods for replacements.
      */
-    public static boolean reloadCommandAliases() {
-        return server.reloadCommandAliases();
-    }
-
-    /**
-     * Checks if player names should be suggested when a command returns {@code null} as
-     * their tab completion result.
-     *
-     * @return true if player names should be suggested
-     */
-    public static boolean suggestPlayerNamesWhenNullTabCompletions() {
-        return server.suggestPlayerNamesWhenNullTabCompletions();
-    }
-
-    /**
-     * Gets the default no permission message used on the server
-     *
-     * @return the default message
-     * @deprecated use {@link #permissionMessage()}
-     */
+    @Deprecated(since = "1.21.4", forRemoval = true)
     @NotNull
-    @Deprecated
-    public static String getPermissionMessage() {
-        return server.getPermissionMessage();
+    public static Server.Spigot spigot() {
+        return server.spigot();
     }
 
     /**
-     * Gets the default no permission message used on the server
-     *
-     * @return the default message
+     * Restarts the server. If the server administrator has not configured restarting, the server will stop.
      */
-    @NotNull
-    public static net.kyori.adventure.text.Component permissionMessage() {
-        return server.permissionMessage();
+    public static void restart() {
+        server.restart();
     }
-
-    // Purpur start
-    /**
-     * Get the name of this server
-     * @return the name of the server
-     */
-    @NotNull
-    public static String getServerName() {
-        return server.getServerName();
-    }
-
-    /**
-     * Check if server is lagging according to laggy threshold setting
-     *
-     * @return True if lagging
-     */
-    public static boolean isLagging() {
-        return server.isLagging();
-    }
-
-    /**
-     * Add an Item as fuel for furnaces
-     *
-     * @param material The material that will be the fuel
-     * @param burnTime The time (in ticks) this item will burn for
-     */
-    public static void addFuel(@NotNull Material material, int burnTime) {
-        server.addFuel(material, burnTime);
-    }
-
-    /**
-     * Remove an item as fuel for furnaces
-     *
-     * @param material The material that will no longer be a fuel
-     */
-    public static void removeFuel(@NotNull Material material) {
-        server.removeFuel(material);
-    }
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on the server.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     */
-    public static void sendBlockHighlight(@NotNull Location location, int duration) {
-        server.sendBlockHighlight(location, duration);
-    }
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on the server.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
-     */
-    public static void sendBlockHighlight(@NotNull Location location, int duration, int argb) {
-        server.sendBlockHighlight(location, duration, argb);
-    }
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on the server.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param text Text to show above the highlight
-     */
-    public static void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text) {
-        server.sendBlockHighlight(location, duration, text);
-    }
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on the server.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param text Text to show above the highlight
-     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
-     */
-    public static void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, int argb) {
-        server.sendBlockHighlight(location, duration, text, argb);
-    }
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on the server.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
-     * @param transparency Transparency of the highlight
-     * @throws IllegalArgumentException If transparency is outside 0-255 range
-     */
-    public static void sendBlockHighlight(@NotNull Location location, int duration, @NotNull org.bukkit.Color color, int transparency) {
-        server.sendBlockHighlight(location, duration, color, transparency);
-    }
-
-    /**
-     * Creates debug block highlight on specified block location and show it to all players on the server.
-     * <p>
-     * Clients may be inconsistent in displaying it.
-     * @param location Location to highlight
-     * @param duration Duration for highlight to show in milliseconds
-     * @param text Text to show above the highlight
-     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
-     * @param transparency Transparency of the highlight
-     * @throws IllegalArgumentException If transparency is outside 0-255 range
-     */
-    public static void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, @NotNull org.bukkit.Color color, int transparency) {
-        server.sendBlockHighlight(location, duration, text, color, transparency);
-    }
-
-    /**
-     * Clears all debug block highlights for all players on the server.
-     */
-    public static void clearBlockHighlights() {
-        server.clearBlockHighlights();
-    }
-    // Purpur end
 }

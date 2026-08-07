@@ -1,9 +1,9 @@
 package com.destroystokyo.paper.proxy;
 
+import io.papermc.paper.configuration.GlobalConfiguration;
 import com.google.common.net.InetAddresses;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
-import io.papermc.paper.configuration.GlobalConfiguration;
 import java.net.InetAddress;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -12,9 +12,21 @@ import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.login.custom.CustomQueryPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.ProfilePublicKey;
 
+/**
+ * While Velocity supports BungeeCord-style IP forwarding, it is not secure. Users
+ * have a lot of problems setting up firewalls or setting up plugins like IPWhitelist.
+ * Further, the BungeeCord IP forwarding protocol still retains essentially its original
+ * form, when there is brand-new support for custom login plugin messages in 1.13.
+ * <p>
+ * Velocity's modern IP forwarding uses an HMAC-SHA256 code to ensure authenticity
+ * of messages, is packed into a binary format that is smaller than BungeeCord's
+ * forwarding, and is integrated into the Minecraft login process by using the 1.13
+ * login plugin message packet.
+ */
 public class VelocityProxy {
     private static final int SUPPORTED_FORWARDING_VERSION = 1;
     public static final int MODERN_FORWARDING_WITH_KEY = 2;

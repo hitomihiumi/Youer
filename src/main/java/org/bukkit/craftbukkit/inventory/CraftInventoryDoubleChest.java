@@ -1,8 +1,6 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.youer.neoforge.compat.SableCompat;
 import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.level.block.ChestBlock;
@@ -13,15 +11,15 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class CraftInventoryDoubleChest extends CraftInventory implements DoubleChestInventory {
-    public MenuProvider tile;
+    public MenuProvider provider;
     private final CraftInventory left;
     private final CraftInventory right;
 
-    public CraftInventoryDoubleChest(ChestBlock.DoubleInventory block) {
-        super(block.inventorylargechest);
-        this.tile = block;
-        this.left = new CraftInventory(block.inventorylargechest.container1);
-        this.right = new CraftInventory(block.inventorylargechest.container2);
+    public CraftInventoryDoubleChest(ChestBlock.DoubleInventory inventory) {
+        super(inventory.container);
+        this.provider = inventory;
+        this.left = new CraftInventory(inventory.container.container1);
+        this.right = new CraftInventory(inventory.container.container2);
     }
 
     public CraftInventoryDoubleChest(CompoundContainer largeChest) {
@@ -68,16 +66,12 @@ public class CraftInventoryDoubleChest extends CraftInventory implements DoubleC
     // Paper start - getHolder without snapshot
     @Override
     public DoubleChest getHolder(boolean useSnapshot) {
-        return getHolder();
+        return this.getHolder();
     }
     // Paper end
 
     @Override
     public Location getLocation() {
-        var loc = this.getLeftSide().getLocation().add(this.getRightSide().getLocation()).multiply(0.5);
-        if (ServerAPI.hasSable()) {
-            loc = SableCompat.at(loc);
-        }
-        return loc;
+        return this.getLeftSide().getLocation().add(this.getRightSide().getLocation()).multiply(0.5);
     }
 }

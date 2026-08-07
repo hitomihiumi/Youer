@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.Tag;
+import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.DecoratedPotInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -11,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a captured state of a decorated pot.
  */
-public interface DecoratedPot extends io.papermc.paper.block.TileStateInventoryHolder, org.bukkit.loot.Lootable { // Paper - expose loot table
+public interface DecoratedPot extends io.papermc.paper.block.TileStateInventoryHolder, org.bukkit.loot.Lootable { // Paper - expose loot table & TileStateInventoryHolder
 
     /**
      * Set the sherd on the provided side.
@@ -50,7 +51,7 @@ public interface DecoratedPot extends io.papermc.paper.block.TileStateInventoryH
      * @return the sherds
      * @deprecated in favor of {@link #getSherds()}
      */
-    @Deprecated
+    @Deprecated(since = "1.20.1")
     @NotNull
     public List<Material> getShards();
 

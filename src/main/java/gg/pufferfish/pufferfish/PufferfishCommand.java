@@ -1,6 +1,5 @@
 package gg.pufferfish.pufferfish;
 
-import com.mohistmc.youer.util.I18n;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;

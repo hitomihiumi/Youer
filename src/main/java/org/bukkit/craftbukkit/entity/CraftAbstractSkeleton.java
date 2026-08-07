@@ -1,14 +1,18 @@
 package org.bukkit.craftbukkit.entity;
 
-import com.destroystokyo.paper.entity.CraftRangedEntity;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.AbstractSkeleton;
 import org.bukkit.entity.Skeleton;
 
-public abstract class CraftAbstractSkeleton extends CraftMonster implements AbstractSkeleton, CraftRangedEntity<net.minecraft.world.entity.monster.AbstractSkeleton> {
+public abstract class CraftAbstractSkeleton extends CraftMonster implements AbstractSkeleton, com.destroystokyo.paper.entity.CraftRangedEntity<net.minecraft.world.entity.monster.AbstractSkeleton> { // Paper
 
     public CraftAbstractSkeleton(CraftServer server, net.minecraft.world.entity.monster.AbstractSkeleton entity) {
         super(server, entity);
+    }
+
+    @Override
+    public net.minecraft.world.entity.monster.AbstractSkeleton getHandle() {
+        return (net.minecraft.world.entity.monster.AbstractSkeleton) this.entity;
     }
 
     @Override
@@ -16,14 +20,6 @@ public abstract class CraftAbstractSkeleton extends CraftMonster implements Abst
         throw new UnsupportedOperationException("Not supported.");
     }
 
-    // Paper start
-    @Override
-    public net.minecraft.world.entity.monster.AbstractSkeleton getHandle() {
-        return (net.minecraft.world.entity.monster.AbstractSkeleton) super.getHandle();
-    }
-    // Paper end
-
-    // Paper start
     @Override
     public boolean shouldBurnInDay() {
         return getHandle().shouldBurnInDay();
@@ -33,5 +29,4 @@ public abstract class CraftAbstractSkeleton extends CraftMonster implements Abst
     public void setShouldBurnInDay(boolean shouldBurnInDay) {
         getHandle().setShouldBurnInDay(shouldBurnInDay);
     }
-    // Paper end
 }

@@ -1,10 +1,11 @@
 package io.papermc.paper.command.brigadier;
 
+import com.mojang.brigadier.RedirectModifier;
+import com.mojang.brigadier.tree.CommandNode;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.ApiStatus;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -19,8 +20,6 @@ import org.jspecify.annotations.Nullable;
  * exist yet, or no specific sender is available. Methods on such a {@link CommandSender}
  * will either have no effect or throw an {@link UnsupportedOperationException}.</p>
  */
-@ApiStatus.Experimental
-@NullMarked
 @ApiStatus.NonExtendable
 public interface CommandSourceStack {
 
@@ -48,4 +47,24 @@ public interface CommandSourceStack {
      * @return entity that executes this command
      */
     @Nullable Entity getExecutor();
+
+    /**
+     * Creates a new CommandSourceStack object with a different location for redirecting commands to other nodes.
+     *
+     * @param location The location to create a new CommandSourceStack object with
+     * @return The newly created CommandSourceStack
+     * @see #getLocation()
+     * @see com.mojang.brigadier.builder.ArgumentBuilder#fork(CommandNode, RedirectModifier)
+     */
+    CommandSourceStack withLocation(Location location);
+
+    /**
+     * Creates a new CommandSourceStack object with a different executor for redirecting commands to other nodes.
+     *
+     * @param executor The executing entity to create a new CommandSourceStack object with
+     * @return The newly created CommandSourceStack
+     * @see #getExecutor()
+     * @see com.mojang.brigadier.builder.ArgumentBuilder#fork(CommandNode, RedirectModifier)
+     */
+    CommandSourceStack withExecutor(Entity executor);
 }

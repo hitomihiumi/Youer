@@ -1,7 +1,5 @@
 package org.bukkit.craftbukkit.inventory;
 
-import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.youer.neoforge.compat.SableCompat;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.ResultContainer;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -26,11 +24,7 @@ public class CraftInventorySmithing extends CraftResultInventory implements Smit
 
     @Override
     public Location getLocation() {
-        var loc = this.location;
-        if (ServerAPI.hasSable()) {
-            loc = SableCompat.at(loc);
-        }
-        return loc;
+        return this.location;
     }
 
     @Override

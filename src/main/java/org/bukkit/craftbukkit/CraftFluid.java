@@ -1,28 +1,25 @@
 package org.bukkit.craftbukkit;
 
-import com.google.common.base.Preconditions;
+import io.papermc.paper.util.OldEnumHolderable;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import org.bukkit.Fluid;
-import org.bukkit.Registry;
-import org.bukkit.craftbukkit.util.CraftNamespacedKey;
+import org.jspecify.annotations.NullMarked;
 
-public class CraftFluid {
+@NullMarked
+public class CraftFluid extends OldEnumHolderable<Fluid, net.minecraft.world.level.material.Fluid> implements Fluid {
+
+    private static int count = 0;
 
     public static Fluid minecraftToBukkit(net.minecraft.world.level.material.Fluid minecraft) {
-        Preconditions.checkArgument(minecraft != null);
-
-        net.minecraft.core.Registry<net.minecraft.world.level.material.Fluid> registry = CraftRegistry.getMinecraftRegistry(Registries.FLUID);
-        Fluid bukkit = Registry.FLUID.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
-
-        Preconditions.checkArgument(bukkit != null);
-
-        return bukkit;
+        return CraftRegistry.minecraftToBukkit(minecraft, Registries.FLUID);
     }
 
     public static net.minecraft.world.level.material.Fluid bukkitToMinecraft(Fluid bukkit) {
-        Preconditions.checkArgument(bukkit != null);
+        return CraftRegistry.bukkitToMinecraft(bukkit);
+    }
 
-        return CraftRegistry.getMinecraftRegistry(Registries.FLUID)
-                .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
+    public CraftFluid(final Holder<net.minecraft.world.level.material.Fluid> holder) {
+        super(holder, count++);
     }
 }

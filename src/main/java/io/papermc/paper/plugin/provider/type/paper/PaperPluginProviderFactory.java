@@ -1,5 +1,6 @@
 package io.papermc.paper.plugin.provider.type.paper;
 
+import com.destroystokyo.paper.utils.PaperPluginLogger;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContextImpl;
 import io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader;
@@ -9,7 +10,7 @@ import io.papermc.paper.plugin.loader.PluginLoader;
 import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
 import io.papermc.paper.plugin.provider.util.ProviderUtil;
-import com.destroystokyo.paper.utils.PaperPluginLogger;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

@@ -28,7 +28,7 @@ public class ShapedRecipe extends CraftingRecipe {
      * @deprecated Recipes must have keys. Use {@link #ShapedRecipe(NamespacedKey, ItemStack)}
      * instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.12")
     public ShapedRecipe(@NotNull ItemStack result) {
         this(NamespacedKey.randomKey(), result);
         new Throwable("Warning: A plugin is creating a recipe using a Deprecated method. This will cause you to receive warnings stating 'Tried to load unrecognized recipe: bukkit:<ID>'. Please ask the author to give their recipe a static key using NamespacedKey.").printStackTrace(); // Paper
@@ -64,12 +64,12 @@ public class ShapedRecipe extends CraftingRecipe {
     @NotNull
     public ShapedRecipe shape(@NotNull final String... shape) {
         Preconditions.checkArgument(shape != null, "Must provide a shape");
-        // Preconditions.checkArgument(shape.length > 0 && shape.length < 4, "Crafting recipes should be 1, 2 or 3 rows, not ", shape.length);
+        Preconditions.checkArgument(shape.length > 0 && shape.length < 4, "Crafting recipes should be 1, 2 or 3 rows, not ", shape.length);
 
         int lastLen = -1;
         for (String row : shape) {
             Preconditions.checkArgument(row != null, "Shape cannot have null rows");
-            // Preconditions.checkArgument(row.length() > 0 && row.length() < 4, "Crafting rows should be 1, 2, or 3 characters, not ", row.length());
+            Preconditions.checkArgument(row.length() > 0 && row.length() < 4, "Crafting rows should be 1, 2, or 3 characters, not ", row.length());
 
             Preconditions.checkArgument(lastLen == -1 || lastLen == row.length(), "Crafting recipes must be rectangular");
             lastLen = row.length();
@@ -146,7 +146,7 @@ public class ShapedRecipe extends CraftingRecipe {
      * @throws IllegalArgumentException if the {@code key} does not appear in the shape.
      * @deprecated Magic value
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2")
     @NotNull
     public ShapedRecipe setIngredient(char key, @NotNull Material ingredient, int raw) {
         Preconditions.checkArgument(key != ' ', "Space in recipe shape must represent no ingredient");
@@ -234,8 +234,7 @@ public class ShapedRecipe extends CraftingRecipe {
      * @return The recipe's shape.
      * @throws NullPointerException when not set yet
      */
-    @NotNull
-    public String[] getShape() {
+    public @NotNull String @NotNull [] getShape() {
         return rows.clone();
     }
 }

@@ -1,7 +1,7 @@
 package io.papermc.paper.configuration.type;
 
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
 import io.papermc.paper.configuration.serializer.EngineModeSerializer;
+import org.spongepowered.configurate.serialize.ScalarSerializer;
 
 public enum EngineMode {
 

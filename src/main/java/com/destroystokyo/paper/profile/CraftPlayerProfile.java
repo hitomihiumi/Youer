@@ -1,34 +1,18 @@
 package com.destroystokyo.paper.profile;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.mojang.authlib.yggdrasil.ProfileResult;
+import io.papermc.paper.configuration.GlobalConfiguration;
 import com.google.common.collect.Iterables;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
-import com.mojang.authlib.yggdrasil.ProfileResult;
-import io.papermc.paper.configuration.GlobalConfiguration;
-import java.util.AbstractSet;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.GameProfileCache;
 import net.minecraft.util.StringUtil;
 import net.minecraft.world.item.component.ResolvableProfile;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.craftbukkit.configuration.ConfigSerializationUtil;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -36,6 +20,12 @@ import org.bukkit.craftbukkit.profile.CraftPlayerTextures;
 import org.bukkit.craftbukkit.profile.CraftProfileProperty;
 import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @SerializableAs("PlayerProfile")
 public class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile {
@@ -56,7 +46,7 @@ public class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile {
     }
 
     public CraftPlayerProfile(GameProfile profile) {
-        Validate.notNull(profile, "GameProfile cannot be null!");
+        Preconditions.checkArgument(profile != null, "GameProfile cannot be null!");
         this.profile = profile;
     }
 
@@ -209,7 +199,7 @@ public class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile {
             final CraftPlayerProfile clone = clone();
             clone.complete(true);
             return clone;
-        }, Util.PROFILE_EXECUTOR); // Paper - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
+        }, Util.PROFILE_EXECUTOR);
     }
 
     @Override
@@ -231,7 +221,7 @@ public class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile {
                 profile = lookupUUID ? userCache.get(name).orElse(null) : userCache.getProfileIfCached(name);
             } else {
                 // Make an OfflinePlayer using an offline mode UUID since the name has no profile
-                profile = new GameProfile(UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(Charsets.UTF_8)), name);
+                profile = new GameProfile(UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8)), name);
             }
             if (profile != null) {
                 // if old has it, assume its newer, so overwrite, else use cached if it was set and ours wasn't

@@ -1,6 +1,5 @@
 package org.bukkit.entity;
 
-import com.destroystokyo.paper.entity.RangedEntity;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
  * of this type, instanceOf checks against the specific subtypes listed prior
  * are recommended.
  */
-public interface AbstractSkeleton extends Monster, RangedEntity { // Paper
+public interface AbstractSkeleton extends Monster, com.destroystokyo.paper.entity.RangedEntity { // Paper
 
     /**
      * Gets the current type of this skeleton.
@@ -22,7 +21,7 @@ public interface AbstractSkeleton extends Monster, RangedEntity { // Paper
      * @return Current type
      * @deprecated should check what class instance this is.
      */
-    @Deprecated
+    @Deprecated(since = "1.17", forRemoval = true)
     @NotNull
     public Skeleton.SkeletonType getSkeletonType();
 
@@ -30,7 +29,7 @@ public interface AbstractSkeleton extends Monster, RangedEntity { // Paper
      * @param type type
      * @deprecated Must spawn a new subtype variant
      */
-    @Deprecated
+    @Deprecated(since = "1.17", forRemoval = true)
     @Contract("_ -> fail")
     public void setSkeletonType(Skeleton.SkeletonType type);
 

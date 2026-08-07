@@ -35,11 +35,11 @@ public class CraftBeaconView extends CraftInventoryView<BeaconMenu, BeaconInvent
 
     @Override
     public void setPrimaryEffect(@Nullable final PotionEffectType effectType) {
-        container.setData(BeaconBlockEntity.DATA_PRIMARY, BeaconMenu.encodeEffect((effectType == null) ? null : CraftPotionEffectType.bukkitToMinecraftHolder(effectType)));
+        this.container.setData(BeaconBlockEntity.DATA_PRIMARY, BeaconMenu.encodeEffect((effectType == null) ? null : CraftPotionEffectType.bukkitToMinecraftHolder(effectType)));
     }
 
     @Override
     public void setSecondaryEffect(@Nullable final PotionEffectType effectType) {
-        container.setData(BeaconBlockEntity.DATA_SECONDARY, BeaconMenu.encodeEffect((effectType == null) ? null : CraftPotionEffectType.bukkitToMinecraftHolder(effectType)));
+        this.container.setData(BeaconBlockEntity.DATA_SECONDARY, BeaconMenu.encodeEffect((effectType == null) ? null : CraftPotionEffectType.bukkitToMinecraftHolder(effectType)));
     }
 }

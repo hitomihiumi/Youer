@@ -1,64 +1,21 @@
 --- a/net/minecraft/world/item/crafting/ShapelessRecipe.java
 +++ b/net/minecraft/world/item/crafting/ShapelessRecipe.java
-@@ -4,27 +_,53 @@
- import com.mojang.serialization.DataResult;
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
--import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
--import java.util.List;
- import net.minecraft.core.HolderLookup;
- import net.minecraft.core.NonNullList;
- import net.minecraft.network.RegistryFriendlyByteBuf;
- import net.minecraft.network.codec.StreamCodec;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.Level;
-+import org.bukkit.NamespacedKey;
-+import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.craftbukkit.inventory.CraftRecipe;
-+import org.bukkit.craftbukkit.inventory.CraftShapelessRecipe;
- 
--public class ShapelessRecipe implements CraftingRecipe {
-+public class ShapelessRecipe extends io.papermc.paper.inventory.recipe.RecipeBookExactChoiceRecipe<CraftingInput> implements CraftingRecipe {
-     final String group;
-     final CraftingBookCategory category;
-     final ItemStack result;
-     final NonNullList<Ingredient> ingredients;
+@@ -24,12 +_,14 @@
+     final List<Ingredient> ingredients;
+     @Nullable
+     private PlacementInfo placementInfo;
 +    private final boolean isSimple;
-+    private final boolean isBukkit; // Pufferfish
  
-     public ShapelessRecipe(String p_249640_, CraftingBookCategory p_249390_, ItemStack p_252071_, NonNullList<Ingredient> p_250689_) {
-+        this(p_249640_, p_249390_, p_252071_, p_250689_, false);
-+    }
-+    public ShapelessRecipe(String p_249640_, CraftingBookCategory p_249390_, ItemStack p_252071_, NonNullList<Ingredient> p_250689_, boolean isBukkit) {
-+        this.isBukkit = isBukkit; // Pufferfish end
+     public ShapelessRecipe(String p_249640_, CraftingBookCategory p_249390_, ItemStack p_252071_, List<Ingredient> p_361103_) {
          this.group = p_249640_;
          this.category = p_249390_;
          this.result = p_252071_;
-         this.ingredients = p_250689_;
--    }
-+        this.isSimple = p_250689_.stream().allMatch(Ingredient::isSimple);
-+        this.checkExactIngredients(); // Paper - improve exact recipe choices
-+    }
-+
-+    // CraftBukkit start
-+    @SuppressWarnings("unchecked")
-+    @Override
-+    public org.bukkit.inventory.ShapelessRecipe toBukkitRecipe(NamespacedKey id) {
-+        CraftItemStack result = CraftItemStack.asCraftMirror(this.result);
-+        CraftShapelessRecipe recipe = new CraftShapelessRecipe(id, result, this);
-+        recipe.setGroup(this.group);
-+        recipe.setCategory(CraftRecipe.getCategory(this.category()));
-+
-+        for (Ingredient list : this.ingredients) {
-+            recipe.addIngredient(CraftRecipe.toBukkit(list));
-+        }
-+        return recipe;
-+    }
-+    // CraftBukkit end
+         this.ingredients = p_361103_;
++        this.isSimple = p_361103_.stream().allMatch(Ingredient::isSimple);
+     }
  
      @Override
-     public RecipeSerializer<?> getSerializer() {
-@@ -54,10 +_,43 @@
+@@ -59,6 +_,12 @@
      public boolean matches(CraftingInput p_346123_, Level p_44263_) {
          if (p_346123_.ingredientCount() != this.ingredients.size()) {
              return false;
@@ -69,55 +26,14 @@
 +                    nonEmptyItems.add(item);
 +            return net.neoforged.neoforge.common.util.RecipeMatcher.findMatches(nonEmptyItems, this.ingredients) != null;
          } else {
--            return p_346123_.size() == 1 && this.ingredients.size() == 1
--                ? this.ingredients.getFirst().test(p_346123_.getItem(0))
--                : p_346123_.stackedContents().canCraft(this, null);
-+            // Pufferfish start
-+            if (!this.isBukkit) {
-+                java.util.List<Ingredient> ingredients = com.google.common.collect.Lists.newArrayList(this.ingredients.toArray(new Ingredient[0]));
-+
-+                inventory: for (int index = 0; index < p_346123_.size(); index++) {
-+                    ItemStack itemStack = p_346123_.getItem(index);
-+
-+                    if (!itemStack.isEmpty()) {
-+                        for (int i = 0; i < ingredients.size(); i++) {
-+                            if (ingredients.get(i).test(itemStack)) {
-+                                ingredients.remove(i);
-+                                continue inventory;
-+                            }
-+                        }
-+                        return false;
-+                    }
-+                }
-+
-+                return ingredients.isEmpty();
-+            }
-+            // Pufferfish end
-+            // Paper start - unwrap ternary & better exact choice recipes
-+            if (p_346123_.size() == 1 && this.ingredients.size() == 1) {
-+                return this.ingredients.getFirst().test(p_346123_.getItem(0));
-+            }
-+            p_346123_.stackedContents().initializeExtras(this, p_346123_); // setup stacked contents for this recipe
-+            final boolean canCraft = p_346123_.stackedContents().canCraft(this, null);
-+            p_346123_.stackedContents().resetExtras();
-+            return canCraft;
-+            // Paper end - unwrap ternary & better exact choice recipes
-         }
-     }
- 
-@@ -81,12 +_,12 @@
-                             .fieldOf("ingredients")
-                             .flatXmap(
-                                 p_301021_ -> {
--                                    Ingredient[] aingredient = p_301021_.stream().filter(p_300883_ -> !p_300883_.isEmpty()).toArray(Ingredient[]::new);
-+                                    Ingredient[] aingredient = p_301021_.toArray(Ingredient[]::new); // Neo skip the empty check and immediately create the array.
-                                     if (aingredient.length == 0) {
-                                         return DataResult.error(() -> "No ingredients for shapeless recipe");
-                                     } else {
--                                        return aingredient.length > 9
--                                            ? DataResult.error(() -> "Too many ingredients for shapeless recipe")
-+                                        return aingredient.length > ShapedRecipePattern.maxHeight * ShapedRecipePattern.maxWidth
-+                                            ? DataResult.error(() -> "Too many ingredients for shapeless recipe. The maximum is: %s".formatted(ShapedRecipePattern.maxHeight * ShapedRecipePattern.maxWidth))
-                                             : DataResult.success(NonNullList.of(Ingredient.EMPTY, aingredient));
-                                     }
-                                 },
+             return p_346123_.size() == 1 && this.ingredients.size() == 1
+                 ? this.ingredients.getFirst().test(p_346123_.getItem(0))
+@@ -87,7 +_,7 @@
+                     Codec.STRING.optionalFieldOf("group", "").forGetter(p_301127_ -> p_301127_.group),
+                     CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(p_301133_ -> p_301133_.category),
+                     ItemStack.STRICT_CODEC.fieldOf("result").forGetter(p_301142_ -> p_301142_.result),
+-                    Ingredient.CODEC.listOf(1, 9).fieldOf("ingredients").forGetter(p_360071_ -> p_360071_.ingredients)
++                    Codec.lazyInitialized(() -> Ingredient.CODEC.listOf(1, ShapedRecipePattern.maxHeight * ShapedRecipePattern.maxWidth)).fieldOf("ingredients").forGetter(p_360071_ -> p_360071_.ingredients)
+                 )
+                 .apply(p_360072_, ShapelessRecipe::new)
+         );

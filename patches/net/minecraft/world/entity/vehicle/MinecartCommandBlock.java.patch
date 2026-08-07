@@ -1,14 +1,6 @@
 --- a/net/minecraft/world/entity/vehicle/MinecartCommandBlock.java
 +++ b/net/minecraft/world/entity/vehicle/MinecartCommandBlock.java
-@@ -19,6 +_,7 @@
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.entity.CraftMinecartCommand;
- 
- public class MinecartCommandBlock extends AbstractMinecart {
-     public static final EntityDataAccessor<String> DATA_ID_COMMAND_NAME = SynchedEntityData.defineId(MinecartCommandBlock.class, EntityDataSerializers.STRING);
-@@ -85,6 +_,8 @@
+@@ -83,6 +_,8 @@
  
      @Override
      public InteractionResult interact(Player p_38522_, InteractionHand p_38523_) {
@@ -17,25 +9,3 @@
          return this.commandBlock.usedBy(p_38522_);
      }
  
-@@ -134,7 +_,7 @@
-                 MinecartCommandBlock.this.position(),
-                 MinecartCommandBlock.this.getRotationVector(),
-                 this.getLevel(),
--                2,
-+                this.getLevel().paperConfig().commandBlocks.permissionsLevel,
-                 this.getName().getString(),
-                 MinecartCommandBlock.this.getDisplayName(),
-                 this.getLevel().getServer(),
-@@ -146,5 +_,12 @@
-         public boolean isValid() {
-             return !MinecartCommandBlock.this.isRemoved();
-         }
-+
-+        // CraftBukkit start
-+        @Override
-+        public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
-+            return (CraftMinecartCommand) MinecartCommandBlock.this.getBukkitEntity();
-+        }
-+        // CraftBukkit end
-     }
- }

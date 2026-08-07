@@ -5,7 +5,6 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.block.CraftBiome;
 import org.bukkit.craftbukkit.util.WorldUUID;
 import org.bukkit.generator.WorldInfo;
 
@@ -22,13 +21,12 @@ public class CraftWorldInfo implements WorldInfo {
     private final net.minecraft.world.level.chunk.ChunkGenerator vanillaChunkGenerator;
     private final net.minecraft.core.RegistryAccess.Frozen registryAccess;
 
-
     public CraftWorldInfo(PrimaryLevelData worldDataServer, LevelStorageSource.LevelStorageAccess session, World.Environment environment, DimensionType dimensionManager, net.minecraft.world.level.chunk.ChunkGenerator chunkGenerator, net.minecraft.core.RegistryAccess.Frozen registryAccess) {
         this.registryAccess = registryAccess;
         this.vanillaChunkGenerator = chunkGenerator;
         // Paper end
         this.name = worldDataServer.getLevelName();
-        this.uuid = WorldUUID.getUUID(session.getLevelDirectory().path().toFile());
+        this.uuid = WorldUUID.getOrCreate(session.levelDirectory.path().toFile());
         this.environment = environment;
         this.seed = worldDataServer.worldGenOptions().seed();
         this.minHeight = dimensionManager.minY();
@@ -72,20 +70,20 @@ public class CraftWorldInfo implements WorldInfo {
         final net.minecraft.world.level.levelgen.RandomState randomState;
         if (vanillaChunkGenerator instanceof net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator noiseBasedChunkGenerator) {
             randomState = net.minecraft.world.level.levelgen.RandomState.create(noiseBasedChunkGenerator.generatorSettings().value(),
-                    registryAccess.lookupOrThrow(net.minecraft.core.registries.Registries.NOISE), getSeed());
+                registryAccess.lookupOrThrow(net.minecraft.core.registries.Registries.NOISE), getSeed());
         } else {
             randomState = net.minecraft.world.level.levelgen.RandomState.create(net.minecraft.world.level.levelgen.NoiseGeneratorSettings.dummy(),
-                    registryAccess.lookupOrThrow(net.minecraft.core.registries.Registries.NOISE), getSeed());
+                registryAccess.lookupOrThrow(net.minecraft.core.registries.Registries.NOISE), getSeed());
         }
 
         final java.util.List<org.bukkit.block.Biome> possibleBiomes = CraftWorldInfo.this.vanillaChunkGenerator.getBiomeSource().possibleBiomes().stream()
-                .map(biome -> CraftBiome.minecraftHolderToBukkit(biome))
-                .toList();
+            .map(biome -> org.bukkit.craftbukkit.block.CraftBiome.minecraftHolderToBukkit(biome))
+            .toList();
         return new org.bukkit.generator.BiomeProvider() {
             @Override
             public org.bukkit.block.Biome getBiome(final WorldInfo worldInfo, final int x, final int y, final int z) {
-                return CraftBiome.minecraftHolderToBukkit(
-                        CraftWorldInfo.this.vanillaChunkGenerator.getBiomeSource().getNoiseBiome(x >> 2, y >> 2, z >> 2, randomState.sampler()));
+                return org.bukkit.craftbukkit.block.CraftBiome.minecraftHolderToBukkit(
+                    CraftWorldInfo.this.vanillaChunkGenerator.getBiomeSource().getNoiseBiome(x >> 2, y >> 2, z >> 2, randomState.sampler()));
             }
 
             @Override

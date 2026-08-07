@@ -3,8 +3,11 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 import ca.spottedleaf.dataconverter.converters.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import ca.spottedleaf.dataconverter.minecraft.walkers.block_name.DataWalkerBlockNames;
+import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
 import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
+import net.minecraft.resources.ResourceLocation;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -24,7 +27,7 @@ public final class V1460 {
     public static void register() {
         MCTypeRegistry.ENTITY.addConverterForId("minecraft:painting", new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 String motive = data.getString("Motive");
                 if (motive != null) {
                     motive = motive.toLowerCase(Locale.ROOT);

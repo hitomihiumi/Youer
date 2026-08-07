@@ -1,87 +1,14 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
-@@ -6,7 +_,6 @@
- import com.mojang.serialization.Dynamic;
- import com.mojang.serialization.DynamicOps;
- import com.mojang.serialization.Lifecycle;
--import com.mojang.serialization.DataResult.Error;
- import java.util.HashSet;
- import java.util.Set;
- import java.util.UUID;
-@@ -16,15 +_,20 @@
- import net.minecraft.SharedConstants;
- import net.minecraft.Util;
- import net.minecraft.core.BlockPos;
-+import net.minecraft.core.Registry;
- import net.minecraft.core.RegistryAccess;
- import net.minecraft.core.UUIDUtil;
-+import net.minecraft.core.registries.Registries;
- import net.minecraft.nbt.CompoundTag;
- import net.minecraft.nbt.ListTag;
- import net.minecraft.nbt.NbtOps;
- import net.minecraft.nbt.NbtUtils;
- import net.minecraft.nbt.StringTag;
- import net.minecraft.nbt.Tag;
-+import net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket;
- import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.world.Difficulty;
- import net.minecraft.world.level.GameRules;
- import net.minecraft.world.level.GameType;
-@@ -32,11 +_,16 @@
- import net.minecraft.world.level.LevelSettings;
- import net.minecraft.world.level.WorldDataConfiguration;
- import net.minecraft.world.level.border.WorldBorder;
-+import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.dimension.end.EndDragonFight;
-+import net.minecraft.world.level.levelgen.WorldDimensions;
- import net.minecraft.world.level.levelgen.WorldGenSettings;
- import net.minecraft.world.level.levelgen.WorldOptions;
- import net.minecraft.world.level.timers.TimerCallbacks;
- import net.minecraft.world.level.timers.TimerQueue;
-+import org.bukkit.Bukkit;
-+import org.bukkit.event.weather.ThunderChangeEvent;
-+import org.bukkit.event.weather.WeatherChangeEvent;
- import org.slf4j.Logger;
- 
- public class PrimaryLevelData implements ServerLevelData, WorldData {
-@@ -74,6 +_,34 @@
+@@ -73,6 +_,7 @@
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
      private final TimerQueue<MinecraftServer> scheduledEvents;
 +    private boolean confirmedExperimentalWarning = false;
-+    // Youer start - cache the WorldGenSettings tag across saves (see setTagData)
-+    @Nullable
-+    private CompoundTag cachedWorldGenSettingsTag;
-+    @Nullable
-+    private Registry<LevelStem> cachedWorldGenSettingsRegistry;
-+    // Youer end
-+    // CraftBukkit start - Add world and pdc
-+    public Registry<LevelStem> customDimensions;
-+    private ServerLevel world;
-+    protected Tag pdc;
-+
-+    public void setWorld(ServerLevel world) {
-+        if (this.world != null) {
-+            return;
-+        }
-+        this.world = world;
-+        world.getWorld().readBukkitValues(pdc);
-+        pdc = null;
-+    }
-+
-+    // CraftBukkit start - Check if the name stored in NBT is the correct one
-+    public void checkName(String name) {
-+        if (!this.settings.levelName.equals(name)) {
-+            this.settings.levelName = name;
-+        }
-+    }
-+    // CraftBukkit end
  
      private PrimaryLevelData(
          @Nullable CompoundTag p_277888_,
-@@ -169,7 +_,7 @@
+@@ -168,7 +_,7 @@
          Dynamic<T> p_78531_, LevelSettings p_78535_, PrimaryLevelData.SpecialWorldProperty p_250651_, WorldOptions p_251864_, Lifecycle p_78538_
      ) {
          long i = p_78531_.get("Time").asLong(0L);
@@ -90,7 +17,17 @@
              p_78531_.get("Player").flatMap(CompoundTag.CODEC::parse).result().orElse(null),
              p_78531_.get("WasModded").asBoolean(false),
              new BlockPos(p_78531_.get("SpawnX").asInt(0), p_78531_.get("SpawnY").asInt(0), p_78531_.get("SpawnZ").asInt(0)),
-@@ -200,7 +_,11 @@
+@@ -191,7 +_,8 @@
+                 .asStream()
+                 .flatMap(p_338118_ -> p_338118_.asString().result().stream())
+                 .collect(Collectors.toCollection(Sets::newLinkedHashSet)),
+-            p_78531_.get("removed_features").asStream().flatMap(p_338117_ -> p_338117_.asString().result().stream()).collect(Collectors.toSet()),
++            // Neo: Append removed modded feature flags
++            updateRemovedFeatureFlags(p_78531_.get("removed_features").asStream().flatMap(p_338117_ -> p_338117_.asString().result().stream()), p_78531_.get("enabled_features").asStream().flatMap(features -> features.asString().result().stream())).collect(Collectors.toSet()),
+             new TimerQueue<>(TimerCallbacks.SERVER_CALLBACKS, p_78531_.get("ScheduledEvents").asStream()),
+             (CompoundTag)p_78531_.get("CustomBossEvents").orElseEmptyMap().getValue(),
+             p_78531_.get("DragonFight").read(EndDragonFight.Data.CODEC).resultOrPartial(LOGGER::error).orElse(EndDragonFight.Data.DEFAULT),
+@@ -199,7 +_,11 @@
              p_251864_,
              p_250651_,
              p_78538_
@@ -103,115 +40,20 @@
      }
  
      @Override
-@@ -229,9 +_,30 @@
-         p_78547_.put("Version", compoundtag);
-         NbtUtils.addCurrentDataVersion(p_78547_);
-         DynamicOps<Tag> dynamicops = p_78546_.createSerializationContext(NbtOps.INSTANCE);
--        WorldGenSettings.encode(dynamicops, this.worldOptions, p_78546_)
--            .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
--            .ifPresent(p_78574_ -> p_78547_.put("WorldGenSettings", p_78574_));
-+        // Youer start - cache the WorldGenSettings tag
-+        // The encode input (worldOptions + the LEVEL_STEM registry) never changes while the server
-+        // runs, yet every autosave re-encodes the whole registry once per dimension (main world and
-+        // each dimension's level.dat), which dominated saveEverything in big modpack profiles. Cache
-+        // the resulting tag; the registry reference comparison invalidates the cache if a plugin ever
-+        // swaps the dimensions registry (e.g. CraftBukkit's customDimensions). The tag is read-only
-+        // once stored, so the background level.dat writes sharing it are safe.
-+        Registry<LevelStem> registry = this.customDimensions != null ? this.customDimensions : p_78546_.registryOrThrow(Registries.LEVEL_STEM);
-+        Tag worldGenSettingsTag;
-+        if (com.mohistmc.youer.YouerConfig.cache_worldgen_settings && this.cachedWorldGenSettingsTag != null && this.cachedWorldGenSettingsRegistry == registry) {
-+            worldGenSettingsTag = this.cachedWorldGenSettingsTag;
-+        } else {
-+            worldGenSettingsTag = WorldGenSettings.encode(dynamicops, this.worldOptions, new WorldDimensions(registry))
-+                .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
-+                .orElse(null);
-+            if (worldGenSettingsTag instanceof CompoundTag compoundTag) {
-+                this.cachedWorldGenSettingsTag = compoundTag;
-+                this.cachedWorldGenSettingsRegistry = registry;
-+            }
-+        }
-+        if (worldGenSettingsTag != null) {
-+            p_78547_.put("WorldGenSettings", worldGenSettingsTag);
-+        }
-+        // Youer end
-         p_78547_.putInt("GameType", this.settings.gameType().getId());
-         p_78547_.putInt("SpawnX", this.spawnPos.getX());
-         p_78547_.putInt("SpawnY", this.spawnPos.getY());
-@@ -273,6 +_,18 @@
-         if (this.wanderingTraderId != null) {
-             p_78547_.putUUID("WanderingTraderId", this.wanderingTraderId);
-         }
+@@ -267,6 +_,12 @@
+         p_78547_.putInt("WanderingTraderSpawnDelay", this.wanderingTraderSpawnDelay);
+         p_78547_.putInt("WanderingTraderSpawnChance", this.wanderingTraderSpawnChance);
+         p_78547_.storeNullable("WanderingTraderId", UUIDUtil.CODEC, this.wanderingTraderId);
++
++        // Neo:
 +        p_78547_.putString("forgeLifecycle", net.neoforged.neoforge.common.CommonHooks.encodeLifecycle(this.settings.getLifecycle()));
 +        p_78547_.putBoolean("confirmedExperimentalSettings", this.confirmedExperimentalWarning);
-+        // Neo:
 +        p_78547_.putFloat("neoDayTimeFraction", dayTimeFraction);
 +        p_78547_.putFloat("neoDayTimePerTick", dayTimePerTick);
-+
-+        if (Bukkit.getServer() != null) {
-+            p_78547_.putString("Bukkit.Version", Bukkit.getName() + "/" + Bukkit.getVersion() + "/" + Bukkit.getBukkitVersion()); // CraftBukkit
-+        }
-+        if (world != null) {
-+            world.getWorld().storeBukkitValues(p_78547_); // CraftBukkit - add pdc
-+        }
      }
  
      private static ListTag stringCollectionToTag(Set<String> p_277880_) {
-@@ -350,6 +_,20 @@
- 
-     @Override
-     public void setThundering(boolean p_78562_) {
-+        // CraftBukkit start
-+        if (this.thundering == p_78562_) {
-+            return;
-+        }
-+
-+        org.bukkit.World world = Bukkit.getWorld(getLevelName());
-+        if (world != null) {
-+            ThunderChangeEvent thunder = new ThunderChangeEvent(world, p_78562_);
-+            Bukkit.getServer().getPluginManager().callEvent(thunder);
-+            if (thunder.isCancelled()) {
-+                return;
-+            }
-+        }
-+        // CraftBukkit end
-         this.thundering = p_78562_;
-     }
- 
-@@ -370,6 +_,20 @@
- 
-     @Override
-     public void setRaining(boolean p_78576_) {
-+        // CraftBukkit start
-+        if (this.raining == p_78576_) {
-+            return;
-+        }
-+
-+        org.bukkit.World world = Bukkit.getWorld(this.getLevelName());
-+        if (world != null) {
-+            WeatherChangeEvent weather = new WeatherChangeEvent(world, p_78576_);
-+            Bukkit.getServer().getPluginManager().callEvent(weather);
-+            if (weather.isCancelled()) {
-+                return;
-+            }
-+        }
-+        // CraftBukkit end
-         this.raining = p_78576_;
-     }
- 
-@@ -436,6 +_,12 @@
-     @Override
-     public void setDifficulty(Difficulty p_78521_) {
-         this.settings = this.settings.withDifficulty(p_78521_);
-+        // CraftBukkit start
-+        ClientboundChangeDifficultyPacket packet = new ClientboundChangeDifficultyPacket(this.getDifficulty(), this.isDifficultyLocked());
-+        for (ServerPlayer player : this.world.players()) {
-+            player.connection.send(packet);
-+        }
-+        // CraftBukkit end
-     }
- 
-     @Override
-@@ -572,10 +_,44 @@
+@@ -566,10 +_,58 @@
          return this.settings.copy();
      }
  
@@ -254,5 +96,19 @@
 +    @Override
 +    public void setDayTimePerTick(float dayTimePerTick) {
 +        this.dayTimePerTick = dayTimePerTick;
++    }
++
++    private static java.util.stream.Stream<String> updateRemovedFeatureFlags(java.util.stream.Stream<String> removedFeatures, java.util.stream.Stream<String> enabledFeatures) {
++        var unknownFeatureFlags = new HashSet<net.minecraft.resources.ResourceLocation>();
++        // parses the incoming Stream<String> and spits out unknown flag names (ResourceLocation)
++        // we do not care about the returned FeatureFlagSet, only the flags which do not exist
++        net.minecraft.world.flag.FeatureFlags.REGISTRY.fromNames(enabledFeatures.map(net.minecraft.resources.ResourceLocation::parse).collect(Collectors.toSet()), unknownFeatureFlags::add);
++        // concat the received removed flags with our new additions
++        return java.util.stream.Stream.concat(removedFeatures, unknownFeatureFlags.stream()
++                // we only want modded flags, mojang has datafixers for vanilla flags
++                .filter(java.util.function.Predicate.not(name -> name.getNamespace().equals(net.minecraft.resources.ResourceLocation.DEFAULT_NAMESPACE)))
++                .map(net.minecraft.resources.ResourceLocation::toString))
++                // no duplicates should exist in this stream
++                .distinct();
      }
  }

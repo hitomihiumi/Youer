@@ -1,93 +1,17 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -1,18 +_,19 @@
- package net.minecraft.world.item;
- 
- import com.google.common.collect.Lists;
-+import com.mohistmc.youer.feature.ban.bans.BanItem;
- import com.mojang.logging.LogUtils;
- import com.mojang.serialization.Codec;
- import com.mojang.serialization.DataResult;
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.DataResult.Error;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
--import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
- import io.netty.handler.codec.DecoderException;
- import io.netty.handler.codec.EncoderException;
- import java.util.List;
- import java.util.Objects;
- import java.util.Optional;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import java.util.function.BiConsumer;
- import java.util.function.BiFunction;
- import java.util.function.Consumer;
-@@ -44,7 +_,6 @@
- import net.minecraft.network.chat.ComponentUtils;
- import net.minecraft.network.chat.HoverEvent;
- import net.minecraft.network.chat.MutableComponent;
--import net.minecraft.network.chat.Style;
- import net.minecraft.network.codec.ByteBufCodecs;
- import net.minecraft.network.codec.StreamCodec;
- import net.minecraft.resources.RegistryOps;
-@@ -55,7 +_,6 @@
- import net.minecraft.tags.DamageTypeTags;
- import net.minecraft.tags.TagKey;
- import net.minecraft.util.ExtraCodecs;
--import net.minecraft.util.Mth;
- import net.minecraft.util.NullOps;
- import net.minecraft.util.Unit;
- import net.minecraft.world.InteractionHand;
-@@ -90,9 +_,11 @@
- import net.minecraft.world.level.block.state.pattern.BlockInWorld;
- import net.minecraft.world.level.saveddata.maps.MapId;
- import org.apache.commons.lang3.mutable.MutableBoolean;
-+import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.event.player.PlayerItemDamageEvent;
- import org.slf4j.Logger;
- 
--public final class ItemStack implements DataComponentHolder, net.neoforged.neoforge.common.MutableDataComponentHolder, net.neoforged.neoforge.common.extensions.IItemStackExtension {
-+public final class ItemStack implements DataComponentHolder, net.neoforged.neoforge.common.extensions.IItemStackExtension, net.neoforged.neoforge.common.MutableDataComponentHolder {
-     public static final Codec<Holder<Item>> ITEM_NON_AIR_CODEC = BuiltInRegistries.ITEM
-         .holderByNameCodec()
-         .validate(
-@@ -148,7 +_,15 @@
-             } else {
-                 p_320527_.writeVarInt(p_320873_.getCount());
-                 ITEM_STREAM_CODEC.encode(p_320527_, p_320873_.getItemHolder());
--                DataComponentPatch.STREAM_CODEC.encode(p_320527_, p_320873_.components.asPatch());
-+                // Paper start - adventure; conditionally render translatable components
-+                boolean prev = net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.get();
-+                try {
-+                    net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(true);
-+                    DataComponentPatch.STREAM_CODEC.encode(p_320527_, p_320873_.components.asPatch());
-+                } finally {
-+                    net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(prev);
-+                }
-+                // Paper end - adventure; conditionally render translatable components
-             }
-         }
-     };
-@@ -184,7 +_,7 @@
-     @Deprecated
-     @Nullable
-     public Item item;
--    final PatchedDataComponentMap components;
-+    public PatchedDataComponentMap components;
-     @Nullable
-     private Entity entityRepresentation;
- 
-@@ -234,6 +_,10 @@
-         return !this.isEmpty() ? this.components.asPatch() : DataComponentPatch.EMPTY;
+@@ -247,6 +_,10 @@
+         return !this.isEmpty() && this.components.hasNonDefault(p_389426_);
      }
  
 +    public boolean isComponentsPatchEmpty() {
-+        return !this.isEmpty() ? this.components.isPatchEmpty() : true;
++        return this.isEmpty() || this.components.isPatchEmpty();
 +    }
 +
      public ItemStack(ItemLike p_41599_) {
          this(p_41599_, 1);
      }
-@@ -339,7 +_,7 @@
+@@ -343,7 +_,7 @@
      }
  
      public boolean is(Holder<Item> p_220166_) {
@@ -96,34 +20,25 @@
      }
  
      public boolean is(HolderSet<Item> p_298683_) {
-@@ -351,13 +_,36 @@
+@@ -355,13 +_,27 @@
      }
  
      public InteractionResult useOn(UseOnContext p_41662_) {
-+        if (BanItem.checkMoShou(p_41662_.getPlayer(), p_41662_.getItemInHand())) {
-+            p_41662_.getPlayer().setItemInHand(p_41662_.getHand(), ItemStack.EMPTY);
-+            return InteractionResult.FAIL;
-+        }
-+        if (BanItem.check(p_41662_.getPlayer(), p_41662_.getItemInHand())) return InteractionResult.FAIL;
 +        var e = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent(p_41662_, net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent.UsePhase.ITEM_AFTER_BLOCK));
-+        if (e.isCanceled()) return e.getCancellationResult().result();
++        if (e.isCanceled()) return e.getCancellationResult();
 +        if (!p_41662_.getLevel().isClientSide) return net.neoforged.neoforge.common.CommonHooks.onPlaceItemIntoWorld(p_41662_);
 +        return onItemUse(p_41662_, (c) -> getItem().useOn(p_41662_));
 +    }
 +
++    @Override
 +    public InteractionResult onItemUseFirst(UseOnContext p_41662_) {
 +        var e = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent(p_41662_, net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent.UsePhase.ITEM_BEFORE_BLOCK));
-+        if (e.isCanceled()) return e.getCancellationResult().result();
++        if (e.isCanceled()) return e.getCancellationResult();
 +        return onItemUse(p_41662_, (c) -> getItem().onItemUseFirst(this, p_41662_));
 +    }
 +
 +    private InteractionResult onItemUse(UseOnContext p_41662_, java.util.function.Function<UseOnContext, InteractionResult> callback) {
          Player player = p_41662_.getPlayer();
-+        if (BanItem.checkMoShou(p_41662_.getPlayer(), p_41662_.getItemInHand())) {
-+            p_41662_.getPlayer().setItemInHand(p_41662_.getHand(), ItemStack.EMPTY);
-+            return InteractionResult.FAIL;
-+        }
-+        if (BanItem.check(player, p_41662_.getItemInHand())) return InteractionResult.FAIL;
          BlockPos blockpos = p_41662_.getClickedPos();
          if (player != null && !player.getAbilities().mayBuild && !this.canPlaceOnBlockInAdventureMode(new BlockInWorld(p_41662_.getLevel(), blockpos, false))) {
              return InteractionResult.PASS;
@@ -131,39 +46,19 @@
              Item item = this.getItem();
 -            InteractionResult interactionresult = item.useOn(p_41662_);
 +            InteractionResult interactionresult = callback.apply(p_41662_);
-             if (player != null && interactionresult.indicateItemUse()) {
-                 player.awardStat(Stats.ITEM_USED.get(item));
-             }
-@@ -382,7 +_,8 @@
-         if (this.isEmpty()) {
-             throw new IllegalStateException("Cannot encode empty ItemStack");
-         } else {
--            return CODEC.encode(this, p_331900_.createSerializationContext(NbtOps.INSTANCE), p_330830_).getOrThrow();
-+            // Neo: Logs extra information about this ItemStack on error
-+            return net.neoforged.neoforge.common.util.DataComponentUtil.wrapEncodingExceptions(this, CODEC, p_331900_, p_330830_);
-         }
-     }
- 
-@@ -390,7 +_,8 @@
-         if (this.isEmpty()) {
-             throw new IllegalStateException("Cannot encode empty ItemStack");
-         } else {
--            return CODEC.encodeStart(p_332160_.createSerializationContext(NbtOps.INSTANCE), this).getOrThrow();
-+            // Neo: Logs extra information about this ItemStack on error
-+            return net.neoforged.neoforge.common.util.DataComponentUtil.wrapEncodingExceptions(this, CODEC, p_332160_);
-         }
-     }
- 
-@@ -399,7 +_,7 @@
+             if (player != null
+                 && interactionresult instanceof InteractionResult.Success interactionresult$success
+                 && interactionresult$success.wasItemInteraction()) {
+@@ -412,7 +_,7 @@
      }
  
      public int getMaxStackSize() {
--        return this.getOrDefault(DataComponents.MAX_STACK_SIZE, Integer.valueOf(1));
+-        return this.getOrDefault(DataComponents.MAX_STACK_SIZE, 1);
 +        return this.getItem().getMaxStackSize(this);
      }
  
      public boolean isStackable() {
-@@ -411,39 +_,71 @@
+@@ -424,19 +_,19 @@
      }
  
      public boolean isDamaged() {
@@ -172,7 +67,7 @@
      }
  
      public int getDamageValue() {
--        return Mth.clamp(this.getOrDefault(DataComponents.DAMAGE, Integer.valueOf(0)), 0, this.getMaxDamage());
+-        return Mth.clamp(this.getOrDefault(DataComponents.DAMAGE, 0), 0, this.getMaxDamage());
 +        return this.getItem().getDamage(this);
      }
  
@@ -182,199 +77,107 @@
      }
  
      public int getMaxDamage() {
--        return this.getOrDefault(DataComponents.MAX_DAMAGE, Integer.valueOf(0));
+-        return this.getOrDefault(DataComponents.MAX_DAMAGE, 0);
 +        return this.getItem().getMaxDamage(this);
+     }
+ 
+     public boolean isBroken() {
+@@ -448,6 +_,11 @@
      }
  
      public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable ServerPlayer p_220160_, Consumer<Item> p_348596_) {
 +        this.hurtAndBreak(p_220158_, p_346256_, (LivingEntity) p_220160_, p_348596_);
 +    }
-+    public AtomicBoolean hurtAndBreak$force = new AtomicBoolean(false);
++
 +    public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable LivingEntity p_220160_, Consumer<Item> p_348596_) {
-         if (this.isDamageableItem()) {
--            if (p_220160_ == null || !p_220160_.hasInfiniteMaterials()) {
-+            p_220158_ = getItem().damageItem(this, p_220158_, p_220160_, p_348596_);
-+            if (p_220160_ == null || !p_220160_.hasInfiniteMaterials() || hurtAndBreak$force.getAndSet(false)) {
-                 if (p_220158_ > 0) {
-+                    int originalDamage = p_220158_; // Paper - Expand PlayerItemDamageEvent
-                     p_220158_ = EnchantmentHelper.processDurabilityChange(p_346256_, this, p_220158_);
-+                    if (p_220160_ instanceof ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent
-+                        PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverPlayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), p_220158_, originalDamage); // Paper - Add EntityDamageItemEvent & Expand PlayerItemDamageEvent
-+                        event.getPlayer().getServer().getPluginManager().callEvent(event);
-+
-+                        if (p_220158_ != event.getDamage() || event.isCancelled()) {
-+                            event.getPlayer().updateInventory();
-+                        }
-+                        if (event.isCancelled()) {
-+                            return;
-+                        }
-+
-+                        p_220158_ = event.getDamage();
-+                        // Paper start - Add EntityDamageItemEvent
-+                    } else if (p_220160_ != null) {
-+                        io.papermc.paper.event.entity.EntityDamageItemEvent event = new io.papermc.paper.event.entity.EntityDamageItemEvent(p_220160_.getBukkitLivingEntity(), CraftItemStack.asCraftMirror(this), p_220158_);
-+                        if (!event.callEvent()) {
-+                            return;
-+                        }
-+                        p_220158_ = event.getDamage();
-+                        // Paper end - Add EntityDamageItemEvent
-+                    }
-                     if (p_220158_ <= 0) {
-                         return;
-                     }
-                 }
- 
--                if (p_220160_ != null && p_220158_ != 0) {
--                    CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger(p_220160_, this, this.getDamageValue() + p_220158_);
-+                if (p_220160_ instanceof ServerPlayer sp && p_220158_ != 0) {
-+                    CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger(sp, this, this.getDamageValue() + p_220158_);
-                 }
- 
-                 int i = this.getDamageValue() + p_220158_;
-                 this.setDamageValue(i);
-                 if (i >= this.getMaxDamage()) {
-                     Item item = this.getItem();
-+                    // CraftBukkit start - Check for item breaking
-+                    if (this.count == 1 && p_220160_ != null && p_220160_ instanceof final ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent(serverPlayer, this); // Paper - Add EntityDamageItemEvent
-+                    }
-+                    // CraftBukkit end
-                     this.shrink(1);
-                     p_348596_.accept(item);
-                 }
-@@ -451,15 +_,24 @@
-         }
++        p_220158_ = getItem().damageItem(this, p_220158_, p_220160_, p_348596_);
+         int i = this.processDurabilityChange(p_220158_, p_346256_, p_220160_);
+         if (i != 0) {
+             this.applyDamage(this.getDamageValue() + i, p_220160_, p_348596_);
+@@ -455,6 +_,10 @@
      }
  
-+    AtomicBoolean hurtAndBreak$force1 = new AtomicBoolean(false);
-     public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_) {
-+        // Paper end - add param to skip infinite mats check
-         if (p_41624_.level() instanceof ServerLevel serverlevel) {
-+            hurtAndBreak$force.set( hurtAndBreak$force1.getAndSet(false));
+     private int processDurabilityChange(int p_361290_, ServerLevel p_361409_, @Nullable ServerPlayer p_364940_) {
++        return processDurabilityChange(p_361290_, p_361409_, (LivingEntity) p_364940_);
++    }
++
++    private int processDurabilityChange(int p_361290_, ServerLevel p_361409_, @Nullable LivingEntity p_364940_) {
+         if (!this.isDamageableItem()) {
+             return 0;
+         } else if (p_364940_ != null && p_364940_.hasInfiniteMaterials()) {
+@@ -465,8 +_,12 @@
+     }
+ 
+     private void applyDamage(int p_361754_, @Nullable ServerPlayer p_364853_, Consumer<Item> p_360895_) {
+-        if (p_364853_ != null) {
+-            CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger(p_364853_, this, p_361754_);
++        applyDamage(p_361754_, (LivingEntity) p_364853_, p_360895_);
++    }
++
++    private void applyDamage(int p_361754_, @Nullable LivingEntity p_364853_, Consumer<Item> p_360895_) {
++        if (p_364853_ instanceof ServerPlayer serverPlayer) {
++            CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger(serverPlayer, this, p_361754_);
+         }
+ 
+         this.setDamageValue(p_361754_);
+@@ -498,7 +_,7 @@
              this.hurtAndBreak(
--                p_41623_,
--                serverlevel,
+                 p_41623_,
+                 serverlevel,
 -                p_41624_ instanceof ServerPlayer serverplayer ? serverplayer : null,
--                p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
-+                    p_41623_,
-+                    serverlevel,
-+                    p_41624_,
-+                    p_348383_ -> {
-+                        if (p_319898_ != null) p_41624_.onEquippedItemBroken(p_348383_, p_319898_);
-+                    }
++                p_41624_,
+                 p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
              );
          }
-+    }
-+    public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_, boolean force) {
-+        hurtAndBreak$force1.set(force);
-+        this.hurtAndBreak(p_41623_, p_41624_, p_319898_);
-     }
+@@ -723,7 +_,7 @@
  
-     public ItemStack hurtAndConvertOnBreak(int p_352405_, ItemLike p_352337_, LivingEntity p_352175_, EquipmentSlot p_352058_) {
-@@ -525,16 +_,25 @@
-         return this.getItem().interactLivingEntity(this, p_41648_, p_41649_, p_41650_);
-     }
- 
-+    // Paper start - Perf: Optimize Hoppers
-+    AtomicBoolean copy$originalItem = new AtomicBoolean(false);
-     public ItemStack copy() {
--        if (this.isEmpty()) {
-+        boolean originalItem = copy$originalItem.getAndSet(false);
-+        if (!originalItem && this.isEmpty()) {
-+            // Paper end - Perf: Optimize Hoppers
-             return EMPTY;
-         } else {
--            ItemStack itemstack = new ItemStack(this.getItem(), this.count, this.components.copy());
-+            ItemStack itemstack = new ItemStack(originalItem ? this.item : this.getItem(), this.count, this.components.copy()); // Paper - Perf: Optimize Hoppers
-             itemstack.setPopTime(this.getPopTime());
-             return itemstack;
-         }
-     }
- 
-+    public ItemStack copyPaper(boolean originalItem) {
-+        copy$originalItem.set(originalItem);
-+        return this.copy();
-+    }
-+
-     public ItemStack copyWithCount(int p_256354_) {
-         if (this.isEmpty()) {
-             return EMPTY;
-@@ -661,6 +_,12 @@
-         return this.getItem().useOnRelease(this);
-     }
- 
-+    // CraftBukkit start
-+    public void restorePatch(DataComponentPatch datacomponentpatch) {
-+        this.components.restorePatch(datacomponentpatch);
-+    }
-+    // CraftBukkit end
-+
      @Nullable
-     public <T> T set(DataComponentType<? super T> p_331064_, @Nullable T p_330775_) {
-         return this.components.set(p_331064_, p_330775_);
-@@ -694,6 +_,25 @@
-         }
+     public <T> T set(DataComponentType<T> p_331064_, @Nullable T p_330775_) {
+-        return this.components.set(p_331064_, p_330775_);
++        return (T) this.components.set(p_331064_, p_330775_);
      }
  
-+    // Paper start - (this is just a good no conflict location)
-+    public org.bukkit.inventory.ItemStack asBukkitMirror() {
-+        return CraftItemStack.asCraftMirror(this);
-+    }
-+    public org.bukkit.inventory.ItemStack asBukkitCopy() {
-+        return CraftItemStack.asCraftMirror(this.copy());
-+    }
-+    public static ItemStack fromBukkitCopy(org.bukkit.inventory.ItemStack itemstack) {
-+        return CraftItemStack.asNMSCopy(itemstack);
-+    }
-+    private CraftItemStack bukkitStack;
-+    public org.bukkit.inventory.ItemStack getBukkitStack() {
-+        if (bukkitStack == null || bukkitStack.handle != this) {
-+            bukkitStack = CraftItemStack.asCraftMirror(this);
-+        }
-+        return bukkitStack;
-+    }
-+    // Paper end
-+
-     public void applyComponents(DataComponentPatch p_332097_) {
-         this.components.applyPatch(p_332097_);
-         this.getItem().verifyComponentsAfterLoad(this);
-@@ -728,7 +_,7 @@
-             return List.of();
-         } else {
-             List<Component> list = Lists.newArrayList();
--            MutableComponent mutablecomponent = Component.empty().append(this.getHoverName()).withStyle(this.getRarity().color());
-+            MutableComponent mutablecomponent = Component.empty().append(this.getHoverName()).withStyle(this.getRarity().getStyleModifier());
-             if (this.has(DataComponents.CUSTOM_NAME)) {
-                 mutablecomponent.withStyle(ChatFormatting.ITALIC);
-             }
-@@ -752,7 +_,9 @@
-             this.addToTooltip(DataComponents.ENCHANTMENTS, p_339637_, consumer, p_41653_);
-             this.addToTooltip(DataComponents.DYED_COLOR, p_339637_, consumer, p_41653_);
-             this.addToTooltip(DataComponents.LORE, p_339637_, consumer, p_41653_);
--            this.addAttributeTooltips(consumer, p_41652_);
-+            // Neo: Replace attribute tooltips with custom handling
-+            net.neoforged.neoforge.common.util.AttributeUtil.addAttributeTooltips(this, consumer,
-+                    net.neoforged.neoforge.common.util.AttributeTooltipContext.of(p_41652_, p_339637_, p_41653_));
-             this.addToTooltip(DataComponents.UNBREAKABLE, p_339637_, consumer, p_41653_);
-             AdventureModePredicate adventuremodepredicate = this.get(DataComponents.CAN_BREAK);
-             if (adventuremodepredicate != null && adventuremodepredicate.showInTooltip()) {
-@@ -784,10 +_,15 @@
-                 list.add(DISABLED_ITEM_TOOLTIP);
-             }
+     public <T> void copyFrom(DataComponentType<T> p_397950_, DataComponentGetter p_397631_) {
+@@ -796,7 +_,7 @@
+     }
  
+     public Component getStyledHoverName() {
+-        MutableComponent mutablecomponent = Component.empty().append(this.getHoverName()).withStyle(this.getRarity().color());
++        MutableComponent mutablecomponent = Component.empty().append(this.getHoverName()).withStyle(this.getRarity().getStyleModifier());
+         if (this.has(DataComponents.CUSTOM_NAME)) {
+             mutablecomponent.withStyle(ChatFormatting.ITALIC);
+         }
+@@ -822,6 +_,7 @@
+             List<Component> list = Lists.newArrayList();
+             list.add(this.getStyledHoverName());
+             this.addDetailsToTooltip(p_339637_, tooltipdisplay, p_41652_, p_41653_, list::add);
 +            net.neoforged.neoforge.event.EventHooks.onItemTooltip(this, p_41652_, list, p_41653_, p_339637_);
              return list;
          }
      }
- 
+@@ -849,7 +_,8 @@
+         this.addToTooltip(DataComponents.ENCHANTMENTS, p_400057_, p_400252_, p_399603_, p_400174_);
+         this.addToTooltip(DataComponents.DYED_COLOR, p_400057_, p_400252_, p_399603_, p_400174_);
+         this.addToTooltip(DataComponents.LORE, p_400057_, p_400252_, p_399603_, p_400174_);
+-        this.addAttributeTooltips(p_399603_, p_400252_, p_399628_);
++        // Neo: Replace attribute tooltips with custom handling
++        net.neoforged.neoforge.common.util.AttributeUtil.addAttributeTooltips(this, p_399603_, p_400252_, net.neoforged.neoforge.common.util.AttributeTooltipContext.of(p_399628_, p_400057_, p_400252_, p_400174_));
+         if (this.has(DataComponents.UNBREAKABLE) && p_400252_.shows(DataComponents.UNBREAKABLE)) {
+             p_399603_.accept(UNBREAKABLE_TOOLTIP);
+         }
+@@ -897,7 +_,10 @@
+             OP_NBT_WARNING.forEach(p_399603_);
+         }
+     }
+-
 +    /**
-+     * @deprecated Neo: Use {@link net.neoforged.neoforge.client.util.TooltipUtil#addAttributeTooltips}
++     * @deprecated Neo: Use {@link net.neoforged.neoforge.common.util.AttributeUtil#addAttributeTooltips}
 +     */
 +    @Deprecated
-     private void addAttributeTooltips(Consumer<Component> p_330796_, @Nullable Player p_330530_) {
-         ItemAttributeModifiers itemattributemodifiers = this.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
-         if (itemattributemodifiers.showInTooltip()) {
-@@ -897,6 +_,17 @@
+     private void addAttributeTooltips(Consumer<Component> p_330796_, TooltipDisplay p_400175_, @Nullable Player p_330530_) {
+         if (p_400175_.shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
+             for (EquipmentSlotGroup equipmentslotgroup : EquipmentSlotGroup.values()) {
+@@ -952,6 +_,17 @@
          return !this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).isEmpty();
      }
  
@@ -392,84 +195,45 @@
      public ItemEnchantments getEnchantments() {
          return this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
      }
-@@ -922,6 +_,12 @@
+@@ -977,16 +_,28 @@
      }
  
-     public void forEachModifier(EquipmentSlotGroup p_348610_, BiConsumer<Holder<Attribute>, AttributeModifier> p_348516_) {
+     public void forEachModifier(EquipmentSlotGroup p_348610_, TriConsumer<Holder<Attribute>, AttributeModifier, ItemAttributeModifiers.Display> p_415655_) {
 +        // Neo: Reflect real attribute modifiers when doing iteration
-+        this.getAttributeModifiers().forEach(p_348610_, p_348516_);
-+
++        this.getAttributeModifiers().forEach(p_348610_, p_415655_);
 +        if (false) {
 +        // Start disabled vanilla code
-+
          ItemAttributeModifiers itemattributemodifiers = this.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
-         if (!itemattributemodifiers.modifiers().isEmpty()) {
-             itemattributemodifiers.forEach(p_348610_, p_348516_);
-@@ -929,10 +_,19 @@
-             this.getItem().getDefaultAttributeModifiers().forEach(p_348610_, p_348516_);
-         }
- 
+         itemattributemodifiers.forEach(p_348610_, p_415655_);
 +        // end disabled vanilla code
 +        }
-+
-         EnchantmentHelper.forEachModifier(this, p_348610_, p_348516_);
+         EnchantmentHelper.forEachModifier(
+             this, p_348610_, (p_415406_, p_415407_) -> p_415655_.accept(p_415406_, p_415407_, ItemAttributeModifiers.Display.attributeModifiers())
+         );
      }
  
      public void forEachModifier(EquipmentSlot p_332001_, BiConsumer<Holder<Attribute>, AttributeModifier> p_330882_) {
 +        // Neo: Reflect real attribute modifiers when doing iteration
 +        this.getAttributeModifiers().forEach(p_332001_, p_330882_);
-+
 +        if (false) {
 +        // Start disabled vanilla code
-+
          ItemAttributeModifiers itemattributemodifiers = this.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
-         if (!itemattributemodifiers.modifiers().isEmpty()) {
-             itemattributemodifiers.forEach(p_332001_, p_330882_);
-@@ -940,9 +_,25 @@
-             this.getItem().getDefaultAttributeModifiers().forEach(p_332001_, p_330882_);
-         }
- 
+         itemattributemodifiers.forEach(p_332001_, p_330882_);
 +        // end disabled vanilla code
 +        }
-+
          EnchantmentHelper.forEachModifier(this, p_332001_, p_330882_);
      }
  
-+    // CraftBukkit start
-+    @Deprecated
-+    public void setItem(Item item) {
-+        this.bukkitStack = null; // Paper
-+        this.item = item;
-+        // Paper start - change base component prototype
-+        final DataComponentPatch patch = this.getComponentsPatch();
-+        this.components = new PatchedDataComponentMap(this.item.components());
-+        this.applyComponents(patch);
-+        // Paper end - change base component prototype
-+    }
-+    // CraftBukkit end
-+
-     public Component getDisplayName() {
-         MutableComponent mutablecomponent = Component.empty().append(this.getHoverName());
-         if (this.has(DataComponents.CUSTOM_NAME)) {
-@@ -951,7 +_,7 @@
+@@ -998,7 +_,7 @@
  
          MutableComponent mutablecomponent1 = ComponentUtils.wrapInSquareBrackets(mutablecomponent);
          if (!this.isEmpty()) {
--            mutablecomponent1.withStyle(this.getRarity().color())
-+            mutablecomponent1.withStyle(this.getRarity().getStyleModifier())
-                 .withStyle(p_220170_ -> p_220170_.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM, new HoverEvent.ItemStackInfo(this))));
+-            mutablecomponent1.withStyle(this.getRarity().color()).withStyle(p_393272_ -> p_393272_.withHoverEvent(new HoverEvent.ShowItem(this)));
++            mutablecomponent1.withStyle(this.getRarity().getStyleModifier()).withStyle(p_393272_ -> p_393272_.withHoverEvent(new HoverEvent.ShowItem(this)));
          }
  
-@@ -999,7 +_,7 @@
-     }
- 
-     public void consume(int p_326311_, @Nullable LivingEntity p_326200_) {
--        if (p_326200_ == null || !p_326200_.hasInfiniteMaterials()) {
-+        if ((p_326200_ == null || !p_326200_.hasInfiniteMaterials()) && this != ItemStack.EMPTY) { // CraftBukkit
-             this.shrink(p_326311_);
-         }
-     }
-@@ -1014,6 +_,8 @@
+         return mutablecomponent1;
+@@ -1065,11 +_,14 @@
          this.getItem().onUseTick(p_41732_, p_41733_, this, p_41734_);
      }
  
@@ -478,11 +242,9 @@
      public void onDestroyed(ItemEntity p_150925_) {
          this.getItem().onDestroyed(p_150925_);
      }
-@@ -1031,6 +_,7 @@
-     }
  
      public boolean canBeHurtBy(DamageSource p_335431_) {
 +        if (!getItem().canBeHurtBy(this, p_335431_)) return false;
-         return !this.has(DataComponents.FIRE_RESISTANT) || !p_335431_.is(DamageTypeTags.IS_FIRE);
+         DamageResistant damageresistant = this.get(DataComponents.DAMAGE_RESISTANT);
+         return damageresistant == null || !damageresistant.isResistantTo(p_335431_);
      }
- }

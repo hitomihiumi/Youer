@@ -1,14 +1,14 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import com.destroystokyo.paper.entity.CraftRangedEntity;
+import net.minecraft.world.entity.EquipmentSlot;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventoryLlama;
 import org.bukkit.entity.Horse;
 import org.bukkit.entity.Llama;
 import org.bukkit.inventory.LlamaInventory;
 
-public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedEntity<net.minecraft.world.entity.animal.horse.Llama> {
+public class CraftLlama extends CraftChestedHorse implements Llama, com.destroystokyo.paper.entity.CraftRangedEntity<net.minecraft.world.entity.animal.horse.Llama> { // Paper
 
     public CraftLlama(CraftServer server, net.minecraft.world.entity.animal.horse.Llama entity) {
         super(server, entity);
@@ -16,7 +16,7 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
 
     @Override
     public net.minecraft.world.entity.animal.horse.Llama getHandle() {
-        return (net.minecraft.world.entity.animal.horse.Llama) super.getHandle();
+        return (net.minecraft.world.entity.animal.horse.Llama) this.entity;
     }
 
     @Override
@@ -33,7 +33,10 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
 
     @Override
     public LlamaInventory getInventory() {
-        return new CraftInventoryLlama(this.getHandle().inventory, getHandle().getBodyArmorAccess());
+        return new CraftInventoryLlama(this.getHandle().inventory,
+            this.getHandle().createEquipmentSlotContainer(EquipmentSlot.BODY),
+            this.getHandle().createEquipmentSlotContainer(EquipmentSlot.SADDLE)
+        );
     }
 
     @Override
@@ -54,12 +57,6 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
         return Horse.Variant.LLAMA;
     }
 
-    @Override
-    public String toString() {
-        return "CraftLlama";
-    }
-
-    // Paper start
     @Override
     public boolean inCaravan() {
         return this.getHandle().inCaravan();
@@ -89,17 +86,4 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
     public Llama getCaravanTail() {
         return this.getHandle().caravanTail == null ? null : (Llama) this.getHandle().caravanTail.getBukkitEntity();
     }
-    // Paper end
-
-    // Purpur start
-    @Override
-    public boolean shouldJoinCaravan() {
-        return getHandle().shouldJoinCaravan;
-    }
-
-    @Override
-    public void setShouldJoinCaravan(boolean shouldJoinCaravan) {
-        getHandle().shouldJoinCaravan = shouldJoinCaravan;
-    }
-    // Purpur end
 }

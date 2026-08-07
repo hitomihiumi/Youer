@@ -1,17 +1,9 @@
 package io.papermc.paper.plugin.manager;
 
+import co.aikar.timings.TimedEventExecutor;
+import com.destroystokyo.paper.event.server.ServerExceptionEvent;
+import com.destroystokyo.paper.exception.ServerEventException;
 import com.google.common.collect.Sets;
-import com.mohistmc.youer.YouerConfig;
-import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
-import com.mohistmc.youer.feature.YouerPlugin;
-import com.mohistmc.youer.util.I18n;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
 import org.bukkit.Server;
 import org.bukkit.Warning;
 import org.bukkit.event.Event;
@@ -19,13 +11,20 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.plugin.AuthorNagException;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredListener;
 import org.jetbrains.annotations.NotNull;
+
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 class PaperEventManager {
 
@@ -37,12 +36,10 @@ class PaperEventManager {
 
     // SimplePluginManager
     public void callEvent(@NotNull Event event) {
-        if (!YouerConfig.fakeplayer_callbukkitevent && event instanceof PlayerEvent playerEvent && playerEvent.getPlayer() instanceof CraftFakePlayer) return; // Youer
-        YouerPlugin.registerListener(event); // Youer
         if (event.isAsynchronous() && this.server.isPrimaryThread()) {
-            throw new IllegalStateException(I18n.as("papereventmanager.1", event.getEventName()));
+            throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
         } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
-            throw new IllegalStateException(I18n.as("papereventmanager.2", event.getEventName(), Thread.currentThread().toString()));
+            throw new IllegalStateException(event.getEventName() + " may only be triggered synchronously.");
         }
 
         HandlerList handlers = event.getHandlers();
@@ -71,6 +68,9 @@ class PaperEventManager {
             } catch (Throwable ex) {
                 String msg = "Could not pass event " + event.getEventName() + " to " + registration.getPlugin().getPluginMeta().getDisplayName();
                 this.server.getLogger().log(Level.SEVERE, msg, ex);
+                if (!(event instanceof ServerExceptionEvent)) { // We don't want to cause an endless event loop
+                    this.callEvent(new ServerExceptionEvent(new ServerEventException(msg, ex, registration.getPlugin(), registration.getListener(), event)));
+                }
             }
         }
     }
@@ -94,6 +94,8 @@ class PaperEventManager {
         if (!plugin.isEnabled()) {
             throw new IllegalPluginAccessException("Plugin attempted to register " + event + " while not enabled");
         }
+
+        executor = new TimedEventExecutor(executor, plugin, null, event);
         this.getEventListeners(event).register(new RegisteredListener(listener, executor, priority, plugin, ignoreCancelled));
     }
 
@@ -180,7 +182,7 @@ class PaperEventManager {
                 }
             }
 
-            EventExecutor executor = EventExecutor.create(method, eventClass);
+            EventExecutor executor = new TimedEventExecutor(EventExecutor.create(method, eventClass), plugin, method, eventClass);
             eventSet.add(new RegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
         }
         return ret;

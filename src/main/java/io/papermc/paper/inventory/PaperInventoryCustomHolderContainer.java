@@ -1,7 +1,6 @@
 package io.papermc.paper.inventory;
 
 import io.papermc.paper.adventure.PaperAdventure;
-import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.world.Container;
@@ -16,6 +15,8 @@ import org.bukkit.inventory.InventoryHolder;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;
+
+import java.util.List;
 
 @DefaultQualifier(NonNull.class)
 public final class PaperInventoryCustomHolderContainer implements Container {
@@ -104,13 +105,13 @@ public final class PaperInventoryCustomHolderContainer implements Container {
     }
 
     @Override
-    public void onOpen(CraftHumanEntity who) {
-        this.delegate.onOpen(who);
+    public void onOpen(CraftHumanEntity player) {
+        this.delegate.onOpen(player);
     }
 
     @Override
-    public void onClose(CraftHumanEntity who) {
-        this.delegate.onClose(who);
+    public void onClose(CraftHumanEntity player) {
+        this.delegate.onClose(player);
     }
 
     @Override

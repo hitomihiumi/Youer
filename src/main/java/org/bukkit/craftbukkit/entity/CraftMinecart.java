@@ -1,8 +1,8 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.google.common.base.Preconditions;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -12,10 +12,17 @@ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.entity.Minecart;
 import org.bukkit.material.MaterialData;
 import org.bukkit.util.Vector;
+import java.util.Optional;
 
 public abstract class CraftMinecart extends CraftVehicle implements Minecart {
+
     public CraftMinecart(CraftServer server, AbstractMinecart entity) {
         super(server, entity);
+    }
+
+    @Override
+    public AbstractMinecart getHandle() {
+        return (AbstractMinecart) this.entity;
     }
 
     @Override
@@ -30,7 +37,7 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
 
     @Override
     public double getMaxSpeed() {
-        return this.getHandle().maxSpeed;
+        return this.getHandle().getBehavior().getMaxSpeed((ServerLevel) this.getHandle().level());
     }
 
     @Override
@@ -73,58 +80,30 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
     // Paper start
     @Override
     public Material getMinecartMaterial() {
-        net.minecraft.world.item.Item minecartItem = switch (getHandle().getMinecartType()) {
-            case CHEST -> Items.CHEST_MINECART;
-            case FURNACE ->  Items.FURNACE_MINECART;
-            case TNT ->  Items.TNT_MINECART;
-            case HOPPER ->  Items.HOPPER_MINECART;
-            case COMMAND_BLOCK ->  Items.COMMAND_BLOCK_MINECART;
-            case RIDEABLE, SPAWNER ->  Items.MINECART;
-        };
-
-        return CraftMagicNumbers.getMaterial(minecartItem);
+        return CraftMagicNumbers.getMaterial(this.getHandle().getDropItem());
     }
     // Paper end
 
     @Override
-    public AbstractMinecart getHandle() {
-        return (AbstractMinecart) this.entity;
-    }
-
-    @Override
     public void setDisplayBlock(MaterialData material) {
-        if (material != null) {
-            BlockState block = CraftMagicNumbers.getBlock(material);
-            this.getHandle().setDisplayBlockState(block);
-        } else {
-            // Set block to air (default) and set the flag to not have a display block.
-            this.getHandle().setDisplayBlockState(Blocks.AIR.defaultBlockState());
-            this.getHandle().setCustomDisplay(false);
-        }
+        this.getHandle().setCustomDisplayBlockState(Optional.ofNullable(material).map(CraftMagicNumbers::getBlock));
     }
 
     @Override
     public void setDisplayBlockData(BlockData blockData) {
-        if (blockData != null) {
-            BlockState block = ((CraftBlockData) blockData).getState();
-            this.getHandle().setDisplayBlockState(block);
-        } else {
-            // Set block to air (default) and set the flag to not have a display block.
-            this.getHandle().setDisplayBlockState(Blocks.AIR.defaultBlockState());
-            this.getHandle().setCustomDisplay(false);
-        }
+        this.getHandle().setCustomDisplayBlockState(Optional.ofNullable(blockData).map(data -> ((CraftBlockData) data).getState()));
     }
 
     @Override
     public MaterialData getDisplayBlock() {
-        BlockState blockData = this.getHandle().getDisplayBlockState();
-        return CraftMagicNumbers.getMaterial(blockData);
+        BlockState state = this.getHandle().getDisplayBlockState();
+        return CraftMagicNumbers.getMaterial(state);
     }
 
     @Override
     public BlockData getDisplayBlockData() {
-        BlockState blockData = this.getHandle().getDisplayBlockState();
-        return CraftBlockData.fromData(blockData);
+        BlockState state = this.getHandle().getDisplayBlockState();
+        return CraftBlockData.fromData(state);
     }
 
     @Override
@@ -135,5 +114,17 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
     @Override
     public int getDisplayBlockOffset() {
         return this.getHandle().getDisplayOffset();
+    }
+
+    @org.jetbrains.annotations.NotNull
+    @Override
+    public net.kyori.adventure.util.TriState getFrictionState() {
+        return this.getHandle().frictionState;
+    }
+
+    @Override
+    public void setFrictionState(@org.jetbrains.annotations.NotNull net.kyori.adventure.util.TriState state) {
+        Preconditions.checkArgument(state != null, "state may not be null");
+        this.getHandle().frictionState = state;
     }
 }

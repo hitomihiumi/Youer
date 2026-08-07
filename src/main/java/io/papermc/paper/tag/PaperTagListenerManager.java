@@ -50,8 +50,8 @@ public class PaperTagListenerManager {
         return Map.copyOf(registrar.tags);
     }
 
-    public <M, A> Map<ResourceLocation, Collection<M>> firePostFlattenEvent(
-        final Map<ResourceLocation, Collection<M>> initial,
+    public <M, A> Map<ResourceLocation, List<M>> firePostFlattenEvent(
+        final Map<ResourceLocation, List<M>> initial,
         final @Nullable TagEventConfig<M, A> config
     ) {
         if (config == null || config.postFlatten() == null || !config.postFlatten().hasHandlers()) {
@@ -85,7 +85,7 @@ public class PaperTagListenerManager {
             preFlatten,
             postFlatten,
             cause,
-            registry::getHolder,
+            registry::get,
             h -> ((Holder.Reference<M>) h).key().location(),
             PaperRegistries.registryFromNms(registry.key())
         );

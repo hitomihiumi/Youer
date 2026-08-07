@@ -16,6 +16,8 @@ public interface Firework extends Projectile {
 
     /**
      * Apply the provided meta to the fireworks
+     * <p>
+     * Adjusts detonation ticks automatically.
      *
      * @param meta The FireworkMeta to apply
      */
@@ -54,31 +56,39 @@ public interface Firework extends Projectile {
      * {@link #getMaxLife()}, the firework will detonate.
      *
      * @param ticks the ticks to set. Must be greater than or equal to 0
+     * @deprecated use {@link #setTicksFlown(int)}
      * @return true if the life was set, false if this firework has already detonated
      */
+    @Deprecated(forRemoval = true) // Paper
     boolean setLife(int ticks);
 
     /**
      * Get the ticks that this firework has been alive. When this value reaches
      * {@link #getMaxLife()}, the firework will detonate.
      *
+     * @deprecated use {@link #getTicksFlown()}
      * @return the life ticks
      */
+    @Deprecated(forRemoval = true) // Paper
     int getLife();
 
     /**
      * Set the time in ticks this firework will exist until it is detonated.
      *
      * @param ticks the ticks to set. Must be greater than 0
+     * @deprecated use {@link #setTicksToDetonate(int)}
      * @return true if the time was set, false if this firework has already detonated
      */
+    @Deprecated(forRemoval = true) // Paper
     boolean setMaxLife(int ticks);
 
     /**
      * Get the time in ticks this firework will exist until it is detonated.
      *
+     * @deprecated use {@link #getTicksToDetonate()}
      * @return the maximum life in ticks
      */
+    @Deprecated(forRemoval = true) // Paper
     int getMaxLife();
 
     /**

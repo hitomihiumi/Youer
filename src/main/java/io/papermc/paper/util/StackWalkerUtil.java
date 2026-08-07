@@ -1,10 +1,11 @@
 package io.papermc.paper.util;
 
 import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
-import java.util.Objects;
-import java.util.Optional;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class StackWalkerUtil {
 

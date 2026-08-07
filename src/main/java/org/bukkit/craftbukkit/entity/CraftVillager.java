@@ -1,11 +1,12 @@
 package org.bukkit.craftbukkit.entity;
 
-import com.google.common.base.Preconditions;
 import com.destroystokyo.paper.entity.villager.Reputation;
-import java.util.Locale;
+import com.google.common.base.Preconditions;
+import io.papermc.paper.util.OldEnumHolderable;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.npc.VillagerProfession;
@@ -13,15 +14,13 @@ import net.minecraft.world.entity.npc.VillagerType;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.util.CraftLocation;
-import org.bukkit.craftbukkit.util.Handleable;
 import org.bukkit.entity.Villager;
 import org.bukkit.entity.ZombieVillager;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityTransformEvent;
 
 public class CraftVillager extends CraftAbstractVillager implements Villager {
 
@@ -35,11 +34,6 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
     }
 
     @Override
-    public String toString() {
-        return "CraftVillager";
-    }
-
-    @Override
     public void remove() {
         this.getHandle().releaseAllPois();
 
@@ -48,36 +42,36 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public Profession getProfession() {
-        return CraftProfession.minecraftToBukkit(this.getHandle().getVillagerData().getProfession());
+        return CraftProfession.minecraftHolderToBukkit(this.getHandle().getVillagerData().profession());
     }
 
     @Override
     public void setProfession(Profession profession) {
         Preconditions.checkArgument(profession != null, "Profession cannot be null");
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setProfession(CraftProfession.bukkitToMinecraft(profession)));
+        this.getHandle().setVillagerData(this.getHandle().getVillagerData().withProfession(CraftProfession.bukkitToMinecraftHolder(profession)));
     }
 
     @Override
     public Type getVillagerType() {
-        return CraftType.minecraftToBukkit(this.getHandle().getVillagerData().getType());
+        return CraftType.minecraftHolderToBukkit(this.getHandle().getVillagerData().type());
     }
 
     @Override
     public void setVillagerType(Type type) {
         Preconditions.checkArgument(type != null, "Type cannot be null");
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setType(CraftType.bukkitToMinecraft(type)));
+        this.getHandle().setVillagerData(this.getHandle().getVillagerData().withType(CraftType.bukkitToMinecraftHolder(type)));
     }
 
     @Override
     public int getVillagerLevel() {
-        return this.getHandle().getVillagerData().getLevel();
+        return this.getHandle().getVillagerData().level();
     }
 
     @Override
     public void setVillagerLevel(int level) {
         Preconditions.checkArgument(1 <= level && level <= 5, "level (%s) must be between [1, 5]", level);
 
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setLevel(level));
+        this.getHandle().setVillagerData(this.getHandle().getVillagerData().withLevel(level));
     }
 
     @Override
@@ -98,13 +92,13 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
         Preconditions.checkArgument(amount > 0, "Level earned must be positive");
         int supposedFinalLevel = this.getVillagerLevel() + amount;
         Preconditions.checkArgument(net.minecraft.world.entity.npc.VillagerData.MIN_VILLAGER_LEVEL <= supposedFinalLevel && supposedFinalLevel <= net.minecraft.world.entity.npc.VillagerData.MAX_VILLAGER_LEVEL,
-                "Final level reached after the donation (%d) must be between [%d, %d]".formatted(supposedFinalLevel, net.minecraft.world.entity.npc.VillagerData.MIN_VILLAGER_LEVEL, net.minecraft.world.entity.npc.VillagerData.MAX_VILLAGER_LEVEL));
+            "Final level reached after the donation (%d) must be between [%d, %d]".formatted(supposedFinalLevel, net.minecraft.world.entity.npc.VillagerData.MIN_VILLAGER_LEVEL, net.minecraft.world.entity.npc.VillagerData.MAX_VILLAGER_LEVEL));
 
         it.unimi.dsi.fastutil.ints.Int2ObjectMap<net.minecraft.world.entity.npc.VillagerTrades.ItemListing[]> trades =
-                net.minecraft.world.entity.npc.VillagerTrades.TRADES.get(this.getHandle().getVillagerData().getProfession());
+            net.minecraft.world.entity.npc.VillagerTrades.TRADES.get((this.getHandle().getVillagerData().profession().unwrapKey().orElseThrow()));
 
         if (trades == null || trades.isEmpty()) {
-            this.getHandle().setVillagerData(this.getHandle().getVillagerData().setLevel(supposedFinalLevel));
+            this.getHandle().setVillagerData(this.getHandle().getVillagerData().withLevel(supposedFinalLevel));
             return false;
         }
 
@@ -140,8 +134,8 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
         Preconditions.checkState(!this.getHandle().generation, "Cannot sleep during world generation");
 
         BlockPos position = CraftLocation.toBlockPosition(location);
-        BlockState iblockdata = this.getHandle().level().getBlockState(position);
-        if (!(iblockdata.getBlock() instanceof BedBlock)) {
+        BlockState state = this.getHandle().level().getBlockState(position);
+        if (!(state.getBlock() instanceof BedBlock)) {
             return false;
         }
 
@@ -164,173 +158,58 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public ZombieVillager zombify() {
-        net.minecraft.world.entity.monster.ZombieVillager entityzombievillager = Zombie.zombifyVillager(this.getHandle().level().getMinecraftWorld(), this.getHandle(), this.getHandle().blockPosition(), this.isSilent(), CreatureSpawnEvent.SpawnReason.CUSTOM);
+        net.minecraft.world.entity.monster.ZombieVillager entityzombievillager = Zombie.convertVillagerToZombieVillager(this.getHandle().level().getMinecraftWorld(), this.getHandle(), this.getHandle().blockPosition(), this.isSilent(), EntityTransformEvent.TransformReason.INFECTION, CreatureSpawnEvent.SpawnReason.CUSTOM);
         return (entityzombievillager != null) ? (ZombieVillager) entityzombievillager.getBukkitEntity() : null;
     }
 
-    public static class CraftType implements Type, Handleable<VillagerType> {
+    public static class CraftType extends OldEnumHolderable<Type, VillagerType> implements Type {
         private static int count = 0;
 
         public static Type minecraftToBukkit(VillagerType minecraft) {
-            return CraftRegistry.minecraftToBukkit(minecraft, Registries.VILLAGER_TYPE, Registry.VILLAGER_TYPE);
+            return CraftRegistry.minecraftToBukkit(minecraft, Registries.VILLAGER_TYPE);
+        }
+
+        public static Type minecraftHolderToBukkit(Holder<VillagerType> minecraft) {
+            return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.VILLAGER_TYPE);
         }
 
         public static VillagerType bukkitToMinecraft(Type bukkit) {
             return CraftRegistry.bukkitToMinecraft(bukkit);
         }
 
-        private final NamespacedKey key;
-        private final VillagerType villagerType;
-        private final String name;
-        private final int ordinal;
-
-        public CraftType(NamespacedKey key, VillagerType villagerType) {
-            this.key = key;
-            this.villagerType = villagerType;
-            // For backwards compatibility, minecraft values will still return the uppercase name without the namespace,
-            // in case plugins use for example the name as key in a config file to receive type specific values.
-            // Custom types will return the key with namespace. For a plugin this should look than like a new type
-            // (which can always be added in new minecraft versions and the plugin should therefore handle it accordingly).
-            if (NamespacedKey.MINECRAFT.equals(key.getNamespace())) {
-                this.name = key.getKey().toUpperCase(Locale.ROOT);
-            } else {
-                this.name = key.toString();
-            }
-            this.ordinal = CraftType.count++;
+        public static Holder<VillagerType> bukkitToMinecraftHolder(Type bukkit) {
+            return CraftRegistry.bukkitToMinecraftHolder(bukkit);
         }
 
-        @Override
-        public VillagerType getHandle() {
-            return this.villagerType;
-        }
-
-        @Override
-        public NamespacedKey getKey() {
-            return this.key;
-        }
-
-        @Override
-        public int compareTo(Type type) {
-            return this.ordinal - type.ordinal();
-        }
-
-        @Override
-        public String name() {
-            return this.name;
-        }
-
-        @Override
-        public int ordinal() {
-            return this.ordinal;
-        }
-
-        @Override
-        public String toString() {
-            // For backwards compatibility
-            return this.name();
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
-            }
-
-            if (!(other instanceof CraftType)) {
-                return false;
-            }
-
-            return this.getKey().equals(((Type) other).getKey());
-        }
-
-        @Override
-        public int hashCode() {
-            return this.getKey().hashCode();
+        public CraftType(final Holder<VillagerType> holder){
+            super(holder, count++);
         }
     }
 
-    public static class CraftProfession implements Profession, Handleable<VillagerProfession> {
+    public static class CraftProfession extends OldEnumHolderable<Profession, VillagerProfession> implements Profession {
         private static int count = 0;
 
+        public static Profession minecraftHolderToBukkit(Holder<VillagerProfession> minecraft) {
+            return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.VILLAGER_PROFESSION);
+        }
+
+        public static Holder<VillagerProfession> bukkitToMinecraftHolder(Profession bukkit) {
+            return CraftRegistry.bukkitToMinecraftHolder(bukkit);
+        }
+
         public static Profession minecraftToBukkit(VillagerProfession minecraft) {
-            return CraftRegistry.minecraftToBukkit(minecraft, Registries.VILLAGER_PROFESSION, Registry.VILLAGER_PROFESSION);
+            return CraftRegistry.minecraftToBukkit(minecraft, Registries.VILLAGER_PROFESSION);
         }
 
         public static VillagerProfession bukkitToMinecraft(Profession bukkit) {
             return CraftRegistry.bukkitToMinecraft(bukkit);
         }
 
-        private final NamespacedKey key;
-        private final VillagerProfession villagerProfession;
-        private final String name;
-        private final int ordinal;
-
-        public CraftProfession(NamespacedKey key, VillagerProfession villagerProfession) {
-            this.key = key;
-            this.villagerProfession = villagerProfession;
-            // For backwards compatibility, minecraft values will still return the uppercase name without the namespace,
-            // in case plugins use for example the name as key in a config file to receive profession specific values.
-            // Custom professions will return the key with namespace. For a plugin this should look than like a new profession
-            // (which can always be added in new minecraft versions and the plugin should therefore handle it accordingly).
-            if (NamespacedKey.MINECRAFT.equals(key.getNamespace())) {
-                this.name = key.getKey().toUpperCase(Locale.ROOT);
-            } else {
-                this.name = key.toString();
-            }
-            this.ordinal = CraftProfession.count++;
-        }
-
-        @Override
-        public VillagerProfession getHandle() {
-            return this.villagerProfession;
-        }
-
-        @Override
-        public NamespacedKey getKey() {
-            return this.key;
-        }
-
-        @Override
-        public int compareTo(Profession profession) {
-            return this.ordinal - profession.ordinal();
-        }
-
-        @Override
-        public String name() {
-            return this.name;
-        }
-
-        @Override
-        public int ordinal() {
-            return this.ordinal;
-        }
-
-        @Override
-        public String toString() {
-            // For backwards compatibility
-            return this.name();
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
-            }
-
-            if (!(other instanceof CraftProfession)) {
-                return false;
-            }
-
-            return this.getKey().equals(((Profession) other).getKey());
-        }
-
-        @Override
-        public int hashCode() {
-            return this.getKey().hashCode();
+        public CraftProfession(final Holder<VillagerProfession> holder) {
+            super(holder, count++);
         }
     }
 
-    // Paper start - Add villager reputation API
     @Override
     public Reputation getReputation(UUID uniqueId) {
         net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips rep = getHandle().getGossips().gossips.get(uniqueId);
@@ -344,17 +223,17 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
     @Override
     public Map<UUID, Reputation> getReputations() {
         return getHandle().getGossips().gossips.entrySet()
-                .stream()
-                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getPaperReputation()));
+            .stream()
+            .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getPaperReputation()));
     }
 
     @Override
     public void setReputation(UUID uniqueId, Reputation reputation) {
         net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips nmsReputation =
-                getHandle().getGossips().gossips.computeIfAbsent(
-                        uniqueId,
-                        key -> new net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips()
-                );
+            getHandle().getGossips().gossips.computeIfAbsent(
+                uniqueId,
+                key -> new net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips()
+            );
         nmsReputation.assignFromPaperReputation(reputation);
     }
 
@@ -369,12 +248,14 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
     public void clearReputations() {
         getHandle().getGossips().gossips.clear();
     }
-    // Paper end
 
-    // Purpur start
     @Override
-    public boolean isLobotomized() {
-        return getHandle().isLobotomized();
+    public void updateDemand() {
+        getHandle().updateDemand();
     }
-    // Purpur end
+
+    @Override
+    public void restock() {
+        getHandle().restock();
+    }
 }

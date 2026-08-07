@@ -1,12 +1,12 @@
 package com.destroystokyo.paper.profile;
 
+import com.destroystokyo.paper.event.profile.LookupProfileEvent;
+import com.destroystokyo.paper.event.profile.PreLookupProfileEvent;
 import com.google.common.collect.Sets;
 import com.mojang.authlib.Environment;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.yggdrasil.YggdrasilGameProfileRepository;
-import com.destroystokyo.paper.event.profile.LookupProfileEvent;
-import com.destroystokyo.paper.event.profile.PreLookupProfileEvent;
 import java.net.Proxy;
 import java.util.Set;
 

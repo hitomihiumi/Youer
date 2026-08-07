@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents the two types of coal
  */
+@Deprecated(forRemoval = true, since = "1.13")
 public enum CoalType {
     COAL(0x0),
     CHARCOAL(0x1);
@@ -24,7 +25,7 @@ public enum CoalType {
      * @return A byte containing the data value of this coal type
      * @deprecated Magic value
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2")
     public byte getData() {
         return data;
     }
@@ -37,7 +38,7 @@ public enum CoalType {
      *     it doesn't exist
      * @deprecated Magic value
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2")
     @Nullable
     public static CoalType getByData(final byte data) {
         return BY_DATA.get(data);

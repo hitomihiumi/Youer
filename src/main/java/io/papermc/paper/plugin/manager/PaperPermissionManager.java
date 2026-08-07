@@ -2,17 +2,18 @@ package io.papermc.paper.plugin.manager;
 
 import com.google.common.collect.ImmutableSet;
 import io.papermc.paper.plugin.PermissionManager;
+import org.bukkit.permissions.Permissible;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
-import org.bukkit.permissions.Permissible;
-import org.bukkit.permissions.Permission;
-import org.bukkit.permissions.PermissionDefault;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * See
@@ -31,7 +32,7 @@ abstract class PaperPermissionManager implements PermissionManager {
     @Override
     @Nullable
     public Permission getPermission(@NotNull String name) {
-        return this.permissions().get(name.toLowerCase(Locale.ENGLISH));
+        return this.permissions().get(name.toLowerCase(java.util.Locale.ENGLISH));
     }
 
     @Override
@@ -49,7 +50,7 @@ abstract class PaperPermissionManager implements PermissionManager {
 
     // Allow suppressing permission default calculations
     private void addPermission(@NotNull Permission perm, boolean dirty) {
-        String name = perm.getName().toLowerCase(Locale.ENGLISH);
+        String name = perm.getName().toLowerCase(java.util.Locale.ENGLISH);
 
         if (this.permissions().containsKey(name)) {
             throw new IllegalArgumentException("The permission " + name + " is already defined!");
@@ -74,7 +75,7 @@ abstract class PaperPermissionManager implements PermissionManager {
 
     @Override
     public void removePermission(@NotNull String name) {
-        this.permissions().remove(name.toLowerCase(Locale.ENGLISH));
+        this.permissions().remove(name.toLowerCase(java.util.Locale.ENGLISH));
     }
 
     @Override
@@ -106,7 +107,7 @@ abstract class PaperPermissionManager implements PermissionManager {
 
     @Override
     public void subscribeToPermission(@NotNull String permission, @NotNull Permissible permissible) {
-        String name = permission.toLowerCase(Locale.ENGLISH);
+        String name = permission.toLowerCase(java.util.Locale.ENGLISH);
         Map<Permissible, Boolean> map = this.permSubs().computeIfAbsent(name, k -> new WeakHashMap<>());
 
         map.put(permissible, true);
@@ -114,7 +115,7 @@ abstract class PaperPermissionManager implements PermissionManager {
 
     @Override
     public void unsubscribeFromPermission(@NotNull String permission, @NotNull Permissible permissible) {
-        String name = permission.toLowerCase(Locale.ENGLISH);
+        String name = permission.toLowerCase(java.util.Locale.ENGLISH);
         Map<Permissible, Boolean> map = this.permSubs().get(name);
 
         if (map != null) {
@@ -129,7 +130,7 @@ abstract class PaperPermissionManager implements PermissionManager {
     @Override
     @NotNull
     public Set<Permissible> getPermissionSubscriptions(@NotNull String permission) {
-        String name = permission.toLowerCase(Locale.ENGLISH);
+        String name = permission.toLowerCase(java.util.Locale.ENGLISH);
         Map<Permissible, Boolean> map = this.permSubs().get(name);
 
         if (map == null) {

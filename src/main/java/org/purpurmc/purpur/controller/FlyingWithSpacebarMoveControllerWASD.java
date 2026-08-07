@@ -1,7 +1,9 @@
 package org.purpurmc.purpur.controller;
 
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
@@ -16,8 +18,9 @@ public class FlyingWithSpacebarMoveControllerWASD extends FlyingMoveControllerWA
 
     @Override
     public void purpurTick(Player rider) {
-        float forward = rider.getForwardMot();
-        float strafe = rider.getStrafeMot() * 0.5F;
+        Input lastClientInput = ((ServerPlayer) rider).getLastClientInput();
+        float forward = (lastClientInput.forward() == lastClientInput.backward() ? 0.0F : lastClientInput.forward() ? 1.0F : -1.0F);
+        float strafe = (lastClientInput.left() == lastClientInput.right() ? 0.0F : lastClientInput.left() ? 1.0F : -1.0F) * 0.5F;
         float vertical = 0;
 
         if (forward < 0.0F) {
@@ -31,7 +34,7 @@ public class FlyingWithSpacebarMoveControllerWASD extends FlyingMoveControllerWA
             speed *= groundSpeedModifier;
         }
 
-        if (rider.jumping && spacebarEvent(entity) && !entity.onSpacebar()) {
+        if (lastClientInput.jump() && spacebarEvent(entity) && !entity.onSpacebar()) {
             entity.setNoGravity(true);
             vertical = 1.0F;
         } else {

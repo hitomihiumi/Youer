@@ -4,8 +4,9 @@ import com.mojang.logging.LogUtils;
 import io.papermc.paper.plugin.entrypoint.EntrypointHandler;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 import org.slf4j.Logger;
+
+import java.util.List;
 
 /**
  * Registers providers at the provided files in the add-plugin argument.
@@ -14,7 +15,7 @@ public class PluginFlagProviderSource implements ProviderSource<List<Path>, List
 
     public static final PluginFlagProviderSource INSTANCE = new PluginFlagProviderSource();
     private static final FileProviderSource FILE_PROVIDER_SOURCE = new FileProviderSource("File '%s' specified through 'add-plugin' argument"::formatted, false);
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     @Override
     public List<Path> prepareContext(List<Path> context) {

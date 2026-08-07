@@ -1,115 +1,43 @@
 --- a/net/minecraft/world/level/block/ChorusFlowerBlock.java
 +++ b/net/minecraft/world/level/block/ChorusFlowerBlock.java
-@@ -2,7 +_,6 @@
- 
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
--import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
- import javax.annotation.Nullable;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
-@@ -21,6 +_,7 @@
- import net.minecraft.world.level.block.state.properties.IntegerProperty;
- import net.minecraft.world.phys.BlockHitResult;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class ChorusFlowerBlock extends Block {
-     public static final MapCodec<ChorusFlowerBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -65,10 +_,13 @@
+@@ -66,10 +_,13 @@
          BlockPos blockpos = p_220982_.above();
-         if (p_220981_.isEmptyBlock(blockpos) && blockpos.getY() < p_220981_.getMaxBuildHeight()) {
+         if (p_220981_.isEmptyBlock(blockpos) && blockpos.getY() <= p_220981_.getMaxY()) {
              int i = p_220980_.getValue(AGE);
 -            if (i < 5) {
 +            if (i < 5 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_220981_, blockpos, p_220980_, true)) {
                  boolean flag = false;
                  boolean flag1 = false;
                  BlockState blockstate = p_220981_.getBlockState(p_220982_.below());
-+                net.neoforged.neoforge.common.util.TriState soilDecision = blockstate.canSustainPlant(p_220981_, p_220982_.below(), Direction.UP, p_220980_);
++                var soilDecision = blockstate.canSustainPlant(p_220981_, p_220982_.below(), Direction.UP, p_220980_);
 +                if (!soilDecision.isDefault()) flag = soilDecision.isTrue();
 +                else
                  if (blockstate.is(Blocks.END_STONE)) {
                      flag = true;
                  } else if (blockstate.is(this.plant)) {
-@@ -77,6 +_,8 @@
+@@ -78,6 +_,8 @@
                      for (int k = 0; k < 4; k++) {
                          BlockState blockstate1 = p_220981_.getBlockState(p_220982_.below(j + 1));
                          if (!blockstate1.is(this.plant)) {
-+                            net.neoforged.neoforge.common.util.TriState soilDecision2 = blockstate1.canSustainPlant(p_220981_, p_220982_.below(j + 1), Direction.UP, p_220980_);
++                            var soilDecision2 = blockstate1.canSustainPlant(p_220981_, p_220982_.below(j + 1), Direction.UP, p_220980_);
 +                            if (!soilDecision2.isDefault()) flag1 = soilDecision2.isTrue();
                              if (blockstate1.is(Blocks.END_STONE)) {
                                  flag1 = true;
                              }
-@@ -94,8 +_,12 @@
-                 }
- 
-                 if (flag && allNeighborsEmpty(p_220981_, blockpos, null) && p_220981_.isEmptyBlock(p_220982_.above(2))) {
--                    p_220981_.setBlock(p_220982_, ChorusPlantBlock.getStateWithConnections(p_220981_, p_220982_, this.plant.defaultBlockState()), 2);
--                    this.placeGrownFlower(p_220981_, blockpos, i);
-+                    // CraftBukkit start - add event
-+                    if (CraftEventFactory.handleBlockSpreadEvent(p_220981_, p_220982_, blockpos, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(i)), 2)) {
-+                        p_220981_.setBlock(p_220982_, ChorusPlantBlock.getStateWithConnections(p_220981_, p_220982_, this.plant.defaultBlockState()), 2);
-+                        this.placeGrownFlower(p_220981_, blockpos, i);
-+                    }
-+                    // CraftBukkit end
-                 } else if (i < 4) {
-                     int l = p_220983_.nextInt(4);
-                     if (flag1) {
-@@ -110,19 +_,32 @@
-                         if (p_220981_.isEmptyBlock(blockpos1)
-                             && p_220981_.isEmptyBlock(blockpos1.below())
-                             && allNeighborsEmpty(p_220981_, blockpos1, direction.getOpposite())) {
--                            this.placeGrownFlower(p_220981_, blockpos1, i + 1);
--                            flag2 = true;
-+                            // CraftBukkit start - add event
-+                            if (CraftEventFactory.handleBlockSpreadEvent(p_220981_, p_220982_, blockpos1, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(i + 1)), 2)) {
-+                                this.placeGrownFlower(p_220981_, blockpos1, i + 1);
-+                                flag2 = true;
-+                            }
-+                            // CraftBukkit end
-                         }
-                     }
- 
-                     if (flag2) {
-                         p_220981_.setBlock(p_220982_, ChorusPlantBlock.getStateWithConnections(p_220981_, p_220982_, this.plant.defaultBlockState()), 2);
-                     } else {
--                        this.placeDeadFlower(p_220981_, p_220982_);
-+                        // CraftBukkit start - add event
-+                        if (CraftEventFactory.handleBlockGrowEvent(p_220981_, p_220982_, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(5)), 2)) {
-+                            this.placeDeadFlower(p_220981_, p_220982_);
-+                        }
-+                        // CraftBukkit end
-                     }
+@@ -124,6 +_,7 @@
                  } else {
--                    this.placeDeadFlower(p_220981_, p_220982_);
-+                    // CraftBukkit start - add event
-+                    if (CraftEventFactory.handleBlockGrowEvent(p_220981_, p_220982_, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(5)), 2)) {
-+                        this.placeDeadFlower(p_220981_, p_220982_);
-+                    }
-+                    // CraftBukkit end
+                     this.placeDeadFlower(p_220981_, p_220982_);
                  }
 +                net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_220981_, p_220982_, p_220980_);
              }
          }
      }
-@@ -159,6 +_,8 @@
+@@ -169,6 +_,8 @@
      @Override
      protected boolean canSurvive(BlockState p_51683_, LevelReader p_51684_, BlockPos p_51685_) {
          BlockState blockstate = p_51684_.getBlockState(p_51685_.below());
-+        net.neoforged.neoforge.common.util.TriState soilDecision = blockstate.canSustainPlant(p_51684_, p_51685_.below(), Direction.UP, p_51683_);
++        var soilDecision = blockstate.canSustainPlant(p_51684_, p_51685_.below(), Direction.UP, p_51683_);
 +        if (!soilDecision.isDefault()) return soilDecision.isTrue();
          if (!blockstate.is(this.plant) && !blockstate.is(Blocks.END_STONE)) {
              if (!blockstate.isAir()) {
                  return false;
-@@ -248,6 +_,11 @@
-     protected void onProjectileHit(Level p_51654_, BlockState p_51655_, BlockHitResult p_51656_, Projectile p_51657_) {
-         BlockPos blockpos = p_51656_.getBlockPos();
-         if (!p_51654_.isClientSide && p_51657_.mayInteract(p_51654_, blockpos) && p_51657_.mayBreak(p_51654_)) {
-+            // CraftBukkit start
-+            if (!CraftEventFactory.callEntityChangeBlockEvent(p_51657_, blockpos, p_51655_.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
-+                return;
-+            }
-+            // CraftBukkit end
-             p_51654_.destroyBlock(blockpos, true, p_51657_);
-         }
-     }

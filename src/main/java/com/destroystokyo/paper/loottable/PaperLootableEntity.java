@@ -13,17 +13,17 @@ public interface PaperLootableEntity extends Lootable {
     /* Lootable */
     @Override
     default @Nullable LootTable getLootTable() {
-        return CraftLootTable.minecraftToBukkit(this.getHandle().getLootTable());
+        return CraftLootTable.minecraftToBukkit(this.getHandle().getContainerLootTable());
     }
 
     @Override
     default void setLootTable(final @Nullable LootTable table, final long seed) {
-        this.getHandle().setLootTable(CraftLootTable.bukkitToMinecraft(table));
-        this.getHandle().setLootTableSeed(seed);
+        this.getHandle().setContainerLootTable(CraftLootTable.bukkitToMinecraft(table));
+        this.getHandle().setContainerLootTableSeed(seed);
     }
 
     @Override
     default long getSeed() {
-        return this.getHandle().getLootTableSeed();
+        return this.getHandle().getContainerLootTableSeed();
     }
 }

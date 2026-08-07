@@ -15,6 +15,8 @@ public interface EntityEquipment {
      *
      * @param slot the slot to put the ItemStack
      * @param item the ItemStack to set
+     * @throws IllegalArgumentException if the slot is invalid for the entity
+     * @see org.bukkit.entity.LivingEntity#canUseEquipmentSlot(EquipmentSlot)
      */
     public void setItem(@NotNull EquipmentSlot slot, @Nullable ItemStack item);
 
@@ -23,7 +25,9 @@ public interface EntityEquipment {
      *
      * @param slot the slot to put the ItemStack
      * @param item the ItemStack to set
-     * @param silent whether or not the equip sound should be silenced
+     * @param silent whether the equip sound should be silenced
+     * @throws IllegalArgumentException if the slot is invalid for the entity
+     * @see org.bukkit.entity.LivingEntity#canUseEquipmentSlot(EquipmentSlot)
      */
     public void setItem(@NotNull EquipmentSlot slot, @Nullable ItemStack item, boolean silent);
 
@@ -32,13 +36,29 @@ public interface EntityEquipment {
      *
      * @param slot the slot to get the ItemStack
      * @return the ItemStack in the given slot
+     * @throws IllegalArgumentException if the slot is invalid for the entity
+     * @see org.bukkit.entity.LivingEntity#canUseEquipmentSlot(EquipmentSlot)
      */
     @NotNull
     public ItemStack getItem(@NotNull EquipmentSlot slot);
 
     /**
-     * Gets a copy of the item the entity is currently holding
+     * Gets the item the entity is currently holding
      * in their main hand.
+     *
+     * <p>
+     * This returns a copy if this equipment instance is from a non-player,
+     * or it's an empty stack (has AIR as its type).
+     * For non-empty stacks from players, this returns a live mirror. You can check if this
+     * will return a mirror with
+     * <pre>{@code
+     * EntityEquipment equipment = entity.getEquipment();
+     * if (equipment instanceof PlayerInventory) {
+     *     equipment.getItemInMainHand(); // will return a mirror
+     * } else {
+     *     equipment.getItemInMainHand(); // will return a copy
+     * }
+     * }</pre>
      *
      * @return the currently held item
      */
@@ -61,8 +81,22 @@ public interface EntityEquipment {
     void setItemInMainHand(@Nullable ItemStack item, boolean silent);
 
     /**
-     * Gets a copy of the item the entity is currently holding
+     * Gets the item the entity is currently holding
      * in their off hand.
+     *
+     * <p>
+     * This returns a copy if this equipment instance is from a non-player,
+     * or it's an empty stack (has AIR as its type).
+     * For non-empty stacks from players, this returns a live mirror. You can check if this
+     * will return a mirror with
+     * <pre>{@code
+     * EntityEquipment equipment = entity.getEquipment();
+     * if (equipment instanceof PlayerInventory) {
+     *     equipment.getItemInOffHand(); // will return a mirror
+     * } else {
+     *     equipment.getItemInOffHand(); // will return a copy
+     * }
+     * }</pre>
      *
      * @return the currently held item
      */
@@ -85,7 +119,21 @@ public interface EntityEquipment {
     void setItemInOffHand(@Nullable ItemStack item, boolean silent);
 
     /**
-     * Gets a copy of the item the entity is currently holding
+     * Gets the item the entity is currently holding
+     *
+     * <p>
+     * This returns a copy if this equipment instance is from a non-player,
+     * or it's an empty stack (has AIR as its type).
+     * For non-empty stacks from players, this returns a live mirror. You can check if this
+     * will return a mirror with
+     * <pre>{@code
+     * EntityEquipment equipment = entity.getEquipment();
+     * if (equipment instanceof PlayerInventory) {
+     *     equipment.getItemInHand(); // will return a mirror
+     * } else {
+     *     equipment.getItemInHand(); // will return a copy
+     * }
+     * }</pre>
      *
      * @return the currently held item
      * @see #getItemInMainHand()
@@ -93,7 +141,7 @@ public interface EntityEquipment {
      * @deprecated entities can duel wield now use the methods for the
      *      specific hand instead
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     @NotNull
     ItemStack getItemInHand();
 
@@ -106,15 +154,28 @@ public interface EntityEquipment {
      * @deprecated entities can duel wield now use the methods for the
      *      specific hand instead
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     void setItemInHand(@Nullable ItemStack stack);
 
     /**
-     * Gets a copy of the helmet currently being worn by the entity
+     * Gets the helmet currently being worn by the entity
+     *
+     * <p>
+     * This returns a copy if this equipment instance is from a non-player.
+     * For stacks from players, this returns a live mirror (or null). You can check if this
+     * will return a mirror with
+     * <pre>{@code
+     * EntityEquipment equipment = entity.getEquipment();
+     * if (equipment instanceof PlayerInventory) {
+     *     equipment.getHelmet(); // will return a mirror
+     * } else {
+     *     equipment.getHelmet(); // will return a copy
+     * }
+     * }</pre>
      *
      * @return The helmet being worn
      */
-    @Nullable
+    @org.bukkit.UndefinedNullability("not null for entities, nullable for players") // Paper
     ItemStack getHelmet();
 
     /**
@@ -133,11 +194,24 @@ public interface EntityEquipment {
     void setHelmet(@Nullable ItemStack helmet, boolean silent);
 
     /**
-     * Gets a copy of the chest plate currently being worn by the entity
+     * Gets the chest plate currently being worn by the entity
+     *
+     * <p>
+     * This returns a copy if this equipment instance is from a non-player.
+     * For stacks from players, this returns a live mirror (or null). You can check if this
+     * will return a mirror with
+     * <pre>{@code
+     * EntityEquipment equipment = entity.getEquipment();
+     * if (equipment instanceof PlayerInventory) {
+     *     equipment.getChestplate(); // will return a mirror
+     * } else {
+     *     equipment.getChestplate(); // will return a copy
+     * }
+     * }</pre>
      *
      * @return The chest plate being worn
      */
-    @Nullable
+    @org.bukkit.UndefinedNullability("not null for entities, nullable for players") // Paper
     ItemStack getChestplate();
 
     /**
@@ -156,11 +230,24 @@ public interface EntityEquipment {
     void setChestplate(@Nullable ItemStack chestplate, boolean silent);
 
     /**
-     * Gets a copy of the leggings currently being worn by the entity
+     * Gets the leggings currently being worn by the entity
+     *
+     * <p>
+     * This returns a copy if this equipment instance is from a non-player.
+     * For stacks from players, this returns a live mirror (or null). You can check if this
+     * will return a mirror with
+     * <pre>{@code
+     * EntityEquipment equipment = entity.getEquipment();
+     * if (equipment instanceof PlayerInventory) {
+     *     equipment.getLeggings(); // will return a mirror
+     * } else {
+     *     equipment.getLeggings(); // will return a copy
+     * }
+     * }</pre>
      *
      * @return The leggings being worn
      */
-    @Nullable
+    @org.bukkit.UndefinedNullability("not null for entities, nullable for players") // Paper
     ItemStack getLeggings();
 
     /**
@@ -179,11 +266,24 @@ public interface EntityEquipment {
     void setLeggings(@Nullable ItemStack leggings, boolean silent);
 
     /**
-     * Gets a copy of the boots currently being worn by the entity
+     * Gets the boots currently being worn by the entity
+     *
+     * <p>
+     * This returns a copy if this equipment instance is from a non-player.
+     * For stacks from players, this returns a live mirror (or null). You can check if this
+     * will return a mirror with
+     * <pre>{@code
+     * EntityEquipment equipment = entity.getEquipment();
+     * if (equipment instanceof PlayerInventory) {
+     *     equipment.getBoots(); // will return a mirror
+     * } else {
+     *     equipment.getBoots(); // will return a copy
+     * }
+     * }</pre>
      *
      * @return The boots being worn
      */
-    @Nullable
+    @org.bukkit.UndefinedNullability("not null for entities, nullable for players") // Paper
     ItemStack getBoots();
 
     /**
@@ -204,19 +304,32 @@ public interface EntityEquipment {
     /**
      * Gets all ItemStacks from the armor slots.
      *
+     * <p>
+     * This returns a copy if this equipment instance is from a non-player,
+     * or it's an empty stack (has AIR as its type).
+     * For non-empty stacks from players, this returns a live mirror. You can check if this
+     * will return a mirror with
+     * <pre>{@code
+     * EntityEquipment equipment = entity.getEquipment();
+     * if (equipment instanceof PlayerInventory) {
+     *     equipment.getArmorContents(); // will return an array of mirror
+     * } else {
+     *     equipment.getArmorContents(); // will return an array of copies
+     * }
+     * }</pre>
+     *
      * @return all the ItemStacks from the armor slots. Individual items can be
      * null and are returned in a fixed order starting from the boots and going
      * up to the helmet
      */
-    @NotNull
-    ItemStack[] getArmorContents();
+    @org.bukkit.UndefinedNullability("not null elements for entities, nullable elements for players") ItemStack @NotNull [] getArmorContents(); // Paper
 
     /**
      * Sets the entities armor to the provided array of ItemStacks
      *
      * @param items The items to set the armor as. Individual items may be null.
      */
-    void setArmorContents(@NotNull ItemStack[] items);
+    void setArmorContents(@NotNull ItemStack @NotNull [] items);
 
     /**
      * Clears the entity of all armor and held items
@@ -230,7 +343,7 @@ public interface EntityEquipment {
      * @deprecated entities can duel wield now use the methods for the specific
      * hand instead
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     float getItemInHandDropChance();
 
     /**
@@ -240,7 +353,7 @@ public interface EntityEquipment {
      * @deprecated entities can duel wield now use the methods for the specific
      * hand instead
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     void setItemInHandDropChance(float chance);
 
     /**
@@ -249,7 +362,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop killed by anything
      * </ul>
      *
      * @return chance of the currently held item being dropped (1 for non-{@link Mob})
@@ -262,7 +376,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @param chance the chance of the main hand item being dropped
@@ -276,7 +391,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @return chance of the off hand item being dropped (1 for non-{@link Mob})
@@ -289,7 +405,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @param chance the chance of off hand item being dropped
@@ -302,7 +419,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @return the chance of the helmet being dropped (1 for non-{@link Mob})
@@ -314,7 +432,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @param chance of the helmet being dropped
@@ -328,7 +447,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @return the chance of the chest plate being dropped (1 for non-{@link Mob})
@@ -341,7 +461,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @param chance of the chest plate being dropped
@@ -355,7 +476,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @return the chance of the leggings being dropped (1 for non-{@link Mob})
@@ -368,7 +490,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @param chance chance of the leggings being dropped
@@ -381,7 +504,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @return the chance of the boots being dropped (1 for non-{@link Mob})
@@ -393,7 +517,8 @@ public interface EntityEquipment {
      *
      * <ul>
      * <li>A drop chance of 0.0F will never drop
-     * <li>A drop chance of 1.0F will always drop
+     * <li>A drop chance of exactly 1.0F will always drop if killed by a player
+     * <li>A drop chance of greater than 1.0F will always drop if killed by anything
      * </ul>
      *
      * @param chance of the boots being dropped
@@ -406,7 +531,7 @@ public interface EntityEquipment {
      *
      * @return the entity this EntityEquipment belongs to
      */
-    @Nullable
+    @NotNull // Paper
     Entity getHolder();
     // Paper start
     /**

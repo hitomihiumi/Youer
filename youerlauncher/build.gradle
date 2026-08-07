@@ -17,7 +17,7 @@ dependencies {
     implementation 'com.mohistmc:i18n:0.6'
     implementation 'com.mohistmc:json:0.5'
     implementation 'com.mohistmc:tools:0.6.3'
-    compileOnly "cpw.mods:bootstraplauncher:2.0.2"
+    compileOnly "net.neoforged.fancymodloader:bootstraplauncher:9.0.18"
 }
 
 tasks.named('jar', Jar).configure {

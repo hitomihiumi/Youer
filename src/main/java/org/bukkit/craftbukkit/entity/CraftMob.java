@@ -1,7 +1,8 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import net.minecraft.server.level.ServerLevel;
+import java.util.Optional;
+import net.kyori.adventure.util.TriState;
 import net.minecraft.sounds.SoundEvent;
 import org.bukkit.Sound;
 import org.bukkit.craftbukkit.CraftLootTable;
@@ -12,8 +13,44 @@ import org.bukkit.entity.Mob;
 import org.bukkit.loot.LootTable;
 
 public abstract class CraftMob extends CraftLivingEntity implements Mob, io.papermc.paper.entity.PaperLeashable { // Paper - Leashable API
+
+    private final com.destroystokyo.paper.entity.PaperPathfinder paperPathfinder; // Paper - Mob Pathfinding API
+
     public CraftMob(CraftServer server, net.minecraft.world.entity.Mob entity) {
         super(server, entity);
+        this.paperPathfinder = new com.destroystokyo.paper.entity.PaperPathfinder(entity); // Paper - Mob Pathfinding API
+    }
+
+    @Override
+    public boolean shouldDespawnInPeaceful() {
+        return this.getHandle().shouldActuallyDespawnInPeaceful();
+    }
+
+    @Override
+    public void setDespawnInPeacefulOverride(final TriState state) {
+        Preconditions.checkArgument(state != null, "TriState cannot be null");
+        this.getHandle().despawnInPeacefulOverride = state;
+    }
+
+    @Override
+    public TriState getDespawnInPeacefulOverride() {
+        return this.getHandle().despawnInPeacefulOverride;
+    }
+
+    @Override
+    public net.minecraft.world.entity.Mob getHandle() {
+        return (net.minecraft.world.entity.Mob) this.entity;
+    }
+
+    @Override
+    public void setHandle(net.minecraft.world.entity.Entity entity) {
+        super.setHandle(entity);
+        this.paperPathfinder.setHandle(getHandle());
+    }
+
+    @Override
+    public com.destroystokyo.paper.entity.Pathfinder getPathfinder() {
+        return this.paperPathfinder;
     }
 
     @Override
@@ -22,11 +59,9 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
         net.minecraft.world.entity.Mob entity = this.getHandle();
         if (target == null) {
-            entity.setTargetReason(null, false);
-            entity.setTarget(null);
+            entity.setTarget(null, null);
         } else if (target instanceof CraftLivingEntity) {
-            entity.setTargetReason(null, false);
-            entity.setTarget(((CraftLivingEntity) target).getHandle());
+            entity.setTarget(((CraftLivingEntity) target).getHandle(), null);
         }
     }
 
@@ -49,28 +84,18 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public Sound getAmbientSound() {
-        SoundEvent sound = this.getHandle().getAmbientSound0();
+        SoundEvent sound = this.getHandle().getAmbientSound();
         return (sound != null) ? CraftSound.minecraftToBukkit(sound) : null;
     }
 
     @Override
-    public net.minecraft.world.entity.Mob getHandle() {
-        return (net.minecraft.world.entity.Mob) this.entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftMob";
-    }
-
-    @Override
     public void setLootTable(LootTable table) {
-        this.getHandle().lootTable = CraftLootTable.bukkitToMinecraft(table);
+        this.getHandle().lootTable = Optional.ofNullable(CraftLootTable.bukkitToMinecraft(table));
     }
 
     @Override
     public LootTable getLootTable() {
-        return CraftLootTable.minecraftToBukkit(this.getHandle().getLootTable());
+        return CraftLootTable.minecraftToBukkit(this.getHandle().getLootTable().orElse(null));
     }
 
     @Override
@@ -83,7 +108,6 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
         return this.getHandle().lootTableSeed;
     }
 
-    // Paper start
     @Override
     public boolean isInDaylight() {
         return getHandle().isSunBurnTick();
@@ -146,9 +170,7 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
     public void setLeftHanded(boolean leftHanded) {
         getHandle().setLeftHanded(leftHanded);
     }
-    // Paper end
 
-    // Paper start
     @Override
     public boolean isAggressive() {
         return this.getHandle().isAggressive();
@@ -158,16 +180,12 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
     public void setAggressive(boolean aggressive) {
         this.getHandle().setAggressive(aggressive);
     }
-    // Paper end
 
-    // Paper start
     @Override
     public int getPossibleExperienceReward() {
-        return getHandle().getExperienceReward((ServerLevel) this.getHandle().level(), null);
+        return getHandle().getExperienceReward((net.minecraft.server.level.ServerLevel) this.getHandle().level(), null);
     }
-    // Paper end
 
-    // Paper start - Leashable API
     @Override
     public boolean isLeashed() {
         return io.papermc.paper.entity.PaperLeashable.super.isLeashed();
@@ -182,5 +200,4 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
     public boolean setLeashHolder(final org.bukkit.entity.Entity holder) {
         return io.papermc.paper.entity.PaperLeashable.super.setLeashHolder(holder);
     }
-    // Paper end - Leashable API
 }

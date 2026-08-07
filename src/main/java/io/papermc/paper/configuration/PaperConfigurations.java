@@ -2,31 +2,28 @@ package io.papermc.paper.configuration;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Table;
-import com.mohistmc.io.leangen.geantyref.TypeToken;
-import com.mohistmc.org.spongepowered.configurate.BasicConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationOptions;
-import com.mohistmc.org.spongepowered.configurate.NodePath;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ObjectMapper;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
-import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
-import com.mohistmc.org.spongepowered.configurate.yaml.YamlConfigurationLoader;
+import com.mojang.logging.LogUtils;
+import io.leangen.geantyref.TypeToken;
 import io.papermc.paper.configuration.legacy.RequiresSpigotInitialization;
+import io.papermc.paper.configuration.mapping.Definition;
+import io.papermc.paper.configuration.mapping.FieldProcessor;
 import io.papermc.paper.configuration.mapping.InnerClassFieldDiscoverer;
+import io.papermc.paper.configuration.mapping.MergeMap;
 import io.papermc.paper.configuration.serializer.ComponentSerializer;
 import io.papermc.paper.configuration.serializer.EnumValueSerializer;
 import io.papermc.paper.configuration.serializer.NbtPathSerializer;
-import io.papermc.paper.configuration.serializer.PacketClassSerializer;
+import io.papermc.paper.configuration.serializer.ServerboundPacketClassSerializer;
+import io.papermc.paper.configuration.serializer.ResourceLocationSerializer;
 import io.papermc.paper.configuration.serializer.StringRepresentableSerializer;
-import io.papermc.paper.configuration.serializer.collections.FastutilMapSerializer;
-import io.papermc.paper.configuration.serializer.collections.MapSerializer;
-import io.papermc.paper.configuration.serializer.collections.TableSerializer;
+import io.papermc.paper.configuration.serializer.collection.TableSerializer;
+import io.papermc.paper.configuration.serializer.collection.map.FastutilMapSerializer;
+import io.papermc.paper.configuration.serializer.collection.map.MapSerializer;
 import io.papermc.paper.configuration.serializer.registry.RegistryHolderSerializer;
 import io.papermc.paper.configuration.serializer.registry.RegistryValueSerializer;
 import io.papermc.paper.configuration.transformation.Transformations;
 import io.papermc.paper.configuration.transformation.global.LegacyPaperConfig;
 import io.papermc.paper.configuration.transformation.global.versioned.V29_LogIPs;
+import io.papermc.paper.configuration.transformation.global.versioned.V30_PacketIds;
 import io.papermc.paper.configuration.transformation.world.FeatureSeedsGeneration;
 import io.papermc.paper.configuration.transformation.world.LegacyPaperWorldConfig;
 import io.papermc.paper.configuration.transformation.world.versioned.V29_ZeroWorldHeight;
@@ -44,16 +41,21 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -64,26 +66,34 @@ import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 import org.spigotmc.SpigotConfig;
 import org.spigotmc.SpigotWorldConfig;
+import org.spongepowered.configurate.BasicConfigurationNode;
+import org.spongepowered.configurate.ConfigurateException;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.ConfigurationOptions;
+import org.spongepowered.configurate.NodePath;
+import org.spongepowered.configurate.objectmapping.ObjectMapper;
+import org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import org.spongepowered.configurate.transformation.TransformAction;
+import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.mohistmc.io.leangen.geantyref.GenericTypeReflector.erase;
+import static io.leangen.geantyref.GenericTypeReflector.erase;
 
 @SuppressWarnings("Convert2Diamond")
 public class PaperConfigurations extends Configurations<GlobalConfiguration, WorldConfiguration> {
 
-    private static final Logger LOGGER = LogManager.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
     static final String GLOBAL_CONFIG_FILE_NAME = "paper-global.yml";
     static final String WORLD_DEFAULTS_CONFIG_FILE_NAME = "paper-world-defaults.yml";
     static final String WORLD_CONFIG_FILE_NAME = "paper-world.yml";
-    public static final String CONFIG_DIR = "paper-config";
+    public static final String CONFIG_DIR = "config";
     private static final String BACKUP_DIR ="legacy-backup";
 
     private static final String GLOBAL_HEADER = String.format("""
@@ -97,6 +107,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
             The world configuration options have been moved inside
             their respective world folder. The files are named %s
 
+            File Reference: https://docs.papermc.io/paper/reference/global-configuration/
             Docs: https://docs.papermc.io/
             Discord: https://discord.gg/papermc
             Website: https://papermc.io/""", WORLD_CONFIG_FILE_NAME);
@@ -112,6 +123,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
             Configuration options here apply to all worlds, unless you specify overrides inside
             the world-specific config file inside each world folder.
 
+            File Reference: https://docs.papermc.io/paper/reference/world-configuration/
             Docs: https://docs.papermc.io/
             Discord: https://discord.gg/papermc
             Website: https://papermc.io/""";
@@ -119,6 +131,8 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
     private static final Function<ContextMap, String> WORLD_HEADER = map -> String.format("""
         This is a world configuration file for Paper.
         This file may start empty but can be filled with settings to override ones in the %s/%s
+        
+        For more information, see https://docs.papermc.io/paper/reference/configuration/#per-world-configuration
         
         World: %s (%s)""",
         PaperConfigurations.CONFIG_DIR,
@@ -178,6 +192,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
             .register(Duration.SERIALIZER)
             .register(DurationOrDisabled.SERIALIZER)
             .register(NbtPathSerializer.SERIALIZER)
+            .register(ResourceLocationSerializer.INSTANCE)
         );
     }
 
@@ -187,20 +202,21 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
     }
 
     private static ObjectMapper.Factory.Builder defaultGlobalFactoryBuilder(ObjectMapper.Factory.Builder builder) {
-        return builder.addDiscoverer(InnerClassFieldDiscoverer.globalConfig());
+        return builder.addDiscoverer(InnerClassFieldDiscoverer.globalConfig(defaultFieldProcessors()));
     }
 
     @Override
-    protected YamlConfigurationLoader.Builder createGlobalLoaderBuilder() {
-        return super.createGlobalLoaderBuilder()
-            .defaultOptions(PaperConfigurations::defaultGlobalOptions);
+    protected YamlConfigurationLoader.Builder createGlobalLoaderBuilder(RegistryAccess registryAccess) {
+        return super.createGlobalLoaderBuilder(registryAccess)
+            .defaultOptions((options) -> defaultGlobalOptions(registryAccess, options));
     }
 
-    private static ConfigurationOptions defaultGlobalOptions(ConfigurationOptions options) {
+    private static ConfigurationOptions defaultGlobalOptions(RegistryAccess registryAccess, ConfigurationOptions options) {
         return options
             .header(GLOBAL_HEADER)
             .serializers(builder -> builder
-                .register(new PacketClassSerializer())
+                .register(new ServerboundPacketClassSerializer())
+                .register(new RegistryValueSerializer<>(new TypeToken<DataComponentType<?>>() {}, registryAccess, Registries.DATA_COMPONENT_TYPE, false))
             );
     }
 
@@ -222,7 +238,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         return super.createWorldObjectMapperFactoryBuilder(contextMap)
             .addNodeResolver(new RequiresSpigotInitialization.Factory(contextMap.require(SPIGOT_WORLD_CONFIG_CONTEXT_KEY).get()))
             .addNodeResolver(new NestedSetting.Factory())
-            .addDiscoverer(InnerClassFieldDiscoverer.worldConfig(createWorldConfigInstance(contextMap)));
+            .addDiscoverer(InnerClassFieldDiscoverer.worldConfig(createWorldConfigInstance(contextMap), defaultFieldProcessors()));
     }
 
     private static WorldConfiguration createWorldConfigInstance(ContextMap contextMap) {
@@ -241,6 +257,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
                 .serializers(serializers -> serializers
                     .register(new TypeToken<Reference2IntMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2IntMap<?>>(Reference2IntOpenHashMap::new, Integer.TYPE))
                     .register(new TypeToken<Reference2LongMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2LongMap<?>>(Reference2LongOpenHashMap::new, Long.TYPE))
+                    .register(new TypeToken<Reference2ObjectMap<?, ?>>() {}, new FastutilMapSerializer.SomethingToSomething<Reference2ObjectMap<?, ?>>(Reference2ObjectOpenHashMap::new))
                     .register(new TypeToken<Table<?, ?, ?>>() {}, new TableSerializer())
                     .register(DespawnRange.class, DespawnRange.SERIALIZER)
                     .register(StringRepresentableSerializer::isValidFor, new StringRepresentableSerializer())
@@ -280,6 +297,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
 
         final ConfigurationTransformation.VersionedBuilder versionedBuilder = Transformations.versionedBuilder();
         V29_LogIPs.apply(versionedBuilder);
+        V30_PacketIds.apply(versionedBuilder);
         // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
         versionedBuilder.build().apply(node);
     }
@@ -313,7 +331,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
 
     public void reloadConfigs(MinecraftServer server) {
         try {
-            this.initializeGlobalConfiguration(reloader(this.globalConfigClass, GlobalConfiguration.get()));
+            this.initializeGlobalConfiguration(server.registryAccess(), reloader(this.globalConfigClass, GlobalConfiguration.get()));
             this.initializeWorldDefaultsConfiguration(server.registryAccess());
             for (ServerLevel level : server.getAllLevels()) {
                 this.createWorldConfig(createWorldContextMap(level), reloader(this.worldConfigClass, level.paperConfig()));
@@ -323,8 +341,14 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         }
     }
 
+    private static List<Definition<? extends Annotation, ?, ? extends FieldProcessor.Factory<?, ?>>> defaultFieldProcessors() {
+        return List.of(
+            MergeMap.DEFINITION
+        );
+    }
+
     private static ContextMap createWorldContextMap(ServerLevel level) {
-        return createWorldContextMap(level.convertable.levelDirectory.path(), level.K.getLevelName(), level.dimension().location(), level.spigotConfig, level.registryAccess(), level.getGameRules());
+        return createWorldContextMap(level.levelStorageAccess.levelDirectory.path(), level.serverLevelData.getLevelName(), level.dimension().location(), level.spigotConfig, level.registryAccess(), level.getGameRules());
     }
 
     public static ContextMap createWorldContextMap(final Path dir, final String levelName, final ResourceLocation worldKey, final SpigotWorldConfig spigotConfig, final RegistryAccess registryAccess, final GameRules gameRules) {
@@ -451,9 +475,9 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
     }
 
     @VisibleForTesting
-    static ConfigurationNode createForTesting() {
+    static ConfigurationNode createForTesting(RegistryAccess registryAccess) {
         ObjectMapper.Factory factory = defaultGlobalFactoryBuilder(ObjectMapper.factoryBuilder()).build();
-        ConfigurationOptions options = defaultGlobalOptions(defaultOptions(ConfigurationOptions.defaults()))
+        ConfigurationOptions options = defaultGlobalOptions(registryAccess, defaultOptions(ConfigurationOptions.defaults()))
             .serializers(builder -> builder.register(type -> ConfigurationPart.class.isAssignableFrom(erase(type)), factory.asTypeSerializer()));
         return BasicConfigurationNode.root(options);
     }

@@ -41,7 +41,7 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
      * @return a single representative item
      * @deprecated for compatibility only
      */
-    @Deprecated
+    @Deprecated(since = "1.13.1")
     @NotNull
     ItemStack getItemStack();
 
@@ -88,8 +88,8 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
             Preconditions.checkArgument(!choices.isEmpty(), "Must have at least one choice");
 
             this.choices = new ArrayList<>(choices.size());
+
             for (Material choice : choices) {
-                if (choice == null) continue;
                 Preconditions.checkArgument(choice != null, "Cannot have null choice");
 
                 if (choice.isLegacy()) {
@@ -191,7 +191,6 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
     public static class ExactChoice implements RecipeChoice {
 
         private List<ItemStack> choices;
-        private Predicate<ItemStack> predicate; // Purpur
 
         public ExactChoice(@NotNull ItemStack stack) {
             this(Arrays.asList(stack));
@@ -234,7 +233,6 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
                     clone.choices.add(choice.clone());
                 }
                 // Paper end - properly clone
-                clone.choices = new ArrayList<>(choices);
                 return clone;
             } catch (CloneNotSupportedException ex) {
                 throw new AssertionError(ex);
@@ -243,7 +241,6 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
 
         @Override
         public boolean test(@NotNull ItemStack t) {
-            if (predicate != null) return predicate.test(t); // Purpur
             for (ItemStack match : choices) {
                 if (t.isSimilar(match)) {
                     return true;
@@ -252,17 +249,6 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
 
             return false;
         }
-
-        // Purpur start
-        @org.jetbrains.annotations.Nullable
-        public Predicate<ItemStack> getPredicate() {
-            return predicate;
-        }
-
-        public void setPredicate(@org.jetbrains.annotations.Nullable Predicate<ItemStack> predicate) {
-            this.predicate = predicate;
-        }
-        // Purpur end
 
         @Override
         public int hashCode() {

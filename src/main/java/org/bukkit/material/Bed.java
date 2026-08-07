@@ -9,7 +9,7 @@ import org.bukkit.block.BlockFace;
  * @deprecated all usage of MaterialData is deprecated and subject to removal.
  * Use {@link org.bukkit.block.data.BlockData}.
  */
-@Deprecated
+@Deprecated(forRemoval = true, since = "1.13")
 public class Bed extends MaterialData implements Directional {
 
     /**
@@ -38,7 +38,7 @@ public class Bed extends MaterialData implements Directional {
      * @param data the raw data value
      * @deprecated Magic value
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2")
     public Bed(final Material type, final byte data) {
         super(type, data);
     }

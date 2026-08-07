@@ -9,10 +9,10 @@ import org.bukkit.inventory.Recipe;
 
 public class RecipeIterator implements Iterator<Recipe> {
     private final Iterator<Map.Entry<RecipeType<?>, RecipeHolder<?>>> recipes;
-    private Recipe currentRecipe; // Paper - fix removing recipes from RecipeIterator
+    private RecipeHolder<?> currentRecipe;
 
     public RecipeIterator() {
-        this.recipes = MinecraftServer.getServer().getRecipeManager().byType.entries().iterator();
+        this.recipes = MinecraftServer.getServer().getRecipeManager().recipes.byType.entries().iterator();
     }
 
     @Override
@@ -22,19 +22,15 @@ public class RecipeIterator implements Iterator<Recipe> {
 
     @Override
     public Recipe next() {
-        // Paper start - fix removing recipes from RecipeIterator
-        this.currentRecipe = this.recipes.next().getValue().toBukkitRecipe();
-        return this.currentRecipe;
-        // Paper end - fix removing recipes from RecipeIterator
+        this.currentRecipe = this.recipes.next().getValue();
+        return this.currentRecipe.toBukkitRecipe();
     }
 
     @Override
     public void remove() {
-        // Paper start - fix removing recipes from RecipeIterator
-        if (this.currentRecipe instanceof org.bukkit.Keyed keyed) {
-            MinecraftServer.getServer().getRecipeManager().byName.remove(org.bukkit.craftbukkit.util.CraftNamespacedKey.toMinecraft(keyed.getKey()));
-        }
-        // Paper end - fix removing recipes from RecipeIterator
+        MinecraftServer.getServer().getRecipeManager().recipes.byKey.remove(this.currentRecipe.id());
         this.recipes.remove();
+        MinecraftServer.getServer().getRecipeManager().finalizeRecipeLoading();
+        MinecraftServer.getServer().getPlayerList().reloadRecipes();
     }
 }

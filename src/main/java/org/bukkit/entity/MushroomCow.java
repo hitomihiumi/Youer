@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a mushroom {@link Cow}
  */
-public interface MushroomCow extends Cow, io.papermc.paper.entity.Shearable { // Paper
+public interface MushroomCow extends AbstractCow, io.papermc.paper.entity.Shearable { // Paper
 
     /**
      * Checks for the presence of custom potion effects to be applied to the
@@ -34,12 +34,14 @@ public interface MushroomCow extends Cow, io.papermc.paper.entity.Shearable { //
      * Adds a custom potion effect to be applied to the next suspicious stew
      * received from milking this {@link MushroomCow}.
      *
+     * @deprecated use {@link #addEffectToNextStew(io.papermc.paper.potion.SuspiciousEffectEntry, boolean)} as PotionEffect suggests that all attributes are used. In fact, only the PotionEffectType and the duration are used.
      * @param effect the potion effect to add
      * @param overwrite true if any existing effect of the same type should be
      * overwritten
      * @return true if the effects to be applied to the suspicious stew changed
      * as a result of this call
      */
+    @Deprecated(forRemoval = true, since = "1.20.2") // Paper - add overloads to use suspicious effect entry to mushroom cow and suspicious stew meta
     boolean addEffectToNextStew(@NotNull PotionEffect effect, boolean overwrite);
 
     // Paper start - add overloads to use suspicious effect entry to mushroom cow and suspicious stew meta
@@ -109,7 +111,6 @@ public interface MushroomCow extends Cow, io.papermc.paper.entity.Shearable { //
          */
         BROWN;
     }
-
     // Paper start
     /**
      * Gets how long the effect applied to stew

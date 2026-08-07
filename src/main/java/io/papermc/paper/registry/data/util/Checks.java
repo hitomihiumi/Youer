@@ -1,11 +1,8 @@
 package io.papermc.paper.registry.data.util;
 
 import java.util.OptionalInt;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.framework.qual.DefaultQualifier;
+import org.jspecify.annotations.Nullable;
 
-@DefaultQualifier(NonNull.class)
 public final class Checks {
 
     public static <T> T asConfigured(final @Nullable T value, final String field) {
@@ -39,6 +36,13 @@ public final class Checks {
     public static int asArgumentMin(final int value, final String field, final int min) {
         if (value < min) {
             throw new IllegalArgumentException("argument " + field + " must be [" + min + ",+inf)");
+        }
+        return value;
+    }
+
+    public static float asArgumentMinExclusive(final float value, final String field, final float min) {
+        if (value <= min) {
+            throw new IllegalArgumentException("argument " + field + " must be (" + min + ",+inf)");
         }
         return value;
     }

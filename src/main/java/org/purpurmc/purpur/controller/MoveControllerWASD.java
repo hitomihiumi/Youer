@@ -1,8 +1,10 @@
 package org.purpurmc.purpur.controller;
 
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.entity.player.Player;
 import org.purpurmc.purpur.event.entity.RidableSpacebarEvent;
 
@@ -39,8 +41,9 @@ public class MoveControllerWASD extends MoveControl {
     }
 
     public void purpurTick(Player rider) {
-        float forward = rider.getForwardMot() * 0.5F;
-        float strafe = rider.getStrafeMot() * 0.25F;
+        Input lastClientInput = ((ServerPlayer) rider).getLastClientInput();
+        float forward = (lastClientInput.forward() == lastClientInput.backward() ? 0.0F : lastClientInput.forward() ? 1.0F : -1.0F) * 0.5F;
+        float strafe = (lastClientInput.left() == lastClientInput.right() ? 0.0F : lastClientInput.left() ? 1.0F : -1.0F) * 0.25F;
 
         if (forward <= 0.0F) {
             forward *= 0.5F;
@@ -66,7 +69,7 @@ public class MoveControllerWASD extends MoveControl {
 
         ((LookControllerWASD) entity.getLookControl()).setOffsets(yawOffset, 0);
 
-        if (rider.jumping && spacebarEvent(entity) && !entity.onSpacebar() && entity.onGround) {
+        if (lastClientInput.jump() && spacebarEvent(entity) && !entity.onSpacebar() && entity.onGround) {
             entity.jumpFromGround();
         }
 

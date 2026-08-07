@@ -1,73 +1,8 @@
 --- a/net/minecraft/world/entity/vehicle/ContainerEntity.java
 +++ b/net/minecraft/world/entity/vehicle/ContainerEntity.java
-@@ -1,5 +_,7 @@
- package net.minecraft.world.entity.vehicle;
+@@ -103,6 +_,9 @@
  
-+import com.destroystokyo.paper.loottable.PaperLootableInventory;
-+import com.destroystokyo.paper.loottable.PaperLootableInventoryData;
- import javax.annotation.Nullable;
- import net.minecraft.advancements.CriteriaTriggers;
- import net.minecraft.core.HolderLookup;
-@@ -62,22 +_,26 @@
-     default void addChestVehicleSaveData(CompoundTag p_219944_, HolderLookup.Provider p_332101_) {
-         if (this.getLootTable() != null) {
-             p_219944_.putString("LootTable", this.getLootTable().location().toString());
-+            if (this.lootableData() != null) this.lootableData().saveNbt(p_219944_); // Paper
-             if (this.getLootTableSeed() != 0L) {
-                 p_219944_.putLong("LootTableSeed", this.getLootTableSeed());
-             }
--        } else {
--            ContainerHelper.saveAllItems(p_219944_, this.getItemStacks(), p_332101_);
-         }
-+        ContainerHelper.saveAllItems(p_219944_, this.getItemStacks(), p_332101_); // Paper - always save the items, table may still remain
-     }
- 
-     default void readChestVehicleSaveData(CompoundTag p_219935_, HolderLookup.Provider p_331073_) {
-         this.clearItemStacks();
-         if (p_219935_.contains("LootTable", 8)) {
-             this.setLootTable(ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(p_219935_.getString("LootTable"))));
-+            // Paper start - LootTable API
-+            if (this.getLootTable() != null && this.lootableData() != null) {
-+                this.lootableData().loadNbt(p_219935_);
-+            }
-+            // Paper end - LootTable API
-             this.setLootTableSeed(p_219935_.getLong("LootTableSeed"));
--        } else {
--            ContainerHelper.loadAllItems(p_219935_, this.getItemStacks(), p_331073_);
-         }
-+        ContainerHelper.loadAllItems(p_219935_, this.getItemStacks(), p_331073_); // Paper - always save the items, table may still remain
-     }
- 
-     default void chestVehicleDestroyed(DamageSource p_219928_, Level p_219929_, Entity p_219930_) {
-@@ -93,20 +_,32 @@
-     }
- 
-     default InteractionResult interactWithContainerVehicle(Player p_270068_) {
--        p_270068_.openMenu(this);
-+        // Paper start - Fix InventoryOpenEvent cancellation
-+        if (p_270068_.openMenu(this).isEmpty()) {
-+            return InteractionResult.PASS;
-+        }
-+        // Paper end - Fix InventoryOpenEvent cancellation
-         return !p_270068_.level().isClientSide ? InteractionResult.CONSUME : InteractionResult.SUCCESS;
-     }
- 
-     default void unpackChestVehicleLootTable(@Nullable Player p_219950_) {
-         MinecraftServer minecraftserver = this.level().getServer();
--        if (this.getLootTable() != null && minecraftserver != null) {
-+        boolean flag = this.lootableData() != null ? this.lootableData().shouldReplenish(this, PaperLootableInventoryData.ENTITY, p_219950_) : this.getLootTable() != null; // Youer
-+        if (minecraftserver != null && flag) { // Paper - LootTable API
-             LootTable loottable = minecraftserver.reloadableRegistries().getLootTable(this.getLootTable());
-             if (p_219950_ != null) {
-                 CriteriaTriggers.GENERATE_LOOT.trigger((ServerPlayer)p_219950_, this.getLootTable());
-             }
- 
--            this.setLootTable(null);
-+            // Paper start - LootTable API
-+            if (this.lootableData() == null || this.lootableData().shouldClearLootTable(this, PaperLootableInventoryData.ENTITY, p_219950_)) {
-+                this.setLootTable(null);
-+            }
-+            // Paper end - LootTable API
+             this.setContainerLootTable(null);
              LootParams.Builder lootparams$builder = new LootParams.Builder((ServerLevel)this.level()).withParameter(LootContextParams.ORIGIN, this.position());
 +            // Neo: set the chest to attacking_entity for loot context.
 +            if (this instanceof AbstractMinecartContainer entityContainer)
@@ -75,19 +10,3 @@
              if (p_219950_ != null) {
                  lootparams$builder.withLuck(p_219950_.getLuck()).withParameter(LootContextParams.THIS_ENTITY, p_219950_);
              }
-@@ -175,4 +_,15 @@
-     default boolean isChestVehicleStillValid(Player p_219955_) {
-         return !this.isRemoved() && p_219955_.canInteractWithEntity(this.getBoundingBox(), 4.0);
-     }
-+
-+    // Paper start - LootTable API
-+    default PaperLootableInventoryData lootableData() {
-+        // throw new UnsupportedOperationException("Implement this method");
-+        return null;
-+    }
-+
-+    default PaperLootableInventory getLootableInventory() {
-+        return ((PaperLootableInventory) ((net.minecraft.world.entity.Entity) this).getBukkitEntity());
-+    }
-+    // Paper end - LootTable API
- }

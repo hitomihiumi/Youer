@@ -2,6 +2,7 @@ package io.papermc.paper.plugin.entrypoint.strategy;
 
 import io.papermc.paper.plugin.entrypoint.dependency.MetaDependencyTree;
 import io.papermc.paper.plugin.provider.PluginProvider;
+
 import java.util.List;
 
 /**

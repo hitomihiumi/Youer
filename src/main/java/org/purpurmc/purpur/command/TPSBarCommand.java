@@ -1,8 +1,6 @@
 package org.purpurmc.purpur.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-import java.util.Collection;
-import java.util.Collections;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -13,6 +11,9 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.server.level.ServerPlayer;
 import org.purpurmc.purpur.PurpurConfig;
 import org.purpurmc.purpur.task.TPSBarTask;
+
+import java.util.Collection;
+import java.util.Collections;
 
 public class TPSBarCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {

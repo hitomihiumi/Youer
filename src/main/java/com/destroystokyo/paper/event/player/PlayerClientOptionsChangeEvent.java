@@ -2,6 +2,7 @@ package com.destroystokyo.paper.event.player;
 
 import com.destroystokyo.paper.ClientOption;
 import com.destroystokyo.paper.ClientOption.ChatVisibility;
+import com.destroystokyo.paper.ClientOption.ParticleVisibility;
 import com.destroystokyo.paper.SkinParts;
 import java.util.Map;
 import org.bukkit.entity.Player;
@@ -27,19 +28,7 @@ public class PlayerClientOptionsChangeEvent extends PlayerEvent {
     private final MainHand mainHand;
     private final boolean allowsServerListings;
     private final boolean textFilteringEnabled;
-
-    @Deprecated
-    public PlayerClientOptionsChangeEvent(final Player player, final String locale, final int viewDistance, final ChatVisibility chatVisibility, final boolean chatColors, final SkinParts skinParts, final MainHand mainHand) {
-        super(player);
-        this.locale = locale;
-        this.viewDistance = viewDistance;
-        this.chatVisibility = chatVisibility;
-        this.chatColors = chatColors;
-        this.skinparts = skinParts;
-        this.mainHand = mainHand;
-        this.allowsServerListings = false;
-        this.textFilteringEnabled = false;
-    }
+    private final ParticleVisibility particleVisibility;
 
     @ApiStatus.Internal
     public PlayerClientOptionsChangeEvent(final Player player, final Map<ClientOption<?>, ?> options) {
@@ -53,6 +42,7 @@ public class PlayerClientOptionsChangeEvent extends PlayerEvent {
         this.mainHand = (MainHand) options.get(ClientOption.MAIN_HAND);
         this.allowsServerListings = (boolean) options.get(ClientOption.ALLOW_SERVER_LISTINGS);
         this.textFilteringEnabled = (boolean) options.get(ClientOption.TEXT_FILTERING_ENABLED);
+        this.particleVisibility = (ParticleVisibility) options.get(ClientOption.PARTICLE_VISIBILITY);
     }
 
     public String getLocale() {
@@ -103,6 +93,14 @@ public class PlayerClientOptionsChangeEvent extends PlayerEvent {
         return this.mainHand != this.player.getClientOption(ClientOption.MAIN_HAND);
     }
 
+    public boolean hasTextFilteringEnabled() {
+        return this.textFilteringEnabled;
+    }
+
+    public boolean hasTextFilteringChanged() {
+        return this.textFilteringEnabled != this.player.getClientOption(ClientOption.TEXT_FILTERING_ENABLED);
+    }
+
     public boolean allowsServerListings() {
         return this.allowsServerListings;
     }
@@ -111,12 +109,12 @@ public class PlayerClientOptionsChangeEvent extends PlayerEvent {
         return this.allowsServerListings != this.player.getClientOption(ClientOption.ALLOW_SERVER_LISTINGS);
     }
 
-    public boolean hasTextFilteringEnabled() {
-        return this.textFilteringEnabled;
+    public ParticleVisibility getParticleVisibility() {
+        return this.particleVisibility;
     }
 
-    public boolean hasTextFilteringChanged() {
-        return this.textFilteringEnabled != this.player.getClientOption(ClientOption.TEXT_FILTERING_ENABLED);
+    public boolean hasParticleVisibilityChanged() {
+        return this.particleVisibility != this.player.getClientOption(ClientOption.PARTICLE_VISIBILITY);
     }
 
     @Override

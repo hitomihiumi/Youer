@@ -9,6 +9,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.datafixers.util.Either;
 import com.mojang.logging.LogUtils;
+import com.mojang.serialization.JsonOps;
 import java.io.Reader;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -25,46 +26,44 @@ import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.conditions.ConditionalOps;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.neoforge.registries.datamaps.AdvancedDataMapType;
 import net.neoforged.neoforge.registries.datamaps.DataMapFile;
 import net.neoforged.neoforge.registries.datamaps.DataMapType;
 import net.neoforged.neoforge.registries.datamaps.DataMapValueMerger;
 import net.neoforged.neoforge.registries.datamaps.DataMapsUpdatedEvent;
-import net.neoforged.neoforge.resource.ContextAwareReloadListener;
 import org.slf4j.Logger;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
-public class DataMapLoader extends ContextAwareReloadListener {
+public class DataMapLoader implements PreparableReloadListener {
     private static final Logger LOGGER = LogUtils.getLogger();
     public static final String PATH = "data_maps";
     private Map<ResourceKey<? extends Registry<?>>, LoadResult<?>> results;
+    private final ICondition.IContext conditionContext;
     private final RegistryAccess registryAccess;
 
-    /** @deprecated Use {@link #DataMapLoader(RegistryAccess)} instead */
-    @Deprecated(forRemoval = true, since = "1.21.1")
-    public DataMapLoader(@SuppressWarnings("unused") ICondition.IContext conditionContext, RegistryAccess registryAccess) {
-        this(registryAccess);
-    }
-
-    public DataMapLoader(RegistryAccess registryAccess) {
+    public DataMapLoader(ICondition.IContext conditionContext, RegistryAccess registryAccess) {
+        this.conditionContext = conditionContext;
         this.registryAccess = registryAccess;
     }
 
     @Override
-    public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
-        return this.load(resourceManager, backgroundExecutor, preparationsProfiler)
+    public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier, ResourceManager resourceManager, Executor backgroundExecutor, Executor gameExecutor) {
+        return this.load(resourceManager, backgroundExecutor, Profiler.get())
                 .thenCompose(preparationBarrier::wait)
                 .thenAcceptAsync(values -> this.results = values, gameExecutor);
     }
 
     public void apply() {
-        results.forEach((key, result) -> this.apply((BaseMappedRegistry) registryAccess.registryOrThrow(key), result));
+        results.forEach((key, result) -> this.apply((BaseMappedRegistry) registryAccess.lookupOrThrow(key), result));
 
         // Clear the intermediary maps and objects
         results = null;
@@ -131,7 +130,7 @@ public class DataMapLoader extends ContextAwareReloadListener {
         if (value.left().isPresent()) {
             registry.getTagOrEmpty(value.left().orElseThrow()).forEach(consumer);
         } else {
-            var object = registry.getHolder(value.right().orElseThrow());
+            var object = registry.get(value.right().orElseThrow());
             if (object.isPresent()) {
                 consumer.accept(object.get());
             } else if (required) {
@@ -141,14 +140,15 @@ public class DataMapLoader extends ContextAwareReloadListener {
     }
 
     private CompletableFuture<Map<ResourceKey<? extends Registry<?>>, LoadResult<?>>> load(ResourceManager manager, Executor executor, ProfilerFiller profiler) {
-        return CompletableFuture.supplyAsync(() -> load(manager, profiler), executor);
+        return CompletableFuture.supplyAsync(() -> load(manager, profiler, registryAccess, conditionContext), executor);
     }
 
-    private Map<ResourceKey<? extends Registry<?>>, LoadResult<?>> load(ResourceManager manager, ProfilerFiller profiler) {
-        final RegistryOps<JsonElement> ops = makeConditionalOps();
+    private static Map<ResourceKey<? extends Registry<?>>, LoadResult<?>> load(ResourceManager manager, ProfilerFiller profiler, RegistryAccess access, ICondition.IContext context) {
+        final RegistryOps<JsonElement> ops = new ConditionalOps<>(RegistryOps.create(JsonOps.INSTANCE, access), context);
 
         final Map<ResourceKey<? extends Registry<?>>, LoadResult<?>> values = new HashMap<>();
-        getRegistryLookup().listRegistries().forEach(registryKey -> {
+        access.registries().forEach(registryEntry -> {
+            final var registryKey = registryEntry.key();
             profiler.push("registry_data_maps/" + registryKey.location() + "/locating");
             final var fileToId = FileToIdConverter.json(PATH + "/" + getFolderLocation(registryKey.location()));
             for (Map.Entry<ResourceLocation, List<Resource>> entry : fileToId.listMatchingResourceStacks(manager).entrySet()) {

@@ -1,79 +1,34 @@
 package io.papermc.paper.event.player;
 
-import com.google.common.base.Preconditions;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.player.PlayerEvent;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NullMarked;
 
 /**
- * Fired when a player receives an item cooldown.
+ * Fired when a player receives an item cooldown when using an item.
+ *
+ * @see PlayerItemGroupCooldownEvent for a more general event when applied to a group of items
  */
 @NullMarked
-public class PlayerItemCooldownEvent extends PlayerEvent implements Cancellable {
-
-    private static final HandlerList HANDLER_LIST = new HandlerList();
+public class PlayerItemCooldownEvent extends PlayerItemGroupCooldownEvent {
 
     private final Material type;
-    private int cooldown;
-
-    private boolean cancelled;
 
     @ApiStatus.Internal
-    public PlayerItemCooldownEvent(final Player player, final Material type, final int cooldown) {
-        super(player);
+    public PlayerItemCooldownEvent(final Player player, final Material type, final NamespacedKey cooldownGroup, final int cooldown) {
+        super(player, cooldownGroup, cooldown);
         this.type = type;
-        this.cooldown = cooldown;
     }
 
     /**
-     * Get the material affected by the cooldown.
+     * Get the material of the item affected by the cooldown.
      *
      * @return material affected by the cooldown
      */
     public Material getType() {
         return this.type;
-    }
-
-    /**
-     * Gets the cooldown in ticks.
-     *
-     * @return cooldown in ticks
-     */
-    public int getCooldown() {
-        return this.cooldown;
-    }
-
-    /**
-     * Sets the cooldown of the material in ticks.
-     * Setting the cooldown to 0 results in removing an already existing cooldown for the material.
-     *
-     * @param cooldown cooldown in ticks, has to be a positive number
-     */
-    public void setCooldown(final int cooldown) {
-        Preconditions.checkArgument(cooldown >= 0, "The cooldown has to be equal to or greater than 0!");
-        this.cooldown = cooldown;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return this.cancelled;
-    }
-
-    @Override
-    public void setCancelled(final boolean cancel) {
-        this.cancelled = cancel;
-    }
-
-    @Override
-    public HandlerList getHandlers() {
-        return HANDLER_LIST;
-    }
-
-    public static HandlerList getHandlerList() {
-        return HANDLER_LIST;
     }
 }

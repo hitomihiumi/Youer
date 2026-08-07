@@ -7,7 +7,6 @@ package net.neoforged.neoforge.event;
 
 import java.util.Objects;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -38,14 +37,6 @@ public class LootTableLoadEvent extends Event implements ICancellableEvent {
 
     @Nullable
     private ResourceKey<LootTable> key;
-
-    /**
-     * @deprecated Neo: use the constructor {@link #LootTableLoadEvent(HolderLookup.Provider, ResourceLocation, LootTable) with a lookup provider}
-     */
-    @Deprecated
-    public LootTableLoadEvent(ResourceLocation name, LootTable table) {
-        this(RegistryAccess.EMPTY, name, table);
-    }
 
     @ApiStatus.Internal
     public LootTableLoadEvent(HolderLookup.Provider registries, ResourceLocation name, LootTable table) {

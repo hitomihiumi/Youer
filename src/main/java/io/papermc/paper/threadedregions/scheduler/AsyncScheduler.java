@@ -1,9 +1,10 @@
 package io.papermc.paper.threadedregions.scheduler;
 
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Scheduler that may be used by plugins to schedule tasks to execute asynchronously from the server tick process.
@@ -27,7 +28,7 @@ public interface AsyncScheduler {
      * @return The {@link ScheduledTask} that represents the scheduled task.
      */
     @NotNull ScheduledTask runDelayed(@NotNull Plugin plugin, @NotNull Consumer<ScheduledTask> task, long delay,
-                                             @NotNull TimeUnit unit);
+                                      @NotNull TimeUnit unit);
 
     /**
      * Schedules the specified task to be executed asynchronously after the initial delay has passed,
@@ -40,7 +41,7 @@ public interface AsyncScheduler {
      * @return The {@link ScheduledTask} that represents the scheduled task.
      */
     @NotNull ScheduledTask runAtFixedRate(@NotNull Plugin plugin, @NotNull Consumer<ScheduledTask> task,
-                                                 long initialDelay, long period, @NotNull TimeUnit unit);
+                                          long initialDelay, long period, @NotNull TimeUnit unit);
 
     /**
      * Attempts to cancel all tasks scheduled by the specified plugin.

@@ -1,15 +1,8 @@
 package io.papermc.paper.configuration;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.io.leangen.geantyref.TypeToken;
-import com.mohistmc.org.spongepowered.configurate.CommentedConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationOptions;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ObjectMapper;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.util.CheckedFunction;
-import com.mohistmc.org.spongepowered.configurate.yaml.YamlConfigurationLoader;
+import com.mojang.logging.LogUtils;
+import io.leangen.geantyref.TypeToken;
 import io.papermc.paper.configuration.constraint.Constraint;
 import io.papermc.paper.configuration.constraint.Constraints;
 import java.io.IOException;
@@ -26,14 +19,21 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.GameRules;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+import org.spongepowered.configurate.ConfigurateException;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.ConfigurationOptions;
+import org.spongepowered.configurate.objectmapping.ObjectMapper;
+import org.spongepowered.configurate.serialize.SerializationException;
+import org.spongepowered.configurate.util.CheckedFunction;
+import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 public abstract class Configurations<G, W> {
 
-    private static final Logger LOGGER = LogManager.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
     public static final String WORLD_DEFAULTS = "__world_defaults__";
     public static final ResourceLocation WORLD_DEFAULTS_KEY = ResourceLocation.fromNamespaceAndPath("configurations", WORLD_DEFAULTS);
     protected final Path globalFolder;
@@ -62,7 +62,8 @@ public abstract class Configurations<G, W> {
     protected ObjectMapper.Factory.Builder createObjectMapper() {
         return ObjectMapper.factoryBuilder()
             .addConstraint(Constraint.class, new Constraint.Factory())
-            .addConstraint(Constraints.Min.class, Number.class, new Constraints.Min.Factory());
+            .addConstraint(Constraints.Min.class, Number.class, new Constraints.Min.Factory())
+            .addConstraint(Constraints.Max.class, Number.class, new Constraints.Max.Factory());
     }
 
     protected YamlConfigurationLoader.Builder createLoaderBuilder() {
@@ -80,7 +81,7 @@ public abstract class Configurations<G, W> {
     }
 
     @MustBeInvokedByOverriders
-    protected YamlConfigurationLoader.Builder createGlobalLoaderBuilder() {
+    protected YamlConfigurationLoader.Builder createGlobalLoaderBuilder(RegistryAccess registryAccess) {
         return this.createLoaderBuilder();
     }
 
@@ -104,7 +105,7 @@ public abstract class Configurations<G, W> {
     }
 
     public G initializeGlobalConfiguration(final RegistryAccess registryAccess) throws ConfigurateException {
-        return this.initializeGlobalConfiguration(creator(this.globalConfigClass, true));
+        return this.initializeGlobalConfiguration(registryAccess, creator(this.globalConfigClass, true));
     }
 
     private void trySaveFileNode(YamlConfigurationLoader loader, ConfigurationNode node, String filename) throws ConfigurateException {
@@ -117,9 +118,9 @@ public abstract class Configurations<G, W> {
         }
     }
 
-    protected G initializeGlobalConfiguration(final CheckedFunction<ConfigurationNode, G, SerializationException> creator) throws ConfigurateException {
+    protected G initializeGlobalConfiguration(final RegistryAccess registryAccess, final CheckedFunction<ConfigurationNode, G, SerializationException> creator) throws ConfigurateException {
         final Path configFile = this.globalFolder.resolve(this.globalConfigFileName);
-        final YamlConfigurationLoader loader = this.createGlobalLoaderBuilder()
+        final YamlConfigurationLoader loader = this.createGlobalLoaderBuilder(registryAccess)
             .defaultOptions(this.applyObjectMapperFactory(this.createGlobalObjectMapperFactoryBuilder().build()))
             .path(configFile)
             .build();
@@ -275,7 +276,7 @@ public abstract class Configurations<G, W> {
     }
 
     public Path getWorldConfigFile(ServerLevel level) {
-        return level.convertable.levelDirectory.path().resolve(this.worldConfigFileName);
+        return level.levelStorageAccess.levelDirectory.path().resolve(this.worldConfigFileName);
     }
 
     public static class ContextMap {

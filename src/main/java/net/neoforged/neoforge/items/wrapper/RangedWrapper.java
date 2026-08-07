@@ -14,7 +14,7 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
  * Shifting of slot indices is handled automatically for you.
  */
 public class RangedWrapper implements IItemHandlerModifiable {
-    public final IItemHandlerModifiable compose;
+    private final IItemHandlerModifiable compose;
     private final int minSlot;
     private final int maxSlot;
 

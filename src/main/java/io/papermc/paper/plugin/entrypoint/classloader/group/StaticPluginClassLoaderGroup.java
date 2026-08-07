@@ -2,8 +2,9 @@ package io.papermc.paper.plugin.entrypoint.classloader.group;
 
 import io.papermc.paper.plugin.provider.classloader.ClassLoaderAccess;
 import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
-import java.util.List;
 import org.jetbrains.annotations.ApiStatus;
+
+import java.util.List;
 
 @ApiStatus.Internal
 public class StaticPluginClassLoaderGroup extends SimpleListPluginClassLoaderGroup {

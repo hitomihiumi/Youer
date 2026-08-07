@@ -81,7 +81,6 @@ public enum ObfHelper {
 
     private static @Nullable Set<ClassMapping> loadMappingsIfPresent() {
         if (!MappingEnvironment.hasMappings()) {
-            System.err.println("No mappings present.");
             return null;
         }
         try (final InputStream mappingsInputStream = MappingEnvironment.mappingsStream()) {

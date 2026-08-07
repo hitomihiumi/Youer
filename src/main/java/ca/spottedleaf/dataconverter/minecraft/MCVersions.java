@@ -3,7 +3,7 @@ package ca.spottedleaf.dataconverter.minecraft;
 @SuppressWarnings("unused")
 public final class MCVersions {
 
-    /* https://minecraft.wiki/wiki/Data_version */
+    /* https://minecraft.wiki/w/Data_version */
 
     public static final int V15W32A               = 100;
     public static final int V15W32B               = 103;
@@ -522,18 +522,81 @@ public final class MCVersions {
     public static final int V1_20_5               = 3837;
     public static final int V1_20_6_RC1           = 3838;
     public static final int V1_20_6               = 3839;
-    public static final int V2418WA               = 3940;
-    public static final int V2419WA               = 3941;
-    public static final int V2419WB               = 3942;
-    public static final int V2420WA               = 3944;
-    public static final int V2421WA               = 3946;
-    public static final int V2421WB               = 3947;
-    public static final int V_1_21_PRE1           = 3948;
-    public static final int V_1_21_PRE2           = 3949;
-    public static final int V_1_21_PRE3           = 3950;
-    public static final int V_1_21_PRE4           = 3951;
-    public static final int V_1_21_RC1            = 3952;
-    public static final int V_1_21                = 3953;
+    public static final int V24W18A               = 3940;
+    public static final int V24W19A               = 3941;
+    public static final int V24W19B               = 3942;
+    public static final int V24W20A               = 3944;
+    public static final int V24W21A               = 3946;
+    public static final int V24W21B               = 3947;
+    public static final int V1_21_PRE1            = 3948;
+    public static final int V1_21_PRE2            = 3949;
+    public static final int V1_21_PRE3            = 3950;
+    public static final int V1_21_PRE4            = 3951;
+    public static final int V1_21_RC1             = 3952;
+    public static final int V1_21                 = 3953;
+    public static final int V1_21_RC              = 3954;
+    public static final int V1_21_1               = 3955;
+    public static final int V24W33A               = 4058;
+    public static final int V24W34A               = 4060;
+    public static final int V24W35A               = 4062;
+    public static final int V24W36A               = 4063;
+    public static final int V24W37A               = 4065;
+    public static final int V24W38A               = 4066;
+    public static final int V24W39A               = 4069;
+    public static final int V24W40A               = 4072;
+    public static final int V1_21_2_PRE1          = 4073;
+    public static final int V1_21_2_PRE2          = 4074;
+    public static final int V1_21_2_PRE3          = 4075;
+    public static final int V1_21_2_PRE4          = 4076;
+    public static final int V1_21_2_PRE5          = 4077;
+    public static final int V1_21_2_RC1           = 4078;
+    public static final int V1_21_2_RC2           = 4079;
+    public static final int V1_21_2               = 4080;
+    public static final int V1_21_3               = 4082;
+    public static final int V24W44A               = 4174;
+    public static final int V24W45A               = 4177;
+    public static final int V24W46A               = 4178;
+    public static final int V1_21_4_PRE1          = 4179;
+    public static final int V1_21_4_PRE2          = 4182;
+    public static final int V1_21_4_PRE3          = 4183;
+    public static final int V1_21_4_RC1           = 4184;
+    public static final int V1_21_4_RC2           = 4186;
+    public static final int V1_21_4_RC3           = 4188;
+    public static final int V1_21_4               = 4189;
+    public static final int V25W02A               = 4298;
+    public static final int V25W03A               = 4304;
+    public static final int V25W04A               = 4308;
+    public static final int V25W05A               = 4310;
+    public static final int V25W06A               = 4313;
+    public static final int V25W07A               = 4315;
+    public static final int V25W08A               = 4316;
+    public static final int V25W09A               = 4317;
+    public static final int V25W09B               = 4318;
+    public static final int V25W10A               = 4319;
+    public static final int V1_21_5_PRE1          = 4320;
+    public static final int V1_21_5_PRE2          = 4321;
+    public static final int V1_21_5_PRE3          = 4321;
+    public static final int V1_21_5_RC1           = 4323;
+    public static final int V1_21_5_RC2           = 4324;
+    public static final int V1_21_5               = 4325;
+    public static final int V25W15A               = 4422;
+    public static final int V25W16A               = 4423;
+    public static final int V25W17A               = 4425;
+    public static final int V25W18A               = 4426;
+    public static final int V25W19A               = 4427;
+    public static final int V25W20A               = 4428;
+    public static final int V25W21A               = 4429;
+    public static final int V1_21_6_PRE1          = 4430;
+    public static final int V1_21_6_PRE2          = 4431;
+    public static final int V1_21_6_PRE3          = 4432;
+    public static final int V1_21_6_PRE4          = 4433;
+    public static final int V1_21_6_RC1           = 4434;
+    public static final int V1_21_6               = 4435;
+    public static final int V1_21_7_RC1           = 4436;
+    public static final int V1_21_7_RC2           = 4437;
+    public static final int V1_21_7               = 4438;
+    public static final int V1_21_8_RC1           = 4439;
+    public static final int V1_21_8               = 4440;
 
     private MCVersions() {}
 }

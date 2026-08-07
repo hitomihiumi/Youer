@@ -22,19 +22,19 @@ public class PaperPotionBrewer implements PotionBrewer {
     @Override
     @Deprecated(forRemoval = true)
     public Collection<PotionEffect> getEffects(PotionType type, boolean upgraded, boolean extended) {
-        final NamespacedKey key = type.getKey();
+        final org.bukkit.NamespacedKey key = type.getKey();
 
         Preconditions.checkArgument(!key.getKey().startsWith("strong_"), "Strong potion type cannot be used directly, got %s", key);
         Preconditions.checkArgument(!key.getKey().startsWith("long_"), "Extended potion type cannot be used directly, got %s", key);
 
-        NamespacedKey effectiveKey = key;
+        org.bukkit.NamespacedKey effectiveKey = key;
         if (upgraded) {
-            effectiveKey = new NamespacedKey(key.namespace(), "strong_" + key.key());
+            effectiveKey = new org.bukkit.NamespacedKey(key.namespace(), "strong_" + key.key());
         } else if (extended) {
-            effectiveKey = new NamespacedKey(key.namespace(), "long_" + key.key());
+            effectiveKey = new org.bukkit.NamespacedKey(key.namespace(), "long_" + key.key());
         }
 
-        final PotionType effectivePotionType = org.bukkit.Registry.POTION.get(effectiveKey);
+        final org.bukkit.potion.PotionType effectivePotionType = org.bukkit.Registry.POTION.get(effectiveKey);
         Preconditions.checkNotNull(type, "Unknown potion type from data " + effectiveKey.asMinimalString()); // Legacy error message in 1.20.4
         return effectivePotionType.getPotionEffects();
     }

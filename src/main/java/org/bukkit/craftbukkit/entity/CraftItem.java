@@ -1,6 +1,9 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.google.common.base.Preconditions;
 import java.util.UUID;
+import net.minecraft.Optionull;
+import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.item.ItemEntity;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -9,10 +12,8 @@ import org.bukkit.inventory.ItemStack;
 
 public class CraftItem extends CraftEntity implements Item {
 
-    // Paper start
-    private final static int NO_AGE_TIME = (int) Short.MIN_VALUE;
-    private final static int NO_PICKUP_TIME = (int) Short.MAX_VALUE;
-    // Paper end
+    private final static int NO_AGE_TIME = Short.MIN_VALUE; // ItemEntity#INFINITE_LIFETIME
+    private final static int NO_PICKUP_TIME = Short.MAX_VALUE; // ItemEntity#INFINITE_PICKUP_DELAY
 
     public CraftItem(CraftServer server, ItemEntity entity) {
         super(server, entity);
@@ -68,7 +69,6 @@ public class CraftItem extends CraftEntity implements Item {
         }
     }
 
-    // Paper start
     @Override
     public boolean canMobPickup() {
         return this.getHandle().canMobPickup;
@@ -79,37 +79,37 @@ public class CraftItem extends CraftEntity implements Item {
         this.getHandle().canMobPickup = canMobPickup;
     }
 
-    @Override
-    public boolean canPlayerPickup() {
+     @Override
+     public boolean canPlayerPickup() {
         return this.getHandle().pickupDelay != NO_PICKUP_TIME;
-    }
+     }
 
-    @Override
-    public void setCanPlayerPickup(boolean canPlayerPickup) {
+     @Override
+     public void setCanPlayerPickup(boolean canPlayerPickup) {
         this.getHandle().pickupDelay = canPlayerPickup ? 0 : NO_PICKUP_TIME;
-    }
+     }
 
-    @Override
-    public boolean willAge() {
+     @Override
+     public boolean willAge() {
         return this.getHandle().age != NO_AGE_TIME;
-    }
+     }
 
-    @Override
-    public void setWillAge(boolean willAge) {
+     @Override
+     public void setWillAge(boolean willAge) {
         this.getHandle().age = willAge ? 0 : NO_AGE_TIME;
-    }
+     }
 
-    @org.jetbrains.annotations.NotNull
-    @Override
-    public net.kyori.adventure.util.TriState getFrictionState() {
+     @org.jetbrains.annotations.NotNull
+     @Override
+     public net.kyori.adventure.util.TriState getFrictionState() {
         return this.getHandle().frictionState;
-    }
+     }
 
-    @Override
-    public void setFrictionState(@org.jetbrains.annotations.NotNull net.kyori.adventure.util.TriState state) {
-        java.util.Objects.requireNonNull(state, "state may not be null");
-        this.getHandle().frictionState = state;
-    }
+     @Override
+     public void setFrictionState(@org.jetbrains.annotations.NotNull net.kyori.adventure.util.TriState state) {
+         Preconditions.checkArgument(state != null, "state may not be null");
+         this.getHandle().frictionState = state;
+     }
 
     @Override
     public int getHealth() {
@@ -125,7 +125,6 @@ public class CraftItem extends CraftEntity implements Item {
             this.getHandle().health = health;
         }
     }
-    // Paper end
 
     @Override
     public void setOwner(UUID uuid) {
@@ -139,63 +138,11 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setThrower(UUID uuid) {
-        this.getHandle().thrower = uuid;
+        this.getHandle().thrower = uuid == null ? null : new EntityReference<>(uuid);
     }
 
     @Override
     public UUID getThrower() {
-        return this.getHandle().thrower;
+        return Optionull.map(this.getHandle().thrower, EntityReference::getUUID);
     }
-
-    @Override
-    public String toString() {
-        return "CraftItem";
-    }
-
-    // Purpur start
-    @Override
-    public void setImmuneToCactus(boolean immuneToCactus) {
-        this.getHandle().immuneToCactus = immuneToCactus;
-    }
-
-    @Override
-    public boolean isImmuneToCactus() {
-        return this.getHandle().immuneToCactus;
-    }
-
-    @Override
-    public void setImmuneToExplosion(boolean immuneToExplosion) {
-        this.getHandle().immuneToExplosion = immuneToExplosion;
-    }
-
-    @Override
-    public boolean isImmuneToExplosion() {
-        return this.getHandle().immuneToExplosion;
-    }
-
-    @Override
-    public void setImmuneToFire(@org.jetbrains.annotations.Nullable Boolean immuneToFire) {
-        this.getHandle().immuneToFire = (immuneToFire != null && immuneToFire);
-    }
-
-    @Override
-    public void setImmuneToFire(boolean immuneToFire) {
-        this.setImmuneToFire((Boolean) immuneToFire);
-    }
-
-    @Override
-    public boolean isImmuneToFire() {
-        return this.getHandle().immuneToFire;
-    }
-
-    @Override
-    public void setImmuneToLightning(boolean immuneToLightning) {
-        this.getHandle().immuneToLightning = immuneToLightning;
-    }
-
-    @Override
-    public boolean isImmuneToLightning() {
-        return this.getHandle().immuneToLightning;
-    }
-    // Purpur end
 }

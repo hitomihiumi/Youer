@@ -44,7 +44,7 @@ public abstract class CookingRecipe<T extends CookingRecipe> implements Recipe, 
      * @param cookingTime The cooking time (in ticks)
      */
     public CookingRecipe(@NotNull NamespacedKey key, @NotNull ItemStack result, @NotNull RecipeChoice input, float experience, int cookingTime) {
-        // Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
+        Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
         this.key = key;
         this.output = new ItemStack(result);
         this.ingredient = input.validate(false).clone(); // Paper
@@ -68,7 +68,9 @@ public abstract class CookingRecipe<T extends CookingRecipe> implements Recipe, 
      * Get the input material.
      *
      * @return The input material.
+     * @deprecated Use {@link #getInputChoice()} instead for more complete data.
      */
+    @Deprecated // Paper
     @NotNull
     public ItemStack getInput() {
         return this.ingredient.getItemStack();

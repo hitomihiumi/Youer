@@ -5,8 +5,8 @@ import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.types.MapType;
 import com.mojang.logging.LogUtils;
-import java.util.UUID;
 import org.slf4j.Logger;
+import java.util.UUID;
 
 public final class V108 {
 
@@ -18,7 +18,7 @@ public final class V108 {
         // Convert String UUID into UUIDMost and UUIDLeast
         MCTypeRegistry.ENTITY.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final String uuidString = data.getString("UUID");
 
                 if (uuidString == null) {

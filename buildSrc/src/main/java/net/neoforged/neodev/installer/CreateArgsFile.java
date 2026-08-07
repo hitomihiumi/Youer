@@ -103,17 +103,13 @@ public abstract class CreateArgsFile extends DefaultTask {
     @TaskAction
     public void createArgsFile() throws IOException {
         var replacements = new HashMap<String, String>();
-        var BRIGADIER_PREFIX = "libraries/com/mojang/brigadier";
         replacements.put("@MODULE_PATH@", getModules().get());
         replacements.put("@MODULES@", "ALL-MODULE-PATH");
         replacements.put("@IGNORE_LIST@", String.join(",", getIgnoreList().get()));
         replacements.put("@PLUGIN_LAYER_LIBRARIES@", "");
         replacements.put("@GAME_LAYER_LIBRARIES@", "");
-        replacements.put("@CLASS_PATH@", resolveClasspath().replaceAll(
-                BRIGADIER_PREFIX + "/[^/]+/brigadier-[^/]+[;:]",
-                ""
-        ));
-        replacements.put("@TASK@", "forgeserver");
+        replacements.put("@CLASS_PATH@", resolveClasspath());
+        replacements.put("@TASK@", "neoforgeserver");
         replacements.put("@FORGE_VERSION@", getNeoForgeVersion().get());
         replacements.put("@FML_VERSION@", getFmlVersion().get());
         replacements.put("@MC_VERSION@", getMinecraftVersion().get());

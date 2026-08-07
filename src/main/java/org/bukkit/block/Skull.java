@@ -1,5 +1,6 @@
 package org.bukkit.block;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
@@ -28,7 +29,7 @@ public interface Skull extends TileState {
      * @return the owner of the skull or null if the skull does not have an owner
      * @deprecated See {@link #getOwningPlayer()}.
      */
-    @Deprecated
+    @Deprecated(since = "1.9.4")
     @Nullable
     public String getOwner();
 
@@ -42,7 +43,7 @@ public interface Skull extends TileState {
      * @return true if the owner was successfully set
      * @deprecated see {@link #setOwningPlayer(org.bukkit.OfflinePlayer)}.
      */
-    @Deprecated
+    @Deprecated(since = "1.9.4")
     @Contract("null -> false")
     public boolean setOwner(@Nullable String name);
 
@@ -82,8 +83,11 @@ public interface Skull extends TileState {
      * may appear as the texture depending on skull type.
      *
      * @return the profile of the owning player
+     *
+     * @deprecated Use {@link #getPlayerProfile()} instead.
      */
     @Nullable
+    @Deprecated // Paper
     PlayerProfile getOwnerProfile();
 
     /**
@@ -97,7 +101,10 @@ public interface Skull extends TileState {
      * @param profile the profile of the owning player
      * @throws IllegalArgumentException if the profile does not contain the
      * necessary information
+     *
+     * @deprecated Use {@link #setPlayerProfile(com.destroystokyo.paper.profile.PlayerProfile)} instead.
      */
+    @Deprecated // Paper
     void setOwnerProfile(@Nullable PlayerProfile profile);
 
     /**
@@ -129,7 +136,7 @@ public interface Skull extends TileState {
      * @return the rotation of the skull
      * @deprecated use {@link BlockData}
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     @NotNull
     public BlockFace getRotation();
 
@@ -140,7 +147,7 @@ public interface Skull extends TileState {
      * @param rotation the rotation of the skull
      * @deprecated use {@link BlockData}
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     public void setRotation(@NotNull BlockFace rotation);
 
     /**
@@ -149,7 +156,7 @@ public interface Skull extends TileState {
      * @return the type of skull
      * @deprecated check {@link Material} instead
      */
-    @Deprecated
+    @Deprecated(since = "1.13", forRemoval = true)
     @NotNull
     public SkullType getSkullType();
 
@@ -159,7 +166,27 @@ public interface Skull extends TileState {
      * @param skullType the type of skull
      * @deprecated check {@link Material} instead
      */
-    @Deprecated
+    @Deprecated(since = "1.13", forRemoval = true)
     @Contract("_ -> fail")
     public void setSkullType(SkullType skullType);
+
+    /**
+     * Get the custom name of skull.
+     * <p>This name is set when placing a skull item that has a custom name.
+     * This name is only carried back to the item when broken for player heads
+     * (skeleton/creeper heads will not retain the name).</p>
+     *
+     * @return Custom name of skull
+     */
+    public @Nullable Component customName();
+
+    /**
+     * Set the custom name of skull.
+     * <p>This name is set when placing a skull item that has a custom name.
+     * This name is only carried back to the item when broken for player heads
+     * (skeleton/creeper heads will not retain the name).</p>
+     *
+     * @param customName Custom name of skull
+     */
+    public void customName(@Nullable Component customName);
 }

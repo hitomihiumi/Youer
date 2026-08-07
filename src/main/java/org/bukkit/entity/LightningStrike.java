@@ -22,7 +22,9 @@ public interface LightningStrike extends Entity {
      * removed. By default this value is between 1 and 3.
      *
      * @return the flashes
+     * @deprecated use {@link #getFlashCount()}
      */
+    @Deprecated // Paper
     public int getFlashes();
 
     /**
@@ -31,7 +33,9 @@ public interface LightningStrike extends Entity {
      * has reduced below 0.
      *
      * @param flashes the flashes
+     * @deprecated use {@link #setFlashCount(int)}
      */
+    @Deprecated // Paper
     public void setFlashes(int flashes);
 
     /**
@@ -84,6 +88,10 @@ public interface LightningStrike extends Entity {
     public void setCausingPlayer(@Nullable Player player);
 
     // Spigot start
+    /**
+     * @deprecated Unsupported api
+     */
+    @Deprecated(forRemoval = true)
     public class Spigot extends Entity.Spigot {
 
         /**
@@ -92,14 +100,18 @@ public interface LightningStrike extends Entity {
          * @return whether the strike is silent.
          * @deprecated sound is now client side and cannot be removed
          */
-        @Deprecated
+        @Deprecated(since = "1.20.4", forRemoval = true)
         public boolean isSilent() {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     }
 
+    /**
+     * @deprecated Unsupported api
+     */
     @NotNull
     @Override
+    @Deprecated(forRemoval = true)
     Spigot spigot();
     // Spigot end
 

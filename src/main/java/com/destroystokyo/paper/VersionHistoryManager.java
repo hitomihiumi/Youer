@@ -14,9 +14,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.bukkit.Bukkit;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.bukkit.Bukkit;
 
 public enum VersionHistoryManager {
     INSTANCE;

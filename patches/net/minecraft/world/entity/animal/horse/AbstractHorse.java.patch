@@ -1,91 +1,6 @@
 --- a/net/minecraft/world/entity/animal/horse/AbstractHorse.java
 +++ b/net/minecraft/world/entity/animal/horse/AbstractHorse.java
-@@ -1,5 +_,7 @@
- package net.minecraft.world.entity.animal.horse;
- 
-+import java.util.Arrays;
-+import java.util.List;
- import java.util.UUID;
- import java.util.function.DoubleSupplier;
- import java.util.function.IntUnaryOperator;
-@@ -78,6 +_,11 @@
- import net.minecraft.world.phys.Vec2;
- import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.ticks.ContainerSingleItem;
-+import org.bukkit.Location;
-+import org.bukkit.craftbukkit.entity.CraftHumanEntity;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.entity.HumanEntity;
-+import org.bukkit.inventory.InventoryHolder;
- 
- public abstract class AbstractHorse extends Animal implements ContainerListener, HasCustomInventoryScreen, OwnableEntity, PlayerRideableJumping, Saddleable {
-     public static final int EQUIPMENT_SLOT_OFFSET = 400;
-@@ -145,8 +_,55 @@
-         public boolean stillValid(Player p_324170_) {
-             return p_324170_.getVehicle() == AbstractHorse.this || p_324170_.canInteractWithEntity(AbstractHorse.this, 4.0);
-         }
-+
-+        // CraftBukkit start - add fields and methods
-+        public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
-+        private int maxStack = MAX_STACK;
-+
-+        @Override
-+        public List<ItemStack> getContents() {
-+            return Arrays.asList(this.getTheItem());
-+        }
-+
-+        @Override
-+        public void onOpen(CraftHumanEntity who) {
-+            transaction.add(who);
-+        }
-+
-+        @Override
-+        public void onClose(CraftHumanEntity who) {
-+            transaction.remove(who);
-+        }
-+
-+        @Override
-+        public List<HumanEntity> getViewers() {
-+            return transaction;
-+        }
-+
-+        @Override
-+        public int getMaxStackSize() {
-+            return Math.max(ContainerSingleItem.super.getMaxStackSize(), maxStack);
-+        }
-+
-+        @Override
-+        public void setMaxStackSize(int size) {
-+            maxStack = size;
-+        }
-+
-+        @Override
-+        public InventoryHolder getOwner() {
-+            return (org.bukkit.entity.AbstractHorse) AbstractHorse.this.getBukkitEntity();
-+        }
-+
-+        @Override
-+        public Location getLocation() {
-+            return AbstractHorse.this.getBukkitEntity().getLocation();
-+        }
-+        // CraftBukkit end
-     };
- 
-+    public int maxDomestication = 100; // CraftBukkit - store max domestication value
-+
-     protected AbstractHorse(EntityType<? extends AbstractHorse> p_30531_, Level p_30532_) {
-         super(p_30531_, p_30532_);
-         this.createInventory();
-@@ -336,7 +_,7 @@
- 
-     public void createInventory() {
-         SimpleContainer simplecontainer = this.inventory;
--        this.inventory = new SimpleContainer(this.getInventorySize());
-+        this.inventory = new SimpleContainer(this.getInventorySize(), (org.bukkit.entity.AbstractHorse) this.getBukkitEntity()); // CraftBukkit
-         if (simplecontainer != null) {
-             simplecontainer.removeListener(this);
-             int i = Math.min(simplecontainer.getContainerSize(), this.inventory.getContainerSize());
-@@ -396,9 +_,9 @@
+@@ -349,9 +_,9 @@
      protected void playStepSound(BlockPos p_30584_, BlockState p_30585_) {
          if (!p_30585_.liquid()) {
              BlockState blockstate = this.level().getBlockState(p_30584_.above());
@@ -97,117 +12,18 @@
              }
  
              if (this.isVehicle() && this.canGallop) {
-@@ -444,11 +_,11 @@
-     }
- 
-     public int getMaxTemper() {
--        return 100;
-+        return this.maxDomestication; // CraftBukkit - return stored max domestication instead of 100
-     }
- 
-     @Override
--    protected float getSoundVolume() {
-+    public float getSoundVolume() {
-         return 0.8F;
-     }
- 
-@@ -516,7 +_,7 @@
-         }
- 
-         if (this.getHealth() < this.getMaxHealth() && f > 0.0F) {
--            this.heal(f);
-+            this.heal(f, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.EATING); // CraftBukkit
-             flag = true;
-         }
- 
-@@ -587,7 +_,7 @@
-         super.aiStep();
-         if (!this.level().isClientSide && this.isAlive()) {
-             if (this.random.nextInt(900) == 0 && this.deathTime == 0) {
--                this.heal(1.0F);
-+                this.heal(1.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.REGEN); // CraftBukkit
-             }
- 
-             if (this.canEatGrass()) {
-@@ -689,6 +_,15 @@
-         }
-     }
- 
-+    // Paper start - Horse API
-+    public void setMouthOpen(boolean open) {
-+        this.setFlag(FLAG_OPEN_MOUTH, open);
-+    }
-+    public boolean isMouthOpen() {
-+        return this.getFlag(FLAG_OPEN_MOUTH);
-+    }
-+    // Paper end - Horse API
-+
-     @Override
-     public InteractionResult mobInteract(Player p_252289_, InteractionHand p_248927_) {
-         if (this.isVehicle() || this.isBaby()) {
-@@ -726,6 +_,11 @@
-         this.setFlag(16, p_30662_);
-     }
- 
-+    // Paper start - Horse API
-+    public void setForceStanding(boolean standing) {
-+        this.setFlag(FLAG_STANDING, standing);
-+    }
-+    // Paper end - Horse API
-     public void setStanding(boolean p_30666_) {
-         if (p_30666_) {
-             this.setEating(false);
-@@ -816,6 +_,7 @@
+@@ -769,6 +_,7 @@
+         Vec3 vec3 = this.getDeltaMovement();
          this.setDeltaMovement(vec3.x, d0, vec3.z);
-         this.setIsJumping(true);
          this.hasImpulse = true;
 +        net.neoforged.neoforge.common.CommonHooks.onLivingJump(this);
          if (p_275435_.z > 0.0) {
              float f = Mth.sin(this.getYRot() * (float) (Math.PI / 180.0));
              float f1 = Mth.cos(this.getYRot() * (float) (Math.PI / 180.0));
-@@ -837,6 +_,7 @@
-         if (this.getOwnerUUID() != null) {
-             p_30589_.putUUID("Owner", this.getOwnerUUID());
-         }
-+        p_30589_.putInt("Bukkit.MaxDomestication", this.maxDomestication); // CraftBukkit
- 
-         if (!this.inventory.getItem(0).isEmpty()) {
-             p_30589_.put("SaddleItem", this.inventory.getItem(0).save(this.registryAccess()));
-@@ -861,6 +_,12 @@
-         if (uuid != null) {
-             this.setOwnerUUID(uuid);
-         }
-+        // CraftBukkit start
-+        if (p_30565_.contains("Bukkit.MaxDomestication")) {
-+            this.maxDomestication = p_30565_.getInt("Bukkit.MaxDomestication");
-+        }
-+        // CraftBukkit end
-+
- 
-         if (p_30565_.contains("SaddleItem", 10)) {
-             ItemStack itemstack = ItemStack.parse(this.registryAccess(), p_30565_.getCompound("SaddleItem")).orElse(ItemStack.EMPTY);
-@@ -960,6 +_,17 @@
- 
-     @Override
-     public void handleStartJump(int p_30574_) {
-+        // CraftBukkit start
-+        float power;
-+        if (p_30574_ >= 90) {
-+            power = 1.0F;
-+        } else {
-+            power = 0.4F + 0.4F * (float) p_30574_ / 90.0F;
-+        }
-+        if (!CraftEventFactory.callHorseJumpEvent(this, power)) {
-+            return;
-+        }
-+        // CraftBukkit end
-         this.allowStandSliding = true;
-         this.standIfPossible();
-         this.playJumpSound();
-@@ -1118,6 +_,11 @@
+@@ -1020,6 +_,11 @@
  
          this.randomizeAttributes(p_30555_.getRandom());
-         return super.finalizeSpawn(p_30555_, p_30556_, p_30557_, p_30558_);
+         return super.finalizeSpawn(p_30555_, p_30556_, p_363523_, p_30558_);
 +    }
 +
 +    // Neo: Inventory getter

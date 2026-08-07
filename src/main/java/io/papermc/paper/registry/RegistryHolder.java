@@ -6,10 +6,7 @@ import io.papermc.paper.registry.legacy.DelayedRegistryEntry;
 import java.util.function.Supplier;
 import org.bukkit.Keyed;
 import org.bukkit.Registry;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
 
-@DefaultQualifier(NonNull.class)
 public interface RegistryHolder<B extends Keyed> {
 
     Registry<B> get();

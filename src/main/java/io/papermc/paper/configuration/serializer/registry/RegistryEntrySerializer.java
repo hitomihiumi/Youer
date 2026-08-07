@@ -1,30 +1,40 @@
 package io.papermc.paper.configuration.serializer.registry;
 
-import com.mohistmc.io.leangen.geantyref.TypeToken;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import io.leangen.geantyref.TypeToken;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Type;
 import java.util.function.Predicate;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.spongepowered.configurate.serialize.ScalarSerializer;
+import org.spongepowered.configurate.serialize.SerializationException;
 
-abstract class RegistryEntrySerializer<T, R> extends ScalarSerializer<T> {
+abstract class RegistryEntrySerializer<T, R> extends ScalarSerializer.Annotated<T> {
 
     private final RegistryAccess registryAccess;
     private final ResourceKey<? extends Registry<R>> registryKey;
     private final boolean omitMinecraftNamespace;
 
-    protected RegistryEntrySerializer(TypeToken<T> type, final RegistryAccess registryAccess, ResourceKey<? extends Registry<R>> registryKey, boolean omitMinecraftNamespace) {
+    protected RegistryEntrySerializer(
+        final TypeToken<T> type,
+        final RegistryAccess registryAccess,
+        final ResourceKey<? extends Registry<R>> registryKey,
+        final boolean omitMinecraftNamespace
+    ) {
         super(type);
         this.registryAccess = registryAccess;
         this.registryKey = registryKey;
         this.omitMinecraftNamespace = omitMinecraftNamespace;
     }
 
-    protected RegistryEntrySerializer(Class<T> type, final RegistryAccess registryAccess, ResourceKey<? extends Registry<R>> registryKey, boolean omitMinecraftNamespace) {
+    protected RegistryEntrySerializer(
+        final Class<T> type,
+        final RegistryAccess registryAccess,
+        final ResourceKey<? extends Registry<R>> registryKey,
+        final boolean omitMinecraftNamespace
+    ) {
         super(type);
         this.registryAccess = registryAccess;
         this.registryKey = registryKey;
@@ -32,20 +42,20 @@ abstract class RegistryEntrySerializer<T, R> extends ScalarSerializer<T> {
     }
 
     protected final Registry<R> registry() {
-        return this.registryAccess.registryOrThrow(this.registryKey);
+        return this.registryAccess.lookupOrThrow(this.registryKey);
     }
 
     protected abstract T convertFromResourceKey(ResourceKey<R> key) throws SerializationException;
 
     @Override
-    public final T deserialize(Type type, Object obj) throws SerializationException {
+    public final T deserialize(final AnnotatedType type, final Object obj) throws SerializationException {
         return this.convertFromResourceKey(this.deserializeKey(obj));
     }
 
     protected abstract ResourceKey<R> convertToResourceKey(T value);
 
     @Override
-    protected final Object serialize(T item, Predicate<Class<?>> typeSupported) {
+    protected final Object serialize(final AnnotatedType type, final T item, final Predicate<Class<?>> typeSupported) {
         final ResourceKey<R> key = this.convertToResourceKey(item);
         if (this.omitMinecraftNamespace && key.location().getNamespace().equals(ResourceLocation.DEFAULT_NAMESPACE)) {
             return key.location().getPath();
@@ -55,7 +65,7 @@ abstract class RegistryEntrySerializer<T, R> extends ScalarSerializer<T> {
     }
 
     private ResourceKey<R> deserializeKey(final Object input) throws SerializationException {
-        final @Nullable ResourceLocation key = ResourceLocation.tryParse(input.toString());
+        final ResourceLocation key = ResourceLocation.tryParse(input.toString());
         if (key == null) {
             throw new SerializationException("Could not create a key from " + input);
         }

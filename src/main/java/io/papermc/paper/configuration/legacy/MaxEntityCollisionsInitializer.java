@@ -1,10 +1,10 @@
 package io.papermc.paper.configuration.legacy;
 
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.NodeResolver;
-import com.mohistmc.org.spongepowered.configurate.util.NamingSchemes;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.spigotmc.SpigotWorldConfig;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.objectmapping.meta.NodeResolver;
+import org.spongepowered.configurate.util.NamingSchemes;
 
 public class MaxEntityCollisionsInitializer implements NodeResolver {
 

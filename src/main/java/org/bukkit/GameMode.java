@@ -53,9 +53,9 @@ public enum GameMode implements net.kyori.adventure.translation.Translatable { /
      * Gets the mode value associated with this GameMode
      *
      * @return An integer value of this gamemode
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     public int getValue() {
         return value;
     }
@@ -66,9 +66,9 @@ public enum GameMode implements net.kyori.adventure.translation.Translatable { /
      * @param value Value to check
      * @return Associative {@link GameMode} with the given value, or null if
      *     it doesn't exist
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     @Nullable
     public static GameMode getByValue(final int value) {
         return BY_ID.get(value);

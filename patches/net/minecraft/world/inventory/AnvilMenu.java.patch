@@ -1,367 +1,76 @@
 --- a/net/minecraft/world/inventory/AnvilMenu.java
 +++ b/net/minecraft/world/inventory/AnvilMenu.java
-@@ -1,25 +_,30 @@
- package net.minecraft.world.inventory;
- 
-+import com.mohistmc.youer.YouerConfig;
- import com.mojang.logging.LogUtils;
- import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
-+import java.util.Iterator;
- import javax.annotation.Nullable;
--import net.minecraft.core.BlockPos;
- import net.minecraft.core.Holder;
- import net.minecraft.core.component.DataComponents;
- import net.minecraft.network.chat.Component;
-+import net.minecraft.network.protocol.game.ClientboundContainerSetDataPacket;
-+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
-+import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.tags.BlockTags;
- import net.minecraft.util.Mth;
- import net.minecraft.util.StringUtil;
- import net.minecraft.world.entity.player.Inventory;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.ItemStack;
--import net.minecraft.world.item.Items;
- import net.minecraft.world.item.enchantment.Enchantment;
- import net.minecraft.world.item.enchantment.EnchantmentHelper;
- import net.minecraft.world.item.enchantment.ItemEnchantments;
--import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.AnvilBlock;
- import net.minecraft.world.level.block.state.BlockState;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryAnvil;
-+import org.bukkit.craftbukkit.inventory.view.CraftAnvilView;
- import org.slf4j.Logger;
- 
- public class AnvilMenu extends ItemCombinerMenu {
-@@ -44,6 +_,38 @@
-     private static final int ADDITIONAL_SLOT_X_PLACEMENT = 76;
-     private static final int RESULT_SLOT_X_PLACEMENT = 134;
-     private static final int SLOT_Y_PLACEMENT = 47;
-+    // CraftBukkit start
-+    public static final int DEFAULT_DENIED_COST = -1;
-+    public int maximumRepairCost = Math.min(Short.MAX_VALUE, Math.max(41, YouerConfig.maximumRepairCost));
-+    private CraftAnvilView bukkitEntity;
-+    // CraftBukkit end
-+    public boolean bypassEnchantmentLevelRestriction = false; // Paper - bypass anvil level restrictions
-+    // Purpur start - Anvil API
-+    public boolean bypassCost = false;
-+    public boolean canDoUnsafeEnchants = false;
-+    // Purpur end - Anvil API
-+
-+    private int getMaxMumRepairCost(int value) {
-+        if (value != 40) {
-+            return value;
-+        } else {
-+            return this.maximumRepairCost;
-+        }
-+    }
-+
-+    @Override
-+    public CraftAnvilView getBukkitView() {
-+        if (bukkitEntity != null) {
-+            return bukkitEntity;
-+        }
-+
-+        CraftInventoryAnvil inventory = new CraftInventoryAnvil(
-+                access.getLocation(), this.inputSlots, this.resultSlots);
-+        bukkitEntity = new CraftAnvilView(this.player.getBukkitEntity(), inventory, this);
-+        bukkitEntity.updateFromLegacy(inventory);
-+        return bukkitEntity;
-+    }
-+    // CraftBukkit end
- 
-     public AnvilMenu(int p_39005_, Inventory p_39006_) {
-         this(p_39005_, p_39006_, ContainerLevelAccess.NULL);
-@@ -70,15 +_,26 @@
- 
-     @Override
-     protected boolean mayPickup(Player p_39023_, boolean p_39024_) {
--        return (p_39023_.hasInfiniteMaterials() || p_39023_.experienceLevel >= this.cost.get()) && this.cost.get() > 0;
-+        return (p_39023_.hasInfiniteMaterials() || p_39023_.experienceLevel >= this.cost.get()) && (this.bypassCost || this.cost.get() > AnvilMenu.DEFAULT_DENIED_COST) && p_39024_; // CraftBukkit - allow cost 0 like a free item
-     }
+@@ -76,6 +_,16 @@
  
      @Override
      protected void onTake(Player p_150474_, ItemStack p_150475_) {
-+        // Purpur start - Anvil API
-+        ItemStack purpur$itemstack = this.activeQuickItem != null ? this.activeQuickItem : p_150475_;
-+        if (org.purpurmc.purpur.event.inventory.AnvilTakeResultEvent.getHandlerList().getRegisteredListeners().length > 0) new org.purpurmc.purpur.event.inventory.AnvilTakeResultEvent(
-+                p_150474_.getBukkitEntity(),
-+                getBukkitView(),
-+                org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(purpur$itemstack)
-+        ).callEvent();
-+        // Purpur end - Anvil API
-         if (!p_150474_.getAbilities().instabuild) {
-+            if (this.bypassCost) ((ServerPlayer) p_150474_).lastSentExp = -1; else // Purpur - Anvil API
++        // Neo: Fire the AnvilCraftEvent.Pre here, before any changes are made to the anvil or the contained items.
++        // If a user cancels the event, we presume they are handling any of the below logic themselves.
++        var event = net.neoforged.neoforge.common.CommonHooks.fireAnvilCraftPre(this, p_150474_, p_150475_, this.inputSlots.getItem(0), this.inputSlots.getItem(1));
++        if (event.isCanceled()) {
++            return;
++        }
++
++        ItemStack leftInputSnapshot = this.inputSlots.getItem(0).copy();
++        ItemStack rightInputSnapshot = this.inputSlots.getItem(1).copy();
++
+         if (!p_150474_.hasInfiniteMaterials()) {
              p_150474_.giveExperienceLevels(-this.cost.get());
          }
- 
-+        float breakChance = net.neoforged.neoforge.common.CommonHooks.onAnvilRepair(p_150474_, p_150475_, AnvilMenu.this.inputSlots.getItem(0), AnvilMenu.this.inputSlots.getItem(1));
+@@ -115,10 +_,30 @@
+                 p_150479_.levelEvent(1030, p_150480_, 0);
+             }
+         });
 +
-         this.inputSlots.setItem(0, ItemStack.EMPTY);
-         if (this.repairItemCountCost > 0) {
-             ItemStack itemstack = this.inputSlots.getItem(1);
-@@ -92,11 +_,21 @@
-             this.inputSlots.setItem(1, ItemStack.EMPTY);
-         }
- 
--        this.cost.set(0);
-+        this.cost.set(DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
-         this.access.execute((p_150479_, p_150480_) -> {
-             BlockState blockstate = p_150479_.getBlockState(p_150480_);
--            if (!p_150474_.hasInfiniteMaterials() && blockstate.is(BlockTags.ANVIL) && p_150474_.getRandom().nextFloat() < 0.12F) {
-+            if (!p_150474_.getAbilities().instabuild && blockstate.is(BlockTags.ANVIL) && p_150474_.getRandom().nextFloat() < breakChance) {
-                 BlockState blockstate1 = AnvilBlock.damage(blockstate);
-+                // Paper start - AnvilDamageEvent
-+                com.destroystokyo.paper.event.block.AnvilDamagedEvent event = new com.destroystokyo.paper.event.block.AnvilDamagedEvent(getBukkitView(), blockstate1 != null ? org.bukkit.craftbukkit.block.data.CraftBlockData.fromData(blockstate1) : null);
-+                if (!event.callEvent()) {
-+                    return;
-+                } else if (event.getDamageState() == com.destroystokyo.paper.event.block.AnvilDamagedEvent.DamageState.BROKEN) {
-+                    blockstate1 = null;
-+                } else {
-+                    blockstate1 = ((org.bukkit.craftbukkit.block.data.CraftBlockData) event.getDamageState().getMaterial().createBlockData()).getState().setValue(AnvilBlock.FACING, blockstate.getValue(AnvilBlock.FACING));
-+                }
-+                // Paper end - AnvilDamageEvent
-                 if (blockstate1 == null) {
-                     p_150479_.removeBlock(p_150480_, false);
-                     p_150479_.levelEvent(1029, p_150480_, 0);
-@@ -112,25 +_,36 @@
++        // Neo: Fire post after all logic has taken place. For ease of use, we record the original input stacks and pass them to this method.
++        // The modified stacks are available through the menu.
++        net.neoforged.neoforge.common.CommonHooks.fireAnvilCraftPost(this, p_150474_, p_150475_, leftInputSnapshot, rightInputSnapshot);
+     }
  
      @Override
-     public void createResult() {
-+        // Purpur start - Anvil API
-+        this.bypassCost = false;
-+        this.canDoUnsafeEnchants = false;
-+        if (org.purpurmc.purpur.event.inventory.AnvilUpdateResultEvent.getHandlerList().getRegisteredListeners().length > 0) new org.purpurmc.purpur.event.inventory.AnvilUpdateResultEvent(getBukkitView()).callEvent();
-+        // Purpur end - Anvil API
-         ItemStack itemstack = this.inputSlots.getItem(0);
-         this.cost.set(1);
-         int i = 0;
-         long j = 0L;
-         int k = 0;
--        if (!itemstack.isEmpty() && EnchantmentHelper.canStoreEnchantments(itemstack)) {
-+        if (!itemstack.isEmpty()) {  // don't fire the event if the left input slot is empty, because anvil shouldn't have recipes with an empty left slot
-+            if (!net.neoforged.neoforge.common.CommonHooks.onAnvilChange(this, itemstack, this.inputSlots.getItem(1), resultSlots, itemName, j, this.player)) {
-+                return;  // event is canceled or overrides the output item
-+            }
-+        }
-+        if (!itemstack.isEmpty() && this.canDoUnsafeEnchants || EnchantmentHelper.canStoreEnchantments(itemstack)) {
-             ItemStack itemstack1 = itemstack.copy();
-             ItemStack itemstack2 = this.inputSlots.getItem(1);
-             ItemEnchantments.Mutable itemenchantments$mutable = new ItemEnchantments.Mutable(EnchantmentHelper.getEnchantmentsForCrafting(itemstack1));
-             j += (long)itemstack.getOrDefault(DataComponents.REPAIR_COST, Integer.valueOf(0)).intValue()
-                 + (long)itemstack2.getOrDefault(DataComponents.REPAIR_COST, Integer.valueOf(0)).intValue();
-             this.repairItemCountCost = 0;
-+            boolean flag = false;
-             if (!itemstack2.isEmpty()) {
--                boolean flag = itemstack2.has(DataComponents.STORED_ENCHANTMENTS);
-+                flag = itemstack2.has(DataComponents.STORED_ENCHANTMENTS);
-                 if (itemstack1.isDamageableItem() && itemstack1.getItem().isValidRepairItem(itemstack, itemstack2)) {
-                     int l2 = Math.min(itemstack1.getDamageValue(), itemstack1.getMaxDamage() / 4);
-                     if (l2 <= 0) {
--                        this.resultSlots.setItem(0, ItemStack.EMPTY);
--                        this.cost.set(0);
-+                        CraftEventFactory.callPrepareAnvilEvent(getBukkitView(), ItemStack.EMPTY); // CraftBukkit
-+                        this.cost.set(DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
-                         return;
-                     }
- 
-@@ -145,8 +_,9 @@
-                     this.repairItemCountCost = j3;
-                 } else {
-                     if (!flag && (!itemstack1.is(itemstack2.getItem()) || !itemstack1.isDamageableItem())) {
--                        this.resultSlots.setItem(0, ItemStack.EMPTY);
--                        this.cost.set(0);
-+                        CraftEventFactory.callPrepareAnvilEvent(getBukkitView(), ItemStack.EMPTY); // CraftBukkit
-+                        this.cost.set(DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
+-    public void createResult() {
++    public final void createResult() {
++        // Neo: Override the real createResult() method to invoke the vanilla logic, and then call the event hook.
++        // Since the vanilla createResult() has multiple returns, we need to wrap it. The choices are this, or pack it in a lambda.
++        this.createResultInternal();
++        ItemStack leftInput = this.inputSlots.getItem(0);
++        ItemStack rightInput = this.inputSlots.getItem(1);
++        net.neoforged.neoforge.common.CommonHooks.onAnvilUpdate(this, leftInput, rightInput, resultSlots, itemName, this.player);
++    }
 +
-                         return;
-                     }
- 
-@@ -176,23 +_,38 @@
++    /**
++     * Neo: This is the original createResult() method, which is called by the above method ({@link #createResult()}.
++     * <p>
++     * If you would normally override {@link #createResult()}, you should override this method instead.
++     *
++     * @implNote This replacement exists so we can fire the AnvilUpdateEvent with the vanilla result, despite the multiple returns in the original method.
++     */
++    protected void createResultInternal() {
+         ItemStack itemstack = this.inputSlots.getItem(0);
+         this.onlyRenaming = false;
+         this.cost.set(1);
+@@ -183,8 +_,10 @@
                          int j2 = entry.getIntValue();
                          j2 = i2 == j2 ? j2 + 1 : Math.max(j2, i2);
                          Enchantment enchantment = holder.value();
 -                        boolean flag1 = enchantment.canEnchant(itemstack);
--                        if (this.player.getAbilities().instabuild || itemstack.is(Items.ENCHANTED_BOOK)) {
+-                        if (this.player.hasInfiniteMaterials() || itemstack.is(Items.ENCHANTED_BOOK)) {
 +                        // Neo: Respect IItemExtension#supportsEnchantment - we also delegate the logic for Enchanted Books to this method.
 +                        // Though we still allow creative players to combine any item with any enchantment in the anvil here.
-+                        // Purpur start - Config to allow unsafe enchants
-+                        boolean flag1 = this.canDoUnsafeEnchants || org.purpurmc.purpur.PurpurConfig.allowInapplicableEnchants || itemstack.supportsEnchantment(holder);
-+                        boolean flag4 = true; // whether two incompatible enchantments can be applied on a single item
-+                        // Purpur end - Config to allow unsafe enchants
++                        boolean flag1 = itemstack.supportsEnchantment(holder);
 +                        if (this.player.getAbilities().instabuild) {
                              flag1 = true;
                          }
  
--                        for (Holder<Enchantment> holder1 : itemenchantments$mutable.keySet()) {
-+                        Iterator iterator1 = itemenchantments$mutable.keySet().iterator();
-+
-+                        while (iterator1.hasNext()) {
-+                            Holder<Enchantment> holder1 = (Holder) iterator1.next();
-+
-                             if (!holder1.equals(holder) && !Enchantment.areCompatible(holder, holder1)) {
--                                flag1 = false;
-+                                flag4 = this.canDoUnsafeEnchants || org.purpurmc.purpur.PurpurConfig.allowIncompatibleEnchants; // Purpur - Anvil API // Purpur - flag3 -> flag4 - Config to allow unsafe enchants
-+                                // Purpur start - Config to allow unsafe enchants
-+                                if (!flag4 && org.purpurmc.purpur.PurpurConfig.replaceIncompatibleEnchants) {
-+                                    iterator1.remove(); // replace current enchant with the incompatible one trying to be applied
-+                                    flag4 = true;
-+                                }
-+                                // Purpur end - Config to allow unsafe enchants
-                                 i++;
-                             }
-                         }
- 
--                        if (!flag1) {
-+                        if (!flag1 || !flag4) { // Purpur - Config to allow unsafe enchants
-                             flag3 = true;
-                         } else {
-                             flag2 = true;
--                            if (j2 > enchantment.getMaxLevel()) {
-+                            if (!org.purpurmc.purpur.PurpurConfig.allowHigherEnchantsLevels && j2 > enchantment.getMaxLevel() && !this.bypassEnchantmentLevelRestriction) { // Paper - bypass anvil level restrictions
-                                 j2 = enchantment.getMaxLevel();
-                             }
- 
-@@ -210,8 +_,8 @@
-                     }
- 
-                     if (flag3 && !flag2) {
--                        this.resultSlots.setItem(0, ItemStack.EMPTY);
--                        this.cost.set(0);
-+                        CraftEventFactory.callPrepareAnvilEvent(getBukkitView(), ItemStack.EMPTY); // CraftBukkit
-+                        this.cost.set(DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
-                         return;
-                     }
-                 }
-@@ -221,6 +_,54 @@
-                 if (!this.itemName.equals(itemstack.getHoverName().getString())) {
-                     k = 1;
-                     i += k;
-+                    // Purpur start
-+                    if (this.player != null) {
-+                        org.bukkit.craftbukkit.entity.CraftHumanEntity player = this.player.getBukkitEntity();
-+                        String name = this.itemName;
-+                        boolean removeItalics = false;
-+                        if (player.hasPermission("purpur.anvil.remove_italics")) {
-+                            if (name.startsWith("&r")) {
-+                                name = name.substring(2);
-+                                removeItalics = true;
-+                            } else if (name.startsWith("<r>")) {
-+                                name = name.substring(3);
-+                                removeItalics = true;
-+                            } else if (name.startsWith("<reset>")) {
-+                                name = name.substring(7);
-+                                removeItalics = true;
-+                            }
-+                        }
-+                        if (this.player.level().purpurConfig.anvilAllowColors) {
-+                            if (player.hasPermission("purpur.anvil.color")) {
-+                                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(?i)&([0-9a-fr])").matcher(name);
-+                                while (matcher.find()) {
-+                                    String match = matcher.group(1);
-+                                    name = name.replace("&" + match, "\u00a7" + match.toLowerCase(java.util.Locale.ROOT));
-+                                }
-+                                //name = name.replaceAll("(?i)&([0-9a-fr])", "\u00a7$1");
-+                            }
-+                            if (player.hasPermission("purpur.anvil.format")) {
-+                                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(?i)&([k-or])").matcher(name);
-+                                while (matcher.find()) {
-+                                    String match = matcher.group(1);
-+                                    name = name.replace("&" + match, "\u00a7" + match.toLowerCase(java.util.Locale.ROOT));
-+                                }
-+                                //name = name.replaceAll("(?i)&([l-or])", "\u00a7$1");
-+                            }
-+                        }
-+                        net.kyori.adventure.text.Component component;
-+                        if (this.player.level().purpurConfig.anvilColorsUseMiniMessage && player.hasPermission("purpur.anvil.minimessage")) {
-+                            component = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(org.bukkit.ChatColor.stripColor(name));
-+                        } else {
-+                            component = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(name);
-+                        }
-+                        if (removeItalics) {
-+                            component = component.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false);
-+                        }
-+                        itemstack1.set(DataComponents.CUSTOM_NAME, io.papermc.paper.adventure.PaperAdventure.asVanilla(component));
-+                    }
-+                    else
-+                    // Purpur end
-                     itemstack1.set(DataComponents.CUSTOM_NAME, Component.literal(this.itemName));
-                 }
-             } else if (itemstack.has(DataComponents.CUSTOM_NAME)) {
-@@ -228,6 +_,7 @@
-                 i += k;
-                 itemstack1.remove(DataComponents.CUSTOM_NAME);
-             }
-+            if (flag && !itemstack1.isBookEnchantable(itemstack2)) itemstack1 = ItemStack.EMPTY;
- 
-             int k2 = (int)Mth.clamp(j + (long)i, 0L, 2147483647L);
-             this.cost.set(k2);
-@@ -235,11 +_,17 @@
-                 itemstack1 = ItemStack.EMPTY;
-             }
- 
--            if (k == i && k > 0 && this.cost.get() >= 40) {
--                this.cost.set(39);
--            }
--
--            if (this.cost.get() >= 40 && !this.player.getAbilities().instabuild) {
-+            if (k == i && k > 0 && this.cost.get() >= getMaxMumRepairCost(40)) {
-+                this.cost.set(getMaxMumRepairCost(40) -1);
-+            }
-+
-+            // Purpur start - Anvil API
-+            if (this.bypassCost && this.cost.get() >= getMaxMumRepairCost(40)) {
-+                this.cost.set(getMaxMumRepairCost(40) -1);
-+            }
-+            // Purpur end - Anvil API
-+
-+            if (this.cost.get() >= getMaxMumRepairCost(40) && !this.player.getAbilities().instabuild) {
-                 itemstack1 = ItemStack.EMPTY;
-             }
- 
-@@ -257,11 +_,20 @@
-                 EnchantmentHelper.setEnchantments(itemstack1, itemenchantments$mutable.toImmutable());
-             }
- 
--            this.resultSlots.setItem(0, itemstack1);
-+            CraftEventFactory.callPrepareAnvilEvent(getBukkitView(), itemstack1); // CraftBukkit
-+            sendAllDataToRemote(); // CraftBukkit - SPIGOT-6686: Always send completed inventory to stay in sync with client
-             this.broadcastChanges();
-+
-+            // Purpur start - Anvil API
-+            if ((this.canDoUnsafeEnchants || org.purpurmc.purpur.PurpurConfig.allowInapplicableEnchants || org.purpurmc.purpur.PurpurConfig.allowIncompatibleEnchants) && itemstack1 != ItemStack.EMPTY) { // Purpur - Config to allow unsafe enchants
-+                ((ServerPlayer) this.player).connection.send(new ClientboundContainerSetSlotPacket(this.containerId, this.incrementStateId(), 2, itemstack1));
-+                ((ServerPlayer) this.player).connection.send(new ClientboundContainerSetDataPacket(this.containerId, 0, this.cost.get()));
-+            }
-+            // Purpur end - Anvil API
-         } else {
--            this.resultSlots.setItem(0, ItemStack.EMPTY);
--            this.cost.set(0);
-+            CraftEventFactory.callPrepareAnvilEvent(getBukkitView(), ItemStack.EMPTY); // CraftBukkit
-+            this.cost.set(DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
-+
-         }
-     }
- 
-@@ -283,6 +_,7 @@
-             }
- 
-             this.createResult();
-+            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, RESULT_SLOT); // Paper - Add PrepareResultEvent
-             return true;
-         } else {
-             return false;
-@@ -297,5 +_,12 @@
- 
+@@ -309,4 +_,11 @@
      public int getCost() {
          return this.cost.get();
-+    }
+     }
 +
 +    /**
-+     * Neo: Sets the cost. Will be clamped to an integer.
++     * Neo: Sets the cost. Negative values are clamped to zero.
 +     */
-+    public void setMaximumCost(long value) {
-+        this.cost.set((int)Mth.clamp(value, 0L, Integer.MAX_VALUE));
-     }
++    public void setCost(int value) {
++        this.cost.set(Math.max(0, value));
++     }
  }

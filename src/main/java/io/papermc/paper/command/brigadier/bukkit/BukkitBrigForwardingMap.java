@@ -20,6 +20,7 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.bukkit.command.Command;
+import org.bukkit.craftbukkit.command.VanillaCommandWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,7 +48,7 @@ public class BukkitBrigForwardingMap extends HashMap<String, Command> {
 
     @Override
     public boolean isEmpty() {
-        return this.size() != 0;
+        return this.size() == 0;
     }
 
     @Override
@@ -96,7 +97,7 @@ public class BukkitBrigForwardingMap extends HashMap<String, Command> {
     public Command put(String key, Command value) {
         Command old = this.get(key);
         this.getDispatcher().getRoot().removeCommand(key); // Override previous command
-        if (value instanceof PluginVanillaCommandWrapper wrapper && wrapper.getName().equals(key)) {
+        if (value instanceof VanillaCommandWrapper wrapper && wrapper.getName().equals(key)) {
             // Don't break when some plugin tries to remove and add back a plugin command registered with modern API...
             this.getDispatcher().getRoot().addChild((CommandNode) wrapper.vanillaCommand);
         } else {
@@ -302,12 +303,12 @@ public class BukkitBrigForwardingMap extends HashMap<String, Command> {
             this.entryStream().forEach(action);
         }
 
-        private Stream<Entry<String, Command>> entryStream() {
+        private Stream<Map.Entry<String, Command>> entryStream() {
             return BukkitBrigForwardingMap.this.getDispatcher().getRoot().getChildren().stream().map(BukkitBrigForwardingMap.this::nodeToEntry);
         }
     }
 
-    private Entry<String, Command> nodeToEntry(CommandNode<?> node) {
+    private Map.Entry<String, Command> nodeToEntry(CommandNode<?> node) {
         if (node instanceof BukkitCommandNode bukkitCommandNode) {
             return this.mutableEntry(bukkitCommandNode.getName(), bukkitCommandNode.getBukkitCommand());
         } else {
@@ -316,7 +317,7 @@ public class BukkitBrigForwardingMap extends HashMap<String, Command> {
         }
     }
 
-    private Entry<String, Command> mutableEntry(String key, Command command) {
+    private Map.Entry<String, Command> mutableEntry(String key, Command command) {
         return new Entry<>() {
             @Override
             public String getKey() {

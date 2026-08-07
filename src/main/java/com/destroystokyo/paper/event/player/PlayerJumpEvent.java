@@ -37,7 +37,7 @@ public class PlayerJumpEvent extends PlayerEvent implements Cancellable {
     /**
      * {@inheritDoc}
      * <p>
-     * If a jump event is cancelled, the player will be moved or
+     * If this event is cancelled, the player will be moved or
      * teleported back to the Location as defined by {@link #getFrom()}. This will not
      * fire an event
      *
@@ -51,7 +51,7 @@ public class PlayerJumpEvent extends PlayerEvent implements Cancellable {
     /**
      * {@inheritDoc}
      * <p>
-     * If a jump event is cancelled, the player will be moved or
+     * If this event is cancelled, the player will be moved or
      * teleported back to the Location as defined by {@link #getFrom()}. This will not
      * fire an event
      *
@@ -79,7 +79,7 @@ public class PlayerJumpEvent extends PlayerEvent implements Cancellable {
     public void setFrom(final Location from) {
         Preconditions.checkArgument(from != null, "Cannot use null from location!");
         Preconditions.checkArgument(from.getWorld() != null, "Cannot use from location with null world!");
-        this.from = from;
+        this.from = from.clone();
     }
 
     /**

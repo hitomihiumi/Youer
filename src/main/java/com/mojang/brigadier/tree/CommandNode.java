@@ -35,8 +35,10 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     private final boolean forks;
     private Command<S> command;
     public CommandNode<CommandSourceStack> clientNode; // Paper - Brigadier API
-    public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> unwrappedCached = null; // Paper - Brigadier Command API
-    public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> wrappedCached = null; // Paper - Brigadier Command API
+    // Youer: temporarily disabled for M1 (plain-NeoForge toolchain milestone) — io.papermc.paper is
+    // staged away until M3. Restore alongside the rest of the Paper command-brigadier bridge.
+    // public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> unwrappedCached = null; // Paper - Brigadier Command API
+    // public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> wrappedCached = null; // Paper - Brigadier Command API
     // CraftBukkit start
     public void removeCommand(String name) {
         this.children.remove(name);
@@ -74,15 +76,18 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     }
 
     // CraftBukkit start
+    // Youer: temporarily disabled for M1 (plain-NeoForge toolchain milestone) — CommandSourceStack.
+    // currentCommand is a CraftBukkit/Paper-injected field, not present in NeoForge's own patch set
+    // until the merged Bukkit patches are restored in M3.
     public synchronized boolean canUse(final S source) {
-        if (source instanceof CommandSourceStack) {
-            try {
-                ((CommandSourceStack) source).currentCommand.put(Thread.currentThread(), this); // Paper - Thread Safe Vanilla Command permission checking
-                return this.requirement.test(source);
-            } finally {
-                ((CommandSourceStack) source).currentCommand.remove(Thread.currentThread()); // Paper - Thread Safe Vanilla Command permission checking
-            }
-        }
+        // if (source instanceof CommandSourceStack) {
+        //     try {
+        //         ((CommandSourceStack) source).currentCommand.put(Thread.currentThread(), this); // Paper - Thread Safe Vanilla Command permission checking
+        //         return this.requirement.test(source);
+        //     } finally {
+        //         ((CommandSourceStack) source).currentCommand.remove(Thread.currentThread()); // Paper - Thread Safe Vanilla Command permission checking
+        //     }
+        // }
         // CraftBukkit end
         return this.requirement.test(source);
     }
@@ -193,7 +198,9 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
                     literal = this.literals.get("minecraft:" + text);
                 }
             } else if (source instanceof CommandSourceStack css && css.source instanceof net.minecraft.world.level.BaseCommandBlock) {
-                if (css.getServer().server.getCommandBlockOverride(text) && !text.contains(":")) {
+                // Youer: `.server` is the CraftBukkit bridge field on MinecraftServer, not present until
+                // M3. Temporarily treat as "no override" for M1 (plain-NeoForge toolchain milestone).
+                if (false && !text.contains(":")) {
                     literal = this.literals.get("minecraft:" + text);
                 }
             }

@@ -1,70 +1,24 @@
 --- a/net/minecraft/world/entity/monster/piglin/Piglin.java
 +++ b/net/minecraft/world/entity/monster/piglin/Piglin.java
-@@ -2,7 +_,9 @@
- 
- import com.google.common.collect.ImmutableList;
- import com.mojang.serialization.Dynamic;
-+import java.util.HashSet;
- import java.util.List;
-+import java.util.Set;
- import javax.annotation.Nullable;
- import net.minecraft.core.BlockPos;
- import net.minecraft.nbt.CompoundTag;
-@@ -42,6 +_,7 @@
- import net.minecraft.world.entity.monster.Monster;
- import net.minecraft.world.entity.npc.InventoryCarrier;
- import net.minecraft.world.entity.player.Player;
-+import net.minecraft.world.item.Item;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.Items;
- import net.minecraft.world.item.ProjectileWeaponItem;
-@@ -116,6 +_,10 @@
-         MemoryModuleType.ATE_RECENTLY,
-         MemoryModuleType.NEAREST_REPELLENT
-     );
-+    // CraftBukkit start - Custom bartering and interest list
-+    public Set<Item> allowedBarterItems = new HashSet<>();
-+    public Set<Item> interestItems = new HashSet<>();
-+    // CraftBukkit end
- 
-     public Piglin(EntityType<? extends AbstractPiglin> p_34683_, Level p_34684_) {
-         super(p_34683_, p_34684_);
-@@ -134,6 +_,14 @@
-         }
- 
-         this.writeInventoryToTag(p_34751_, this.registryAccess());
-+        // CraftBukkit start
-+        net.minecraft.nbt.ListTag barterList = new net.minecraft.nbt.ListTag();
-+        allowedBarterItems.stream().map(net.minecraft.core.registries.BuiltInRegistries.ITEM::getKey).map(ResourceLocation::toString).map(net.minecraft.nbt.StringTag::valueOf).forEach(barterList::add);
-+        p_34751_.put("Bukkit.BarterList", barterList);
-+        net.minecraft.nbt.ListTag interestList = new net.minecraft.nbt.ListTag();
-+        interestItems.stream().map(net.minecraft.core.registries.BuiltInRegistries.ITEM::getKey).map(ResourceLocation::toString).map(net.minecraft.nbt.StringTag::valueOf).forEach(interestList::add);
-+        p_34751_.put("Bukkit.InterestList", interestList);
-+        // CraftBukkit end
-     }
- 
-     @Override
-@@ -142,6 +_,10 @@
-         this.setBaby(p_34725_.getBoolean("IsBaby"));
-         this.setCannotHunt(p_34725_.getBoolean("CannotHunt"));
-         this.readInventoryFromTag(p_34725_, this.registryAccess());
-+        // CraftBukkit start
-+        this.allowedBarterItems = p_34725_.getList("Bukkit.BarterList", 8).stream().map(net.minecraft.nbt.Tag::getAsString).map(ResourceLocation::tryParse).map(net.minecraft.core.registries.BuiltInRegistries.ITEM::get).collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
-+        this.interestItems = p_34725_.getList("Bukkit.InterestList", 8).stream().map(net.minecraft.nbt.Tag::getAsString).map(ResourceLocation::tryParse).map(net.minecraft.core.registries.BuiltInRegistries.ITEM::get).collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
-+        // CraftBukkit end
-     }
- 
-     @VisibleForDebug
-@@ -349,7 +_,7 @@
+@@ -361,7 +_,7 @@
          } else if (this.isChargingCrossbow()) {
              return PiglinArmPose.CROSSBOW_CHARGE;
          } else {
--            return this.isAggressive() && this.isHolding(Items.CROSSBOW) ? PiglinArmPose.CROSSBOW_HOLD : PiglinArmPose.DEFAULT;
-+            return this.isAggressive() && this.isHolding(is -> is.getItem() instanceof net.minecraft.world.item.CrossbowItem) ? PiglinArmPose.CROSSBOW_HOLD : PiglinArmPose.DEFAULT;
+-            return this.isHolding(Items.CROSSBOW) && CrossbowItem.isCharged(this.getWeaponItem()) ? PiglinArmPose.CROSSBOW_HOLD : PiglinArmPose.DEFAULT;
++            return this.isHolding(is -> is.getItem() instanceof net.minecraft.world.item.CrossbowItem) && CrossbowItem.isCharged(this.getWeaponItem()) ? PiglinArmPose.CROSSBOW_HOLD : PiglinArmPose.DEFAULT;
          }
      }
  
 @@ -390,7 +_,7 @@
+ 
+     @Override
+     public boolean canFireProjectileWeapon(ProjectileWeaponItem p_34715_) {
+-        return p_34715_ == Items.CROSSBOW;
++        return p_34715_.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Items.PIGLIN_USABLE_CROSSBOWS);
+     }
+ 
+     protected void holdInMainHand(ItemStack p_34784_) {
+@@ -398,7 +_,7 @@
      }
  
      protected void holdInOffHand(ItemStack p_34786_) {
@@ -73,32 +27,12 @@
              this.setItemSlot(EquipmentSlot.OFFHAND, p_34786_);
              this.setGuaranteedDrop(EquipmentSlot.OFFHAND);
          } else {
-@@ -400,7 +_,7 @@
+@@ -408,7 +_,7 @@
  
      @Override
-     public boolean wantsToPickUp(ItemStack p_34777_) {
--        return this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);
-+        return net.neoforged.neoforge.event.EventHooks.canEntityGrief(this.level(), this) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);
+     public boolean wantsToPickUp(ServerLevel p_376232_, ItemStack p_34777_) {
+-        return p_376232_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);
++        return net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_376232_, this) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);
      }
  
      protected boolean canReplaceCurrentItem(ItemStack p_34788_) {
-@@ -414,8 +_,8 @@
-         if (EnchantmentHelper.has(p_34713_, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE)) {
-             return false;
-         } else {
--            boolean flag = PiglinAi.isLovedItem(p_34712_) || p_34712_.is(Items.CROSSBOW);
--            boolean flag1 = PiglinAi.isLovedItem(p_34713_) || p_34713_.is(Items.CROSSBOW);
-+            boolean flag = PiglinAi.isLovedItem(p_34712_, this) || p_34712_.is(Items.CROSSBOW); // CraftBukkit
-+            boolean flag1 = PiglinAi.isLovedItem(p_34713_, this) || p_34713_.is(Items.CROSSBOW); // CraftBukkit
-             if (flag && !flag1) {
-                 return true;
-             } else if (!flag && flag1) {
-@@ -457,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.PIGLIN_DEATH;
-     }
- 

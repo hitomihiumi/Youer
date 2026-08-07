@@ -1,11 +1,12 @@
 package io.papermc.paper.commands;
 
-import com.mohistmc.youer.api.ColorAPI;
 import io.papermc.paper.adventure.PaperAdventure;
+import java.util.UUID;
 import java.util.function.Consumer;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerLevel;
@@ -31,7 +32,7 @@ public final class FeedbackForwardingSender extends ServerCommandSender {
 
     @Override
     public void sendMessage(final String message) {
-        this.sendMessage(ColorAPI.adventure(message));
+        this.sendMessage(LegacyComponentSerializer.legacySection().deserialize(message));
     }
 
     @Override

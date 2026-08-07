@@ -1,8 +1,11 @@
 package org.bukkit.command;
 
 import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.regex.Matcher; // Paper
+import java.util.regex.Pattern; // Paper
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 
@@ -11,6 +14,7 @@ public class FormattedCommandAlias extends Command {
 
     public FormattedCommandAlias(@NotNull String alias, @NotNull String[] formatStrings) {
         super(alias);
+        timings = co.aikar.timings.TimingsManager.getCommandTiming("minecraft", this); // Spigot
         this.formatStrings = formatStrings;
     }
 
@@ -25,7 +29,7 @@ public class FormattedCommandAlias extends Command {
                 if (throwable instanceof IllegalArgumentException) {
                     sender.sendMessage(throwable.getMessage());
                 } else {
-                    sender.sendMessage(org.bukkit.ChatColor.RED + "An internal error occurred while attempting to perform this command");
+                    sender.sendMessage(Component.text("An internal error occurred while attempting to perform this command", NamedTextColor.RED));
                 }
                 return false;
             }
@@ -117,6 +121,10 @@ public class FormattedCommandAlias extends Command {
 
         return formatString.trim(); // Paper - Causes an extra space at the end, breaks with brig commands
     }
+
+    @NotNull
+    @Override // Paper
+    public String getTimingName() {return "Command Forwarder - " + super.getTimingName();} // Paper
 
     private static boolean inRange(int i, int j, int k) {
         return i >= j && i <= k;

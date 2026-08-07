@@ -1,9 +1,9 @@
 package io.papermc.paper.configuration.legacy;
 
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.NodeResolver;
-import com.mohistmc.org.spongepowered.configurate.util.NamingSchemes;
 import org.spigotmc.SpigotWorldConfig;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.objectmapping.meta.NodeResolver;
+import org.spongepowered.configurate.util.NamingSchemes;
 
 public final class SpawnLoadedRangeInitializer implements NodeResolver {
 

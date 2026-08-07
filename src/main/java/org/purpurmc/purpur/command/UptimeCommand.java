@@ -1,8 +1,6 @@
 package org.purpurmc.purpur.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -10,6 +8,9 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.MinecraftServer;
 import org.purpurmc.purpur.PurpurConfig;
+
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public class UptimeCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {

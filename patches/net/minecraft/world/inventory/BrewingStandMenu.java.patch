@@ -1,44 +1,6 @@
 --- a/net/minecraft/world/inventory/BrewingStandMenu.java
 +++ b/net/minecraft/world/inventory/BrewingStandMenu.java
-@@ -14,6 +_,8 @@
- import net.minecraft.world.item.alchemy.Potion;
- import net.minecraft.world.item.alchemy.PotionBrewing;
- import net.minecraft.world.item.alchemy.PotionContents;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryBrewer;
-+import org.bukkit.craftbukkit.inventory.view.CraftBrewingStandView;
- 
- public class BrewingStandMenu extends AbstractContainerMenu {
-     private static final int BOTTLE_SLOT_START = 0;
-@@ -30,23 +_,52 @@
-     public final ContainerData brewingStandData;
-     private final Slot ingredientSlot;
- 
-+    // CraftBukkit start
-+    private CraftBrewingStandView bukkitEntity = null;
-+    private Inventory player;
-+    @Override
-+    public CraftBrewingStandView getBukkitView() {
-+        if (bukkitEntity != null) {
-+            return bukkitEntity;
-+        }
-+
-+        CraftInventoryBrewer inventory = new CraftInventoryBrewer(this.brewingStand);
-+        bukkitEntity = new CraftBrewingStandView(this.player.player.getBukkitEntity(), inventory, this);
-+        return bukkitEntity;
-+    }
-+    // CraftBukkit end
-+
-     public BrewingStandMenu(int p_39090_, Inventory p_39091_) {
--        this(p_39090_, p_39091_, new SimpleContainer(5), new SimpleContainerData(2));
-+        this(p_39090_, p_39091_, new SimpleContainer(5), new io.papermc.paper.inventory.BrewingSimpleContainerData());
-     }
- 
-     public BrewingStandMenu(int p_39093_, Inventory p_39094_, Container p_39095_, ContainerData p_39096_) {
-         super(MenuType.BREWING_STAND, p_39093_);
-+        player = p_39094_; // CraftBukkit
-         checkContainerSize(p_39095_, 5);
--        checkContainerDataCount(p_39096_, 2);
-+        checkContainerDataCount(p_39096_, 3); // Paper - Add recipeBrewTime
+@@ -45,9 +_,9 @@
          this.brewingStand = p_39095_;
          this.brewingStandData = p_39096_;
          PotionBrewing potionbrewing = p_39094_.player.level().potionBrewing();
@@ -50,33 +12,8 @@
 +        this.addSlot(new BrewingStandMenu.PotionSlot(potionbrewing, p_39095_, 2, 102, 51));
          this.ingredientSlot = this.addSlot(new BrewingStandMenu.IngredientsSlot(potionbrewing, p_39095_, 3, 79, 17));
          this.addSlot(new BrewingStandMenu.FuelSlot(p_39095_, 4, 17, 17));
--        this.addDataSlots(p_39096_);
-+        // Paper start - Add recipeBrewTime
-+        this.addDataSlots(new SimpleContainerData(2) {
-+            @Override
-+            public int get(final int index) {
-+                if (index == 0) return 400 * p_39096_.get(index) / p_39096_.get(2);
-+                return p_39096_.get(index);
-+            }
-+
-+            @Override
-+            public void set(final int index, final int value) {
-+                p_39096_.set(index, value);
-+            }
-+        });
-+        // Paper end - Add recipeBrewTime
- 
-         for (int i = 0; i < 3; i++) {
-             for (int j = 0; j < 9; j++) {
-@@ -61,6 +_,7 @@
- 
-     @Override
-     public boolean stillValid(Player p_39098_) {
-+        if (!this.checkReachable) return true; // CraftBukkit
-         return this.brewingStand.stillValid(p_39098_);
-     }
- 
-@@ -81,7 +_,7 @@
+         this.addDataSlots(p_39096_);
+@@ -76,7 +_,7 @@
                      if (!this.moveItemStackTo(itemstack1, 3, 4, false)) {
                          return ItemStack.EMPTY;
                      }
@@ -124,7 +61,7 @@
 +        }
 +
 +        public static boolean mayPlaceItem(PotionBrewing potionBrewing, ItemStack p_39134_) {
-+            return potionBrewing.isInput(p_39134_) || p_39134_.is(Items.GLASS_BOTTLE) || potionBrewing.isCustomInput(p_39134_); // Paper - Custom Potion Mixes
++            return potionBrewing.isInput(p_39134_) || p_39134_.is(Items.GLASS_BOTTLE);
          }
-     }
- }
+ 
+         @Override

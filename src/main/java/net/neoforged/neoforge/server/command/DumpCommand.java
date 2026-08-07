@@ -62,7 +62,7 @@ class DumpCommand {
         final ResourceKey<? extends Registry<?>> registryKey = CommandUtils.getResourceKey(ctx, "registry", ROOT_REGISTRY_KEY)
                 .orElseThrow(); // Expect to always retrieve a resource key for the root registry (registry key)
 
-        final Registry<?> registry = ctx.getSource().getServer().registryAccess().registry(registryKey)
+        final Registry<?> registry = ctx.getSource().getServer().registryAccess().lookup(registryKey)
                 .orElseThrow(() -> UNKNOWN_REGISTRY.create(registryKey.location()));
 
         String fileLocationForErrorReporting = "";
@@ -93,7 +93,7 @@ class DumpCommand {
 
             // Click action not allow on dedicated servers as client cannot click link to a server's file path.
             if (!FMLLoader.getDist().isDedicatedServer()) {
-                filePathComponent.withStyle((style) -> style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, registryDumpFile.toString())));
+                filePathComponent.withStyle((style) -> style.withClickEvent(new ClickEvent.OpenFile(registryDumpFile)));
             }
 
             ctx.getSource().sendSuccess(() -> CommandUtils.makeTranslatableWithFallback(

@@ -32,10 +32,6 @@ public interface ThrownPotion extends ThrowableProjectile {
 
     /**
      * Set the ItemStack for this thrown potion.
-     * <p>
-     * The ItemStack must be of type {@link org.bukkit.Material#SPLASH_POTION}
-     * or {@link org.bukkit.Material#LINGERING_POTION}, otherwise an exception
-     * is thrown.
      *
      * @param item New ItemStack
      */

@@ -14,6 +14,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.material.MaterialData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
 /**
  * A chunk generator is responsible for the initial shaping of an entire
@@ -215,7 +216,7 @@ public abstract class ChunkGenerator {
      * generateBlockSections() or generateExtBlockSections().
      * @deprecated Biomes are now set with {@link BiomeProvider}
      */
-    @Deprecated
+    @Deprecated(since = "1.17.1")
     public interface BiomeGrid {
 
         /**
@@ -227,7 +228,7 @@ public abstract class ChunkGenerator {
          * @deprecated biomes are now 3-dimensional
          */
         @NotNull
-        @Deprecated
+        @Deprecated(since = "1.15")
         Biome getBiome(int x, int z);
 
         /**
@@ -249,7 +250,7 @@ public abstract class ChunkGenerator {
          * @param bio - Biome value
          * @deprecated biomes are now 3-dimensional
          */
-        @Deprecated
+        @Deprecated(since = "1.15")
         void setBiome(int x, int z, @NotNull Biome bio);
 
         /**
@@ -289,7 +290,7 @@ public abstract class ChunkGenerator {
      * @deprecated The generation is now split up and the new methods should be used, see {@link ChunkGenerator}
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.17.1")
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random random, int x, int z, @NotNull BiomeGrid biome) {
         throw new UnsupportedOperationException("Not implemented, no longer needed");
     }
@@ -301,7 +302,7 @@ public abstract class ChunkGenerator {
      * @deprecated {@link ChunkData} are now directly provided
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.17.1")
     protected final ChunkData createChunkData(@NotNull World world) {
         return Bukkit.getServer().createChunkData(world);
     }
@@ -363,7 +364,7 @@ public abstract class ChunkGenerator {
      * @return parallel capable status
      * @deprecated the chunk generation code should be thread safe
      */
-    @Deprecated
+    @Deprecated(since = "1.17.1")
     public boolean isParallelCapable() {
         return false;
     }
@@ -452,7 +453,7 @@ public abstract class ChunkGenerator {
      * @return true if the server should generate Vanilla bedrock
      * @deprecated has no effect, bedrock generation is part of the surface step, see {@link #shouldGenerateSurface()}
      */
-    @Deprecated
+    @Deprecated(since = "1.19.2")
     public boolean shouldGenerateBedrock() {
         return false;
     }
@@ -627,7 +628,7 @@ public abstract class ChunkGenerator {
          * Get the biome at x, y, z within chunk being generated
          *
          * @param x the x location in the chunk from 0-15 inclusive
-         * @param y the y location in the chunk from minimum (inclusive) -
+         * @param y the y location in the chunk from minHeight (inclusive) -
          * maxHeight (exclusive)
          * @param z the z location in the chunk from 0-15 inclusive
          * @return Biome value
@@ -656,7 +657,9 @@ public abstract class ChunkGenerator {
          * @param y the y location in the chunk from minHeight (inclusive) - maxHeight (exclusive)
          * @param z the z location in the chunk from 0-15 inclusive
          * @param material the type to set the block to
+         * @deprecated use {@link #setBlock(int, int, int, BlockData)}
          */
+        @Deprecated // Paper
         public void setBlock(int x, int y, int z, @NotNull MaterialData material);
 
         /**
@@ -700,7 +703,9 @@ public abstract class ChunkGenerator {
          * @param yMax maximum y location (exclusive) in the chunk to set
          * @param zMax maximum z location (exclusive) in the chunk to set
          * @param material the type to set the blocks to
+         * @deprecated use {@link #setRegion(int, int, int, int, int, int, BlockData)}
          */
+        @Deprecated // Paper
         public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull MaterialData material);
 
         /**
@@ -741,8 +746,10 @@ public abstract class ChunkGenerator {
          * @param y the y location in the chunk from minHeight (inclusive) - maxHeight (exclusive)
          * @param z the z location in the chunk from 0-15 inclusive
          * @return the type and data of the block or the MaterialData for air if x, y or z are outside the chunk's bounds
+         * @deprecated use {@link #getBlockData(int, int, int)}
          */
         @NotNull
+        @Deprecated // Paper
         public MaterialData getTypeAndData(int x, int y, int z);
 
         /**
@@ -769,7 +776,20 @@ public abstract class ChunkGenerator {
          * @return the block data value or air if x, y or z are outside the chunk's bounds
          * @deprecated Uses magic values
          */
-        @Deprecated
+        @Deprecated(since = "1.8.8")
         public byte getData(int x, int y, int z);
+
+        /**
+         * Get the current height of a position in the chunk data.
+         * <p>This will differ based on which state generation of the chunk is currently at.
+         * If for example the chunk is in the generate surface stage,
+         * this will return what was already generated in the noise stage.</p>
+         *
+         * @param heightMap Heightmap to determine where to grab height
+         * @param x the x location in the chunk from 0-15 inclusive
+         * @param z the z location in the chunk from 0-15 inclusive
+         * @return Y coordinate at highest position
+         */
+        int getHeight(@NotNull HeightMap heightMap, @Range(from = 0L, to = 15L) int x, @Range(from = 0L, to = 15L) int z);
     }
 }

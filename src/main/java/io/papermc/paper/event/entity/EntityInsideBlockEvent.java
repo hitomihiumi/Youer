@@ -25,6 +25,7 @@ import org.jspecify.annotations.NullMarked;
  *     <li>Crops</li>
  *     <li>End Gateway</li>
  *     <li>Ender Portal</li>
+ *     <li>Eye blossom</li>
  *     <li>Fires</li>
  *     <li>Frogspawn</li>
  *     <li>Honey</li>

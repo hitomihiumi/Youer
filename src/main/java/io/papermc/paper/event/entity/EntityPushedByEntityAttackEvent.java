@@ -19,7 +19,7 @@ public class EntityPushedByEntityAttackEvent extends EntityKnockbackEvent implem
     private final Entity pushedBy;
 
     @ApiStatus.Internal
-    public EntityPushedByEntityAttackEvent(final Entity entity, final Cause cause, final Entity pushedBy, final Vector knockback) {
+    public EntityPushedByEntityAttackEvent(final Entity entity, final EntityKnockbackEvent.Cause cause, final Entity pushedBy, final Vector knockback) {
         super(entity, cause, knockback);
         this.pushedBy = pushedBy;
     }

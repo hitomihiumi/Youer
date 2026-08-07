@@ -15,7 +15,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @return the wood type
      * @deprecated deprecated in favor of {@link #getBoatType()}
      */
-    @Deprecated
+    @Deprecated(since = "1.19", forRemoval = true)
     @NotNull
     TreeSpecies getWoodType();
 
@@ -25,14 +25,16 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @param species the new wood type
      * @deprecated deprecated in favor of {@link #setBoatType(Type)}
      */
-    @Deprecated
+    @Deprecated(since = "1.19", forRemoval = true)
     void setWoodType(@NotNull TreeSpecies species);
 
     /**
      * Gets the type of the boat.
      *
      * @return the boat type
+     * @deprecated different boats types are now different entity types
      */
+    @Deprecated(since = "1.21.2")
     @NotNull
     Type getBoatType();
 
@@ -40,7 +42,9 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * Sets the type of the boat.
      *
      * @param type the new type
+     * @deprecated different boats types are now different entity types
      */
+    @Deprecated(since = "1.21.2")
     void setBoatType(@NotNull Type type);
 
     /**
@@ -50,7 +54,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @return The max speed.
      * @deprecated boats are complex and many of these methods do not work correctly across multiple versions.
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public double getMaxSpeed();
 
     /**
@@ -59,7 +63,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @param speed The max speed.
      * @deprecated boats are complex and many of these methods do not work correctly across multiple versions.
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public void setMaxSpeed(double speed);
 
     /**
@@ -69,7 +73,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @return The rate of deceleration
      * @deprecated boats are complex and many of these methods do not work correctly across multiple versions.
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public double getOccupiedDeceleration();
 
     /**
@@ -80,7 +84,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @param rate deceleration rate
      * @deprecated boats are complex and many of these methods do not work correctly across multiple versions.
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public void setOccupiedDeceleration(double rate);
 
     /**
@@ -91,7 +95,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @return The rate of deceleration
      * @deprecated boats are complex and many of these methods do not work correctly across multiple versions.
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public double getUnoccupiedDeceleration();
 
     /**
@@ -103,7 +107,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @param rate deceleration rate
      * @deprecated boats are complex and many of these methods do not work correctly across multiple versions.
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public void setUnoccupiedDeceleration(double rate);
 
     /**
@@ -112,7 +116,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @return whether boats can work on land
      * @deprecated boats are complex and many of these methods do not work correctly across multiple versions.
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public boolean getWorkOnLand();
 
     /**
@@ -121,7 +125,7 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      * @param workOnLand whether boats can work on land
      * @deprecated boats are complex and many of these methods do not work correctly across multiple versions.
      */
-    @Deprecated
+    @Deprecated(since = "1.9")
     public void setWorkOnLand(boolean workOnLand);
 
     /**
@@ -134,7 +138,9 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
 
     /**
      * Represents the type of boats.
+     * @deprecated different boats types are now different entity types
      */
+    @Deprecated(since = "1.21.2")
     public enum Type {
         OAK(Material.OAK_PLANKS),
         SPRUCE(Material.SPRUCE_PLANKS),
@@ -169,12 +175,15 @@ public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Pa
      */
     public enum Status {
 
-        NOT_IN_WORLD, // Paper
+        NOT_IN_WORLD,
+        // Start generate - BoatStatus
+        // @GeneratedFrom 1.21.8
         IN_WATER,
         UNDER_WATER,
         UNDER_FLOWING_WATER,
         ON_LAND,
         IN_AIR;
+        // End generate - BoatStatus
     }
 
     // Paper start

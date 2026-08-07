@@ -5,7 +5,6 @@
 
 package net.neoforged.neoforge.common.world.poi;
 
-import com.mojang.logging.LogUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -20,21 +19,18 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.neoforge.registries.GameData;
 import org.jetbrains.annotations.ApiStatus;
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.transformer.meta.MixinMerged;
 
 @ApiStatus.Internal
 public final class PoiTypeExtender {
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     public static void extendPoiTypes() {
         ModLoader.postEvent(new ExtendPoiTypesEvent(PoiTypeExtender::register));
     }
 
     private static void register(ResourceKey<PoiType> typeKey, Set<BlockState> states) {
         Map<BlockState, Holder<PoiType>> statePoiMap = GameData.getBlockStatePointOfInterestTypeMap();
-        Holder<PoiType> type = BuiltInRegistries.POINT_OF_INTEREST_TYPE.getHolderOrThrow(typeKey);
+        Holder<PoiType> type = BuiltInRegistries.POINT_OF_INTEREST_TYPE.getOrThrow(typeKey);
         for (BlockState state : states) {
             Holder<PoiType> prevType = statePoiMap.putIfAbsent(state, type);
             if (prevType != null) {
@@ -66,7 +62,7 @@ public final class PoiTypeExtender {
             if (accessors.isEmpty()) {
                 message = String.format(
                         Locale.ROOT,
-                        "The matchingStates set of PoiType %s was replaced after construction, PoiType cannot be extended",
+                        "The matchingStates set of PoiType %s was replaced after construction",
                         Objects.requireNonNull(type.getKey()).location());
             } else {
                 StringBuilder accessorList = new StringBuilder();
@@ -75,11 +71,11 @@ public final class PoiTypeExtender {
                 }
                 message = String.format(
                         Locale.ROOT,
-                        "The matchingStates set of PoiType %s was replaced after construction, PoiType cannot be extended. Accessor mixins for mutating the set were found:%s",
+                        "The matchingStates set of PoiType %s was replaced after construction. Accessor mixins for mutating the set were found:%s",
                         Objects.requireNonNull(type.getKey()).location(),
                         accessorList);
             }
-            LOGGER.error(message);
+            throw new IllegalStateException(message);
         }
     }
 

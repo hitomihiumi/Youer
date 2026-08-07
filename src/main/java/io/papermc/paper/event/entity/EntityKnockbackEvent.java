@@ -24,7 +24,7 @@ public class EntityKnockbackEvent extends EntityEvent implements Cancellable {
     private boolean cancelled;
 
     @ApiStatus.Internal
-    public EntityKnockbackEvent(final Entity entity, final Cause cause, final Vector knockback) {
+    public EntityKnockbackEvent(final Entity entity, final EntityKnockbackEvent.Cause cause, final Vector knockback) {
         super(entity);
         this.cause = cause;
         this.knockback = knockback;
@@ -35,7 +35,7 @@ public class EntityKnockbackEvent extends EntityEvent implements Cancellable {
      *
      * @return the cause of the knockback
      */
-    public Cause getCause() {
+    public EntityKnockbackEvent.Cause getCause() {
         return this.cause;
     }
 

@@ -1,105 +1,6 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -7,7 +_,6 @@
- import com.google.common.collect.Sets;
- import com.google.common.collect.ImmutableList.Builder;
- import com.mojang.datafixers.DataFixer;
--import com.mojang.datafixers.util.Pair;
- import com.mojang.logging.LogUtils;
- import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
- import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-@@ -36,7 +_,9 @@
- import java.util.concurrent.CancellationException;
- import java.util.concurrent.CompletableFuture;
- import java.util.concurrent.CompletionException;
-+import java.util.concurrent.ConcurrentLinkedQueue;
- import java.util.concurrent.Executor;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import java.util.concurrent.atomic.AtomicInteger;
- import java.util.function.BooleanSupplier;
- import java.util.function.Consumer;
-@@ -68,7 +_,6 @@
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.ai.village.poi.PoiManager;
--import net.minecraft.world.entity.boss.EnderDragonPart;
- import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.GameRules;
- import net.minecraft.world.level.chunk.ChunkAccess;
-@@ -96,6 +_,7 @@
- import net.minecraft.world.level.storage.LevelStorageSource;
- import net.minecraft.world.phys.Vec3;
- import org.apache.commons.lang3.mutable.MutableBoolean;
-+import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
- import org.slf4j.Logger;
- 
- public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider, GeneratingChunkMap {
-@@ -142,6 +_,27 @@
-     public int serverViewDistance;
-     private final WorldGenContext worldGenContext;
- 
-+    // CraftBukkit start - recursion-safe executor for Chunk loadCallback() and unloadCallback()
-+    public final CallbackExecutor callbackExecutor = new CallbackExecutor();
-+    public static final class CallbackExecutor implements java.util.concurrent.Executor, Runnable {
-+
-+        private final java.util.Queue<Runnable> queue = new ConcurrentLinkedQueue<>();
-+
-+        @Override
-+        public void execute(Runnable runnable) {
-+            queue.add(runnable);
-+        }
-+
-+        @Override
-+        public void run() {
-+            Runnable task;
-+            while ((task = queue.poll()) != null) {
-+                task.run();
-+            }
-+        }
-+    };
-+    // CraftBukkit end
-+
-     public ChunkMap(
-         ServerLevel p_214836_,
-         LevelStorageSource.LevelStorageAccess p_214837_,
-@@ -168,13 +_,21 @@
-         this.level = p_214836_;
-         RegistryAccess registryaccess = p_214836_.registryAccess();
-         long i = p_214836_.getSeed();
--        if (p_214843_ instanceof NoiseBasedChunkGenerator noisebasedchunkgenerator) {
-+
-+        // CraftBukkit start - SPIGOT-7051: It's a rigged game! Use delegate for random state creation, otherwise it is not so random.
-+        ChunkGenerator randomGenerator = p_214843_;
-+        if (randomGenerator instanceof CustomChunkGenerator customChunkGenerator) {
-+            randomGenerator = customChunkGenerator.getDelegate();
-+        }
-+        if (randomGenerator instanceof NoiseBasedChunkGenerator noisebasedchunkgenerator) {
-+        // CraftBukkit end
-             this.randomState = RandomState.create(noisebasedchunkgenerator.generatorSettings().value(), registryaccess.lookupOrThrow(Registries.NOISE), i);
-         } else {
-             this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), registryaccess.lookupOrThrow(Registries.NOISE), i);
-         }
- 
--        this.chunkGeneratorState = p_214843_.createState(registryaccess.lookupOrThrow(Registries.STRUCTURE_SET), this.randomState, i);
-+        p_214843_.createState$conf.set(p_214836_.spigotConfig);
-+        this.chunkGeneratorState = p_214843_.createState(registryaccess.lookupOrThrow(Registries.STRUCTURE_SET), this.randomState, i); // Spigot
-         this.mainThreadExecutor = p_214841_;
-         ProcessorMailbox<Runnable> processormailbox1 = ProcessorMailbox.create(p_214840_, "worldgen");
-         ProcessorHandle<Runnable> processorhandle = ProcessorHandle.of("main", p_214841_::tell);
-@@ -204,6 +_,12 @@
-         this.worldGenContext = new WorldGenContext(p_214836_, p_214843_, p_214839_, this.lightEngine, this.mainThreadMailbox);
-     }
- 
-+    // Paper start
-+    public int getMobCountNear(final ServerPlayer player, final net.minecraft.world.entity.MobCategory mobCategory) {
-+        return -1;
-+    }
-+    // Paper end
-+
-     protected ChunkGenerator generator() {
-         return this.worldGenContext.generator();
-     }
-@@ -395,6 +_,7 @@
+@@ -398,6 +_,7 @@
                  this.modified = true;
              }
  
@@ -107,155 +8,79 @@
              return p_140179_;
          }
      }
-@@ -510,6 +_,7 @@
+@@ -527,12 +_,15 @@
+             } else {
+                 ChunkAccess chunkaccess = p_140183_.getLatestChunk();
                  if (this.pendingUnloads.remove(p_140182_, p_140183_) && chunkaccess != null) {
++                    net.neoforged.neoforge.common.CommonHooks.onChunkUnload(this.poiManager, chunkaccess); // Neo: Must be called for all chunk unloading. Not just LevelChunks.
++                    this.chunkTypeCache.remove(chunkaccess.getPos().toLong()); // Neo: Prevent chunk type cache from permanently retaining data for unloaded chunks
                      if (chunkaccess instanceof LevelChunk levelchunk) {
                          levelchunk.setLoaded(false);
-+                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkEvent.Unload(chunkaccess));
                      }
  
                      this.save(chunkaccess);
-@@ -517,6 +_,9 @@
+                     if (chunkaccess instanceof LevelChunk levelchunk1) {
++                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkEvent.Unload(levelchunk1));
                          this.level.unload(levelchunk1);
                      }
  
-+                    net.neoforged.neoforge.common.CommonHooks.onChunkUnload(this.poiManager, chunkaccess); // Neo: Must be called for all chunk unloading. Not just LevelChunks.
-+                    this.chunkTypeCache.remove(chunkaccess.getPos().toLong()); // Neo: Prevent chunk type cache from permanently retaining data for unloaded chunks
-+
-                     this.lightEngine.updateChunkStatus(chunkaccess.getPos());
-                     this.lightEngine.tryScheduleUpdate();
-                     this.progressListener.onStatusChange(chunkaccess.getPos(), null);
-@@ -543,7 +_,7 @@
-     private CompletableFuture<ChunkAccess> scheduleChunkLoad(ChunkPos p_140418_) {
-         return this.readChunk(p_140418_).thenApply(p_214925_ -> p_214925_.filter(p_214928_ -> {
-                 boolean flag = isChunkDataValid(p_214928_);
--                if (!flag) {
-+                if (false && !flag) {
-                     LOGGER.error("Chunk file at {} is missing level data, skipping", p_140418_);
-                 }
- 
-@@ -756,6 +_,7 @@
- 
-                 this.level.getProfiler().incrementCounter("chunkSave");
-                 CompoundTag compoundtag = ChunkSerializer.write(this.level, p_140259_);
-+                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Save(p_140259_, p_140259_.getLevel() != null ? p_140259_.getLevel() : this.level, compoundtag));
-                 this.write(chunkpos, compoundtag).exceptionally(p_351776_ -> {
-                     this.level.getServer().reportChunkSaveFailure(p_351776_, this.storageInfo(), chunkpos);
-                     return null;
-@@ -792,7 +_,7 @@
-         }
-     }
- 
--    protected void setServerViewDistance(int p_295758_) {
-+    public void setServerViewDistance(int p_295758_) {
-         int i = Mth.clamp(p_295758_, 2, 32);
-         if (i != this.serverViewDistance) {
-             this.serverViewDistance = i;
-@@ -817,9 +_,11 @@
+@@ -577,6 +_,7 @@
+                 Profiler.get().incrementCounter("chunkLoad");
+                 if (p_372662_.isPresent()) {
+                     ChunkAccess chunkaccess = p_372662_.get().read(this.level, this.poiManager, this.storageInfo(), p_140418_);
++                    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Load(chunkaccess, p_372662_.get()));
+                     this.markPosition(p_140418_, chunkaccess.getPersistedStatus().getChunkType());
+                     return chunkaccess;
+                 } else {
+@@ -778,6 +_,7 @@
+                 Profiler.get().incrementCounter("chunkSave");
+                 this.activeChunkWrites.incrementAndGet();
+                 SerializableChunkData serializablechunkdata = SerializableChunkData.copyOf(this.level, p_140259_);
++                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Save(p_140259_, this.level, serializablechunkdata));
+                 CompletableFuture<CompoundTag> completablefuture = CompletableFuture.supplyAsync(serializablechunkdata::write, Util.backgroundExecutor());
+                 this.write(chunkpos, completablefuture::join).handle((p_381690_, p_381691_) -> {
+                     if (p_381691_ != null) {
+@@ -844,9 +_,11 @@
  
      private static void markChunkPendingToSend(ServerPlayer p_295834_, LevelChunk p_296281_) {
          p_295834_.connection.chunkSender.markChunkPendingToSend(p_296281_);
-+        net.neoforged.neoforge.event.EventHooks.fireChunkWatch(p_295834_, p_296281_, p_295834_.serverLevel());
++        net.neoforged.neoforge.event.EventHooks.fireChunkWatch(p_295834_, p_296281_, p_295834_.level());
      }
  
      private static void dropChunk(ServerPlayer p_294215_, ChunkPos p_294758_) {
-+        net.neoforged.neoforge.event.EventHooks.fireChunkUnWatch(p_294215_, p_294758_, p_294215_.serverLevel());
++        net.neoforged.neoforge.event.EventHooks.fireChunkUnWatch(p_294215_, p_294758_, p_294215_.level());
          p_294215_.connection.chunkSender.dropChunk(p_294215_, p_294758_);
      }
  
-@@ -907,19 +_,46 @@
+@@ -947,7 +_,7 @@
+             ChunkHolder chunkholder = this.visibleChunkMap.get(longiterator.nextLong());
+             if (chunkholder != null) {
+                 LevelChunk levelchunk = chunkholder.getTickingChunk();
+-                if (levelchunk != null && this.anyPlayerCloseEnoughForSpawningInternal(chunkholder.getPos())) {
++                if (levelchunk != null && (this.anyPlayerCloseEnoughForSpawningInternal(chunkholder.getPos()) || ticketStorage.shouldForceNaturalSpawning(chunkholder.getPos()))) {// Neo: Force natural spawning in other chunks
+                     p_401784_.add(levelchunk);
+                 }
+             }
+@@ -971,6 +_,18 @@
+         return tristate == TriState.DEFAULT ? this.anyPlayerCloseEnoughForSpawningInternal(p_183880_) : tristate.toBoolean(true);
      }
  
-     private CompletableFuture<Optional<CompoundTag>> readChunk(ChunkPos p_214964_) {
-+        this.pos = p_214964_;
-         return this.read(p_214964_).thenApplyAsync(p_214907_ -> p_214907_.map(this::upgradeChunkTag), Util.backgroundExecutor());
-     }
- 
-+    // CraftBukkit start
-+    public CompoundTag upgradeChunkTag(CompoundTag nbttagcompound, ChunkPos chunkcoordintpair) { // Paper - public
-+        return this.upgradeChunkTagCB(this.level.dimension(), this.overworldDataStorage, nbttagcompound, this.generator().getTypeNameForDataFixer(), chunkcoordintpair, this.level);
-+        // CraftBukkit end
-+    }
-+
-+    // CraftBukkit start
-     private CompoundTag upgradeChunkTag(CompoundTag p_214948_) {
-+        this.generatoraccess = level;
-         return this.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, p_214948_, this.generator().getTypeNameForDataFixer());
-     }
-+    // CraftBukkit end
- 
--    boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_) {
-+    AtomicBoolean reducedRange = new AtomicBoolean(false);
-+    public boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_) {
-+        int chunkRange = level.spigotConfig.mobSpawnRange;
-+        chunkRange = (chunkRange > level.spigotConfig.viewDistance) ? (byte) level.spigotConfig.viewDistance : chunkRange;
-+        chunkRange = (chunkRange > 8) ? 8 : chunkRange;
-+        final int finalChunkRange = chunkRange; // Paper for lambda below
-+        //double blockRange = (reducedRange) ? Math.pow(chunkRange << 4, 2) : 16384.0D; // Paper - use from event
-+        double blockRange = 16384.0D; // Paper
-+        // Spigot end
-         if (!this.distanceManager.hasPlayersNearby(p_183880_.toLong())) {
-             return false;
-         } else {
-             for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
--                if (this.playerIsCloseEnoughForSpawning(serverplayer, p_183880_)) {
-+                // Paper start - PlayerNaturallySpawnCreaturesEvent
-+                com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent event;
-+                blockRange = 16384.0D;
-+                if (reducedRange.getAndSet(false)) {
-+                    event = serverplayer.playerNaturallySpawnedEvent;
-+                    if (event == null || event.isCancelled()) return false;
-+                    blockRange = (double) ((event.getSpawnRadius() << 4) * (event.getSpawnRadius() << 4));
++    void collectForceTickingChunks(List<LevelChunk> list) {
++        for (long l : distanceManager.ticketStorage.getForceLoadedChunks()) {
++            ChunkHolder holder = this.visibleChunkMap.get(l);
++            if (holder != null) {
++                var chunk = holder.getTickingChunk();
++                if (chunk != null) {
++                    list.add(chunk);
 +                }
-+                // Paper end - PlayerNaturallySpawnCreaturesEvent
-+                if (this.playerIsCloseEnoughForSpawning(serverplayer, p_183880_, blockRange)) {
-                     return true;
-                 }
-             }
-@@ -928,6 +_,11 @@
-         }
-     }
- 
-+    boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_, boolean reducedRange) {
-+        this.reducedRange.set(reducedRange);
-+        return this.anyPlayerCloseEnoughForSpawning(p_183880_);
++            }
++        }
 +    }
 +
-     public List<ServerPlayer> getPlayersCloseForSpawning(ChunkPos p_183889_) {
-         long i = p_183889_.toLong();
-         if (!this.distanceManager.hasPlayersNearby(i)) {
-@@ -936,7 +_,7 @@
-             Builder<ServerPlayer> builder = ImmutableList.builder();
- 
-             for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
--                if (this.playerIsCloseEnoughForSpawning(serverplayer, p_183889_)) {
-+                if (this.playerIsCloseEnoughForSpawning(serverplayer, p_183889_, 16384.0D)) { // Spigot
-                     builder.add(serverplayer);
-                 }
-             }
-@@ -945,13 +_,19 @@
-         }
-     }
- 
--    private boolean playerIsCloseEnoughForSpawning(ServerPlayer p_183752_, ChunkPos p_183753_) {
-+    private double playerIsCloseEnoughForSpawning$range = 16384.0D;
-+    private boolean playerIsCloseEnoughForSpawning(ServerPlayer p_183752_, ChunkPos p_183753_) { // Spigot
-         if (p_183752_.isSpectator()) {
-             return false;
-         } else {
-             double d0 = euclideanDistanceSquared(p_183753_, p_183752_);
--            return d0 < 16384.0;
-+            return d0 < playerIsCloseEnoughForSpawning$range; // Spigot
-         }
-+    }
-+
-+    private boolean playerIsCloseEnoughForSpawning(ServerPlayer p_183752_, ChunkPos p_183753_, double range) { // Spigot
-+        playerIsCloseEnoughForSpawning$range = range;
-+        return playerIsCloseEnoughForSpawning(p_183752_, p_183753_);
-     }
- 
-     private boolean skipPlayer(ServerPlayer p_140330_) {
-@@ -1018,6 +_,7 @@
+     private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos p_363995_) {
+         for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
+             if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_)) {
+@@ -1079,6 +_,7 @@
                  this.playerMap.unIgnorePlayer(p_140185_);
              }
  
@@ -263,41 +88,19 @@
              this.updateChunkTracking(p_140185_);
          }
      }
-@@ -1068,8 +_,9 @@
-         return builder.build();
+@@ -1130,7 +_,7 @@
      }
  
--    protected void addEntity(Entity p_140200_) {
+     protected void addEntity(Entity p_140200_) {
 -        if (!(p_140200_ instanceof EnderDragonPart)) {
-+    public void addEntity(Entity p_140200_) {
-+        if (p_140200_ instanceof ServerPlayer && ((ServerPlayer) p_140200_).supressTrackerForLogin) return; // Paper - Fire PlayerJoinEvent when Player is actually ready; Delay adding to tracker until after list packets
 +        if (!(p_140200_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
              EntityType<?> entitytype = p_140200_.getType();
              int i = entitytype.clientTrackingRange() * 16;
              if (i != 0) {
-@@ -1079,6 +_,7 @@
-                 } else {
-                     ChunkMap.TrackedEntity chunkmap$trackedentity = new ChunkMap.TrackedEntity(p_140200_, i, j, entitytype.trackDeltas());
-                     this.entityMap.put(p_140200_.getId(), chunkmap$trackedentity);
-+                    p_140200_.moonrise$setTrackedEntity(chunkmap$trackedentity);
-                     chunkmap$trackedentity.updatePlayers(this.level.players());
-                     if (p_140200_ instanceof ServerPlayer serverplayer) {
-                         this.updatePlayerStatus(serverplayer, true);
-@@ -1137,7 +_,8 @@
-         }
- 
-         if (!list.isEmpty()) {
--            for (ChunkMap.TrackedEntity chunkmap$trackedentity1 : this.entityMap.values()) {
-+            Int2ObjectMap<ChunkMap.TrackedEntity> entityMaps =  new Int2ObjectOpenHashMap<>(this.entityMap);
-+            for (ChunkMap.TrackedEntity chunkmap$trackedentity1 : entityMaps.values()) {
-                 chunkmap$trackedentity1.updatePlayers(list);
-             }
-         }
-@@ -1199,7 +_,21 @@
+@@ -1260,6 +_,20 @@
          });
      }
  
--    class DistanceManager extends net.minecraft.server.level.DistanceManager {
 +    // Neo: Getter for players watching an entity.
 +    public List<ServerPlayer> getPlayersWatching(Entity entity) {
 +        var trackedEntity = entityMap.get(entity.getId());
@@ -312,99 +115,13 @@
 +        }
 +    }
 +
-+    public class DistanceManager extends net.minecraft.server.level.DistanceManager { // Paper - public
-         protected DistanceManager(Executor p_140459_, Executor p_140460_) {
-             super(p_140459_, p_140460_);
-         }
-@@ -1227,10 +_,10 @@
-         final Entity entity;
-         private final int range;
-         SectionPos lastSectionPos;
--        public final Set<ServerPlayerConnection> seenBy = Sets.newIdentityHashSet();
-+        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
- 
-         public TrackedEntity(Entity p_140478_, int p_140479_, int p_140480_, boolean p_140481_) {
--            this.serverEntity = new ServerEntity(ChunkMap.this.level, p_140478_, p_140480_, p_140481_, this::broadcast);
-+            this.serverEntity = new ServerEntity(ChunkMap.this.level, p_140478_, p_140480_, p_140481_, this::broadcast).seenBy(this.seenBy); // CraftBukkit
-             this.entity = p_140478_;
-             this.range = p_140479_;
-             this.lastSectionPos = SectionPos.of(p_140478_);
-@@ -1278,12 +_,31 @@
-                 double d0 = (double)Math.min(this.getEffectiveRange(), i * 16);
-                 double d1 = vec3.x * vec3.x + vec3.z * vec3.z;
-                 double d2 = d0 * d0;
--                boolean flag = d1 <= d2
--                    && this.entity.broadcastToPlayer(p_140498_)
--                    && ChunkMap.this.isChunkTracked(p_140498_, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
-+                // Paper start - Configurable entity tracking range by Y
-+                boolean flag = d1 <= d2;
-+                if (flag && level.paperConfig().entities.trackingRangeY.enabled) {
-+                    double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
-+                    if (rangeY != -1) {
-+                        double vec3d_dy = p_140498_.getY() - this.entity.getY();
-+                        flag = vec3d_dy * vec3d_dy <= rangeY * rangeY;
-+                    }
-+                }
-+                flag = flag && this.entity.broadcastToPlayer(p_140498_) && ChunkMap.this.isChunkTracked(p_140498_, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
-+                // Paper end - Configurable entity tracking range by Y
-+                // CraftBukkit start - respect vanish API
-+                if (flag && !p_140498_.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {  // Paper - only consider hits
-+                    flag = false;
-+                }
-+                // CraftBukkit end
-+
-                 if (flag) {
-                     if (this.seenBy.add(p_140498_.connection)) {
--                        this.serverEntity.addPairing(p_140498_);
-+                        // Paper start - entity tracking events
-+                        if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(p_140498_.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
-+                            this.serverEntity.addPairing(p_140498_);
-+                        }
-+                        // Paper end - entity tracking events
-+                        this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
-                     }
-                 } else if (this.seenBy.remove(p_140498_.connection)) {
-                     this.serverEntity.removePairing(p_140498_);
-@@ -1295,15 +_,28 @@
-             return ChunkMap.this.level.getServer().getScaledTrackingDistance(p_140484_);
-         }
- 
-+        private static int getHighestRange(Entity parent, int highest) {
-+            List<Entity> passengers = parent.getPassengers();
-+
-+            for (int i = 0, size = passengers.size(); i < size; i++) {
-+                Entity entity = passengers.get(i);
-+                int range = entity.getType().clientTrackingRange() * 16;
-+                range = org.spigotmc.TrackingRange.getEntityTrackingRange(entity, range); // Paper
-+
-+                if (range > highest) { // Paper - we need the lowest range thanks to the fact that our tracker doesn't account for passenger logic // Tuinity - not anymore!
-+                    highest = range;
-+                }
-+
-+                highest = getHighestRange(entity, highest);
-+            }
-+
-+            return highest;
-+        }
-+
-         private int getEffectiveRange() {
-             int i = this.range;
- 
--            for (Entity entity : this.entity.getIndirectPassengers()) {
--                int j = entity.getType().clientTrackingRange() * 16;
--                if (j > i) {
--                    i = j;
--                }
--            }
-+            i = getHighestRange(this.entity, i);
- 
-             return this.scaledRange(i);
-         }
-@@ -1312,6 +_,32 @@
-             for (ServerPlayer serverplayer : p_140488_) {
+     class DistanceManager extends net.minecraft.server.level.DistanceManager {
+         protected DistanceManager(TicketStorage p_394597_, Executor p_140459_, Executor p_140460_) {
+             super(p_394597_, p_140459_, p_140460_);
+@@ -1382,5 +_,20 @@
                  this.updatePlayer(serverplayer);
              }
-+        }
+         }
 +    }
 +
 +    /**
@@ -418,18 +135,7 @@
 +     * Use this method to schedule tasks for loading chunks in your whenCompleteAsync method call so the tasks gets processed properly over time and not leak.
 +     * See {@link net.neoforged.neoforge.server.command.generation.GenerationTask#enqueueChunks} as an example usage of this method.
 +     */
-+    public void scheduleOnMainThreadMailbox(ChunkTaskPriorityQueueSorter.Message<Runnable> msg) {
-+        mainThreadMailbox.tell(msg);
-+    }
-+
-+    public void setChunkGenerator(ChunkGenerator generator) {
-+        if (generator instanceof CustomChunkGenerator custom) {
-+            generator = custom.getDelegate();
-+        }
-+        if (generator instanceof NoiseBasedChunkGenerator noisebasedchunkgenerator) {
-+            this.randomState = RandomState.create(noisebasedchunkgenerator.generatorSettings().value(), this.level.registryAccess().lookupOrThrow(Registries.NOISE), this.level.getSeed());
-+        } else {
-+            this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), this.level.registryAccess().lookupOrThrow(Registries.NOISE), this.level.getSeed());
-         }
++    public void scheduleOnMainThreadMailbox(Runnable runnable) {
++        mainThreadExecutor.schedule(runnable);
      }
  }

@@ -1,30 +1,29 @@
 package org.bukkit.inventory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Multimap;
-import com.mohistmc.youer.Youer;
-import java.util.Collection;
+import io.papermc.paper.datacomponent.DataComponentHolder;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.Translatable;
 import org.bukkit.UndefinedNullability;
 import org.bukkit.Utility;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.material.MaterialData;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-// Purpur end
 
 /**
  * Represents a stack of items.
@@ -33,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  * use this class to encapsulate Materials for which {@link Material#isItem()}
  * returns false.</b>
  */
-public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowItem>, net.kyori.adventure.translation.Translatable, io.papermc.paper.persistence.PersistentDataViewHolder { // Paper
+public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowItem>, net.kyori.adventure.translation.Translatable, io.papermc.paper.persistence.PersistentDataViewHolder, DataComponentHolder { // Paper
     private ItemStack craftDelegate; // Paper - always delegate to server-backed stack
     private MaterialData data = null;
 
@@ -61,18 +60,32 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @org.jetbrains.annotations.Contract(value = "_, _ -> new", pure = true)
     public static @NotNull ItemStack of(final @NotNull Material type, final int amount) {
-        if (type.asItemType() == null) {
-            return ItemStack.empty();
-        }
+        Preconditions.checkArgument(type.asItemType() != null, "%s isn't an item", type);
         Preconditions.checkArgument(amount > 0, "amount must be greater than 0");
         return java.util.Objects.requireNonNull(type.asItemType(), type + " is not an item").createItemStack(amount); // Paper - delegate
     }
     // Paper end
 
     // Paper start - pdc
+    /**
+     * @see #editPersistentDataContainer(Consumer)
+     */
     @Override
     public io.papermc.paper.persistence.@NotNull PersistentDataContainerView getPersistentDataContainer() {
         return this.craftDelegate.getPersistentDataContainer();
+    }
+
+    /**
+     * Edits the {@link PersistentDataContainer} of this stack. The
+     * {@link PersistentDataContainer} instance is only valid inside the
+     * consumer.
+     *
+     * @param consumer the persistent data container consumer
+     * @return {@code true} if the edit was successful, {@code false} otherwise. Failure to edit the persistent data
+     * container may be caused by empty or invalid itemstacks.
+     */
+    public boolean editPersistentDataContainer(@NotNull Consumer<PersistentDataContainer> consumer) {
+        return this.craftDelegate.editPersistentDataContainer(consumer);
     }
     // Paper end - pdc
 
@@ -120,7 +133,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @param damage durability / damage
      * @deprecated see {@link #setDurability(short)}
      */
-    @Deprecated
+    @Deprecated(since = "1.20.5")
     public ItemStack(@NotNull final Material type, final int amount, final short damage) {
         this(type, amount, damage, null);
     }
@@ -132,7 +145,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @param data the data value or null
      * @deprecated this method uses an ambiguous data byte object
      */
-    @Deprecated(forRemoval = true, since = "1.13")
+    @Deprecated(since = "1.4.5", forRemoval = true)
     public ItemStack(@NotNull Material type, final int amount, final short damage, @Nullable final Byte data) {
         Preconditions.checkArgument(type != null, "Material cannot be null");
         if (type.isLegacy()) {
@@ -286,7 +299,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * any call to this method will be overwritten by subsequent setting of
      * ItemMeta which was created before this call.
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     public void setDurability(final short durability) {
         this.craftDelegate.setDurability(durability); // Paper - delegate
     }
@@ -297,7 +310,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @return Durability of this item
      * @deprecated see {@link #setDurability(short)}
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     public short getDurability() {
         return this.craftDelegate.getDurability(); // Paper - delegate
     }
@@ -359,21 +372,21 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     /**
      * Checks if this ItemStack contains the given {@link Enchantment}
      *
-     * @param ench Enchantment to test
+     * @param enchant Enchantment to test
      * @return True if this has the given enchantment
      */
-    public boolean containsEnchantment(@NotNull Enchantment ench) {
-        return this.craftDelegate.containsEnchantment(ench); // Paper - delegate
+    public boolean containsEnchantment(@NotNull Enchantment enchant) {
+        return this.craftDelegate.containsEnchantment(enchant); // Paper - delegate
     }
 
     /**
      * Gets the level of the specified enchantment on this item stack
      *
-     * @param ench Enchantment to check
+     * @param enchant Enchantment to check
      * @return Level of the enchantment, or 0
      */
-    public int getEnchantmentLevel(@NotNull Enchantment ench) {
-        return this.craftDelegate.getEnchantmentLevel(ench); // Paper - delegate
+    public int getEnchantmentLevel(@NotNull Enchantment enchant) {
+        return this.craftDelegate.getEnchantmentLevel(enchant); // Paper - delegate
     }
 
     /**
@@ -413,21 +426,21 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * If this item stack already contained the given enchantment (at any
      * level), it will be replaced.
      *
-     * @param ench Enchantment to add
+     * @param enchant Enchantment to add
      * @param level Level of the enchantment
      * @throws IllegalArgumentException if enchantment null, or enchantment is
      *     not applicable
      */
     @Utility
-    public void addEnchantment(@NotNull Enchantment ench, int level) {
-        Preconditions.checkArgument(ench != null, "Enchantment cannot be null");
-        if ((level < ench.getStartLevel()) || (level > ench.getMaxLevel())) {
-            throw new IllegalArgumentException("Enchantment level is either too low or too high (given " + level + ", bounds are " + ench.getStartLevel() + " to " + ench.getMaxLevel() + ")");
-        } else if (!ench.canEnchantItem(this)) {
+    public void addEnchantment(@NotNull Enchantment enchant, int level) {
+        Preconditions.checkArgument(enchant != null, "Enchantment cannot be null");
+        if ((level < enchant.getStartLevel()) || (level > enchant.getMaxLevel())) {
+            throw new IllegalArgumentException("Enchantment level is either too low or too high (given " + level + ", bounds are " + enchant.getStartLevel() + " to " + enchant.getMaxLevel() + ")");
+        } else if (!enchant.canEnchantItem(this)) {
             throw new IllegalArgumentException("Specified enchantment cannot be applied to this itemstack");
         }
 
-        addUnsafeEnchantment(ench, level);
+        addUnsafeEnchantment(enchant, level);
     }
 
     /**
@@ -455,22 +468,22 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * This method is unsafe and will ignore level restrictions or item type.
      * Use at your own discretion.
      *
-     * @param ench Enchantment to add
+     * @param enchant Enchantment to add
      * @param level Level of the enchantment
      */
-    public void addUnsafeEnchantment(@NotNull Enchantment ench, int level) {
-        this.craftDelegate.addUnsafeEnchantment(ench, level); // Paper - delegate
+    public void addUnsafeEnchantment(@NotNull Enchantment enchant, int level) {
+        this.craftDelegate.addUnsafeEnchantment(enchant, level); // Paper - delegate
     }
 
     /**
      * Removes the specified {@link Enchantment} if it exists on this
      * ItemStack
      *
-     * @param ench Enchantment to remove
+     * @param enchant Enchantment to remove
      * @return Previous level, or 0
      */
-    public int removeEnchantment(@NotNull Enchantment ench) {
-        return this.craftDelegate.removeEnchantment(ench); // Paper - delegate
+    public int removeEnchantment(@NotNull Enchantment enchant) {
+        return this.craftDelegate.removeEnchantment(enchant); // Paper - delegate
     }
 
     /**
@@ -484,21 +497,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     @NotNull
     @Utility
     public Map<String, Object> serialize() {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
-
-        result.put("v", Bukkit.getUnsafe().getDataVersion()); // Include version to indicate we are using modern material names (or LEGACY prefix)
-        result.put("type", getType().name());
-
-        if (getAmount() != 1) {
-            result.put("amount", getAmount());
-        }
-
-        ItemMeta meta = getItemMeta();
-        if (!Bukkit.getItemFactory().equals(meta, null)) {
-            result.put("meta", meta);
-        }
-
-        return result;
+        return Bukkit.getUnsafe().serializeStack(this);
     }
 
     /**
@@ -510,6 +509,11 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @NotNull
     public static ItemStack deserialize(@NotNull Map<String, Object> args) {
+        // Parse internally, if schema_version is not defined, assume legacy and fall through to unsafe legacy deserialization logic
+        if (args.containsKey("schema_version")) {
+            return org.bukkit.Bukkit.getUnsafe().deserializeStack(args);
+        }
+
         int version = (args.containsKey("v")) ? ((Number) args.get("v")).intValue() : -1;
         short damage = 0;
         int amount = 1;
@@ -537,11 +541,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
             amount = ((Number) args.get("amount")).intValue();
         }
 
-        if (type == null) {
-            Youer.LOGGER.error(Youer.i18n.as("bukkit.ItemStack.typenull", args.get("type")));
-            type = Material.BROWN_MUSHROOM;
-        }
-
         ItemStack result = new ItemStack(type, amount, damage);
 
         if (args.containsKey("enchantments")) { // Backward compatiblity, @deprecated
@@ -555,7 +554,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
                     stringKey = Bukkit.getUnsafe().get(Enchantment.class, stringKey);
                     NamespacedKey key = NamespacedKey.fromString(stringKey.toLowerCase(Locale.ROOT));
 
-                    Enchantment enchantment = Bukkit.getUnsafe().get(Registry.ENCHANTMENT, key);
+                    Enchantment enchantment = Bukkit.getUnsafe().get(RegistryKey.ENCHANTMENT, key);
 
                     if ((enchantment != null) && (entry.getValue() instanceof Integer)) {
                         result.addUnsafeEnchantment(enchantment, (Integer) entry.getValue());
@@ -678,7 +677,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      *
      * <p>If this ItemStack is already enchanted, the existing enchants will be removed before enchanting.</p>
      *
-     * <p>Levels must be in range {@code [1, 30]}.</p>
+     * <p>Enchantment tables use levels in the range {@code [1, 30]}.</p>
      *
      * @param levels levels to use for enchanting
      * @param allowTreasure whether to allow enchantments where {@link org.bukkit.enchantments.Enchantment#isTreasure()} returns true
@@ -687,7 +686,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @throws IllegalArgumentException on bad arguments
      */
     @NotNull
-    public ItemStack enchantWithLevels(final @org.jetbrains.annotations.Range(from = 1, to = 30) int levels, final boolean allowTreasure, final @NotNull java.util.Random random) {
+    public ItemStack enchantWithLevels(final int levels, final boolean allowTreasure, final @NotNull java.util.Random random) {
         return Bukkit.getServer().getItemFactory().enchantWithLevels(this, levels, allowTreasure, random);
     }
 
@@ -696,7 +695,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      *
      * <p>If the provided ItemStack is already enchanted, the existing enchants will be removed before enchanting.</p>
      *
-     * <p>Levels must be in range {@code [1, 30]}.</p>
+     * <p>Enchantment tables use levels in the range {@code [1, 30]}.</p>
      *
      * @param levels levels to use for enchanting
      * @param keySet registry key set defining the set of possible enchantments, e.g. {@link io.papermc.paper.registry.keys.tags.EnchantmentTagKeys#IN_ENCHANTING_TABLE}.
@@ -704,10 +703,17 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @return enchanted copy of the provided ItemStack
      * @throws IllegalArgumentException on bad arguments
      */
-    public @NotNull ItemStack enchantWithLevels(final @org.jetbrains.annotations.Range(from = 1, to = 30) int levels, final @NotNull io.papermc.paper.registry.set.RegistryKeySet<@NotNull Enchantment> keySet, final @NotNull java.util.Random random) {
+    public @NotNull ItemStack enchantWithLevels(final int levels, final @NotNull io.papermc.paper.registry.set.RegistryKeySet<@NotNull Enchantment> keySet, final @NotNull java.util.Random random) {
         return Bukkit.getItemFactory().enchantWithLevels(this, levels, keySet, random);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @param op transformation on value
+     * @return a hover event
+     * @throws IllegalArgumentException if the {@link ItemStack#getAmount()} is not between 1 and 99
+     */
     @NotNull
     @Override
     public net.kyori.adventure.text.event.HoverEvent<net.kyori.adventure.text.event.HoverEvent.ShowItem> asHoverEvent(final @NotNull java.util.function.UnaryOperator<net.kyori.adventure.text.event.HoverEvent.ShowItem> op) {
@@ -717,10 +723,23 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     /**
      * Get the formatted display name of the {@link ItemStack}.
      *
+     * @apiNote this component include a {@link net.kyori.adventure.text.event.HoverEvent item hover event}.
+     * When used in chat, make sure to follow the ItemStack rules regarding amount, type, and other properties.
      * @return display name of the {@link ItemStack}
      */
     public net.kyori.adventure.text.@NotNull Component displayName() {
         return Bukkit.getServer().getItemFactory().displayName(this);
+    }
+
+    /**
+     * Gets the effective name of this item stack shown to player in inventory.
+     * It takes into account the display name (with italics) from the item meta,
+     * the potion effect, translatable name, rarity etc.
+     *
+     * @return the effective name of this item stack
+     */
+    public @NotNull Component effectiveName() {
+        return this.craftDelegate.effectiveName();
     }
 
     /**
@@ -745,8 +764,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @param bytes bytes representing an item in NBT
      * @return ItemStack migrated to this version of Minecraft if needed.
      */
-    @NotNull
-    public static ItemStack deserializeBytes(@NotNull byte[] bytes) {
+    public static @NotNull ItemStack deserializeBytes(final byte @NotNull [] bytes) {
         return org.bukkit.Bukkit.getUnsafe().deserializeItem(bytes);
     }
 
@@ -755,8 +773,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * use the built in data converter instead of bukkits dangerous serialization system.
      * @return bytes representing this item in NBT.
      */
-    @NotNull
-    public byte[] serializeAsBytes() {
+    public byte @NotNull [] serializeAsBytes() {
         return org.bukkit.Bukkit.getUnsafe().serializeItem(this);
     }
 
@@ -1151,481 +1168,209 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     }
     // Paper end - expose itemstack tooltip lines
 
-    // Purpur start
+    // Paper start - data component API
     /**
-     * Gets the display name that is set.
+     * Gets the value for the data component type on this stack.
+     *
+     * @param type the data component type
+     * @param <T> the value type
+     * @return the value for the data component type, or {@code null} if not set or marked as removed
+     * @see #hasData(io.papermc.paper.datacomponent.DataComponentType) for DataComponentType.NonValued
+     */
+    @org.jetbrains.annotations.Contract(pure = true)
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public <T> @Nullable T getData(final io.papermc.paper.datacomponent.DataComponentType.@NotNull Valued<T> type) {
+        return this.craftDelegate.getData(type);
+    }
+
+    /**
+     * Gets the value for the data component type on this stack with
+     * a fallback value.
+     *
+     * @param type the data component type
+     * @param fallback the fallback value if the value isn't present
+     * @param <T> the value type
+     * @return the value for the data component type or the fallback value
+     */
+    @Utility
+    @org.jetbrains.annotations.Contract(value = "_, !null -> !null", pure = true)
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public <T> @Nullable T getDataOrDefault(final io.papermc.paper.datacomponent.DataComponentType.@NotNull Valued<? extends T> type, final @Nullable T fallback) {
+        final T object = this.getData(type);
+        return object != null ? object : fallback;
+    }
+
+    /**
+     * Checks if the data component type is set on the itemstack.
+     *
+     * @param type the data component type
+     * @return {@code true} if set, {@code false} otherwise
+     */
+    @org.jetbrains.annotations.Contract(pure = true)
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public boolean hasData(final io.papermc.paper.datacomponent.@NotNull DataComponentType type) {
+        return this.craftDelegate.hasData(type);
+    }
+
+    /**
+     * Gets all the data component types set on this stack.
+     *
+     * @return an immutable set of data component types
+     */
+    @org.jetbrains.annotations.Contract("-> new")
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public java.util.@org.jetbrains.annotations.Unmodifiable Set<io.papermc.paper.datacomponent.@NotNull DataComponentType> getDataTypes() {
+        return this.craftDelegate.getDataTypes();
+    }
+
+    /**
+     * Sets the value of the data component type for this itemstack. To
+     * reset the value to the default for the {@link #getType() item type}, use
+     * {@link #resetData(io.papermc.paper.datacomponent.DataComponentType)}. To mark the data component type
+     * as removed, use {@link #unsetData(io.papermc.paper.datacomponent.DataComponentType)}.
+     *
+     * @param type the data component type
+     * @param valueBuilder value builder
+     * @param <T> value type
+     */
+    @Utility
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public <T> void setData(final io.papermc.paper.datacomponent.DataComponentType.@NotNull Valued<T> type, final @NotNull io.papermc.paper.datacomponent.DataComponentBuilder<T> valueBuilder) {
+        this.setData(type, valueBuilder.build());
+    }
+
+    // /**
+    //  * Modifies the value of the specified data component type for this item stack based on the result
+    //  * of applying a given function to the current value.
+    //  *
+    //  * <p>If the function returns {@code null}, the data component type will be reset using
+    //  * {@link #unsetData(DataComponentType)}. Otherwise, the
+    //  * component value will be updated with the new result using {@link #setData(DataComponentType.Valued, Object)}.</p>
+    //  *
+    //  * @param <T>      the type of the data component's value
+    //  * @param type     the data component type to be modified
+    //  * @param consumer a function that takes the current component value (can be {@code null}) and
+    //  *                 returns the modified value (or {@code null} to unset)
+    //  */
+    // @Utility
+    // public <T> void editData(final io.papermc.paper.datacomponent.DataComponentType.@NotNull Valued<T> type, final @NotNull java.util.function.Function<@Nullable T, @Nullable T> consumer) {
+    //     T value = getData(type);
+    //     T newType = consumer.apply(value);
+    //     if (newType == null) {
+    //         unsetData(type);
+    //     } else {
+    //         setData(type, newType);
+    //     }
+    // }
+
+    /**
+     * Sets the value of the data component type for this itemstack. To
+     * reset the value to the default for the {@link #getType() item type}, use
+     * {@link #resetData(io.papermc.paper.datacomponent.DataComponentType)}. To mark the data component type
+     * as removed, use {@link #unsetData(io.papermc.paper.datacomponent.DataComponentType)}.
+     *
+     * @param type the data component type
+     * @param value value to set
+     * @param <T> value type
+     */
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public <T> void setData(final io.papermc.paper.datacomponent.DataComponentType.@NotNull Valued<T> type, final @NotNull T value) {
+        this.craftDelegate.setData(type, value);
+    }
+
+    /**
+     * Marks this non-valued data component type as present in this itemstack.
+     *
+     * @param type the data component type
+     */
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public void setData(final io.papermc.paper.datacomponent.DataComponentType.@NotNull NonValued type) {
+        this.craftDelegate.setData(type);
+    }
+
+    /**
+     * Marks this data component as removed for this itemstack.
+     *
+     * @param type the data component type
+     */
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public void unsetData(final io.papermc.paper.datacomponent.@NotNull DataComponentType type) {
+        this.craftDelegate.unsetData(type);
+    }
+
+    /**
+     * Resets the value of this component to be the default
+     * value for the item type from {@link Material#getDefaultData(io.papermc.paper.datacomponent.DataComponentType.Valued)}.
+     *
+     * @param type the data component type
+     */
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public void resetData(final io.papermc.paper.datacomponent.@NotNull DataComponentType type) {
+        this.craftDelegate.resetData(type);
+    }
+
+    /**
+     * Copies component values and component removals from the provided ItemStack.
      * <p>
-     * Plugins should check that hasDisplayName() returns <code>true</code>
-     * before calling this method.
+     * Example:
+     * <pre>{@code
+     * Set<DataComponentType> types = Set.of(
+     *     DataComponentTypes.CONSUMABLE,
+     *     DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE,
+     *     DataComponentTypes.RARITY
+     * );
      *
-     * @return the display name that is set
+     * ItemStack source = ItemStack.of(Material.ENCHANTED_GOLDEN_APPLE);
+     * ItemStack target = ItemStack.of(Material.GOLDEN_CARROT);
+     *
+     * target.copyDataFrom(source, types::contains);
+     * }</pre>
+     *
+     * @param source the item stack to copy from
+     * @param filter predicate for which components to copy
      */
-    @NotNull
-    public String getDisplayName() {
-        return this.craftDelegate.getDisplayName();
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public void copyDataFrom(final @NotNull ItemStack source, final @NotNull Predicate<io.papermc.paper.datacomponent.@NotNull DataComponentType> filter) {
+        this.craftDelegate.copyDataFrom(source, filter);
     }
 
     /**
-     * Sets the display name.
+     * Checks if the data component type is overridden from the default for the
+     * item type.
      *
-     * @param name the name to set
+     * @param type the data component type
+     * @return {@code true} if the data type is overridden
      */
-    public void setDisplayName(@Nullable String name) {
-        this.craftDelegate.setDisplayName(name);
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public boolean isDataOverridden(final io.papermc.paper.datacomponent.@NotNull DataComponentType type) {
+        return this.craftDelegate.isDataOverridden(type);
     }
 
     /**
-     * Checks for existence of a display name.
+     * Checks if this itemstack matches another given itemstack excluding the provided components.
+     * This is useful if you are wanting to ignore certain properties of itemstacks, such as durability.
      *
-     * @return true if this has a display name
+     * @param item the item to compare
+     * @param excludeTypes the data component types to ignore
+     * @return {@code true} if the provided item is equal, ignoring the provided components
      */
-    public boolean hasDisplayName() {
-        return this.craftDelegate.hasDisplayName();
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public boolean matchesWithoutData(final @NotNull ItemStack item, final @NotNull java.util.Set<io.papermc.paper.datacomponent.@NotNull DataComponentType> excludeTypes) {
+        return this.matchesWithoutData(item, excludeTypes, false);
     }
 
     /**
-     * Gets the localized display name that is set.
-     * <p>
-     * Plugins should check that hasLocalizedName() returns <code>true</code>
-     * before calling this method.
+     * Checks if this itemstack matches another given itemstack excluding the provided components.
+     * This is useful if you are wanting to ignore certain properties of itemstacks, such as durability.
      *
-     * @return the localized name that is set
+     * @param item the item to compare
+     * @param excludeTypes the data component types to ignore
+     * @param ignoreCount ignore the count of the item
+     * @return {@code true} if the provided item is equal, ignoring the provided components
      */
-    @NotNull
-    public String getLocalizedName() {
-        return this.craftDelegate.getLocalizedName();
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    public boolean matchesWithoutData(final @NotNull ItemStack item, final @NotNull java.util.Set<io.papermc.paper.datacomponent.@NotNull DataComponentType> excludeTypes, final boolean ignoreCount) {
+        return this.craftDelegate.matchesWithoutData(item, excludeTypes, ignoreCount);
     }
-
-    /**
-     * Sets the localized name.
-     *
-     * @param name the name to set
-     */
-    public void setLocalizedName(@Nullable String name) {
-        this.craftDelegate.setLocalizedName(name);
-    }
-
-    /**
-     * Checks for existence of a localized name.
-     *
-     * @return true if this has a localized name
-     */
-    public boolean hasLocalizedName() {
-        return this.craftDelegate.hasLocalizedName();
-    }
-
-    /**
-     * Checks for existence of lore.
-     *
-     * @return true if this has lore
-     */
-    public boolean hasLore() {
-        return this.craftDelegate.hasLore();
-    }
-
-    /**
-     * Checks for existence of the specified enchantment.
-     *
-     * @param ench enchantment to check
-     * @return true if this enchantment exists for this meta
-     */
-    public boolean hasEnchant(@NotNull Enchantment ench) {
-        return this.craftDelegate.hasEnchant(ench);
-    }
-
-    /**
-     * Checks for the level of the specified enchantment.
-     *
-     * @param ench enchantment to check
-     * @return The level that the specified enchantment has, or 0 if none
-     */
-    public int getEnchantLevel(@NotNull Enchantment ench) {
-        return this.craftDelegate.getEnchantLevel(ench);
-    }
-
-    /**
-     * Returns a copy the enchantments in this ItemMeta. <br>
-     * Returns an empty map if none.
-     *
-     * @return An immutable copy of the enchantments
-     */
-    @NotNull
-    public Map<Enchantment, Integer> getEnchants() {
-        return this.craftDelegate.getEnchants();
-    }
-
-    /**
-     * Adds the specified enchantment to this item meta.
-     *
-     * @param ench Enchantment to add
-     * @param level Level for the enchantment
-     * @param ignoreLevelRestriction this indicates the enchantment should be
-     *     applied, ignoring the level limit
-     * @return true if the item meta changed as a result of this call, false
-     *     otherwise
-     */
-    public boolean addEnchant(@NotNull Enchantment ench, int level, boolean ignoreLevelRestriction) {
-        return this.craftDelegate.addEnchant(ench, level, ignoreLevelRestriction);
-    }
-
-    /**
-     * Removes the specified enchantment from this item meta.
-     *
-     * @param ench Enchantment to remove
-     * @return true if the item meta changed as a result of this call, false
-     *     otherwise
-     */
-    public boolean removeEnchant(@NotNull Enchantment ench) {
-        return this.craftDelegate.removeEnchant(ench);
-    }
-
-    /**
-     * Checks for the existence of any enchantments.
-     *
-     * @return true if an enchantment exists on this meta
-     */
-    public boolean hasEnchants() {
-        return this.craftDelegate.hasEnchants();
-    }
-
-    /**
-     * Checks if the specified enchantment conflicts with any enchantments in
-     * this ItemMeta.
-     *
-     * @param ench enchantment to test
-     * @return true if the enchantment conflicts, false otherwise
-     */
-    public boolean hasConflictingEnchant(@NotNull Enchantment ench) {
-        return this.craftDelegate.hasConflictingEnchant(ench);
-    }
-
-    /**
-     * Sets the custom model data.
-     * <p>
-     * CustomModelData is an integer that may be associated client side with a
-     * custom item model.
-     *
-     * @param data the data to set, or null to clear
-     */
-    public void setCustomModelData(@Nullable Integer data) {
-        this.craftDelegate.setCustomModelData(data);
-    }
-
-    /**
-     * Gets the custom model data that is set.
-     * <p>
-     * CustomModelData is an integer that may be associated client side with a
-     * custom item model.
-     * <p>
-     * Plugins should check that hasCustomModelData() returns <code>true</code>
-     * before calling this method.
-     *
-     * @return the localized name that is set
-     */
-    public int getCustomModelData() {
-        return this.craftDelegate.getCustomModelData();
-    }
-
-    /**
-     * Checks for existence of custom model data.
-     * <p>
-     * CustomModelData is an integer that may be associated client side with a
-     * custom item model.
-     *
-     * @return true if this has custom model data
-     */
-    public boolean hasCustomModelData() {
-        return this.craftDelegate.hasCustomModelData();
-    }
-
-    /**
-     * Returns whether the item has block data currently attached to it.
-     *
-     * @return whether block data is already attached
-     */
-    public boolean hasBlockData() {
-        return this.craftDelegate.hasBlockData();
-    }
-
-    /**
-     * Returns the currently attached block data for this item or creates a new
-     * one if one doesn't exist.
-     *
-     * The state is a copy, it must be set back (or to another item) with
-     * {@link #setBlockData(BlockData)}
-     *
-     * @param material the material we wish to get this data in the context of
-     * @return the attached data or new data
-     */
-    @NotNull
-    public BlockData getBlockData(@NotNull Material material) {
-        return this.craftDelegate.getBlockData(material);
-    }
-
-    /**
-     * Attaches a copy of the passed block data to the item.
-     *
-     * @param blockData the block data to attach to the block.
-     * @throws IllegalArgumentException if the blockData is null or invalid for
-     * this item.
-     */
-    public void setBlockData(@NotNull BlockData blockData) {
-        this.craftDelegate.setBlockData(blockData);
-    }
-
-    /**
-     * Gets the repair penalty
-     *
-     * @return the repair penalty
-     */
-    public int getRepairCost() {
-        return this.craftDelegate.getRepairCost();
-    }
-
-    /**
-     * Sets the repair penalty
-     *
-     * @param cost repair penalty
-     */
-    public void setRepairCost(int cost) {
-        this.craftDelegate.setRepairCost(cost);
-    }
-
-    /**
-     * Checks to see if this has a repair penalty
-     *
-     * @return true if this has a repair penalty
-     */
-    public boolean hasRepairCost() {
-        return this.craftDelegate.hasRepairCost();
-    }
-
-    /**
-     * Return if the unbreakable tag is true. An unbreakable item will not lose
-     * durability.
-     *
-     * @return true if the unbreakable tag is true
-     */
-    public boolean isUnbreakable() {
-        return this.craftDelegate.isUnbreakable();
-    }
-
-    /**
-     * Sets the unbreakable tag. An unbreakable item will not lose durability.
-     *
-     * @param unbreakable true if set unbreakable
-     */
-    public void setUnbreakable(boolean unbreakable) {
-        this.craftDelegate.setUnbreakable(unbreakable);
-    }
-
-    /**
-     * Checks for the existence of any AttributeModifiers.
-     *
-     * @return true if any AttributeModifiers exist
-     */
-    public boolean hasAttributeModifiers() {
-        return this.craftDelegate.hasAttributeModifiers();
-    }
-
-    /**
-     * Return an immutable copy of all Attributes and
-     * their modifiers in this ItemMeta.<br>
-     * Returns null if none exist.
-     *
-     * @return an immutable {@link Multimap} of Attributes
-     *         and their AttributeModifiers, or null if none exist
-     */
-    @Nullable
-    public Multimap<Attribute, AttributeModifier> getAttributeModifiers() {
-        return this.craftDelegate.getAttributeModifiers();
-    }
-
-    /**
-     * Return an immutable copy of all {@link Attribute}s and their
-     * {@link AttributeModifier}s for a given {@link EquipmentSlot}.<br>
-     * Any {@link AttributeModifier} that does have have a given
-     * {@link EquipmentSlot} will be returned. This is because
-     * AttributeModifiers without a slot are active in any slot.<br>
-     * If there are no attributes set for the given slot, an empty map
-     * will be returned.
-     *
-     * @param slot the {@link EquipmentSlot} to check
-     * @return the immutable {@link Multimap} with the
-     *         respective Attributes and modifiers, or an empty map
-     *         if no attributes are set.
-     */
-    @NotNull
-    public Multimap<Attribute, AttributeModifier> getAttributeModifiers(@Nullable EquipmentSlot slot) {
-        return this.craftDelegate.getAttributeModifiers(slot);
-    }
-
-    /**
-     * Return an immutable copy of all {@link AttributeModifier}s
-     * for a given {@link Attribute}
-     *
-     * @param attribute the {@link Attribute}
-     * @return an immutable collection of {@link AttributeModifier}s
-     *          or null if no AttributeModifiers exist for the Attribute.
-     * @throws NullPointerException if Attribute is null
-     */
-    @Nullable
-    public Collection<AttributeModifier> getAttributeModifiers(@NotNull Attribute attribute) {
-        return this.craftDelegate.getAttributeModifiers(attribute);
-    }
-
-    /**
-     * Add an Attribute and it's Modifier.
-     * AttributeModifiers can now support {@link EquipmentSlot}s.
-     * If not set, the {@link AttributeModifier} will be active in ALL slots.
-     * <br>
-     * Two {@link AttributeModifier}s that have the same {@link java.util.UUID}
-     * cannot exist on the same Attribute.
-     *
-     * @param attribute the {@link Attribute} to modify
-     * @param modifier the {@link AttributeModifier} specifying the modification
-     * @return true if the Attribute and AttributeModifier were
-     *         successfully added
-     * @throws NullPointerException if Attribute is null
-     * @throws NullPointerException if AttributeModifier is null
-     * @throws IllegalArgumentException if AttributeModifier already exists
-     */
-    public boolean addAttributeModifier(@NotNull Attribute attribute, @NotNull AttributeModifier modifier) {
-        return this.craftDelegate.addAttributeModifier(attribute, modifier);
-    }
-
-    /**
-     * Set all {@link Attribute}s and their {@link AttributeModifier}s.
-     * To clear all currently set Attributes and AttributeModifiers use
-     * null or an empty Multimap.
-     * If not null nor empty, this will filter all entries that are not-null
-     * and add them to the ItemStack.
-     *
-     * @param attributeModifiers the new Multimap containing the Attributes
-     *                           and their AttributeModifiers
-     */
-    public void setAttributeModifiers(@Nullable Multimap<Attribute, AttributeModifier> attributeModifiers) {
-        this.craftDelegate.setAttributeModifiers(attributeModifiers);
-    }
-
-    /**
-     * Remove all {@link AttributeModifier}s associated with the given
-     * {@link Attribute}.
-     * This will return false if nothing was removed.
-     *
-     * @param attribute attribute to remove
-     * @return  true if all modifiers were removed from a given
-     *                  Attribute. Returns false if no attributes were
-     *                  removed.
-     * @throws NullPointerException if Attribute is null
-     */
-    public boolean removeAttributeModifier(@NotNull Attribute attribute) {
-        return this.craftDelegate.removeAttributeModifier(attribute);
-    }
-
-    /**
-     * Remove all {@link Attribute}s and {@link AttributeModifier}s for a
-     * given {@link EquipmentSlot}.<br>
-     * If the given {@link EquipmentSlot} is null, this will remove all
-     * {@link AttributeModifier}s that do not have an EquipmentSlot set.
-     *
-     * @param slot the {@link EquipmentSlot} to clear all Attributes and
-     *             their modifiers for
-     * @return true if all modifiers were removed that match the given
-     *         EquipmentSlot.
-     */
-    public boolean removeAttributeModifier(@Nullable EquipmentSlot slot) {
-        return this.craftDelegate.removeAttributeModifier(slot);
-    }
-
-    /**
-     * Remove a specific {@link Attribute} and {@link AttributeModifier}.
-     * AttributeModifiers are matched according to their {@link java.util.UUID}.
-     *
-     * @param attribute the {@link Attribute} to remove
-     * @param modifier the {@link AttributeModifier} to remove
-     * @return if any attribute modifiers were remove
-     *
-     * @throws NullPointerException if the Attribute is null
-     * @throws NullPointerException if the AttributeModifier is null
-     *
-     * @see AttributeModifier#getUniqueId()
-     */
-    public boolean removeAttributeModifier(@NotNull Attribute attribute, @NotNull AttributeModifier modifier) {
-        return this.craftDelegate.removeAttributeModifier(attribute, modifier);
-    }
-
-    /**
-     * Checks to see if this item has damage
-     *
-     * @return true if this has damage
-     */
-    public boolean hasDamage() {
-        return this.craftDelegate.hasDamage();
-    }
-
-    /**
-     * Gets the damage
-     *
-     * @return the damage
-     */
-    public int getDamage() {
-        return this.craftDelegate.getDamage();
-    }
-
-    /**
-     * Sets the damage
-     *
-     * @param damage item damage
-     */
-    public void setDamage(int damage) {
-        this.craftDelegate.setDamage(damage);
-    }
-
-    /**
-     * Repairs this item by 1 durability
-     */
-    public void repair() {
-        repair(1);
-    }
-
-    /**
-     * Damages this item by 1 durability
-     *
-     * @return True if damage broke the item
-     */
-    public boolean damage() {
-        return damage(1);
-    }
-
-    /**
-     * Repairs this item's durability by amount
-     *
-     * @param amount Amount of durability to repair
-     */
-    public void repair(int amount) {
-        damage(-amount);
-    }
-
-    /**
-     * Damages this item's durability by amount
-     *
-     * @param amount Amount of durability to damage
-     * @return True if damage broke the item
-     */
-    public boolean damage(int amount) {
-        return damage(amount, false);
-    }
-
-    /**
-     * Damages this item's durability by amount
-     *
-     * @param amount Amount of durability to damage
-     * @param ignoreUnbreaking Ignores unbreaking enchantment
-     * @return True if damage broke the item
-     */
-    public boolean damage(int amount, boolean ignoreUnbreaking) {
-        return this.craftDelegate.damage(amount, ignoreUnbreaking);
-    }
-    // Purpur end
+    // Paper end - data component API
 }

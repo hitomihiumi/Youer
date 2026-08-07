@@ -155,10 +155,11 @@ public final class PaperReflection extends AbstractDefaultRulesReflectionProxy i
 
     private static String removeCraftBukkitRelocation(final String name) {
         if (MappingEnvironment.hasMappings()) {
+            // Relocation is applied in reobf, and when mappings are present they handle the relocation
             return name;
         }
         if (name.startsWith(LEGACY_CB_PACKAGE_PREFIX)) {
-           // return CB_PACKAGE_PREFIX + name.substring(LEGACY_CB_PACKAGE_PREFIX.length());
+            return CB_PACKAGE_PREFIX + name.substring(LEGACY_CB_PACKAGE_PREFIX.length());
         }
         return name;
     }

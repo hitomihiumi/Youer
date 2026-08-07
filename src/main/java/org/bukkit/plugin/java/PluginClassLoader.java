@@ -2,36 +2,30 @@ package org.bukkit.plugin.java;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
-import com.mohistmc.youer.asm.SwitchTableFixer;
-import com.mohistmc.youer.bukkit.pluginfix.PluginFixManager;
-import com.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
-import com.mohistmc.youer.bukkit.remapping.Remapper;
-import com.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
-import com.mohistmc.youer.util.I18n;
-import io.izzel.tools.product.Product2;
-import com.destroystokyo.paper.utils.PaperPluginLogger;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.URLConnection;
+import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import org.bukkit.Bukkit;
+import java.util.logging.Level;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.PluginDescriptionFile;
+import org.bukkit.plugin.SimplePluginManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  * A ClassLoader for plugins, to allow shared classes across multiple plugins
  */
 @org.jetbrains.annotations.ApiStatus.Internal // Paper
-public final class PluginClassLoader extends URLClassLoader implements io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader, RemappingClassLoader { // Paper
+public final class PluginClassLoader extends URLClassLoader implements io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader { // Paper
     private final JavaPluginLoader loader;
     private final Map<String, Class<?>> classes = new ConcurrentHashMap<String, Class<?>>();
     private final PluginDescriptionFile description;
@@ -57,20 +51,8 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
     private io.papermc.paper.plugin.provider.classloader.PluginClassLoaderGroup classLoaderGroup; // Paper
     public io.papermc.paper.plugin.provider.entrypoint.DependencyContext dependencyContext; // Paper
 
-    private boolean closed = false; // Pufferfish
-
     static {
         ClassLoader.registerAsParallelCapable();
-    }
-
-    private ClassLoaderRemapper remapper;
-
-    @Override
-    public ClassLoaderRemapper getRemapper() {
-        if (remapper == null) {
-            remapper = Remapper.createClassLoaderRemapper(this);
-        }
-        return remapper;
     }
 
     @org.jetbrains.annotations.ApiStatus.Internal // Paper
@@ -86,7 +68,7 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
         this.url = file.toURI().toURL();
         this.libraryLoader = libraryLoader;
 
-        this.logger = PaperPluginLogger.getLogger(description); // Paper - Register logger early
+        this.logger = com.destroystokyo.paper.utils.PaperPluginLogger.getLogger(description); // Paper - Register logger early
         // Paper start
         this.dependencyContext = dependencyContext;
         this.classLoaderGroup = io.papermc.paper.plugin.provider.classloader.PaperClassLoaderStorage.instance().registerSpigotGroup(this);
@@ -110,13 +92,20 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
         try {
             pluginConstructor = pluginClass.getDeclaredConstructor();
         } catch (NoSuchMethodException ex) {
-            throw new InvalidPluginException("main class `" + description.getMain() + "' must have a public no-args constructor", ex);
+            throw new InvalidPluginException("main class `" + description.getMain() + "' must have a no-args constructor", ex);
+        }
+
+        try {
+            // Support non-public constructors
+            pluginConstructor.setAccessible(true);
+        } catch (InaccessibleObjectException | SecurityException ex) {
+            throw new InvalidPluginException("main class `" + description.getMain() + "' constructor inaccessible", ex);
         }
 
         try {
             plugin = pluginConstructor.newInstance();
         } catch (IllegalAccessException ex) {
-            throw new InvalidPluginException("main class `" + description.getMain() + "' constructor must be public", ex);
+            throw new InvalidPluginException("main class `" + description.getMain() + "' constructor inaccessible", ex);
         } catch (InstantiationException ex) {
             throw new InvalidPluginException("main class `" + description.getMain() + "' must not be abstract", ex);
         } catch (IllegalArgumentException ex) {
@@ -216,7 +205,6 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
         throw new ClassNotFoundException(name);
     }
 
-    public boolean _airplane_hasClass(@NotNull String name) { return this.classes.containsKey(name); } // Pufferfish
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         if (name.startsWith("org.bukkit.") || name.startsWith("net.minecraft.")) {
@@ -224,31 +212,29 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
         }
         Class<?> result = classes.get(name);
 
-        if (result == null && !this.closed) { // Pufferfish
+        if (result == null) {
             String path = name.replace('.', '/').concat(".class");
-            URL url = this.findResource(path);
+            // Add details to zip file errors - help debug classloading
+            JarEntry entry;
+            try {
+                entry = jar.getJarEntry(path);
+            } catch (IllegalStateException zipFileClosed) {
+                if (plugin == null) {
+                    throw zipFileClosed;
+                }
+                throw new IllegalStateException("The plugin classloader for " + plugin.getName() + " has thrown a zip file error.", zipFileClosed);
+            }
 
-            if (url != null) {
+            if (entry != null) {
+                byte[] classBytes;
 
-                URLConnection connection;
-                Callable<byte[]> byteSource;
-                try {
-                    connection = url.openConnection();
-                    connection.connect();
-                    byteSource = () -> {
-                        try (InputStream is = connection.getInputStream()) {
-                            byte[] classBytes = ByteStreams.toByteArray(is);
-                            classBytes = SwitchTableFixer.INSTANCE.apply(classBytes);
-                            classBytes = Bukkit.getServer().getUnsafe().processClass(description, path, classBytes);
-                            classBytes = PluginFixManager.injectPluginFix(description.getName(), name, classBytes); // Mohist - Inject plugin fix
-                            return classBytes;
-                        }
-                    };
-                } catch (IOException e) {
-                    throw new ClassNotFoundException(name, e);
+                try (InputStream is = jar.getInputStream(entry)) {
+                    classBytes = ByteStreams.toByteArray(is);
+                } catch (IOException ex) {
+                    throw new ClassNotFoundException(name, ex);
                 }
 
-                Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
+                classBytes = org.bukkit.Bukkit.getServer().getUnsafe().processClass(description, path, classBytes); // Paper
 
                 int dot = name.lastIndexOf('.');
                 if (dot != -1) {
@@ -262,13 +248,16 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
                             }
                         } catch (IllegalArgumentException ex) {
                             if (getPackage(pkgName) == null) {
-                                throw new IllegalStateException(I18n.as("mohist.i18n.30", pkgName));
+                                throw new IllegalStateException("Cannot find package " + pkgName);
                             }
                         }
                     }
                 }
 
-                result = defineClass(name, classBytes._1, 0, classBytes._1.length, classBytes._2);
+                CodeSigner[] signers = entry.getCodeSigners();
+                CodeSource source = new CodeSource(url, signers);
+
+                result = defineClass(name, classBytes, 0, classBytes.length, source);
             }
 
             if (result == null) {
@@ -279,7 +268,6 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
             this.setClass(name, result); // Paper
         }
 
-        if (result == null) throw new ClassNotFoundException(name); // Pufferfish
         return result;
     }
 
@@ -294,7 +282,6 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
             // Paper end
             super.close();
         } finally {
-            this.closed = true; // Pufferfish
             jar.close();
         }
     }

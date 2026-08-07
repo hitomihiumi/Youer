@@ -1,8 +1,6 @@
 package io.papermc.paper.configuration.transformation.global;
 
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
-import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
+import com.mojang.logging.LogUtils;
 import io.papermc.paper.configuration.Configuration;
 import java.util.function.Predicate;
 import net.kyori.adventure.text.Component;
@@ -12,11 +10,15 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import org.spongepowered.configurate.transformation.TransformAction;
 
-import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
+import static org.spongepowered.configurate.NodePath.path;
 
 public final class LegacyPaperConfig {
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private LegacyPaperConfig() {
     }
@@ -77,7 +79,7 @@ public final class LegacyPaperConfig {
             .addAction(path("allow-perm-block-break-exploits"), (path, value) -> new Object[]{"settings", "unsupported-settings", "allow-permanent-block-break-exploits"})
             .addAction(path("settings", "unsupported-settings", "allow-tnt-duplication"), TransformAction.rename("allow-piston-duplication"))
             .addAction(path("settings", "save-player-data"), (path, value) -> {
-                final @Nullable Object val = value.raw();
+                final Object val = value.raw();
                 if (val instanceof Boolean bool) {
                     spigotConfiguration.set("players.disable-saving", !bool);
                 }
@@ -85,7 +87,7 @@ public final class LegacyPaperConfig {
                 return null;
             })
             .addAction(path("settings", "log-named-entity-deaths"), (path, value) -> {
-                final @Nullable Object val = value.raw();
+                final Object val = value.raw();
                 if (val instanceof Boolean bool && !bool) {
                     spigotConfiguration.set("settings.log-named-deaths", false);
                 }
@@ -113,7 +115,7 @@ public final class LegacyPaperConfig {
             .addAction(path("packet-limiter", "limits", "all"), (path, value) -> new Object[]{"packet-limiter", "all-packets"})
             .addAction(path("packet-limiter", "limits"), (path, value) -> new Object[]{"packet-limiter", "overrides"})
             .addAction(path("packet-limiter", "overrides", ConfigurationTransformation.WILDCARD_OBJECT), (path, value) -> {
-                final @Nullable Object keyValue = value.key();
+                final Object keyValue = value.key();
                 if (keyValue != null && keyValue.toString().equals("PacketPlayInAutoRecipe")) { // add special cast to handle the default for moj-mapped servers that upgrade the config
                     return path.with(path.size() - 1, ServerboundPlaceRecipePacket.class.getSimpleName()).array();
                 }
@@ -172,7 +174,7 @@ public final class LegacyPaperConfig {
     }
     private static void miniMessageWithTranslatable(final ConfigurationTransformation.Builder builder, final Predicate<String> englishCheck, final Component component, final String... strPath) {
         builder.addAction(path((Object[]) strPath), (path, value) -> {
-            final @Nullable Object val = value.raw();
+            final Object val = value.raw();
             if (val != null) {
                 final String strVal = val.toString();
                 if (!englishCheck.test(strVal)) {
@@ -187,7 +189,7 @@ public final class LegacyPaperConfig {
 
     private static void miniMessage(final ConfigurationTransformation.Builder builder, final String... strPath) {
         builder.addAction(path((Object[]) strPath), (path, value) -> {
-            final @Nullable Object val = value.raw();
+            final Object val = value.raw();
             if (val != null) {
                 value.set(miniMessage(val.toString()));
             }

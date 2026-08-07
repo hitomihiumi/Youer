@@ -1,8 +1,9 @@
 package io.papermc.paper.threadedregions.scheduler;
 
-import java.util.function.Consumer;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Consumer;
 
 /**
  * The global region task scheduler may be used to schedule tasks that will execute on the global region.
@@ -47,7 +48,7 @@ public interface GlobalRegionScheduler {
      * @return The {@link ScheduledTask} that represents the scheduled task.
      */
     @NotNull ScheduledTask runAtFixedRate(@NotNull Plugin plugin, @NotNull Consumer<ScheduledTask> task,
-                                                 long initialDelayTicks, long periodTicks);
+                                          long initialDelayTicks, long periodTicks);
 
     /**
      * Attempts to cancel all tasks scheduled by the specified plugin.

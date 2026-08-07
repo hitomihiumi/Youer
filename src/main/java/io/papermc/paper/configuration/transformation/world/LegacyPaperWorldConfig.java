@@ -1,7 +1,5 @@
 package io.papermc.paper.configuration.transformation.world;
 
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
-import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
 import io.papermc.paper.configuration.Configuration;
 import io.papermc.paper.configuration.WorldConfiguration;
 import java.util.HashMap;
@@ -17,11 +15,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.Item;
 import org.bukkit.Material;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import org.spongepowered.configurate.transformation.TransformAction;
 
-import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
 import static io.papermc.paper.configuration.transformation.Transformations.moveFromRoot;
 import static io.papermc.paper.configuration.transformation.Transformations.moveFromRootAndRename;
+import static org.spongepowered.configurate.NodePath.path;
 
 public final class LegacyPaperWorldConfig {
 
@@ -57,14 +56,14 @@ public final class LegacyPaperWorldConfig {
             }).build())
             .addVersion(19, ConfigurationTransformation.builder()
                 .addAction(path("anti-xray", "hidden-blocks"), (path, value) -> {
-                    @Nullable final List<String> hiddenBlocks = value.getList(String.class);
+                    final List<String> hiddenBlocks = value.getList(String.class);
                     if (hiddenBlocks != null) {
                         hiddenBlocks.remove("lit_redstone_ore");
                     }
                     return null;
                 })
                 .addAction(path("anti-xray", "replacement-blocks"), (path, value) -> {
-                    @Nullable final List<String> replacementBlocks = value.getList(String.class);
+                    final List<String> replacementBlocks = value.getList(String.class);
                     if (replacementBlocks != null) {
                         final int index = replacementBlocks.indexOf("planks");
                         if (index != -1) {
@@ -104,7 +103,7 @@ public final class LegacyPaperWorldConfig {
             )
             .addVersion(26, ConfigurationTransformation.builder().addAction(path("alt-item-despawn-rate", "items", ConfigurationTransformation.WILDCARD_OBJECT), (path, value) -> {
                 String itemName = path.get(path.size() - 1).toString();
-                final Optional<Holder.Reference<Item>> item = BuiltInRegistries.ITEM.getHolder(ResourceKey.create(Registries.ITEM, ResourceLocation.parse(itemName.toLowerCase(Locale.ROOT))));
+                final Optional<Holder.Reference<Item>> item = BuiltInRegistries.ITEM.get(ResourceKey.create(Registries.ITEM, ResourceLocation.parse(itemName.toLowerCase(Locale.ROOT))));
                 if (item.isEmpty()) {
                     itemName = Material.valueOf(itemName).getKey().getKey();
                 }
@@ -136,10 +135,10 @@ public final class LegacyPaperWorldConfig {
                     Map<String, Integer> rebuild = new HashMap<>();
                     value.childrenMap().forEach((key, node) -> {
                         String itemName = key.toString();
-                        final Optional<Holder.Reference<Item>> itemHolder = BuiltInRegistries.ITEM.getHolder(ResourceKey.create(Registries.ITEM, ResourceLocation.parse(itemName.toLowerCase(Locale.ROOT))));
-                        final @Nullable String item;
+                        final Optional<Holder.Reference<Item>> itemHolder = BuiltInRegistries.ITEM.get(ResourceKey.create(Registries.ITEM, ResourceLocation.parse(itemName.toLowerCase(Locale.ROOT))));
+                        final String item;
                         if (itemHolder.isEmpty()) {
-                            final @Nullable Material bukkitMat = Material.matchMaterial(itemName);
+                            final Material bukkitMat = Material.matchMaterial(itemName);
                             item = bukkitMat != null ? bukkitMat.getKey().getKey() : null;
                         } else {
                             item = itemHolder.get().unwrapKey().orElseThrow().location().getPath();
@@ -275,7 +274,7 @@ public final class LegacyPaperWorldConfig {
 
         builder.addAction(path("feature-seeds", ConfigurationTransformation.WILDCARD_OBJECT), (path, value) -> {
             final String key = path.array()[path.size() - 1].toString();
-            if (!key.equals("generate-random-seeds-for-all")) {
+            if (!"generate-random-seeds-for-all".equals(key)) {
                 return new Object[]{"feature-seeds", "features", key};
             }
             return null;
@@ -293,7 +292,7 @@ public final class LegacyPaperWorldConfig {
         });
 
         builder.addAction(path("redstone-implementation"), (path, value) -> {
-            if (value.require(String.class).equalsIgnoreCase("alternate-current")) {
+            if ("alternate-current".equalsIgnoreCase(value.require(String.class))) {
                 value.set("alternate_current");
             }
             return new Object[]{"misc", "redstone-implementation"};

@@ -1,15 +1,14 @@
 package io.papermc.paper.configuration.transformation.world.versioned;
 
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.NodePath;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
-import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
 import io.papermc.paper.configuration.Configurations;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.GameRules;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.NodePath;
+import org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import org.spongepowered.configurate.transformation.TransformAction;
 
-import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
+import static org.spongepowered.configurate.NodePath.path;
 
 public final class V31_SpawnLoadedRangeToGameRule implements TransformAction {
 
@@ -39,9 +38,9 @@ public final class V31_SpawnLoadedRangeToGameRule implements TransformAction {
             worldSpawnNode.raw(null);
         }
         if (!keepLoaded) {
-            this.gameRules.getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, (ServerLevel) null);
+            this.gameRules.getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, null);
         } else {
-            this.gameRules.getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(range, (ServerLevel) null);
+            this.gameRules.getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(range, null);
         }
         return null;
     }

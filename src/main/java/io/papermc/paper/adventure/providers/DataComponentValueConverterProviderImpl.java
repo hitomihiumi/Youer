@@ -50,7 +50,7 @@ public class DataComponentValueConverterProviderImpl implements DataComponentVal
                 GsonDataComponentValue.class,
                 PaperAdventure.DataComponentValueImpl.class,
                 (key, dataComponentValue) -> {
-                    final @Nullable DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.get(PaperAdventure.asVanilla(key));
+                    final @Nullable DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(PaperAdventure.asVanilla(key));
                     if (type == null) {
                         throw new IllegalArgumentException("Unknown data component type: " + key);
                     }
@@ -66,7 +66,7 @@ public class DataComponentValueConverterProviderImpl implements DataComponentVal
                 DataComponentValue.TagSerializable.class,
                 PaperAdventure.DataComponentValueImpl.class,
                 (key, tagSerializable) -> {
-                    final @Nullable DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.get(PaperAdventure.asVanilla(key));
+                    final @Nullable DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(PaperAdventure.asVanilla(key));
                     if (type == null) {
                         throw new IllegalArgumentException("Unknown data component type: " + key);
                     }
@@ -75,6 +75,20 @@ public class DataComponentValueConverterProviderImpl implements DataComponentVal
                     } catch (final CommandSyntaxException e) {
                         throw new IllegalArgumentException(e);
                     }
+                }
+            ),
+            DataComponentValueConverterRegistry.Conversion.convert(
+                DataComponentValue.TagSerializable.class,
+                GsonDataComponentValue.class,
+                (key, tagSerializable) -> {
+                    Tag decodedSnbt;
+                    try {
+                        decodedSnbt = tagSerializable.asBinaryTag().get(PaperAdventure.NBT_CODEC);
+                    } catch (final CommandSyntaxException e) {
+                        throw new IllegalArgumentException("Unable to parse SNBT value", e);
+                    }
+
+                    return GsonDataComponentValue.gsonDataComponentValue(NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, decodedSnbt));
                 }
             )
         );

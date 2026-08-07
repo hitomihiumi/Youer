@@ -1,20 +1,6 @@
 --- a/net/minecraft/world/item/FlintAndSteelItem.java
 +++ b/net/minecraft/world/item/FlintAndSteelItem.java
-@@ -11,12 +_,9 @@
- import net.minecraft.world.item.context.UseOnContext;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.BaseFireBlock;
--import net.minecraft.world.level.block.CampfireBlock;
--import net.minecraft.world.level.block.CandleBlock;
--import net.minecraft.world.level.block.CandleCakeBlock;
- import net.minecraft.world.level.block.state.BlockState;
--import net.minecraft.world.level.block.state.properties.BlockStateProperties;
- import net.minecraft.world.level.gameevent.GameEvent;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class FlintAndSteelItem extends Item {
-     public FlintAndSteelItem(Item.Properties p_41295_) {
-@@ -29,9 +_,16 @@
+@@ -29,7 +_,8 @@
          Level level = p_41297_.getLevel();
          BlockPos blockpos = p_41297_.getClickedPos();
          BlockState blockstate = level.getBlockState(blockpos);
@@ -23,34 +9,19 @@
 +        if (blockstate2 == null) {
              BlockPos blockpos1 = blockpos.relative(p_41297_.getClickedFace());
              if (BaseFireBlock.canBePlacedAt(level, blockpos1, p_41297_.getHorizontalDirection())) {
-+                // CraftBukkit start - Store the clicked block
-+                if (player != null && CraftEventFactory.callBlockIgniteEvent(level, blockpos1, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL, player).isCancelled()) {
-+                    p_41297_.getItemInHand().hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_41297_.getHand()));
-+                    return InteractionResult.PASS;
-+                }
-+                // CraftBukkit end
                  level.playSound(player, blockpos1, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1.0F, level.getRandom().nextFloat() * 0.4F + 0.8F);
-                 BlockState blockstate1 = BaseFireBlock.getState(level, blockpos1);
-                 level.setBlock(blockpos1, blockstate1, 11);
-@@ -47,8 +_,14 @@
-                 return InteractionResult.FAIL;
+@@ -48,7 +_,7 @@
              }
          } else {
-+            // CraftBukkit start - Store the clicked block
-+            if (player != null && CraftEventFactory.callBlockIgniteEvent(level, blockpos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL, player).isCancelled()) {
-+                p_41297_.getItemInHand().hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_41297_.getHand()));
-+                return InteractionResult.PASS;
-+            }
-+            // CraftBukkit end
              level.playSound(player, blockpos, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1.0F, level.getRandom().nextFloat() * 0.4F + 0.8F);
--            level.setBlock(blockpos, blockstate.setValue(BlockStateProperties.LIT, Boolean.valueOf(true)), 11);
+-            level.setBlock(blockpos, blockstate.setValue(BlockStateProperties.LIT, true), 11);
 +            level.setBlock(blockpos, blockstate2, 11);
              level.gameEvent(player, GameEvent.BLOCK_CHANGE, blockpos);
              if (player != null) {
                  p_41297_.getItemInHand().hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_41297_.getHand()));
 @@ -56,5 +_,10 @@
  
-             return InteractionResult.sidedSuccess(level.isClientSide());
+             return InteractionResult.SUCCESS;
          }
 +    }
 +

@@ -1,9 +1,10 @@
 package io.papermc.paper.adventure.providers;
 
 import io.papermc.paper.adventure.PaperAdventure;
-import java.util.function.Consumer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Consumer;
 
 @SuppressWarnings("UnstableApiUsage") // permitted provider
 public class LegacyComponentSerializerProviderImpl implements LegacyComponentSerializer.Provider {

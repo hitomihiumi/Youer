@@ -12,6 +12,7 @@ public interface Projectile extends Entity {
      * Retrieve the shooter of this projectile.
      *
      * @return the {@link ProjectileSource} that shot this projectile
+     * @see #getOwnerUniqueId()
      */
     @Nullable
     public ProjectileSource getShooter();
@@ -29,7 +30,7 @@ public interface Projectile extends Entity {
      * @return true if it should bounce.
      * @deprecated does not do anything
      */
-    @Deprecated
+    @Deprecated(since = "1.20.2", forRemoval = true)
     public boolean doesBounce();
 
     /**
@@ -39,9 +40,8 @@ public interface Projectile extends Entity {
      * @param doesBounce whether or not it should bounce.
      * @deprecated does not do anything
      */
-    @Deprecated
+    @Deprecated(since = "1.20.2", forRemoval = true)
     public void setBounce(boolean doesBounce);
-
     // Paper start
 
     /**
@@ -104,7 +104,7 @@ public interface Projectile extends Entity {
      * Using this method will result in {@link org.bukkit.event.entity.ProjectileHitEvent} being called.
      * @param entity the entity to hit
      * @see #hitEntity(Entity, org.bukkit.util.Vector)
-     * @see #canHitEntity(Entity)
+     * @see #canHitEntity(Entity) 
      */
     void hitEntity(@org.jetbrains.annotations.NotNull Entity entity);
 
@@ -114,7 +114,7 @@ public interface Projectile extends Entity {
      * @param entity the entity to hit
      * @param vector the direction to hit from
      * @see #hitEntity(Entity)
-     * @see #canHitEntity(Entity)
+     * @see #canHitEntity(Entity) 
      */
     void hitEntity(@org.jetbrains.annotations.NotNull Entity entity, @org.jetbrains.annotations.NotNull org.bukkit.util.Vector vector);
 

@@ -1,7 +1,5 @@
 package org.bukkit.craftbukkit.command;
 
-import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.api.ColorAPI;
 import java.util.UUID;
 import org.bukkit.ChatColor;
 import org.bukkit.command.ConsoleCommandSender;
@@ -23,22 +21,17 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendMessage(String message) {
-        // Purpur start
-        String[] parts = message.split("\n");
-        for (String part : parts) {
-            this.sendRawMessage(part);
-        }
-        // Purpur end
+        this.sendRawMessage(message);
     }
 
     @Override
     public void sendRawMessage(String message) {
-        Youer.LOGGER.info(ChatColor.stripColor(ColorAPI.string(message)));
+        System.out.println(ChatColor.stripColor(message));
     }
 
     @Override
     public void sendRawMessage(UUID sender, String message) {
-        this.sendRawMessage(message); // Console doesn't know of senders
+      this.sendRawMessage(message); // Console doesn't know of senders
     }
 
     @Override
@@ -53,12 +46,10 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
         return "CONSOLE";
     }
 
-    // Paper start
     @Override
     public net.kyori.adventure.text.Component name() {
         return net.kyori.adventure.text.Component.text(this.getName());
     }
-    // Paper end
 
     @Override
     public boolean isOp() {
@@ -95,10 +86,9 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
         return this.conversationTracker.isConversing();
     }
 
-    // Paper start
     @Override
     public void sendMessage(final net.kyori.adventure.identity.Identity identity, final net.kyori.adventure.text.Component message, final net.kyori.adventure.audience.MessageType type) {
-        this.sendMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message)); // Purpur
+        this.sendRawMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message));
     }
 
     @Override
@@ -110,5 +100,4 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
     public boolean hasPermission(org.bukkit.permissions.Permission perm) {
         return io.papermc.paper.configuration.GlobalConfiguration.get().console.hasAllPermissions || super.hasPermission(perm);
     }
-    // Paper end
 }

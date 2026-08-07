@@ -1,17 +1,16 @@
 package io.papermc.paper.configuration.type.fallback;
 
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import net.minecraft.server.MinecraftServer;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spigotmc.SpigotWorldConfig;
+import org.spongepowered.configurate.serialize.ScalarSerializer;
+import org.spongepowered.configurate.serialize.SerializationException;
 
-import static com.mohistmc.io.leangen.geantyref.GenericTypeReflector.erase;
+import static io.leangen.geantyref.GenericTypeReflector.erase;
 
 public class FallbackValueSerializer extends ScalarSerializer<FallbackValue> {
 
@@ -36,7 +35,7 @@ public class FallbackValueSerializer extends ScalarSerializer<FallbackValue> {
 
     @Override
     public FallbackValue deserialize(Type type, Object obj) throws SerializationException {
-        final @Nullable FallbackCreator<?> creator = REGISTRY.get(erase(type));
+        final FallbackCreator<?> creator = REGISTRY.get(erase(type));
         if (creator == null) {
             throw new SerializationException(type + " does not have a FallbackCreator registered");
         }

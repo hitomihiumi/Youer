@@ -2,8 +2,9 @@ package io.papermc.paper.plugin.entrypoint.classloader.group;
 
 import io.papermc.paper.plugin.provider.classloader.ClassLoaderAccess;
 import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
-import java.util.ArrayList;
 import org.jetbrains.annotations.ApiStatus;
+
+import java.util.ArrayList;
 
 @ApiStatus.Internal
 public class DependencyBasedPluginClassLoaderGroup extends SimpleListPluginClassLoaderGroup {

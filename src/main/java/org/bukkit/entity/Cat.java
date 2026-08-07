@@ -3,6 +3,8 @@ package org.bukkit.entity;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.Locale;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.DyeColor;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
@@ -36,6 +38,7 @@ public interface Cat extends Tameable, Sittable, io.papermc.paper.entity.CollarC
      * @return the color of the collar
      */
     @NotNull
+    @Override // Paper
     public DyeColor getCollarColor();
 
     /**
@@ -43,6 +46,7 @@ public interface Cat extends Tameable, Sittable, io.papermc.paper.entity.CollarC
      *
      * @param color the color to apply
      */
+    @Override // Paper
     public void setCollarColor(@NotNull DyeColor color);
 
     /**
@@ -50,21 +54,34 @@ public interface Cat extends Tameable, Sittable, io.papermc.paper.entity.CollarC
      */
     interface Type extends OldEnum<Type>, Keyed {
 
-        Type TABBY = getType("tabby");
-        Type BLACK = getType("black");
-        Type RED = getType("red");
-        Type SIAMESE = getType("siamese");
-        Type BRITISH_SHORTHAIR = getType("british_shorthair");
-        Type CALICO = getType("calico");
-        Type PERSIAN = getType("persian");
-        Type RAGDOLL = getType("ragdoll");
-        Type WHITE = getType("white");
-        Type JELLIE = getType("jellie");
+        // Start generate - CatType
+        // @GeneratedFrom 1.21.8
         Type ALL_BLACK = getType("all_black");
+
+        Type BLACK = getType("black");
+
+        Type BRITISH_SHORTHAIR = getType("british_shorthair");
+
+        Type CALICO = getType("calico");
+
+        Type JELLIE = getType("jellie");
+
+        Type PERSIAN = getType("persian");
+
+        Type RAGDOLL = getType("ragdoll");
+
+        Type RED = getType("red");
+
+        Type SIAMESE = getType("siamese");
+
+        Type TABBY = getType("tabby");
+
+        Type WHITE = getType("white");
+        // End generate - CatType
 
         @NotNull
         private static Type getType(@NotNull String key) {
-            return Registry.CAT_VARIANT.getOrThrow(NamespacedKey.minecraft(key));
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.CAT_VARIANT).getOrThrow(NamespacedKey.minecraft(key));
         }
 
         /**
@@ -73,9 +90,9 @@ public interface Cat extends Tameable, Sittable, io.papermc.paper.entity.CollarC
          * @deprecated only for backwards compatibility, use {@link Registry#get(NamespacedKey)} instead.
          */
         @NotNull
-        @Deprecated(since = "1.21")
+        @Deprecated(since = "1.21", forRemoval = true) @org.jetbrains.annotations.ApiStatus.ScheduledForRemoval(inVersion = "1.22") // Paper - will be removed via asm-utils
         static Type valueOf(@NotNull String name) {
-            Type type = Registry.CAT_VARIANT.get(NamespacedKey.fromString(name.toLowerCase(Locale.ROOT)));
+            Type type = RegistryAccess.registryAccess().getRegistry(RegistryKey.CAT_VARIANT).get(NamespacedKey.fromString(name.toLowerCase(Locale.ROOT)));
             Preconditions.checkArgument(type != null, "No cat type found with the name %s", name);
             return type;
         }
@@ -85,13 +102,12 @@ public interface Cat extends Tameable, Sittable, io.papermc.paper.entity.CollarC
          * @deprecated use {@link Registry#iterator()}.
          */
         @NotNull
-        @Deprecated(since = "1.21")
+        @Deprecated(since = "1.21", forRemoval = true) @org.jetbrains.annotations.ApiStatus.ScheduledForRemoval(inVersion = "1.22") // Paper - will be removed via asm-utils
         static Type[] values() {
-            return Lists.newArrayList(Registry.CAT_VARIANT).toArray(new Type[0]);
+            return Lists.newArrayList(RegistryAccess.registryAccess().getRegistry(RegistryKey.CAT_VARIANT)).toArray(new Type[0]);
         }
     }
 
-    // Paper start - More cat api
     /**
      * Sets if the cat is lying down.
      * This is visual and does not affect the behaviour of the cat.
@@ -121,5 +137,4 @@ public interface Cat extends Tameable, Sittable, io.papermc.paper.entity.CollarC
      * @return head is up
      */
     public boolean isHeadUp();
-    // Paper end - More cat api
 }

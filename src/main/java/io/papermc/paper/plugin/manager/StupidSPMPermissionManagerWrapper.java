@@ -1,10 +1,11 @@
 package io.papermc.paper.plugin.manager;
 
-import java.util.Map;
-import java.util.Set;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.SimplePluginManager;
+
+import java.util.Map;
+import java.util.Set;
 
 /*
 This is actually so cursed I hate it.

@@ -21,7 +21,7 @@ public enum Particle implements Keyed {
     EFFECT("effect"),
     INSTANT_EFFECT("instant_effect"),
     /**
-     * Uses {@link Color} as DataType
+     * Uses {@link Color} as DataType (with alpha support)
      */
     ENTITY_EFFECT("entity_effect", Color.class),
     WITCH("witch"),
@@ -116,15 +116,20 @@ public enum Particle implements Keyed {
     SONIC_BOOM("sonic_boom"),
     SCULK_SOUL("sculk_soul"),
     /**
-     * Use {@link Float} as DataType
+     * Uses {@link Float} as DataType
      */
     SCULK_CHARGE("sculk_charge", Float.class),
     SCULK_CHARGE_POP("sculk_charge_pop"),
     /**
-     * Use {@link Integer} as DataType
+     * Uses {@link Integer} as DataType
      */
     SHRIEK("shriek", Integer.class),
     CHERRY_LEAVES("cherry_leaves"),
+    PALE_OAK_LEAVES("pale_oak_leaves"),
+    /**
+     * Uses {@link Color} as DataType
+     */
+    TINTED_LEAVES("tinted_leaves", Color.class),
     EGG_CRACK("egg_crack"),
     DUST_PLUME("dust_plume"),
     WHITE_SMOKE("white_smoke"),
@@ -141,6 +146,15 @@ public enum Particle implements Keyed {
      * Uses {@link BlockData} as DataType
      */
     DUST_PILLAR("dust_pillar", BlockData.class),
+    /**
+     * Uses {@link BlockData} as DataType
+     */
+    BLOCK_CRUMBLE("block_crumble", BlockData.class),
+    FIREFLY("firefly"),
+    /**
+     * Uses {@link Trail} as DataType
+     */
+    TRAIL("trail", Trail.class),
     OMINOUS_SPAWNING("ominous_spawning"),
     RAID_OMEN("raid_omen"),
     TRIAL_OMEN("trial_omen"),
@@ -149,30 +163,25 @@ public enum Particle implements Keyed {
      */
     BLOCK_MARKER("block_marker", BlockData.class);
 
-    public NamespacedKey key;
+    private final NamespacedKey key;
     private final Class<?> dataType;
-    final boolean register;
+    // Paper - all particles are registered
 
     Particle(String key) {
         this(key, Void.class);
     }
 
-    Particle(String key, boolean register) {
-        this(key, Void.class, register);
-    }
+    // Paper - all particles are registered
 
     Particle(String key, /*@NotNull*/ Class<?> data) {
-        this(key, data, true);
-    }
-
-    Particle(String key, /*@NotNull*/ Class<?> data, boolean register) {
+        // Paper - all particles are registered
         if (key != null) {
-            this.key = NamespacedKey.fromString(key);
+            this.key = NamespacedKey.minecraft(key);
         } else {
             this.key = null;
         }
         dataType = data;
-        this.register = register;
+        // Paper - all particles are registered
     }
 
     /**
@@ -207,7 +216,7 @@ public enum Particle implements Keyed {
     // Paper end
 
     /**
-     * Options which can be applied to redstone dust particles - a particle
+     * Options which can be applied to dust particles - a particle
      * color and size.
      */
     public static class DustOptions {
@@ -263,6 +272,51 @@ public enum Particle implements Keyed {
         @NotNull
         public Color getToColor() {
             return toColor;
+        }
+    }
+
+    /**
+     * Options which can be applied to trail particles - a location, color and duration.
+     */
+    public static class Trail {
+
+        private final Location target;
+        private final Color color;
+        private final int duration;
+
+        public Trail(@NotNull Location target, @NotNull Color color, int duration) {
+            this.target = target;
+            this.color = color;
+            this.duration = duration;
+        }
+
+        /**
+         * The target of the particles to be displayed.
+         *
+         * @return particle target
+         */
+        @NotNull
+        public Location getTarget() {
+            return target;
+        }
+
+        /**
+         * The color of the particles to be displayed.
+         *
+         * @return particle color
+         */
+        @NotNull
+        public Color getColor() {
+            return color;
+        }
+
+        /**
+         * The duration of the trail to be displayed.
+         *
+         * @return trail duration
+         */
+        public int getDuration() {
+            return duration;
         }
     }
 }

@@ -1,138 +1,15 @@
 --- a/net/minecraft/world/entity/animal/Bee.java
 +++ b/net/minecraft/world/entity/animal/Bee.java
-@@ -11,7 +_,6 @@
- import java.util.stream.Stream;
- import javax.annotation.Nullable;
- import net.minecraft.core.BlockPos;
--import net.minecraft.core.Holder;
- import net.minecraft.core.particles.ParticleOptions;
- import net.minecraft.core.particles.ParticleTypes;
- import net.minecraft.nbt.CompoundTag;
-@@ -77,7 +_,6 @@
- import net.minecraft.world.level.block.SweetBerryBushBlock;
- import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
- import net.minecraft.world.level.block.entity.BlockEntity;
--import net.minecraft.world.level.block.entity.BlockEntityType;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.block.state.properties.BlockStateProperties;
- import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
-@@ -85,6 +_,7 @@
- import net.minecraft.world.level.pathfinder.Path;
- import net.minecraft.world.level.pathfinder.PathType;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class Bee extends Animal implements NeutralMob, FlyingAnimal {
-     public static final float FLAP_DEGREES_PER_TICK = 120.32113F;
-@@ -136,7 +_,22 @@
- 
-     public Bee(EntityType<? extends Bee> p_27717_, Level p_27718_) {
-         super(p_27717_, p_27718_);
--        this.moveControl = new FlyingMoveControl(this, 20, true);
-+        // Paper start - Fix MC-167279
-+        class BeeFlyingMoveControl extends FlyingMoveControl {
-+            public BeeFlyingMoveControl(final Mob entity, final int maxPitchChange, final boolean noGravity) {
-+                super(entity, maxPitchChange, noGravity);
-+            }
-+
-+            @Override
-+            public void tick() {
-+                if (this.mob.getY() <= Bee.this.level().getMinBuildHeight()) {
-+                    this.mob.setNoGravity(false);
-+                }
-+                super.tick();
-+            }
-+        }
-+        this.moveControl = new BeeFlyingMoveControl(this, 20, true);
-+        // Paper end - Fix MC-167279
-         this.lookControl = new Bee.BeeLookControl(this);
-         this.setPathfindingMalus(PathType.DANGER_FIRE, -1.0F);
-         this.setPathfindingMalus(PathType.WATER, -1.0F);
-@@ -181,12 +_,19 @@
- 
-     @Override
-     public void addAdditionalSaveData(CompoundTag p_27823_) {
-+        // CraftBukkit start - selectively save data
-+        addAdditionalSaveData(p_27823_, true);
-+    }
-+
-+    @Override
-+    public void addAdditionalSaveData(CompoundTag p_27823_, boolean includeAll) {
-+        // CraftBukkit end
-         super.addAdditionalSaveData(p_27823_);
--        if (this.hasHive()) {
-+        if (includeAll && this.hasHive()) { // CraftBukkit - selectively save hive
-             p_27823_.put("hive_pos", NbtUtils.writeBlockPos(this.getHivePos()));
-         }
- 
--        if (this.hasSavedFlowerPos()) {
-+        if (includeAll && this.hasSavedFlowerPos()) { // CraftBukkit - selectively save flower
-             p_27823_.put("flower_pos", NbtUtils.writeBlockPos(this.getSavedFlowerPos()));
-         }
- 
-@@ -230,6 +_,7 @@
-                 }
- 
-                 if (i > 0) {
-+                    livingentity.addEffectCause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
-                     livingentity.addEffect(new MobEffectInstance(MobEffects.POISON, i * 20, 0), this);
-                 }
-             }
-@@ -486,8 +_,9 @@
-         } else if (this.isTooFarAway(this.hivePos)) {
-             return false;
+@@ -500,7 +_,7 @@
+         if (this.hivePos == null) {
+             return null;
          } else {
-+            if (this.level().getChunkIfLoadedImmediately(this.hivePos.getX() >> 4, this.hivePos.getZ() >> 4) == null) return true; // Paper - just assume the hive is still there, no need to load the chunk(s)
-             BlockEntity blockentity = this.level().getBlockEntity(this.hivePos);
--            return blockentity != null && blockentity.getType() == BlockEntityType.BEEHIVE;
-+            return blockentity instanceof BeehiveBlockEntity;
+-            return this.isTooFarAway(this.hivePos) ? null : this.level().getBlockEntity(this.hivePos, BlockEntityType.BEEHIVE).orElse(null);
++            return this.isTooFarAway(this.hivePos) ? null : this.level().getBlockEntity(this.hivePos) instanceof BeehiveBlockEntity hive ? hive : null;
          }
      }
  
-@@ -511,11 +_,13 @@
-         this.setFlag(4, p_27926_);
-     }
- 
-+    public net.kyori.adventure.util.TriState rollingOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Rolling override
-     public boolean isRolling() {
-         return this.getFlag(2);
-     }
- 
-     public void setRolling(boolean p_27930_) {
-+        p_27930_ = rollingOverride.toBooleanOrElse(p_27930_); // Paper - Rolling override
-         this.setFlag(2, p_27930_);
-     }
- 
-@@ -589,12 +_,12 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.BEE_DEATH;
-     }
- 
-     @Override
--    protected float getSoundVolume() {
-+    public float getSoundVolume() {
-         return 0.4F;
-     }
- 
-@@ -627,20 +_,33 @@
-         if (this.isInvulnerableTo(p_27762_)) {
-             return false;
-         } else {
--            if (!this.level().isClientSide) {
-+            // CraftBukkit start - Only stop pollinating if entity was damaged
-+            boolean result = super.hurt(p_27762_, p_27763_);
-+            if (result && !this.level().isClientSide) {
-+                // CraftBukkit end
-                 this.beePollinateGoal.stopPollinating();
-             }
- 
--            return super.hurt(p_27762_, p_27763_);
-+            return result; // CraftBukkit
-         }
+@@ -663,8 +_,18 @@
      }
  
      @Override
@@ -143,58 +20,11 @@
 +
 +    private void jumpInLiquidInternal() {
          this.setDeltaMovement(this.getDeltaMovement().add(0.0, 0.01, 0.0));
-     }
- 
-     @Override
-+    public void jumpInFluid(net.neoforged.neoforge.fluids.FluidType type) {
-+        this.jumpInLiquidInternal();
 +    }
 +
 +    @Override
-     public Vec3 getLeashOffset() {
-         return new Vec3(0.0, (double)(0.5F * this.getEyeHeight()), (double)(this.getBbWidth() * 0.2F));
++    public void jumpInFluid(net.neoforged.neoforge.fluids.FluidType type) {
++        this.jumpInLiquidInternal();
      }
-@@ -745,7 +_,7 @@
-     @VisibleForDebug
-     public class BeeGoToHiveGoal extends Bee.BaseBeeGoal {
-         public static final int MAX_TRAVELLING_TICKS = 600;
--        int travellingTicks = Bee.this.level().random.nextInt(10);
-+        int travellingTicks = Bee.this.random.nextInt(10); // CraftBukkit - SPIGOT-7495: Give Bees another chance and let them use their own random, avoid concurrency issues
-         private static final int MAX_BLACKLISTED_TARGETS = 3;
-         final List<BlockPos> blacklistedTargets = Lists.newArrayList();
-         @Nullable
-@@ -864,7 +_,7 @@
  
-     public class BeeGoToKnownFlowerGoal extends Bee.BaseBeeGoal {
-         private static final int MAX_TRAVELLING_TICKS = 600;
--        int travellingTicks = Bee.this.level().random.nextInt(10);
-+        int travellingTicks = Bee.this.random.nextInt(10); // CraftBukkit - SPIGOT-7495: Give Bees another chance and let them use their own random, avoid concurrency issues
- 
-         BeeGoToKnownFlowerGoal() {
-             this.setFlags(EnumSet.of(Goal.Flag.MOVE));
-@@ -963,7 +_,7 @@
-                             ((BonemealableBlock)blockstate.getBlock()).performBonemeal((ServerLevel)Bee.this.level(), Bee.this.random, blockpos, blockstate);
-                         }
- 
--                        if (blockstate1 != null) {
-+                        if (blockstate1 != null && CraftEventFactory.callEntityChangeBlockEvent(Bee.this, blockpos, blockstate1)) { // CraftBukkit
-                             Bee.this.level().levelEvent(2011, blockpos, 15);
-                             Bee.this.level().setBlockAndUpdate(blockpos, blockstate1);
-                             Bee.this.incrementNumCropsGrownSincePollination();
-@@ -987,6 +_,7 @@
-         @Override
-         protected void alertOther(Mob p_28035_, LivingEntity p_28036_) {
-             if (p_28035_ instanceof Bee && this.mob.hasLineOfSight(p_28036_)) {
-+                p_28035_.setTargetReason(org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY, true); // CraftBukkit - reason
-                 p_28035_.setTarget(p_28036_);
-             }
-         }
-@@ -1166,7 +_,7 @@
-             this.pollinatingTicks++;
-             if (this.pollinatingTicks > 600) {
-                 Bee.this.savedFlowerPos = null;
--            } else {
-+            } else if (Bee.this.savedFlowerPos != null) { // Paper - add null check since API can manipulate this
-                 Vec3 vec3 = Vec3.atBottomCenterOf(Bee.this.savedFlowerPos).add(0.0, 0.6F, 0.0);
-                 if (vec3.distanceTo(Bee.this.position()) > 1.0) {
-                     this.hoverPos = vec3;
+     @Override

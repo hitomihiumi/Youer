@@ -5,6 +5,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.yggdrasil.ProfileResult;
 import com.mojang.authlib.yggdrasil.ServicesKeySet;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
+
 import java.net.Proxy;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +30,7 @@ public class PaperMinecraftSessionService extends YggdrasilMinecraftSessionServi
         return result;
     }
 
-    @Override @io.papermc.paper.annotation.DoNotUse @Deprecated
+    @Override @Deprecated
     public @Nullable ProfileResult fetchProfile(final UUID profileId, final boolean requireSecure) {
         return super.fetchProfile(profileId, requireSecure);
     }

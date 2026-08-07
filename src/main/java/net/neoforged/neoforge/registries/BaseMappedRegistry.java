@@ -67,10 +67,10 @@ public abstract class BaseMappedRegistry<T> implements Registry<T> {
         if (this.aliases.containsKey(from)) {
             ResourceLocation old = this.aliases.get(from);
             if (!old.equals(to))
-                throw new IllegalArgumentException("Duplicate alias with key \"" + from + "\" attempting to map to \"" + to + "\", found existing mapping \"" + old + "\"");
+                throw new IllegalStateException("Duplicate alias with key \"" + from + "\" attempting to map to \"" + to + "\", found existing mapping \"" + old + "\"");
         }
-        if (resolve(to).equals(from))
-            throw new IllegalArgumentException("Infinite alias loop detected: from " + from + " to " + to);
+        if (resolve(from).equals(to))
+            throw new IllegalStateException("Infinite alias loop detected: from " + from + " to " + to);
         this.aliases.put(from, to);
     }
 
@@ -95,13 +95,13 @@ public abstract class BaseMappedRegistry<T> implements Registry<T> {
 
     @Override
     public int getId(ResourceKey<T> key) {
-        T value = this.get(key);
+        T value = this.getValue(key);
         return value == null ? -1 : this.getId(value);
     }
 
     @Override
     public int getId(ResourceLocation name) {
-        T value = this.get(name);
+        T value = this.getValue(name);
         return value == null ? -1 : this.getId(value);
     }
 
@@ -118,7 +118,7 @@ public abstract class BaseMappedRegistry<T> implements Registry<T> {
      */
     protected abstract void registerIdMapping(ResourceKey<T> key, int id);
 
-    protected abstract void unfreeze();
+    protected abstract void unfreeze(boolean clearTags);
 
     @Override
     public <A> @Nullable A getData(DataMapType<T, A> type, ResourceKey<T> key) {
@@ -129,5 +129,9 @@ public abstract class BaseMappedRegistry<T> implements Registry<T> {
     @Override
     public <A> Map<ResourceKey<T>, A> getDataMap(DataMapType<T, A> type) {
         return (Map<ResourceKey<T>, A>) dataMaps.getOrDefault(type, Map.of());
+    }
+
+    public Map<DataMapType<T, ?>, Map<ResourceKey<T>, ?>> getDataMaps() {
+        return dataMaps;
     }
 }

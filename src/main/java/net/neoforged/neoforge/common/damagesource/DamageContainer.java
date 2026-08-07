@@ -47,9 +47,7 @@ public class DamageContainer {
         /** Damage reduced from active mob effects. */
         MOB_EFFECTS,
         /** Damage absorbed by absorption. */
-        ABSORPTION,
-        /** Damage reduced from innate entity resistances or immunities. */
-        INNATE_RESISTANCE
+        ABSORPTION
     }
 
     private final EnumMap<Reduction, List<IReductionFunction>> reductionFunctions = new EnumMap<>(Reduction.class);

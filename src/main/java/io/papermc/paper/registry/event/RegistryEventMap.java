@@ -2,6 +2,7 @@ package io.papermc.paper.registry.event;
 
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEvent;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner;
 import io.papermc.paper.plugin.lifecycle.event.types.AbstractLifecycleEventType;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEventType;
 import io.papermc.paper.registry.RegistryKey;
@@ -33,7 +34,7 @@ public final class RegistryEventMap {
 
     @SuppressWarnings("unchecked")
     public <T, E extends LifecycleEvent> LifecycleEventType<BootstrapContext, E, ?> getEventType(final RegistryKey<T> registryKey) {
-        return (LifecycleEventType<BootstrapContext, E, ?>) Objects.requireNonNull(this.eventTypes.get(registryKey), "No hook for " + registryKey);
+        return (LifecycleEventType<BootstrapContext, E, ?>) Objects.requireNonNull(this.eventTypes.get(registryKey), () -> "No hook for " + registryKey);
     }
 
     public boolean hasHandlers(final RegistryKey<?> registryKey) {

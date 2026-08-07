@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @deprecated Upgraded / extended potions are now their own {@link PotionType} use them instead.
  */
-@Deprecated(forRemoval = true)
+@Deprecated(since = "1.20.6", forRemoval = true)
 public final class PotionData {
 
     private final PotionType type;
@@ -28,8 +28,8 @@ public final class PotionData {
         Preconditions.checkArgument(!upgraded || type.isUpgradeable(), "Potion Type is not upgradable");
         Preconditions.checkArgument(!extended || type.isExtendable(), "Potion Type is not extendable");
         Preconditions.checkArgument(!upgraded || !extended, "Potion cannot be both extended and upgraded");
-        //Preconditions.checkArgument(!type.getKey().getKey().startsWith("strong_"), "Strong potion type cannot be used directly, got %s", type.getKey());
-        //Preconditions.checkArgument(!type.getKey().getKey().startsWith("long_"), "Extended potion type cannot be used directly, got %s", type.getKey());
+        Preconditions.checkArgument(!type.getKey().getKey().startsWith("strong_"), "Strong potion type cannot be used directly, got %s", type.getKey());
+        Preconditions.checkArgument(!type.getKey().getKey().startsWith("long_"), "Extended potion type cannot be used directly, got %s", type.getKey());
         this.type = type;
         this.extended = extended;
         this.upgraded = upgraded;

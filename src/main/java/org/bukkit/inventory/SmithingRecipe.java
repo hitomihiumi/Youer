@@ -28,7 +28,7 @@ public class SmithingRecipe implements Recipe, Keyed {
      * This class now acts as a base class to these two classes and will do nothing when
      * added to the server.
      */
-    @Deprecated
+    @Deprecated(since = "1.20.1")
     public SmithingRecipe(@NotNull NamespacedKey key, @NotNull ItemStack result, @Nullable RecipeChoice base, @Nullable RecipeChoice addition) {
         // Paper start
         this(key, result, base, addition, true);
@@ -45,7 +45,7 @@ public class SmithingRecipe implements Recipe, Keyed {
      */
     @Deprecated
     public SmithingRecipe(@NotNull NamespacedKey key, @NotNull ItemStack result, @Nullable RecipeChoice base, @Nullable RecipeChoice addition, boolean copyDataComponents) {
-        // com.google.common.base.Preconditions.checkArgument(!result.isEmpty() || this instanceof ComplexRecipe, "Recipe cannot have an empty result."); // Paper
+        com.google.common.base.Preconditions.checkArgument(!result.isEmpty() || this instanceof ComplexRecipe, "Recipe cannot have an empty result."); // Paper
         this.copyDataComponents = copyDataComponents;
         // Paper end
         this.key = key;

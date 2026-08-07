@@ -1,8 +1,8 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
-import com.mohistmc.youer.api.ServerAPI;
 import java.util.Set;
 import net.minecraft.world.entity.boss.EnderDragonPart;
 import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
@@ -10,6 +10,7 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.boss.DragonBattle;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.boss.CraftDragonBattle;
+import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.entity.ComplexEntityPart;
 import org.bukkit.entity.EnderDragon;
 
@@ -20,24 +21,19 @@ public class CraftEnderDragon extends CraftMob implements EnderDragon, CraftEnem
     }
 
     @Override
-    public Set<ComplexEntityPart> getParts() {
-        Builder<ComplexEntityPart> builder = ImmutableSet.builder();
-
-        for (EnderDragonPart part : this.getHandle().subEntities) {
-            builder.add((ComplexEntityPart) part.getBukkitEntity());
-        }
-
-        return builder.build();
-    }
-
-    @Override
     public net.minecraft.world.entity.boss.enderdragon.EnderDragon getHandle() {
         return (net.minecraft.world.entity.boss.enderdragon.EnderDragon) this.entity;
     }
 
     @Override
-    public String toString() {
-        return "CraftEnderDragon";
+    public Set<ComplexEntityPart> getParts() {
+        Builder<ComplexEntityPart> builder = ImmutableSet.builder();
+
+        for (EnderDragonPart part : this.getHandle().getSubEntities()) {
+            builder.add((ComplexEntityPart) part.getBukkitEntity());
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -51,9 +47,6 @@ public class CraftEnderDragon extends CraftMob implements EnderDragon, CraftEnem
     }
 
     public static Phase getBukkitPhase(EnderDragonPhase phase) {
-        if (phase.getId() > 10) {
-            return ServerAPI.phasetypeMap.get(phase.getId());
-        }
         return Phase.values()[phase.getId()];
     }
 
@@ -80,8 +73,7 @@ public class CraftEnderDragon extends CraftMob implements EnderDragon, CraftEnem
     // Paper start - Allow changing the EnderDragon podium
     @Override
     public org.bukkit.Location getPodium() {
-        net.minecraft.core.BlockPos blockPosOrigin = this.getHandle().getPodium();
-        return new org.bukkit.Location(getWorld(), blockPosOrigin.getX(), blockPosOrigin.getY(), blockPosOrigin.getZ());
+        return CraftLocation.toBukkit(this.getHandle().getPodium(), this.getWorld());
     }
 
     @Override
@@ -89,8 +81,8 @@ public class CraftEnderDragon extends CraftMob implements EnderDragon, CraftEnem
         if (location == null) {
             this.getHandle().setPodium(null);
         } else {
-            org.apache.commons.lang.Validate.isTrue(location.getWorld() == null || location.getWorld().equals(getWorld()), "You cannot set a podium in a different world to where the dragon is");
-            this.getHandle().setPodium(io.papermc.paper.util.MCUtil.toBlockPos(location));
+            Preconditions.checkArgument(location.getWorld() == null || location.getWorld().equals(getWorld()), "You cannot set a podium in a different world to where the dragon is");
+            this.getHandle().setPodium(CraftLocation.toBlockPosition(location));
         }
     }
     // Paper end - Allow changing the EnderDragon podium

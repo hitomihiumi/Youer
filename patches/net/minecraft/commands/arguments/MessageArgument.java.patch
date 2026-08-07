@@ -1,59 +1,8 @@
 --- a/net/minecraft/commands/arguments/MessageArgument.java
 +++ b/net/minecraft/commands/arguments/MessageArgument.java
-@@ -40,31 +_,40 @@
- 
-     public static void resolveChatMessage(CommandContext<CommandSourceStack> p_249433_, String p_248718_, Consumer<PlayerChatMessage> p_249460_) throws CommandSyntaxException {
-         MessageArgument.Message messageargument$message = p_249433_.getArgument(p_248718_, MessageArgument.Message.class);
--        CommandSourceStack commandsourcestack = p_249433_.getSource();
--        Component component = messageargument$message.resolveComponent(commandsourcestack);
-+        // Paper start
-+        resolveChatMessage(messageargument$message, p_249433_, p_248718_, p_249460_);
-+    }
-+    public static void resolveChatMessage(MessageArgument.Message p_249433_, CommandContext<CommandSourceStack> context, String p_248718_, Consumer<PlayerChatMessage> p_249460_) throws CommandSyntaxException {
-+        // Paper end
-+        CommandSourceStack commandsourcestack = context.getSource();
-+        Component component = p_249433_.resolveComponent(commandsourcestack);
-         CommandSigningContext commandsigningcontext = commandsourcestack.getSigningContext();
-         PlayerChatMessage playerchatmessage = commandsigningcontext.getArgument(p_248718_);
-         if (playerchatmessage != null) {
-             resolveSignedMessage(p_249460_, commandsourcestack, playerchatmessage.withUnsignedContent(component));
-         } else {
--            resolveDisguisedMessage(p_249460_, commandsourcestack, PlayerChatMessage.system(messageargument$message.text).withUnsignedContent(component));
-+            resolveDisguisedMessage(p_249460_, commandsourcestack, PlayerChatMessage.system(p_249433_.text).withUnsignedContent(component));
-         }
-     }
- 
-     private static void resolveSignedMessage(Consumer<PlayerChatMessage> p_250000_, CommandSourceStack p_252335_, PlayerChatMessage p_249420_) {
-         MinecraftServer minecraftserver = p_252335_.getServer();
-         CompletableFuture<FilteredText> completablefuture = filterPlainText(p_252335_, p_249420_);
--        Component component = minecraftserver.getChatDecorator().decorate(p_252335_.getPlayer(), p_249420_.decoratedContent());
--        p_252335_.getChatMessageChainer().append(completablefuture, p_300688_ -> {
--            PlayerChatMessage playerchatmessage = p_249420_.withUnsignedContent(component).filter(p_300688_.mask());
--            p_250000_.accept(playerchatmessage);
-+        // Paper start - support asynchronous chat decoration
-+        CompletableFuture<Component> componentFuture = minecraftserver.getChatDecoratorPaper().decorate(p_252335_.getPlayer(), p_252335_, p_249420_.decoratedContent());
-+        p_252335_.getChatMessageChainer().append(CompletableFuture.allOf(completablefuture, componentFuture), filtered -> {
-+            PlayerChatMessage playerChatMessage2 = p_249420_.withUnsignedContent(componentFuture.join()).filter(completablefuture.join().mask());
-+            // Paper end - support asynchronous chat decoration
-+            p_250000_.accept(playerChatMessage2);
-         });
-     }
- 
-     private static void resolveDisguisedMessage(Consumer<PlayerChatMessage> p_249162_, CommandSourceStack p_248759_, PlayerChatMessage p_252332_) {
--        ChatDecorator chatdecorator = p_248759_.getServer().getChatDecorator();
--        Component component = chatdecorator.decorate(p_248759_.getPlayer(), p_252332_.decoratedContent());
--        p_249162_.accept(p_252332_.withUnsignedContent(component));
-+        ChatDecorator chatdecorator = p_248759_.getServer().getChatDecoratorPaper();
-+        // Paper start - support asynchronous chat decoration
-+        CompletableFuture<Component> componentFuture = chatdecorator.decorate(p_248759_.getPlayer(), p_248759_, p_252332_.decoratedContent());
-+        p_248759_.getChatMessageChainer().append(componentFuture, (result) -> p_249162_.accept(p_252332_.withUnsignedContent(result)));
-+        // Paper end - support asynchronous chat decoration
-     }
- 
-     private static CompletableFuture<FilteredText> filterPlainText(CommandSourceStack p_252063_, PlayerChatMessage p_251184_) {
 @@ -89,7 +_,7 @@
  
-     public static record Message(String text, MessageArgument.Part[] parts) {
+     public record Message(String text, MessageArgument.Part[] parts) {
          Component resolveComponent(CommandSourceStack p_232197_) throws CommandSyntaxException {
 -            return this.toComponent(p_232197_, EntitySelectorParser.allowSelectors(p_232197_));
 +            return this.toComponent(p_232197_, net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(p_232197_));

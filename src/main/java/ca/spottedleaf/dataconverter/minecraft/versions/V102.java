@@ -4,8 +4,8 @@ import ca.spottedleaf.dataconverter.converters.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperItemNameV102;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
+import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.Types;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
@@ -38,7 +38,7 @@ public final class V102 {
 
         MCTypeRegistry.ITEM_STACK.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 if (!data.hasKey("id", ObjectType.NUMBER)) {
                     return null;
                 }
@@ -58,12 +58,12 @@ public final class V102 {
         });
         MCTypeRegistry.ITEM_STACK.addConverterForId("minecraft:potion", new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final short damage = data.getShort("Damage");
                 if (damage != 0) {
                     data.setShort("Damage", (short)0);
                 }
-                MapType<String> tag = data.getMap("tag");
+                MapType tag = data.getMap("tag");
                 if (tag == null) {
                     tag = Types.NBT.createEmptyMap();
                     data.setMap("tag", tag);

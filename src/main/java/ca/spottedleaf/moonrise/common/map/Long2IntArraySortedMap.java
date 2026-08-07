@@ -1,6 +1,7 @@
 package ca.spottedleaf.moonrise.common.map;
 
 import it.unimi.dsi.fastutil.longs.Long2IntFunction;
+
 import java.util.Arrays;
 
 public class Long2IntArraySortedMap {

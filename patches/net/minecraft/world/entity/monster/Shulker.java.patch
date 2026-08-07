@@ -1,33 +1,6 @@
 --- a/net/minecraft/world/entity/monster/Shulker.java
 +++ b/net/minecraft/world/entity/monster/Shulker.java
-@@ -52,6 +_,8 @@
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.phys.AABB;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.util.CraftLocation;
- import org.joml.Vector3f;
- 
- public class Shulker extends AbstractGolem implements VariantHolder<Optional<DyeColor>>, Enemy {
-@@ -73,7 +_,7 @@
-         Vec3i vec3i = Direction.SOUTH.getNormal();
-         return new Vector3f((float)vec3i.getX(), (float)vec3i.getY(), (float)vec3i.getZ());
-     });
--    private static final float MAX_SCALE = 3.0F;
-+    public static final float MAX_SCALE = 3.0F;
-     private float currentPeekAmountO;
-     private float currentPeekAmount;
-     @Nullable
-@@ -121,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.SHULKER_DEATH;
-     }
- 
-@@ -392,6 +_,20 @@
+@@ -388,6 +_,12 @@
                      && this.level().noCollision(this, new AABB(blockpos1).deflate(1.0E-6))) {
                      Direction direction = this.findAttachableSurface(blockpos1);
                      if (direction != null) {
@@ -37,27 +10,6 @@
 +                    }
 +
 +                    if (direction != null) {
-+                        // CraftBukkit start
-+                        org.bukkit.event.entity.EntityTeleportEvent teleportEvent = CraftEventFactory.callEntityTeleportEvent(this, blockpos1.getX(), blockpos1.getY(), blockpos1.getZ());
-+                        if (teleportEvent.isCancelled() || teleportEvent.getTo() == null) { // Paper
-+                            return false;
-+                        } else {
-+                            blockpos1 = CraftLocation.toBlockPosition(teleportEvent.getTo());
-+                        }
-+                        // CraftBukkit end
                          this.unRide();
                          this.setAttachFace(direction);
                          this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);
-@@ -457,6 +_,12 @@
-                 if (shulker != null) {
-                     shulker.setVariant(this.getVariant());
-                     shulker.moveTo(vec3);
-+                    // Paper start - Shulker duplicate event
-+                    if (!new io.papermc.paper.event.entity.ShulkerDuplicateEvent((org.bukkit.entity.Shulker) shulker.getBukkitEntity(), (org.bukkit.entity.Shulker) this.getBukkitEntity()).callEvent()) {
-+                        return;
-+                    }
-+                    // Paper end - Shulker duplicate event
-+                    shulker.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - the mysteries of life
-                     this.level().addFreshEntity(shulker);
-                 }
-             }

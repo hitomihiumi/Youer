@@ -1,26 +1,17 @@
 --- a/net/minecraft/world/inventory/MenuType.java
 +++ b/net/minecraft/world/inventory/MenuType.java
-@@ -26,7 +_,7 @@
-     public static final MenuType<FurnaceMenu> FURNACE = register("furnace", FurnaceMenu::new);
-     public static final MenuType<GrindstoneMenu> GRINDSTONE = register("grindstone", GrindstoneMenu::new);
-     public static final MenuType<HopperMenu> HOPPER = register("hopper", HopperMenu::new);
--    public static final MenuType<LecternMenu> LECTERN = register("lectern", (p_39992_, p_39993_) -> new LecternMenu(p_39992_));
-+    public static final MenuType<LecternMenu> LECTERN = register("lectern", (p_39992_, p_39993_) -> new LecternMenu(p_39992_).player(p_39993_)); // Youer // CraftBukkit
-     public static final MenuType<LoomMenu> LOOM = register("loom", LoomMenu::new);
-     public static final MenuType<MerchantMenu> MERCHANT = register("merchant", MerchantMenu::new);
-     public static final MenuType<ShulkerBoxMenu> SHULKER_BOX = register("shulker_box", ShulkerBoxMenu::new);
-@@ -52,6 +_,14 @@
+@@ -55,6 +_,14 @@
+     }
  
-     public T create(int p_39986_, Inventory p_39987_) {
-         return this.constructor.create(p_39986_, p_39987_);
-+    }
-+
-+    @Override
+     @Override
 +    public T create(int windowId, Inventory playerInv, net.minecraft.network.RegistryFriendlyByteBuf extraData) {
 +        if (this.constructor instanceof net.neoforged.neoforge.network.IContainerFactory) {
 +            return ((net.neoforged.neoforge.network.IContainerFactory<T>) this.constructor).create(windowId, playerInv, extraData);
 +        }
 +        return create(windowId, playerInv);
++    }
++
++    @Override
+     public FeatureFlagSet requiredFeatures() {
+         return this.requiredFeatures;
      }
- 
-     @Override

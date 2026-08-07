@@ -2,9 +2,10 @@ package io.papermc.paper.plugin.entrypoint.classloader.group;
 
 import io.papermc.paper.plugin.provider.classloader.ClassLoaderAccess;
 import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
-import java.util.function.Predicate;
 import org.bukkit.plugin.java.PluginClassLoader;
 import org.jetbrains.annotations.ApiStatus;
+
+import java.util.function.Predicate;
 
 /**
  * Spigot classloaders have the ability to see everything.

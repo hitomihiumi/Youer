@@ -1,14 +1,6 @@
 --- a/net/minecraft/world/level/block/DoublePlantBlock.java
 +++ b/net/minecraft/world/level/block/DoublePlantBlock.java
-@@ -20,6 +_,7 @@
- import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
- import net.minecraft.world.level.block.state.properties.EnumProperty;
- import net.minecraft.world.level.material.Fluids;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class DoublePlantBlock extends BushBlock {
-     public static final MapCodec<DoublePlantBlock> CODEC = simpleCodec(DoublePlantBlock::new);
-@@ -71,6 +_,7 @@
+@@ -80,6 +_,7 @@
              return super.canSurvive(p_52887_, p_52888_, p_52889_);
          } else {
              BlockState blockstate = p_52888_.getBlockState(p_52889_.below());
@@ -16,15 +8,3 @@
              return blockstate.is(this) && blockstate.getValue(HALF) == DoubleBlockHalf.LOWER;
          }
      }
-@@ -106,6 +_,11 @@
-     }
- 
-     protected static void preventDropFromBottomPart(Level p_52904_, BlockPos p_52905_, BlockState p_52906_, Player p_52907_) {
-+        // CraftBukkit start
-+        if (((net.minecraft.server.level.ServerLevel)p_52904_).hasPhysicsEvent && org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(p_52904_, p_52905_).isCancelled()) { // Paper
-+            return;
-+        }
-+        // CraftBukkit end
-         DoubleBlockHalf doubleblockhalf = p_52906_.getValue(HALF);
-         if (doubleblockhalf == DoubleBlockHalf.UPPER) {
-             BlockPos blockpos = p_52905_.below();

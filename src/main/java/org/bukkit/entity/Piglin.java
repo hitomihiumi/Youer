@@ -1,6 +1,5 @@
 package org.bukkit.entity;
 
-import com.destroystokyo.paper.entity.RangedEntity;
 import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.inventory.InventoryHolder;
@@ -9,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a Piglin.
  */
-public interface Piglin extends PiglinAbstract, InventoryHolder, RangedEntity {
+public interface Piglin extends PiglinAbstract, InventoryHolder, com.destroystokyo.paper.entity.RangedEntity { // Paper
 
     /**
      * Get whether the piglin is able to hunt hoglins.
@@ -92,7 +91,6 @@ public interface Piglin extends PiglinAbstract, InventoryHolder, RangedEntity {
     @NotNull
     public Set<Material> getBarterList();
 
-    // Paper start
     /**
      * Causes the piglin to appear as if they are charging
      * a crossbow.
@@ -132,5 +130,5 @@ public interface Piglin extends PiglinAbstract, InventoryHolder, RangedEntity {
      * @return is dancing
      */
     boolean isDancing();
-    // Paper end
+
 }

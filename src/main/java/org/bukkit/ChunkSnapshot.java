@@ -65,7 +65,7 @@ public interface ChunkSnapshot {
      * @return 0-15
      * @deprecated Magic value
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2", forRemoval = true)
     int getData(int x, int y, int z);
 
     /**
@@ -107,7 +107,7 @@ public interface ChunkSnapshot {
      * @deprecated biomes are now 3-dimensional
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.15")
     Biome getBiome(int x, int z);
 
     /**
@@ -129,14 +129,14 @@ public interface ChunkSnapshot {
      * @return temperature at given coordinate
      * @deprecated biomes are now 3-dimensional
      */
-    @Deprecated
+    @Deprecated(since = "1.15")
     double getRawBiomeTemperature(int x, int z);
 
     /**
      * Get raw biome temperature at given coordinates
      *
      * @param x X-coordinate (0-15)
-     * @param y Y-coordinate (0-15)
+     * @param y Y-coordinate (world minHeight (inclusive) - world maxHeight (exclusive))
      * @param z Z-coordinate (0-15)
      * @return temperature at given coordinate
      */

@@ -5,7 +5,9 @@ package com.mojang.brigadier.exceptions;
 
 import com.mojang.brigadier.Message;
 
-public class CommandSyntaxException extends Exception implements net.kyori.adventure.util.ComponentMessageThrowable { // Paper - Brigadier API
+// Youer: `implements net.kyori.adventure.util.ComponentMessageThrowable` temporarily disabled for
+// M1 (plain-NeoForge toolchain milestone) — Adventure/kyori is staged away until M3/M4.
+public class CommandSyntaxException extends Exception { // Paper - Brigadier API
     public static final int CONTEXT_AMOUNT = 10;
     public static boolean ENABLE_COMMAND_STACK_TRACES = true;
     public static BuiltInExceptionProvider BUILT_IN_EXCEPTIONS = new BuiltInExceptions();
@@ -75,9 +77,10 @@ public class CommandSyntaxException extends Exception implements net.kyori.adven
     }
 
     // Paper start - Brigadier API
-    @Override
-    public @org.jetbrains.annotations.Nullable net.kyori.adventure.text.Component componentMessage() {
-        return io.papermc.paper.brigadier.PaperBrigadier.componentFromMessage(this.message);
-    }
+    // Youer: temporarily disabled for M1, see class-level comment above.
+    // @Override
+    // public @org.jetbrains.annotations.Nullable net.kyori.adventure.text.Component componentMessage() {
+    //     return io.papermc.paper.brigadier.PaperBrigadier.componentFromMessage(this.message);
+    // }
     // Paper end - Brigadier API
 }

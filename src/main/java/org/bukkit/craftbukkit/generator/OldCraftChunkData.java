@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.generator;
 
+import io.papermc.paper.FeatureHooks;
 import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
@@ -7,6 +8,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -27,8 +29,14 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
     private final Registry<net.minecraft.world.level.biome.Biome> biomes;
     private Set<BlockPos> tiles;
     private final Set<BlockPos> lights = new HashSet<>();
+    private final org.bukkit.World world;
 
     public OldCraftChunkData(int minHeight, int maxHeight, Registry<net.minecraft.world.level.biome.Biome> biomes) {
+        this(minHeight, maxHeight, biomes, null);
+    }
+
+    public OldCraftChunkData(int minHeight, int maxHeight, Registry<net.minecraft.world.level.biome.Biome> biomes, org.bukkit.World world) {
+        this.world = world;
         this.minHeight = minHeight;
         this.maxHeight = maxHeight;
         this.biomes = biomes;
@@ -176,7 +184,7 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
         int offset = (y - this.minHeight) >> 4;
         LevelChunkSection section = this.sections[offset];
         if (create && section == null) {
-            this.sections[offset] = section = new LevelChunkSection().fix(this.biomes);
+            this.sections[offset] = section = FeatureHooks.createSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, offset + (this.minHeight >> 4)); // Paper - Anti-Xray - Add parameters
         }
         return section;
     }
@@ -191,5 +199,10 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
 
     Set<BlockPos> getLights() {
         return this.lights;
+    }
+
+    @Override
+    public int getHeight(HeightMap heightMap, final int x, final int z) {
+        throw new UnsupportedOperationException("Unsupported, in older chunk generator api");
     }
 }

@@ -1,7 +1,7 @@
 package io.papermc.paper.registry.legacy;
 
 import com.google.common.collect.ImmutableMap;
-import com.mohistmc.io.leangen.geantyref.GenericTypeReflector;
+import io.leangen.geantyref.GenericTypeReflector;
 import io.papermc.paper.registry.RegistryKey;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;

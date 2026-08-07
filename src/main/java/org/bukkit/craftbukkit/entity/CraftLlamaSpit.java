@@ -11,13 +11,6 @@ public class CraftLlamaSpit extends AbstractProjectile implements LlamaSpit {
 
     @Override
     public net.minecraft.world.entity.projectile.LlamaSpit getHandle() {
-        return (net.minecraft.world.entity.projectile.LlamaSpit) super.getHandle();
+        return (net.minecraft.world.entity.projectile.LlamaSpit) this.entity;
     }
-
-    @Override
-    public String toString() {
-        return "CraftLlamaSpit";
-    }
-
-    // Paper - moved to AbstractProjectile
 }

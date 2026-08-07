@@ -1,11 +1,18 @@
 --- a/net/minecraft/core/HolderLookup.java
 +++ b/net/minecraft/core/HolderLookup.java
-@@ -96,6 +_,11 @@
+@@ -96,6 +_,18 @@
              };
          }
  
++        /**
++         * {@return the data map value attached with the object with the key, or {@code null} if there's no attached value}
++         *
++         * @param type the type of the data map
++         * @param key  the object to get the value for
++         * @param <A>  the data type
++         */
 +        @org.jetbrains.annotations.Nullable
-+        default <A> A getData(net.neoforged.neoforge.registries.datamaps.DataMapType<T, A> attachment, ResourceKey<T> key) {
++        default <A> A getData(net.neoforged.neoforge.registries.datamaps.DataMapType<T, A> type, ResourceKey<T> key) {
 +            return null;
 +        }
 +

@@ -1,7 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import com.destroystokyo.paper.entity.CraftRangedEntity;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -13,10 +12,15 @@ import org.bukkit.craftbukkit.inventory.CraftItemType;
 import org.bukkit.entity.Piglin;
 import org.bukkit.inventory.Inventory;
 
-public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRangedEntity<net.minecraft.world.entity.monster.piglin.Piglin> {
+public class CraftPiglin extends CraftPiglinAbstract implements Piglin, com.destroystokyo.paper.entity.CraftRangedEntity<net.minecraft.world.entity.monster.piglin.Piglin> { // Paper
 
     public CraftPiglin(CraftServer server, net.minecraft.world.entity.monster.piglin.Piglin entity) {
         super(server, entity);
+    }
+
+    @Override
+    public net.minecraft.world.entity.monster.piglin.Piglin getHandle() {
+        return (net.minecraft.world.entity.monster.piglin.Piglin) this.entity;
     }
 
     @Override
@@ -77,16 +81,6 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
     }
 
     @Override
-    public net.minecraft.world.entity.monster.piglin.Piglin getHandle() {
-        return (net.minecraft.world.entity.monster.piglin.Piglin) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftPiglin";
-    }
-    // Paper start
-    @Override
     public void setChargingCrossbow(boolean chargingCrossbow) {
         this.getHandle().setChargingCrossbow(chargingCrossbow);
     }
@@ -117,5 +111,4 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
     public boolean isDancing() {
         return this.getHandle().isDancing();
     }
-    // Paper end
 }

@@ -3,7 +3,6 @@ package io.papermc.paper.plugin.manager;
 import com.google.common.base.Preconditions;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
-import com.mohistmc.youer.util.I18n;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.entrypoint.Entrypoint;
 import io.papermc.paper.plugin.entrypoint.dependency.MetaDependencyTree;
@@ -15,14 +14,6 @@ import io.papermc.paper.plugin.provider.source.DirectoryProviderSource;
 import io.papermc.paper.plugin.provider.source.FileArrayProviderSource;
 import io.papermc.paper.plugin.provider.source.FileProviderSource;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.World;
@@ -42,6 +33,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 @SuppressWarnings("UnstableApiUsage")
 class PaperPluginInstanceManager {
@@ -107,7 +107,7 @@ class PaperPluginInstanceManager {
         } catch (IllegalArgumentException exception) {
             return null; // Return null when the plugin file is not valid / plugin type is unknown
         } catch (PluginGraphCycleException exception) {
-            throw new InvalidPluginException(I18n.as("paperplugininstancemanager.1"));
+            throw new InvalidPluginException("Cannot import plugin that causes cyclic dependencies!");
         } catch (Exception e) {
             throw new InvalidPluginException(e);
         }
@@ -119,7 +119,7 @@ class PaperPluginInstanceManager {
         }
 
         return runtimePluginEntrypointHandler.getPluginProviderStorage().getSingleLoaded()
-            .orElseThrow(() -> new InvalidPluginException(I18n.as("paperplugininstancemanager.2")));
+            .orElseThrow(() -> new InvalidPluginException("Plugin didn't load any plugin providers?"));
     }
 
     public @NotNull Plugin[] loadPlugins(@NotNull File[] files) {
@@ -130,7 +130,7 @@ class PaperPluginInstanceManager {
             runtimePluginEntrypointHandler.enter(Entrypoint.PLUGIN);
         } catch (Exception e) {
             // This should never happen, any errors that occur in this provider should instead be logged.
-            this.server.getLogger().log(Level.SEVERE, I18n.as("paperplugininstancemanager.3"), e);
+            this.server.getLogger().log(Level.SEVERE, "Unknown error occurred while loading plugins through PluginManager.", e);
         }
 
         return runtimePluginEntrypointHandler.getPluginProviderStorage().getLoaded().toArray(new JavaPlugin[0]);
@@ -138,7 +138,7 @@ class PaperPluginInstanceManager {
 
     // The behavior of this is that all errors are logged instead of being thrown
     public @NotNull Plugin[] loadPlugins(@NotNull Path directory) {
-        Preconditions.checkArgument(Files.isDirectory(directory), I18n.as("paperplugininstancemanager.4")); // Avoid creating a directory if it doesn't exist
+        Preconditions.checkArgument(Files.isDirectory(directory), "Directory must be a directory"); // Avoid creating a directory if it doesn't exist
 
         RuntimePluginEntrypointHandler<MultiRuntimePluginProviderStorage> runtimePluginEntrypointHandler = new RuntimePluginEntrypointHandler<>(new MultiRuntimePluginProviderStorage(this.dependencyTree));
         try {
@@ -147,7 +147,7 @@ class PaperPluginInstanceManager {
             runtimePluginEntrypointHandler.enter(Entrypoint.PLUGIN);
         } catch (Exception e) {
             // This should never happen, any errors that occur in this provider should instead be logged.
-            this.server.getLogger().log(Level.SEVERE, I18n.as("paperplugininstancemanager.5"), e);
+            this.server.getLogger().log(Level.SEVERE, "Unknown error occurred while loading plugins through PluginManager.", e);
         }
 
         return runtimePluginEntrypointHandler.getPluginProviderStorage().getLoaded().toArray(new JavaPlugin[0]);
@@ -184,7 +184,7 @@ class PaperPluginInstanceManager {
         }
 
         try {
-            String enableMsg = I18n.as("paperplugininstancemanager.6", plugin.getPluginMeta().getDisplayName());
+            String enableMsg = "Enabling " + plugin.getPluginMeta().getDisplayName();
             if (plugin.getPluginMeta() instanceof PluginDescriptionFile descriptionFile && CraftMagicNumbers.isLegacy(descriptionFile)) {
                 enableMsg += "*";
             }
@@ -194,15 +194,14 @@ class PaperPluginInstanceManager {
 
             if (jPlugin.getClass().getClassLoader() instanceof ConfiguredPluginClassLoader classLoader) { // Paper
                 if (PaperClassLoaderStorage.instance().registerUnsafePlugin(classLoader)) {
-                    this.server.getLogger().log(Level.WARNING, I18n.as("paperplugininstancemanager.7", plugin.getPluginMeta().getDisplayName()));
+                    this.server.getLogger().log(Level.WARNING, "Enabled plugin with unregistered ConfiguredPluginClassLoader " + plugin.getPluginMeta().getDisplayName());
                 }
             } // Paper
 
             try {
                 jPlugin.setEnabled(true);
             } catch (Throwable ex) {
-
-                this.server.getLogger().log(Level.SEVERE, I18n.as("paperplugininstancemanager.8", plugin.getPluginMeta().getDisplayName()), ex);
+                this.server.getLogger().log(Level.SEVERE, "Error occurred while enabling " + plugin.getPluginMeta().getDisplayName() + " (Is it up to date?)", ex);
                 // Paper start - Disable plugins that fail to load
                 this.server.getPluginManager().disablePlugin(jPlugin);
                 return;
@@ -213,7 +212,8 @@ class PaperPluginInstanceManager {
             // an abort is not possible the way it's currently written
             this.server.getPluginManager().callEvent(new PluginEnableEvent(plugin));
         } catch (Throwable ex) {
-            this.handlePluginException(I18n.as("paperplugininstancemanager.9", plugin.getPluginMeta().getDisplayName()), ex, plugin);
+            this.handlePluginException("Error occurred (in the plugin loader) while enabling "
+                + plugin.getPluginMeta().getDisplayName() + " (Is it up to date?)", ex, plugin);
         }
 
         HandlerList.bakeAll();
@@ -221,7 +221,7 @@ class PaperPluginInstanceManager {
 
     public synchronized void disablePlugin(@NotNull Plugin plugin) {
         if (!(plugin instanceof JavaPlugin javaPlugin)) {
-            throw new IllegalArgumentException(I18n.as("paperplugininstancemanager.10"));
+            throw new IllegalArgumentException("Only expects java plugins.");
         }
         if (!plugin.isEnabled()) {
             return;
@@ -230,13 +230,13 @@ class PaperPluginInstanceManager {
         String pluginName = plugin.getPluginMeta().getDisplayName();
 
         try {
-            plugin.getLogger().info(I18n.as("paperplugininstancemanager.11", pluginName));
+            plugin.getLogger().info("Disabling %s".formatted(pluginName));
 
             this.server.getPluginManager().callEvent(new PluginDisableEvent(plugin));
             try {
                 javaPlugin.setEnabled(false);
             } catch (Throwable ex) {
-                this.server.getLogger().log(Level.SEVERE, I18n.as("paperplugininstancemanager.12", pluginName), ex);
+                this.server.getLogger().log(Level.SEVERE, "Error occurred while disabling " + pluginName, ex);
             }
 
             ClassLoader classLoader = plugin.getClass().getClassLoader();
@@ -244,7 +244,7 @@ class PaperPluginInstanceManager {
                 try {
                     configuredPluginClassLoader.close();
                 } catch (IOException ex) {
-                    this.server.getLogger().log(Level.WARNING, I18n.as("paperplugininstancemanager.13", pluginName), ex); // Paper - log exception
+                    this.server.getLogger().log(Level.WARNING, "Error closing the classloader for '" + pluginName + "'", ex); // Paper - log exception
                 }
                 // Remove from the classloader pool inorder to prevent plugins from trying
                 // to access classes
@@ -252,13 +252,15 @@ class PaperPluginInstanceManager {
             }
 
         } catch (Throwable ex) {
-            this.handlePluginException(I18n.as("paperplugininstancemanager.14", pluginName), ex, plugin); // Paper
+            this.handlePluginException("Error occurred (in the plugin loader) while disabling "
+                + pluginName + " (Is it up to date?)", ex, plugin); // Paper
         }
 
         try {
             this.server.getScheduler().cancelTasks(plugin);
         } catch (Throwable ex) {
-            this.handlePluginException(I18n.as("paperplugininstancemanager.15", pluginName), ex, plugin); // Paper
+            this.handlePluginException("Error occurred (in the plugin loader) while cancelling tasks for "
+                + pluginName + " (Is it up to date?)", ex, plugin); // Paper
         }
 
         // Paper start - Folia schedulers
@@ -266,34 +268,37 @@ class PaperPluginInstanceManager {
             this.server.getGlobalRegionScheduler().cancelTasks(plugin);
         } catch (Throwable ex) {
             this.handlePluginException("Error occurred (in the plugin loader) while cancelling global tasks for "
-                    + pluginName + " (Is it up to date?)", ex, plugin); // Paper
+                + pluginName + " (Is it up to date?)", ex, plugin); // Paper
         }
 
         try {
             this.server.getAsyncScheduler().cancelTasks(plugin);
         } catch (Throwable ex) {
             this.handlePluginException("Error occurred (in the plugin loader) while cancelling async tasks for "
-                    + pluginName + " (Is it up to date?)", ex, plugin); // Paper
+                + pluginName + " (Is it up to date?)", ex, plugin); // Paper
         }
         // Paper end - Folia schedulers
 
         try {
             this.server.getServicesManager().unregisterAll(plugin);
         } catch (Throwable ex) {
-            this.handlePluginException(I18n.as("paperplugininstancemanager.16", pluginName), ex, plugin); // Paper
+            this.handlePluginException("Error occurred (in the plugin loader) while unregistering services for "
+                + pluginName + " (Is it up to date?)", ex, plugin); // Paper
         }
 
         try {
             HandlerList.unregisterAll(plugin);
         } catch (Throwable ex) {
-            this.handlePluginException(I18n.as("paperplugininstancemanager.17", pluginName), ex, plugin); // Paper
+            this.handlePluginException("Error occurred (in the plugin loader) while unregistering events for "
+                + pluginName + " (Is it up to date?)", ex, plugin); // Paper
         }
 
         // Paper start - lifecycle event system
         try {
             io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.unregisterAllEventHandlersFor(plugin);
         } catch (Throwable ex) {
-            this.handlePluginException(I18n.as("paperplugininstancemanager.18", pluginName), ex, plugin);
+            this.handlePluginException("Error occurred (in the plugin loader) while unregistering lifecycle event handlers for "
+                + pluginName + " (Is it up to date?)", ex, plugin);
         }
         // Paper end
 
@@ -301,23 +306,25 @@ class PaperPluginInstanceManager {
             this.server.getMessenger().unregisterIncomingPluginChannel(plugin);
             this.server.getMessenger().unregisterOutgoingPluginChannel(plugin);
         } catch (Throwable ex) {
-            this.handlePluginException(I18n.as("paperplugininstancemanager.19", pluginName), ex, plugin); // Paper
+            this.handlePluginException("Error occurred (in the plugin loader) while unregistering plugin channels for "
+                + pluginName + " (Is it up to date?)", ex, plugin); // Paper
         }
 
         try {
-            for (World world : this.server.getWorlds()) {
-                world.removePluginChunkTickets(plugin);
+            if (!this.server.isStopping()) {
+                for (World world : this.server.getWorlds()) {
+                    world.removePluginChunkTickets(plugin);
+                }
             }
         } catch (Throwable ex) {
-            this.handlePluginException(I18n.as("paperplugininstancemanager.20", pluginName), ex, plugin); // Paper
+            this.handlePluginException("Error occurred (in the plugin loader) while removing chunk tickets for " + pluginName + " (Is it up to date?)", ex, plugin); // Paper
         }
 
     }
 
-    // TODO: Implement event part in future patch (paper patch move up, this patch is lower)
     private void handlePluginException(String msg, Throwable ex, Plugin plugin) {
         Bukkit.getServer().getLogger().log(Level.SEVERE, msg, ex);
-        //this.pluginManager.callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerPluginEnableDisableException(msg, ex, plugin)));
+        this.pluginManager.callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerPluginEnableDisableException(msg, ex, plugin)));
     }
 
     public boolean isTransitiveDepend(@NotNull PluginMeta plugin, @NotNull PluginMeta depend) {

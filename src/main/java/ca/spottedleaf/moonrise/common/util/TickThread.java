@@ -1,19 +1,23 @@
 package ca.spottedleaf.moonrise.common.util;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.fml.util.thread.SidedThreadGroups;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TickThread extends Thread {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TickThread.class);
+
+    private static String getThreadContext() {
+        return "thread=" + Thread.currentThread().getName();
+    }
 
     /**
      * @deprecated
@@ -21,50 +25,71 @@ public class TickThread extends Thread {
     @Deprecated
     public static void ensureTickThread(final String reason) {
         if (!isTickThread()) {
-            LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+            LOGGER.error("Thread failed main thread check: " + reason + ", context=" + getThreadContext(), new Throwable());
             throw new IllegalStateException(reason);
         }
     }
 
     public static void ensureTickThread(final Level world, final BlockPos pos, final String reason) {
         if (!isTickThreadFor(world, pos)) {
-            LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
-            throw new IllegalStateException(reason);
+            final String ex = "Thread failed main thread check: " +
+                               reason + ", context=" + getThreadContext() + ", world=" + WorldUtil.getWorldName(world) + ", block_pos=" + pos;
+            LOGGER.error(ex, new Throwable());
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    public static void ensureTickThread(final Level world, final BlockPos pos, final int blockRadius, final String reason) {
+        if (!isTickThreadFor(world, pos, blockRadius)) {
+            final String ex = "Thread failed main thread check: " +
+                reason + ", context=" + getThreadContext() + ", world=" + WorldUtil.getWorldName(world) + ", block_pos=" + pos + ", block_radius=" + blockRadius;
+            LOGGER.error(ex, new Throwable());
+            throw new IllegalStateException(ex);
         }
     }
 
     public static void ensureTickThread(final Level world, final ChunkPos pos, final String reason) {
         if (!isTickThreadFor(world, pos)) {
-            LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
-            throw new IllegalStateException(reason);
+            final String ex = "Thread failed main thread check: " +
+                reason + ", context=" + getThreadContext() + ", world=" + WorldUtil.getWorldName(world) + ", chunk_pos=" + pos;
+            LOGGER.error(ex, new Throwable());
+            throw new IllegalStateException(ex);
         }
     }
 
     public static void ensureTickThread(final Level world, final int chunkX, final int chunkZ, final String reason) {
         if (!isTickThreadFor(world, chunkX, chunkZ)) {
-            LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
-            throw new IllegalStateException(reason);
+            final String ex = "Thread failed main thread check: " +
+                reason + ", context=" + getThreadContext() + ", world=" + WorldUtil.getWorldName(world) + ", chunk_pos=" + new ChunkPos(chunkX, chunkZ);
+            LOGGER.error(ex, new Throwable());
+            throw new IllegalStateException(ex);
         }
     }
 
     public static void ensureTickThread(final Entity entity, final String reason) {
         if (!isTickThreadFor(entity)) {
-            LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
-            throw new IllegalStateException(reason);
+            final String ex = "Thread failed main thread check: " +
+                reason + ", context=" + getThreadContext() + ", entity=" + EntityUtil.dumpEntity(entity);
+            LOGGER.error(ex, new Throwable());
+            throw new IllegalStateException(ex);
         }
     }
 
     public static void ensureTickThread(final Level world, final AABB aabb, final String reason) {
         if (!isTickThreadFor(world, aabb)) {
-            LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
-            throw new IllegalStateException(reason);
+            final String ex = "Thread failed main thread check: " +
+                reason + ", context=" + getThreadContext() + ", world=" + WorldUtil.getWorldName(world) + ", aabb=" + aabb;
+            LOGGER.error(ex, new Throwable());
+            throw new IllegalStateException(ex);
         }
     }
 
     public static void ensureTickThread(final Level world, final double blockX, final double blockZ, final String reason) {
         if (!isTickThreadFor(world, blockX, blockZ)) {
-            LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
-            throw new IllegalStateException(reason);
+            final String ex = "Thread failed main thread check: " +
+                reason + ", context=" + getThreadContext() + ", world=" + WorldUtil.getWorldName(world) + ", block_pos=" + new Vec3(blockX, 0.0, blockZ);
+            LOGGER.error(ex, new Throwable());
+            throw new IllegalStateException(ex);
         }
     }
 
@@ -77,11 +102,15 @@ public class TickThread extends Thread {
     }
 
     public TickThread(final Runnable run, final String name) {
-        this(run, name, ID_GENERATOR.incrementAndGet());
+        this(null, run, name);
     }
 
-    private TickThread(final Runnable run, final String name, final int id) {
-        super(SidedThreadGroups.SERVER, run, name);
+    public TickThread(final ThreadGroup group, final Runnable run, final String name) {
+        this(group, run, name, ID_GENERATOR.incrementAndGet());
+    }
+
+    private TickThread(final ThreadGroup group, final Runnable run, final String name, final int id) {
+        super(group, run, name);
         this.id = id;
     }
 
@@ -98,6 +127,10 @@ public class TickThread extends Thread {
     }
 
     public static boolean isTickThreadFor(final Level world, final BlockPos pos) {
+        return isTickThread();
+    }
+
+    public static boolean isTickThreadFor(final Level world, final BlockPos pos, final int blockRadius) {
         return isTickThread();
     }
 

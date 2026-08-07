@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.world.entity.vehicle.MinecartCommandBlock;
+import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Location;
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
@@ -20,39 +20,37 @@ import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftMinecartCommand;
-import org.bukkit.entity.Entity;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.minecart.CommandMinecart;
 
 public class VanillaCommandWrapper extends BukkitCommand { // Paper
 
-    //private final Commands dispatcher; // Paper
     public final CommandNode<CommandSourceStack> vanillaCommand;
+    public final String helpCommandNamespace;
 
-    // Paper start
-    public VanillaCommandWrapper(String name, String description, String usageMessage, List<String> aliases, CommandNode<CommandSourceStack> vanillaCommand) {
+    public VanillaCommandWrapper(String name, String description, String usageMessage, List<String> aliases, CommandNode<CommandSourceStack> vanillaCommand, String helpCommandNamespace) {
         super(name, description, usageMessage, aliases);
-        //this.dispatcher = dispatcher; // Paper
         this.vanillaCommand = vanillaCommand;
+        this.helpCommandNamespace = helpCommandNamespace;
     }
 
     Commands commands() {
         return net.minecraft.server.MinecraftServer.getServer().getCommands();
     }
 
-    // Paper end
-    public VanillaCommandWrapper(Commands dispatcher, CommandNode<CommandSourceStack> vanillaCommand) {
-        super(vanillaCommand.getName(), "A Mojang provided command.", vanillaCommand.getUsageText(), Collections.EMPTY_LIST);
-        // this.dispatcher = dispatcher; // Paper
+    public VanillaCommandWrapper(CommandNode<CommandSourceStack> vanillaCommand) {
+        super(vanillaCommand.getName(), "A Mojang provided command.", vanillaCommand.getUsageText(), Collections.emptyList());
         this.vanillaCommand = vanillaCommand;
         this.setPermission(VanillaCommandWrapper.getPermission(vanillaCommand));
+        this.helpCommandNamespace = "Minecraft";
     }
 
     @Override
     public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (!this.testPermission(sender)) return true;
 
-        CommandSourceStack icommandlistener = VanillaCommandWrapper.getListener(sender);
-        this.commands().performPrefixedCommand(icommandlistener, this.toDispatcher(args, this.getName()), this.toDispatcher(args, commandLabel)); // Paper
+        CommandSourceStack source = VanillaCommandWrapper.getListener(sender);
+        this.commands().performPrefixedCommand(source, this.toDispatcher(args, this.getName()));
         return true;
     }
 
@@ -62,8 +60,8 @@ public class VanillaCommandWrapper extends BukkitCommand { // Paper
         Preconditions.checkArgument(args != null, "Arguments cannot be null");
         Preconditions.checkArgument(alias != null, "Alias cannot be null");
 
-        CommandSourceStack icommandlistener = VanillaCommandWrapper.getListener(sender);
-        ParseResults<CommandSourceStack> parsed = this.commands().getDispatcher().parse(this.toDispatcher(args, this.getName()), icommandlistener); // Paper
+        CommandSourceStack source = VanillaCommandWrapper.getListener(sender);
+        ParseResults<CommandSourceStack> parsed = this.commands().getDispatcher().parse(this.toDispatcher(args, this.getName()), source); // Paper
 
         List<String> results = new ArrayList<>();
         this.commands().getDispatcher().getCompletionSuggestions(parsed).thenAccept((suggestions) -> { // Paper
@@ -74,12 +72,16 @@ public class VanillaCommandWrapper extends BukkitCommand { // Paper
     }
 
     public static CommandSourceStack getListener(CommandSender sender) {
-        if (sender instanceof Entity) {
+        if (sender instanceof CraftEntity entity) {
             if (sender instanceof CommandMinecart) {
-                return ((MinecartCommandBlock) ((CraftMinecartCommand) sender).getHandle()).getCommandBlock().createCommandSourceStack();
+                return ((CraftMinecartCommand) sender).getHandle().getCommandBlock().createCommandSourceStack();
             }
 
-            return ((CraftEntity) sender).getHandle().createCommandSourceStack();
+            if (sender instanceof CraftPlayer player) {
+                return player.getHandle().createCommandSourceStack();
+            }
+
+            return entity.getHandle().createCommandSourceStackForNameResolution((ServerLevel) entity.getHandle().level());
         }
         if (sender instanceof BlockCommandSender) {
             return ((CraftBlockCommandSender) sender).getWrapper();
@@ -93,11 +95,9 @@ public class VanillaCommandWrapper extends BukkitCommand { // Paper
         if (sender instanceof ProxiedCommandSender) {
             return ((ProxiedNativeCommandSender) sender).getHandle();
         }
-        // Paper start
         if (sender instanceof io.papermc.paper.commands.FeedbackForwardingSender feedback) {
             return feedback.asVanilla();
         }
-        // Paper end
 
         throw new IllegalArgumentException("Cannot make " + sender + " a vanilla command listener");
     }
@@ -123,7 +123,7 @@ public class VanillaCommandWrapper extends BukkitCommand { // Paper
     private String toDispatcher(String[] args, String name) {
         return name + ((args.length > 0) ? " " + Joiner.on(' ').join(args) : "");
     }
-    // Paper start
+
     @Override
     public boolean canBeOverriden() {
         return true;
@@ -133,5 +133,4 @@ public class VanillaCommandWrapper extends BukkitCommand { // Paper
     public boolean isRegistered() {
         return true;
     }
-    // Paper end
 }

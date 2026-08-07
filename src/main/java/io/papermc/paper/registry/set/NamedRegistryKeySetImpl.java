@@ -17,16 +17,16 @@ import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
-@DefaultQualifier(NonNull.class)
 public record NamedRegistryKeySetImpl<T extends Keyed, M>( // TODO remove Keyed
     TagKey<T> tagKey,
     HolderSet.Named<M> namedSet
 ) implements Tag<T>, org.bukkit.Tag<T> {
+
+    public NamedRegistryKeySetImpl(final HolderSet.Named<M> namedSet) {
+        this(PaperRegistries.fromNms(namedSet.key()), namedSet);
+    }
 
     @Override
     public @Unmodifiable Collection<TypedKey<T>> values() {
@@ -69,7 +69,7 @@ public record NamedRegistryKeySetImpl<T extends Keyed, M>( // TODO remove Keyed
     }
 
     @Override
-    public @NotNull NamespacedKey getKey() {
+    public NamespacedKey getKey() {
         final Key key = this.tagKey().key();
         return new NamespacedKey(key.namespace(), key.value());
     }

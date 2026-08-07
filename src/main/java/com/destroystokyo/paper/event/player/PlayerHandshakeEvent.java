@@ -1,7 +1,6 @@
 package com.destroystokyo.paper.event.player;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.api.ColorAPI;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -49,32 +48,6 @@ public class PlayerHandshakeEvent extends Event implements Cancellable {
         this.originalHandshake = originalHandshake;
         this.originalSocketAddressHostname = originalSocketAddressHostname;
         this.cancelled = cancelled;
-    }
-
-    /**
-     * Determines if this event is cancelled.
-     * <p>
-     * When this event is cancelled, custom handshake logic will not
-     * be processed.
-     *
-     * @return {@code true} if this event is cancelled, {@code false} otherwise
-     */
-    @Override
-    public boolean isCancelled() {
-        return this.cancelled;
-    }
-
-    /**
-     * Sets if this event is cancelled.
-     * <p>
-     * When this event is cancelled, custom handshake logic will not
-     * be processed.
-     *
-     * @param cancel {@code true} if this event is cancelled, {@code false} otherwise
-     */
-    @Override
-    public void setCancelled(final boolean cancel) {
-        this.cancelled = cancel;
     }
 
     /**
@@ -244,7 +217,33 @@ public class PlayerHandshakeEvent extends Event implements Cancellable {
     @Deprecated
     public void setFailMessage(final String failMessage) {
         Preconditions.checkArgument(failMessage != null && !failMessage.isEmpty(), "fail message cannot be null or empty");
-        this.failMessage(ColorAPI.adventure(failMessage));
+        this.failMessage(LegacyComponentSerializer.legacySection().deserialize(failMessage));
+    }
+
+    /**
+     * Determines if this event is cancelled.
+     * <p>
+     * When this event is cancelled, custom handshake logic will not
+     * be processed.
+     *
+     * @return {@code true} if this event is cancelled, {@code false} otherwise
+     */
+    @Override
+    public boolean isCancelled() {
+        return this.cancelled;
+    }
+
+    /**
+     * Sets if this event is cancelled.
+     * <p>
+     * When this event is cancelled, custom handshake logic will not
+     * be processed.
+     *
+     * @param cancel {@code true} if this event is cancelled, {@code false} otherwise
+     */
+    @Override
+    public void setCancelled(final boolean cancel) {
+        this.cancelled = cancel;
     }
 
     @Override

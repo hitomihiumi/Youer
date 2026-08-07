@@ -1,5 +1,6 @@
 package org.bukkit.block;
 
+import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.ChiseledBookshelfInventory;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;

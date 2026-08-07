@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.inventory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,28 +22,27 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
 
     static final ItemMetaKeyType<BannerPatternLayers> PATTERNS = new ItemMetaKeyType<>(DataComponents.BANNER_PATTERNS, "patterns");
 
-    private List<Pattern> patterns = new ArrayList<Pattern>();
+    private List<Pattern> patterns = new ArrayList<>();
 
     CraftMetaBanner(CraftMetaItem meta) {
         super(meta);
 
-        if (!(meta instanceof CraftMetaBanner)) {
+        if (!(meta instanceof final CraftMetaBanner bannerMeta)) {
             return;
         }
 
-        CraftMetaBanner banner = (CraftMetaBanner) meta;
-        this.patterns = new ArrayList<Pattern>(banner.patterns);
+        this.patterns = new ArrayList<>(bannerMeta.patterns);
     }
 
-    CraftMetaBanner(DataComponentPatch tag, final java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
-        super(tag, extraHandledDcts); // Paper
+    CraftMetaBanner(DataComponentPatch tag, final java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) {
+        super(tag, extraHandledDcts);
 
         getOrEmpty(tag, CraftMetaBanner.PATTERNS).ifPresent((entityTag) -> {
             List<BannerPatternLayers.Layer> patterns = entityTag.layers();
             for (int i = 0; i < Math.min(patterns.size(), 20); i++) {
                 BannerPatternLayers.Layer p = patterns.get(i);
                 DyeColor color = DyeColor.getByWoolData((byte) p.color().getId());
-                PatternType pattern = org.bukkit.craftbukkit.CraftRegistry.unwrapAndConvertHolder(org.bukkit.Registry.BANNER_PATTERN, p.pattern()).orElse(null); // Paper - fix upstream not handling inlined banner pattern
+                PatternType pattern = org.bukkit.craftbukkit.CraftRegistry.unwrapAndConvertHolder(RegistryKey.BANNER_PATTERN, p.pattern()).orElse(null); // Paper - fix upstream not handling inlined banner pattern
 
                 if (color != null && pattern != null) {
                     this.patterns.add(new Pattern(color, pattern));
@@ -69,7 +69,7 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
-        if (this.patterns.isEmpty()) return; // Paper - don't write empty patterns
+        if (this.patterns.isEmpty()) return;
         List<BannerPatternLayers.Layer> newPatterns = new ArrayList<>();
 
         for (Pattern p : this.patterns) {
@@ -81,12 +81,12 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
 
     @Override
     public List<Pattern> getPatterns() {
-        return new ArrayList<Pattern>(this.patterns);
+        return new ArrayList<>(this.patterns);
     }
 
     @Override
     public void setPatterns(List<Pattern> patterns) {
-        this.patterns = new ArrayList<Pattern>(patterns);
+        this.patterns = new ArrayList<>(patterns);
     }
 
     @Override
@@ -140,10 +140,8 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
         if (!super.equalsCommon(meta)) {
             return false;
         }
-        if (meta instanceof CraftMetaBanner) {
-            CraftMetaBanner that = (CraftMetaBanner) meta;
-
-            return this.patterns.equals(that.patterns);
+        if (meta instanceof final CraftMetaBanner other) {
+            return this.patterns.equals(other.patterns);
         }
         return true;
     }

@@ -13,9 +13,15 @@ import org.bukkit.entity.MushroomCow;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-public class CraftMushroomCow extends CraftCow implements MushroomCow, io.papermc.paper.entity.PaperShearable { // Paper
+public class CraftMushroomCow extends CraftAbstractCow implements MushroomCow, io.papermc.paper.entity.PaperShearable { // Paper
+
     public CraftMushroomCow(CraftServer server, net.minecraft.world.entity.animal.MushroomCow entity) {
         super(server, entity);
+    }
+
+    @Override
+    public net.minecraft.world.entity.animal.MushroomCow getHandle() {
+        return (net.minecraft.world.entity.animal.MushroomCow) this.entity;
     }
 
     @Override
@@ -92,11 +98,6 @@ public class CraftMushroomCow extends CraftCow implements MushroomCow, io.paperm
     }
 
     @Override
-    public net.minecraft.world.entity.animal.MushroomCow getHandle() {
-        return (net.minecraft.world.entity.animal.MushroomCow) this.entity;
-    }
-
-    @Override
     public Variant getVariant() {
         return Variant.values()[this.getHandle().getVariant().ordinal()];
     }
@@ -105,7 +106,7 @@ public class CraftMushroomCow extends CraftCow implements MushroomCow, io.paperm
     public void setVariant(Variant variant) {
         Preconditions.checkArgument(variant != null, "Variant cannot be null");
 
-        this.getHandle().setVariant(net.minecraft.world.entity.animal.MushroomCow.MushroomType.values()[variant.ordinal()]);
+        this.getHandle().setVariant(net.minecraft.world.entity.animal.MushroomCow.Variant.values()[variant.ordinal()]);
     }
 
     // Paper start
@@ -118,8 +119,8 @@ public class CraftMushroomCow extends CraftCow implements MushroomCow, io.paperm
         final List<io.papermc.paper.potion.SuspiciousEffectEntry> effectEntries = new java.util.ArrayList<>(this.getHandle().stewEffects.effects().size());
         for (final SuspiciousStewEffects.Entry effect : this.getHandle().stewEffects.effects()) {
             effectEntries.add(io.papermc.paper.potion.SuspiciousEffectEntry.create(
-                    org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftHolderToBukkit(effect.effect()),
-                    effect.duration()
+                org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftHolderToBukkit(effect.effect()),
+                effect.duration()
             ));
         }
 
@@ -136,17 +137,12 @@ public class CraftMushroomCow extends CraftCow implements MushroomCow, io.paperm
         List<SuspiciousStewEffects.Entry> nmsPairs = new java.util.ArrayList<>(effects.size());
         for (final io.papermc.paper.potion.SuspiciousEffectEntry effect : effects) {
             nmsPairs.add(new SuspiciousStewEffects.Entry(
-                    org.bukkit.craftbukkit.potion.CraftPotionEffectType.bukkitToMinecraftHolder(effect.effect()),
-                    effect.duration()
+                org.bukkit.craftbukkit.potion.CraftPotionEffectType.bukkitToMinecraftHolder(effect.effect()),
+                effect.duration()
             ));
         }
 
         this.getHandle().stewEffects = new SuspiciousStewEffects(nmsPairs);
     }
     // Paper end
-
-    @Override
-    public String toString() {
-        return "CraftMushroomCow";
-    }
 }

@@ -1,43 +1,6 @@
 --- a/net/minecraft/world/level/block/PointedDripstoneBlock.java
 +++ b/net/minecraft/world/level/block/PointedDripstoneBlock.java
-@@ -11,7 +_,6 @@
- import net.minecraft.core.particles.ParticleOptions;
- import net.minecraft.core.particles.ParticleTypes;
- import net.minecraft.server.level.ServerLevel;
--import net.minecraft.tags.FluidTags;
- import net.minecraft.util.RandomSource;
- import net.minecraft.world.damagesource.DamageSource;
- import net.minecraft.world.entity.Entity;
-@@ -42,6 +_,7 @@
- import net.minecraft.world.phys.shapes.CollisionContext;
- import net.minecraft.world.phys.shapes.Shapes;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class PointedDripstoneBlock extends Block implements Fallable, SimpleWaterloggedBlock {
-     public static final MapCodec<PointedDripstoneBlock> CODEC = simpleCodec(PointedDripstoneBlock::new);
-@@ -139,6 +_,11 @@
-                 && p_154045_.mayBreak(p_154042_)
-                 && p_154045_ instanceof ThrownTrident
-                 && p_154045_.getDeltaMovement().length() > 0.6) {
-+                // CraftBukkit start
-+                if (!CraftEventFactory.callEntityChangeBlockEvent(p_154045_, blockpos, p_154043_.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
-+                    return;
-+                }
-+                // CraftBukkit end
-                 p_154042_.destroyBlock(blockpos, true);
-             }
-         }
-@@ -147,7 +_,7 @@
-     @Override
-     public void fallOn(Level p_154047_, BlockState p_154048_, BlockPos p_154049_, Entity p_154050_, float p_154051_) {
-         if (p_154048_.getValue(TIP_DIRECTION) == Direction.UP && p_154048_.getValue(THICKNESS) == DripstoneThickness.TIP) {
--            p_154050_.causeFallDamage(p_154051_ + 2.0F, 2.0F, p_154047_.damageSources().stalagmite());
-+            p_154050_.causeFallDamage(p_154051_ + 2.0F, 2.0F, p_154047_.damageSources().stalagmite().directBlock(p_154047_, p_154049_)); // CraftBukkit
-         } else {
-             super.fallOn(p_154047_, p_154048_, p_154049_, p_154050_, p_154051_);
-         }
-@@ -184,7 +_,7 @@
+@@ -188,7 +_,7 @@
  
      @VisibleForTesting
      public static void maybeTransferFluid(BlockState p_221860_, ServerLevel p_221861_, BlockPos p_221862_, float p_221863_) {
@@ -46,7 +9,7 @@
              if (isStalactiteStartPos(p_221860_, p_221861_, p_221862_)) {
                  Optional<PointedDripstoneBlock.FluidInfo> optional = getFluidAboveStalactite(p_221861_, p_221862_, p_221860_);
                  if (!optional.isEmpty()) {
-@@ -193,14 +_,12 @@
+@@ -197,14 +_,12 @@
                      if (fluid == Fluids.WATER) {
                          f = 0.17578125F;
                      } else {
@@ -63,45 +26,9 @@
                          BlockPos blockpos = findTip(p_221860_, p_221861_, p_221862_, 11, false);
                          if (blockpos != null) {
                              if (optional.get().sourceState.is(Blocks.MUD) && fluid == Fluids.WATER) {
-@@ -372,17 +_,22 @@
-         if (isUnmergedTipWithDirection(blockstate, p_154038_.getOpposite())) {
-             createMergedTips(blockstate, p_154036_, blockpos);
-         } else if (blockstate.isAir() || blockstate.is(Blocks.WATER)) {
--            createDripstone(p_154036_, blockpos, p_154038_, DripstoneThickness.TIP);
-+            createDripstone(p_154036_, blockpos, p_154038_, DripstoneThickness.TIP, p_154037_); // CraftBukkit
-         }
-     }
- 
-     private static void createDripstone(LevelAccessor p_154088_, BlockPos p_154089_, Direction p_154090_, DripstoneThickness p_154091_) {
-+        createDripstone(p_154088_, p_154089_, p_154090_, p_154091_, p_154089_); // CraftBukkit
-+    }
-+
-+    private static void createDripstone(LevelAccessor p_154088_, BlockPos p_154089_, Direction p_154090_, DripstoneThickness p_154091_, BlockPos source) { // CraftBukkit
-         BlockState blockstate = Blocks.POINTED_DRIPSTONE
-             .defaultBlockState()
-             .setValue(TIP_DIRECTION, p_154090_)
-             .setValue(THICKNESS, p_154091_)
-             .setValue(WATERLOGGED, Boolean.valueOf(p_154088_.getFluidState(p_154089_).getType() == Fluids.WATER));
--        p_154088_.setBlock(p_154089_, blockstate, 3);
-+
-+        CraftEventFactory.handleBlockSpreadEvent(p_154088_, source, p_154089_, blockstate, 3); // CraftBukkit
-     }
- 
-     private static void createMergedTips(BlockState p_154231_, LevelAccessor p_154232_, BlockPos p_154233_) {
-@@ -396,8 +_,8 @@
-             blockpos1 = p_154233_.below();
-         }
- 
--        createDripstone(p_154232_, blockpos, Direction.DOWN, DripstoneThickness.TIP_MERGE);
--        createDripstone(p_154232_, blockpos1, Direction.UP, DripstoneThickness.TIP_MERGE);
-+        createDripstone(p_154232_, blockpos, Direction.DOWN, DripstoneThickness.TIP_MERGE, p_154233_); // CraftBukkit
-+        createDripstone(p_154232_, blockpos1, Direction.UP, DripstoneThickness.TIP_MERGE, p_154233_); // CraftBukkit
-     }
- 
-     public static void spawnDripParticle(Level p_154063_, BlockPos p_154064_, BlockState p_154065_) {
-@@ -411,7 +_,8 @@
-         double d2 = (double)((float)(p_154073_.getY() + 1) - 0.6875F) - 0.0625;
-         double d3 = (double)p_154073_.getZ() + 0.5 + vec3.z;
+@@ -403,7 +_,8 @@
+         double d2 = p_154073_.getY() + STALACTITE_DRIP_START_PIXEL - 0.0625;
+         double d3 = p_154073_.getZ() + 0.5 + vec3.z;
          Fluid fluid = getDripFluid(p_154072_, p_154075_);
 -        ParticleOptions particleoptions = fluid.is(FluidTags.LAVA) ? ParticleTypes.DRIPPING_DRIPSTONE_LAVA : ParticleTypes.DRIPPING_DRIPSTONE_WATER;
 +        ParticleOptions particleoptions = fluid.getFluidType().getDripInfo() != null ? fluid.getFluidType().getDripInfo().dripParticle() : ParticleTypes.DRIPPING_DRIPSTONE_WATER;
@@ -109,7 +36,7 @@
          p_154072_.addParticle(particleoptions, d1, d2, d3, 0.0, 0.0, 0.0);
      }
  
-@@ -563,7 +_,7 @@
+@@ -555,7 +_,7 @@
      }
  
      private static boolean canFillCauldron(Fluid p_154159_) {

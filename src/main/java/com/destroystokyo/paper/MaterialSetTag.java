@@ -93,7 +93,8 @@ public class MaterialSetTag extends BaseTag<Material, MaterialSetTag> {
         return isTagged(item.getType());
     }
 
+    @Override
     public boolean isTagged(@NotNull Material material) {
-        return this.tagged.contains(material);
+        return super.isTagged(material);
     }
 }

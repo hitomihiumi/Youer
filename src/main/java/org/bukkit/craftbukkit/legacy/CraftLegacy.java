@@ -1,7 +1,6 @@
 package org.bukkit.craftbukkit.legacy;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.util.I18n;
 import com.mojang.serialization.Dynamic;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,16 +35,14 @@ import org.bukkit.material.MaterialData;
 /**
  * This class may seem unnecessarily slow and complicated/repetitive however it
  * is able to handle a lot more edge cases and invertible transformations (many
- * of which are not immediately obvious) than any other alternative. If you do
- * make changes to this class please make sure to contribute them back
- * https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/browse so
- * that all may benefit.
+ * of which are not immediately obvious) than any other alternative.
  *
  * @deprecated legacy use only
  */
 @Deprecated
 public final class CraftLegacy {
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger(); // Paper - Improve logging and errors
+
     private static final Map<Byte, Material> SPAWN_EGGS = new HashMap<>();
     private static final Set<String> whitelistedStates = new HashSet<>(Arrays.asList("explode", "check_decay", "decayable", "facing"));
     private static final Map<MaterialData, Item> materialToItem = new HashMap<>(16384);
@@ -56,7 +53,6 @@ public final class CraftLegacy {
     private static final Map<Block, MaterialData> blockToMaterial = new HashMap<>(1024);
 
     private CraftLegacy() {
-        //
     }
 
     public static Material toLegacy(Material material) {
@@ -82,10 +78,10 @@ public final class CraftLegacy {
 
         if (mappedData == null && material.isBlock()) {
             Block block = CraftMagicNumbers.getBlock(material);
-            BlockState blockData = block.defaultBlockState();
+            BlockState state = block.defaultBlockState();
 
             // Try exact match first
-            mappedData = CraftLegacy.dataToMaterial.get(blockData);
+            mappedData = CraftLegacy.dataToMaterial.get(state);
             // Fallback to any block
             if (mappedData == null) {
                 mappedData = CraftLegacy.blockToMaterial.get(block);
@@ -153,22 +149,22 @@ public final class CraftLegacy {
         return Items.AIR;
     }
 
-    public static byte toLegacyData(BlockState blockData) {
-        return CraftLegacy.toLegacy(blockData).getData();
+    public static byte toLegacyData(BlockState state) {
+        return CraftLegacy.toLegacy(state).getData();
     }
 
-    public static Material toLegacyMaterial(BlockState blockData) {
-        return CraftLegacy.toLegacy(blockData).getItemType();
+    public static Material toLegacyMaterial(BlockState state) {
+        return CraftLegacy.toLegacy(state).getItemType();
     }
 
-    public static MaterialData toLegacy(BlockState blockData) {
+    public static MaterialData toLegacy(BlockState state) {
         MaterialData mappedData;
 
         // Try exact match first
-        mappedData = CraftLegacy.dataToMaterial.get(blockData);
+        mappedData = CraftLegacy.dataToMaterial.get(state);
         // Fallback to any block
         if (mappedData == null) {
-            mappedData = CraftLegacy.blockToMaterial.get(blockData.getBlock());
+            mappedData = CraftLegacy.blockToMaterial.get(state.getBlock());
         }
 
         return (mappedData == null) ? new MaterialData(Material.LEGACY_AIR) : mappedData;
@@ -235,54 +231,15 @@ public final class CraftLegacy {
     }
 
     public static Material valueOf(String name) {
-        if (name.startsWith(Material.LEGACY_PREFIX)) {
-            return Material.valueOf(name);
-        } else {
-            try {
-                Material material = Material.valueOf(name);
-                if (material != null && material.getKey().isMods()) {
-                    return material;
-                } else {
-                    return Material.valueOf(Material.LEGACY_PREFIX + name);
-                }
-            } catch (IllegalArgumentException e) {
-                return Material.valueOf(Material.LEGACY_PREFIX + name);
-            }
-        }
+        return (name.startsWith(Material.LEGACY_PREFIX)) ? Material.valueOf(name) : Material.valueOf(Material.LEGACY_PREFIX + name);
     }
 
     public static Material getMaterial(String name) {
-        if (name.startsWith(Material.LEGACY_PREFIX)) {
-            return Material.getMaterial(name);
-        } else {
-            try {
-                Material material = Material.getMaterial(name);
-                if (material != null && material.getKey().isMods()) {
-                    return material;
-                } else {
-                    return Material.getMaterial(Material.LEGACY_PREFIX + name);
-                }
-            } catch (IllegalArgumentException e) {
-                return Material.getMaterial(Material.LEGACY_PREFIX + name);
-            }
-        }
+        return (name.startsWith(Material.LEGACY_PREFIX)) ? Material.getMaterial(name) : Material.getMaterial(Material.LEGACY_PREFIX + name);
     }
 
     public static Material matchMaterial(String name) {
-        if (name.startsWith(Material.LEGACY_PREFIX)) {
-            return Material.matchMaterial(name);
-        } else {
-            try {
-                Material material = Material.matchMaterial(name);
-                if (material != null && material.getKey().isMods()) {
-                    return material;
-                } else {
-                    return Material.matchMaterial(Material.LEGACY_PREFIX + name);
-                }
-            } catch (IllegalArgumentException e) {
-                return Material.matchMaterial(Material.LEGACY_PREFIX + name);
-            }
-        }
+        return (name.startsWith(Material.LEGACY_PREFIX)) ? Material.matchMaterial(name) : Material.matchMaterial(Material.LEGACY_PREFIX + name);
     }
 
     public static int ordinal(Material material) {
@@ -295,18 +252,15 @@ public final class CraftLegacy {
         return material.name().substring(Material.LEGACY_PREFIX.length());
     }
 
-
     public static String toString(Material material) {
         return CraftLegacy.name(material);
     }
 
     public static void init() {
-        //
     }
 
     static {
-        if (!org.purpurmc.purpur.PurpurConfig.loggerSuppressInitLegacyMaterialError) // Purpur
-        LOGGER.warn(I18n.as("craftlegacy.1"));
+        LOGGER.warn("Initializing Legacy Material Support. Unless you have legacy plugins and/or data this is a bug!"); // Paper - Improve logging and errors; doesn't need to be an error
         if (MinecraftServer.getServer() != null && MinecraftServer.getServer().isDebugging()) {
             new Exception().printStackTrace();
         }
@@ -384,7 +338,7 @@ public final class CraftLegacy {
                     }
 
                     String name = blockTag.get("Name").asString("");
-                    Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(name));
+                    Block block = BuiltInRegistries.BLOCK.getValue(ResourceLocation.parse(name));
                     if (block == null) {
                         continue;
                     }
@@ -394,7 +348,7 @@ public final class CraftLegacy {
                     Optional<CompoundTag> propMap = blockTag.getElement("Properties").result();
                     if (propMap.isPresent()) {
                         CompoundTag properties = propMap.get();
-                        for (String dataKey : properties.getAllKeys()) {
+                        for (String dataKey : properties.keySet()) {
                             Property state = states.getProperty(dataKey);
 
                             if (state == null) {
@@ -402,8 +356,8 @@ public final class CraftLegacy {
                                 continue;
                             }
 
-                            Preconditions.checkState(!properties.getString(dataKey).isEmpty(), "Empty data string");
-                            Optional opt = state.getValue(properties.getString(dataKey));
+                            Preconditions.checkState(properties.getString(dataKey).isPresent(), "Empty data string");
+                            Optional opt = state.getValue(properties.getStringOr(dataKey, ""));
                             Preconditions.checkArgument(opt.isPresent(), "No state value %s for %s", properties.getString(dataKey), dataKey);
 
                             blockData = blockData.setValue(state, (Comparable) opt.get());
@@ -458,7 +412,7 @@ public final class CraftLegacy {
                 }
 
                 // Preconditions.checkState(newId.contains("minecraft:"), "Unknown new material for " + matData);
-                Item newMaterial = BuiltInRegistries.ITEM.get(ResourceLocation.parse(newId));
+                Item newMaterial = BuiltInRegistries.ITEM.getValue(ResourceLocation.parse(newId));
 
                 if (newMaterial == Items.AIR) {
                     continue;
@@ -484,9 +438,5 @@ public final class CraftLegacy {
         // From Material#isBlock before the rewrite to ItemType / BlockType
         // Git hash: 42f6cdf4c5dcdd52a27543403dcd17fb60311621
         return 0 <= material.getId() && material.getId() < 256;
-    }
-
-    public static void main(String[] args) {
-        System.err.println("");
     }
 }

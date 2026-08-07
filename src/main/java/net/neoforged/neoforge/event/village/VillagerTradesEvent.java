@@ -7,7 +7,8 @@ package net.neoforged.neoforge.event.village;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.List;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.npc.VillagerData;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.VillagerTrades.ItemListing;
@@ -29,33 +30,25 @@ import org.jetbrains.annotations.ApiStatus;
  */
 public class VillagerTradesEvent extends Event {
     protected Int2ObjectMap<List<ItemListing>> trades;
-    protected VillagerProfession type;
-    private final RegistryAccess registryAccess;
-
-    /**
-     * @deprecated Use {@link #VillagerTradesEvent(Int2ObjectMap, VillagerProfession, RegistryAccess)} instead
-     */
-    @Deprecated(forRemoval = true, since = "1.21.1")
-    public VillagerTradesEvent(Int2ObjectMap<List<ItemListing>> trades, VillagerProfession type) {
-        this(trades, type, RegistryAccess.EMPTY);
-    }
+    protected ResourceKey<VillagerProfession> type;
+    private final HolderLookup.Provider registries;
 
     @ApiStatus.Internal
-    public VillagerTradesEvent(Int2ObjectMap<List<ItemListing>> trades, VillagerProfession type, RegistryAccess registryAccess) {
+    public VillagerTradesEvent(Int2ObjectMap<List<ItemListing>> trades, ResourceKey<VillagerProfession> type, HolderLookup.Provider registries) {
         this.trades = trades;
         this.type = type;
-        this.registryAccess = registryAccess;
+        this.registries = registries;
     }
 
     public Int2ObjectMap<List<ItemListing>> getTrades() {
         return trades;
     }
 
-    public VillagerProfession getType() {
+    public ResourceKey<VillagerProfession> getType() {
         return type;
     }
 
-    public RegistryAccess getRegistryAccess() {
-        return registryAccess;
+    public HolderLookup.Provider getRegistries() {
+        return registries;
     }
 }

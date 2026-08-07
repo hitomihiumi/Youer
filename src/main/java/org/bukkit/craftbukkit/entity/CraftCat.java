@@ -1,16 +1,13 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import java.util.Locale;
+import io.papermc.paper.util.OldEnumHolderable;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.animal.CatVariant;
 import org.bukkit.DyeColor;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.util.Handleable;
 import org.bukkit.entity.Cat;
 
 public class CraftCat extends CraftTameableAnimal implements Cat {
@@ -21,12 +18,7 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
 
     @Override
     public net.minecraft.world.entity.animal.Cat getHandle() {
-        return (net.minecraft.world.entity.animal.Cat) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftCat";
+        return (net.minecraft.world.entity.animal.Cat) this.entity;
     }
 
     @Override
@@ -36,7 +28,7 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
 
     @Override
     public void setCatType(Type type) {
-        Preconditions.checkArgument(type != null, "Cannot have null Type");
+        Preconditions.checkArgument(type != null, "type cannot be null");
 
         this.getHandle().setVariant(CraftType.bukkitToMinecraftHolder(type));
     }
@@ -51,15 +43,15 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
         this.getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
     }
 
-    public static class CraftType implements Type, Handleable<CatVariant> {
+    public static class CraftType extends OldEnumHolderable<Type, CatVariant> implements Type {
         private static int count = 0;
 
         public static Type minecraftToBukkit(CatVariant minecraft) {
-            return CraftRegistry.minecraftToBukkit(minecraft, Registries.CAT_VARIANT, Registry.CAT_VARIANT);
+            return CraftRegistry.minecraftToBukkit(minecraft, Registries.CAT_VARIANT);
         }
 
         public static Type minecraftHolderToBukkit(Holder<CatVariant> minecraft) {
-            return CraftType.minecraftToBukkit(minecraft.value());
+            return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.CAT_VARIANT);
         }
 
         public static CatVariant bukkitToMinecraft(Type bukkit) {
@@ -67,80 +59,14 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
         }
 
         public static Holder<CatVariant> bukkitToMinecraftHolder(Type bukkit) {
-            return CraftRegistry.bukkitToMinecraftHolder(bukkit, Registries.CAT_VARIANT);
+            return CraftRegistry.bukkitToMinecraftHolder(bukkit);
         }
 
-        private final NamespacedKey key;
-        private final CatVariant catVariant;
-        private final String name;
-        private final int ordinal;
-
-        public CraftType(NamespacedKey key, CatVariant catVariant) {
-            this.key = key;
-            this.catVariant = catVariant;
-            // For backwards compatibility, minecraft values will still return the uppercase name without the namespace,
-            // in case plugins use for example the name as key in a config file to receive type specific values.
-            // Custom types will return the key with namespace. For a plugin this should look than like a new type
-            // (which can always be added in new minecraft versions and the plugin should therefore handle it accordingly).
-            if (NamespacedKey.MINECRAFT.equals(key.getNamespace())) {
-                this.name = key.getKey().toUpperCase(Locale.ROOT);
-            } else {
-                this.name = key.toString();
-            }
-            this.ordinal = count++;
-        }
-
-        @Override
-        public CatVariant getHandle() {
-            return catVariant;
-        }
-
-        @Override
-        public NamespacedKey getKey() {
-            return key;
-        }
-
-        @Override
-        public int compareTo(Type variant) {
-            return ordinal - variant.ordinal();
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public int ordinal() {
-            return ordinal;
-        }
-
-        @Override
-        public String toString() {
-            // For backwards compatibility
-            return name();
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
-            }
-
-            if (!(other instanceof CraftType)) {
-                return false;
-            }
-
-            return getKey().equals(((CraftType) other).getKey());
-        }
-
-        @Override
-        public int hashCode() {
-            return getKey().hashCode();
+        public CraftType(final Holder<CatVariant> holder) {
+            super(holder, count++);
         }
     }
 
-    // Paper start - More cat api
     @Override
     public void setLyingDown(boolean lyingDown) {
         this.getHandle().setLying(lyingDown);
@@ -160,5 +86,4 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
     public boolean isHeadUp() {
         return this.getHandle().isRelaxStateOne();
     }
-    // Paper end - More cat api
 }

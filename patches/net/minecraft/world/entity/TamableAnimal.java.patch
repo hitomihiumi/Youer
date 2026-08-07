@@ -1,103 +1,22 @@
 --- a/net/minecraft/world/entity/TamableAnimal.java
 +++ b/net/minecraft/world/entity/TamableAnimal.java
-@@ -2,6 +_,7 @@
- 
- import java.util.Optional;
- import java.util.UUID;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import javax.annotation.Nullable;
- import net.minecraft.advancements.CriteriaTriggers;
- import net.minecraft.core.BlockPos;
-@@ -26,6 +_,7 @@
- import net.minecraft.world.level.pathfinder.PathType;
- import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
- import net.minecraft.world.scores.PlayerTeam;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public abstract class TamableAnimal extends Animal implements OwnableEntity {
-     public static final int TELEPORT_WHEN_DISTANCE_IS_SQ = 144;
-@@ -80,6 +_,7 @@
-         }
- 
-         this.orderedToSit = p_21815_.getBoolean("Sitting");
-+        setInSittingPose$callEvent.set(false);
-         this.setInSittingPose(this.orderedToSit);
-     }
- 
-@@ -91,8 +_,12 @@
-     @Override
-     public boolean handleLeashAtDistance(Entity p_352258_, float p_352278_) {
-         if (this.isInSittingPose()) {
--            if (p_352278_ > 10.0F) {
--                this.dropLeash(true, true);
-+            if (p_352278_ > (float) this.level().paperConfig().misc.maxLeashDistance.or(Leashable.LEASH_TOO_FAR_DIST)) { // Paper - Configurable max leash distance
-+                // Paper start - Expand EntityUnleashEvent
-+                org.bukkit.event.entity.EntityUnleashEvent event = new org.bukkit.event.entity.EntityUnleashEvent(this.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.DISTANCE, true);
-+                if (!event.callEvent()) return false;
-+                this.dropLeash(true, event.isDropLeash());
-+                // Paper end - Expand EntityUnleashEvent
-             }
- 
-             return false;
-@@ -151,6 +_,7 @@
-     }
- 
-     public void setInSittingPose(boolean p_21838_) {
-+        if (setInSittingPose$callEvent.getAndSet(true) && !new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), p_21838_).callEvent()) return;
-         byte b0 = this.entityData.get(DATA_FLAGS_ID);
-         if (p_21838_) {
-             this.entityData.set(DATA_FLAGS_ID, (byte)(b0 | 1));
-@@ -159,6 +_,12 @@
-         }
-     }
- 
-+    public AtomicBoolean setInSittingPose$callEvent = new AtomicBoolean(true);
-+    public void setInSittingPose(boolean inSittingPose, boolean callEvent) {
-+        setInSittingPose$callEvent.set(callEvent);
-+        setInSittingPose(inSittingPose);
-+    }
-+
-     @Nullable
-     @Override
-     public UUID getOwnerUUID() {
-@@ -220,11 +_,20 @@
+@@ -212,13 +_,16 @@
  
      @Override
      public void die(DamageSource p_21809_) {
--        if (!this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES) && this.getOwner() instanceof ServerPlayer) {
--            this.getOwner().sendSystemMessage(this.getCombatTracker().getDeathMessage());
--        }
--
 +        // FORGE: Super moved to top so that death message would be cancelled properly
 +        net.minecraft.network.chat.Component deathMessage = this.getCombatTracker().getDeathMessage();
-         super.die(p_21809_);
++        super.die(p_21809_);
 +
 +        if (this.dead)
-+        if (!this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES) && this.getOwner() instanceof ServerPlayer) {
-+            // Paper start - Add TameableDeathMessageEvent
-+            io.papermc.paper.event.entity.TameableDeathMessageEvent event = new io.papermc.paper.event.entity.TameableDeathMessageEvent((org.bukkit.entity.Tameable) getBukkitEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(deathMessage));
-+            if (event.callEvent()) {
-+                this.getOwner().sendSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.deathMessage()));
-+            }
-+            // Paper end - Add TameableDeathMessageEvent
-+        }
-+
+         if (this.level() instanceof ServerLevel serverlevel
+             && serverlevel.getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES)
+             && this.getOwner() instanceof ServerPlayer serverplayer) {
+-            serverplayer.sendSystemMessage(this.getCombatTracker().getDeathMessage());
++            serverplayer.sendSystemMessage(deathMessage);
+         }
+-
+-        super.die(p_21809_);
      }
  
      public boolean isOrderedToSit() {
-@@ -264,7 +_,14 @@
-         if (!this.canTeleportTo(new BlockPos(p_350930_, p_350303_, p_350410_))) {
-             return false;
-         } else {
--            this.moveTo((double)p_350930_ + 0.5, (double)p_350303_, (double)p_350410_ + 0.5, this.getYRot(), this.getXRot());
-+            // CraftBukkit start
-+            org.bukkit.event.entity.EntityTeleportEvent event = CraftEventFactory.callEntityTeleportEvent(this, (double) p_350930_ + 0.5D, (double) p_350303_, (double) p_350410_ + 0.5D);
-+            if (event.isCancelled() || event.getTo() == null) { // Paper - prevent NP on null event to location
-+                return false;
-+            }
-+            org.bukkit.Location to = event.getTo();
-+            this.moveTo(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
-+            // CraftBukkit end
-             this.navigation.stop();
-             return true;
-         }

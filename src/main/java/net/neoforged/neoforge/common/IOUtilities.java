@@ -18,10 +18,8 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import org.apache.commons.io.output.CloseShieldOutputStream;
@@ -39,8 +37,6 @@ public final class IOUtilities {
             StandardOpenOption.TRUNCATE_EXISTING
     };
     private static final Logger LOGGER = LoggerFactory.getLogger(IOUtilities.class);
-
-    private static CompletableFuture<Void> saveDataTasks = CompletableFuture.completedFuture(null);
 
     private IOUtilities() {}
 
@@ -71,26 +67,6 @@ public final class IOUtilities {
         } catch (IOException e) {
             LOGGER.error("Failed to list temporary files in {}", targetPath, e);
             return List.of();
-        }
-    }
-
-    /**
-     * Cleans up any temporary files that may have been left over from interrupted
-     * calls to {@link #atomicWrite(Path, WriteCallback)}.
-     *
-     * @param targetPath The target path to clean up temporary files in.
-     * @param prefix     The prefix of temporary files to clean up, or null if all
-     *                   temporary files should be removed.
-     *
-     * @throws IOException if an I/O error occurs during deletion.
-     * @deprecated This method has been removed in 1.21.5
-     */
-    @Deprecated(forRemoval = true)
-    public static void cleanupTempFiles(Path targetPath, @Nullable String prefix) throws IOException {
-        try (var filesToDelete = Files.find(targetPath, 1, createPredicate(prefix))) {
-            for (var file : filesToDelete.toList()) {
-                Files.deleteIfExists(file);
-            }
         }
     }
 
@@ -190,15 +166,6 @@ public final class IOUtilities {
 
             throw first;
         }
-    }
-
-    public static void withIOWorker(Runnable task) {
-        saveDataTasks = saveDataTasks.thenRunAsync(task, Util.ioPool());
-    }
-
-    public static void waitUntilIOWorkerComplete() {
-        saveDataTasks.join();
-        saveDataTasks = CompletableFuture.completedFuture(null);
     }
 
     /**

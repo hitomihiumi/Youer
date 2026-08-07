@@ -1,12 +1,8 @@
 package io.papermc.paper;
 
 import com.google.common.base.Strings;
-import com.mohistmc.youer.YouerConfig;
 import io.papermc.paper.util.JarManifests;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -34,9 +30,7 @@ public record ServerBuildInfoImpl(
     private static final String ATTRIBUTE_GIT_BRANCH = "Git-Branch";
     private static final String ATTRIBUTE_GIT_COMMIT = "Git-Commit";
 
-    private static final String BRAND_PAPER_NAME = "Youer";
-    private static final String BRAND_PUFFERFISH_NAME = "Pufferfish"; // Purpur
-    private static final String BRAND_PURPUR_NAME = "Purpur"; // Purpur
+    private static final String BRAND_PAPER_NAME = "Paper";
 
     private static final String BUILD_DEV = "DEV";
 
@@ -51,12 +45,12 @@ public record ServerBuildInfoImpl(
                 .orElse(BRAND_PAPER_ID),
             getManifestAttribute(manifest, ATTRIBUTE_BRAND_NAME)
                 .orElse(BRAND_PAPER_NAME),
-            SharedConstants.getCurrentVersion().getId(),
-            SharedConstants.getCurrentVersion().getName(),
-                getManifestAttribute(manifest, ATTRIBUTE_BUILD_NUMBER)
-                        .map(Integer::parseInt)
-                        .map(OptionalInt::of)
-                        .orElse(OptionalInt.empty()),
+            SharedConstants.getCurrentVersion().id(),
+            SharedConstants.getCurrentVersion().name(),
+            getManifestAttribute(manifest, ATTRIBUTE_BUILD_NUMBER)
+                .map(Integer::parseInt)
+                .map(OptionalInt::of)
+                .orElse(OptionalInt.empty()),
             getManifestAttribute(manifest, ATTRIBUTE_BUILD_TIME)
                 .map(Instant::parse)
                 .orElse(Main.BOOT_TIME),
@@ -67,13 +61,19 @@ public record ServerBuildInfoImpl(
 
     @Override
     public boolean isBrandCompatible(final @NotNull Key brandId) {
-        return brandId.equals(this.brandId) || brandId.equals(BRAND_PAPER_ID); // Purpur
+        return brandId.equals(this.brandId);
     }
 
     @Override
     public @NotNull String asString(final @NotNull StringRepresentation representation) {
         final StringBuilder sb = new StringBuilder();
         sb.append(this.minecraftVersionId);
+        sb.append('-');
+        if (this.buildNumber.isPresent()) {
+            sb.append(this.buildNumber.getAsInt());
+        } else {
+            sb.append(BUILD_DEV);
+        }
         final boolean hasGitBranch = this.gitBranch.isPresent();
         final boolean hasGitCommit = this.gitCommit.isPresent();
         if (hasGitBranch || hasGitCommit) {
@@ -91,13 +91,7 @@ public record ServerBuildInfoImpl(
         if (representation == StringRepresentation.VERSION_FULL) {
             sb.append(' ');
             sb.append('(');
-            if (YouerConfig.isCN()) {
-                ZonedDateTime chinaTime = this.buildTime.atZone(ZoneId.of("Asia/Shanghai"));
-                sb.append(chinaTime.truncatedTo(ChronoUnit.SECONDS)
-                        .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-            } else {
-                sb.append(this.buildTime.truncatedTo(ChronoUnit.SECONDS));
-            }
+            sb.append(this.buildTime.truncatedTo(ChronoUnit.SECONDS));
             sb.append(')');
         }
         return sb.toString();

@@ -1,13 +1,9 @@
 package org.bukkit.block;
 
-import com.destroystokyo.paper.loottable.LootableBlockInventory;
-import org.jetbrains.annotations.ApiStatus;
-
 /**
  * Represents a captured state of a crafter.
  */
-@ApiStatus.Experimental
-public interface Crafter extends Container, LootableBlockInventory {
+public interface Crafter extends Container, com.destroystokyo.paper.loottable.LootableBlockInventory { // Paper - LootTable API
 
     /**
      * Gets the number of ticks which this block will remain in the crafting

@@ -16,14 +16,37 @@ public interface Vault extends Directional {
      * @return the 'vault_state' value
      */
     @NotNull
-    State getTrialSpawnerState();
+    State getVaultState();
+
+    /**
+     * Gets the value of the 'vault_state' property.
+     *
+     * @return the 'vault_state' value
+     * @deprecated see {@link #getVaultState()}
+     */
+    @Deprecated(since = "1.21.3", forRemoval = true)
+    @NotNull
+    default State getTrialSpawnerState() {
+        return this.getVaultState();
+    }
 
     /**
      * Sets the value of the 'vault_state' property.
      *
      * @param state the new 'vault_state' value
      */
-    void setTrialSpawnerState(@NotNull State state);
+    void setVaultState(@NotNull State state);
+
+    /**
+     * Sets the value of the 'vault_state' property.
+     *
+     * @param state the new 'vault_state' value
+     * @deprecated see {@link #setVaultState(State)}
+     */
+    @Deprecated(since = "1.21.3", forRemoval = true)
+    default void setTrialSpawnerState(@NotNull State state) {
+        this.setVaultState(state);
+    }
 
     /**
      * Gets the value of the 'ominous' property.

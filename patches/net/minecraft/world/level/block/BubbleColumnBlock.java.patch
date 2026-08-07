@@ -1,14 +1,6 @@
 --- a/net/minecraft/world/level/block/BubbleColumnBlock.java
 +++ b/net/minecraft/world/level/block/BubbleColumnBlock.java
-@@ -47,6 +_,7 @@
- 
-     @Override
-     protected void entityInside(BlockState p_50976_, Level p_50977_, BlockPos p_50978_, Entity p_50979_) {
-+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_50979_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_50977_, p_50978_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
-         BlockState blockstate = p_50977_.getBlockState(p_50978_.above());
-         if (blockstate.isAir()) {
-             p_50979_.onAboveBubbleCol(p_50976_.getValue(DRAG_DOWN));
-@@ -121,10 +_,12 @@
+@@ -96,10 +_,12 @@
      private static BlockState getColumnState(BlockState p_152718_) {
          if (p_152718_.is(Blocks.BUBBLE_COLUMN)) {
              return p_152718_;
@@ -16,14 +8,14 @@
 +        }
 +        net.neoforged.neoforge.common.enums.BubbleColumnDirection bubbleColumnDirection = p_152718_.getBubbleColumnDirection(); // Neo: PR #931
 +        if (bubbleColumnDirection == net.neoforged.neoforge.common.enums.BubbleColumnDirection.UPWARD) {
-             return Blocks.BUBBLE_COLUMN.defaultBlockState().setValue(DRAG_DOWN, Boolean.valueOf(false));
+             return Blocks.BUBBLE_COLUMN.defaultBlockState().setValue(DRAG_DOWN, false);
          } else {
--            return p_152718_.is(Blocks.MAGMA_BLOCK)
-+            return bubbleColumnDirection == net.neoforged.neoforge.common.enums.BubbleColumnDirection.DOWNWARD
-                 ? Blocks.BUBBLE_COLUMN.defaultBlockState().setValue(DRAG_DOWN, Boolean.valueOf(true))
-                 : Blocks.WATER.defaultBlockState();
+-            return p_152718_.is(Blocks.MAGMA_BLOCK) ? Blocks.BUBBLE_COLUMN.defaultBlockState().setValue(DRAG_DOWN, true) : Blocks.WATER.defaultBlockState();
++            return bubbleColumnDirection == net.neoforged.neoforge.common.enums.BubbleColumnDirection.DOWNWARD ? Blocks.BUBBLE_COLUMN.defaultBlockState().setValue(DRAG_DOWN, true) : Blocks.WATER.defaultBlockState();
          }
-@@ -190,7 +_,7 @@
+     }
+ 
+@@ -166,7 +_,7 @@
      @Override
      protected boolean canSurvive(BlockState p_50986_, LevelReader p_50987_, BlockPos p_50988_) {
          BlockState blockstate = p_50987_.getBlockState(p_50988_.below());

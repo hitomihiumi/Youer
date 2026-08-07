@@ -15,8 +15,12 @@ public final class V165 {
     public static void register() {
         MCTypeRegistry.ITEM_STACK.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
-                final MapType<String> tag = data.getMap("tag");
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                if (!"minecraft:written_book".equals(data.getString("id"))) {
+                    return null;
+                }
+
+                final MapType tag = data.getMap("tag");
                 if (tag == null) {
                     return null;
                 }

@@ -1,12 +1,14 @@
 package com.destroystokyo.paper.network;
 
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent;
-import java.net.InetSocketAddress;
-import javax.annotation.Nullable;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.server.MinecraftServer;
 import org.apache.commons.lang3.StringUtils;
+
+import java.net.InetSocketAddress;
+
+import javax.annotation.Nullable;
 
 public final class PaperLegacyStatusClient implements StatusClient {
 

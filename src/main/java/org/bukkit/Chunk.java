@@ -133,38 +133,38 @@ public interface Chunk extends PersistentDataHolder {
      *
      * @return The entities.
      */
-    @NotNull
-    Entity[] getEntities();
+    @NotNull Entity @NotNull [] getEntities();
 
     /**
-     * Get a list of all tile entities in the chunk.
+     * Get a list of all block entities in the chunk.
      *
-     * @return The tile entities.
+     * @return The block entities.
      */
     @NotNull
     // Paper start
-    default BlockState[] getTileEntities() {
+    default BlockState @NotNull [] getTileEntities() {
         return getTileEntities(true);
     }
 
     /**
-     * Get a list of all tile entities in the chunk.
+     * Get a list of all block entities in the chunk.
      *
      * @param useSnapshot Take snapshots or direct references
-     * @return The tile entities.
+     * @return The block entities.
      */
     @NotNull
-    BlockState[] getTileEntities(boolean useSnapshot);
+    BlockState @NotNull [] getTileEntities(boolean useSnapshot);
 
     /**
-     * Get a list of all tile entities that match a given predicate in the chunk.
+     * Get a list of all block entities that match a given predicate in the chunk.
      *
-     * @param blockPredicate The predicate of blocks to return tile entities for
+     * @param blockPredicate The predicate of blocks to return block entities for
      * @param useSnapshot Take snapshots or direct references
-     * @return The tile entities.
+     * @return The block entities.
      */
     @NotNull
     Collection<BlockState> getTileEntities(java.util.function.@NotNull Predicate<? super Block> blockPredicate, boolean useSnapshot);
+    // Paper end
 
     /**
      * Checks if the chunk is fully generated.

@@ -1,10 +1,14 @@
 package io.papermc.paper.plugin.entrypoint.strategy;
 
+import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 import io.papermc.paper.plugin.configuration.PluginMeta;
+import io.papermc.paper.plugin.entrypoint.dependency.GraphDependencyContext;
 import io.papermc.paper.plugin.entrypoint.dependency.MetaDependencyTree;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.provider.type.paper.PaperPluginParent;
+import org.bukkit.plugin.UnknownDependencyException;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.bukkit.plugin.UnknownDependencyException;
 
 @SuppressWarnings("UnstableApiUsage")
 public class LegacyPluginLoadingStrategy<T> implements ProviderLoadingStrategy<T> {

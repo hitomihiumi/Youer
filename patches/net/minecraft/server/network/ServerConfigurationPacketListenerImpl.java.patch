@@ -1,25 +1,6 @@
 --- a/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
-@@ -1,5 +_,6 @@
- package net.minecraft.server.network;
- 
-+import com.mohistmc.youer.util.ThreadUtils;
- import com.mojang.authlib.GameProfile;
- import com.mojang.logging.LogUtils;
- import java.util.List;
-@@ -32,10 +_,10 @@
- import net.minecraft.server.network.config.JoinWorldTask;
- import net.minecraft.server.network.config.ServerResourcePackConfigurationTask;
- import net.minecraft.server.network.config.SynchronizeRegistriesTask;
--import net.minecraft.server.packs.PackResources;
- import net.minecraft.server.packs.repository.KnownPack;
- import net.minecraft.server.players.PlayerList;
- import net.minecraft.world.flag.FeatureFlags;
-+import org.bukkit.craftbukkit.CraftServerLinks;
- import org.slf4j.Logger;
- 
- public class ServerConfigurationPacketListenerImpl extends ServerCommonPacketListenerImpl implements ServerConfigurationPacketListener, TickablePacketListener {
-@@ -72,15 +_,33 @@
+@@ -72,6 +_,15 @@
      }
  
      public void startConfiguration() {
@@ -34,20 +15,8 @@
 +    private void runConfiguration() {
          this.send(new ClientboundCustomPayloadPacket(new BrandPayload(this.server.getServerModName())));
          ServerLinks serverlinks = this.server.serverLinks();
--        if (!serverlinks.isEmpty()) {
--            this.send(new ClientboundServerLinksPacket(serverlinks.untrust()));
--        }
-+        // Youer Fix NeoForge's `SERVER_EPOLL_EVENT_GROUP` causing Bukkit events to be perceived as occurring outside the main thread.
-+        ThreadUtils.executeOnMainThread(() -> {
-+            // CraftBukkit start
-+            CraftServerLinks links = new CraftServerLinks(serverlinks);
-+            new org.bukkit.event.player.PlayerLinksSendEvent(player.getBukkitEntity(), links).callEvent();
-+            if (!links.getServerLinks().isEmpty()) {
-+                this.send(new ClientboundServerLinksPacket(links.getServerLinks().untrust()));
-+            }
-+            // CraftBukkit end
-+        });
- 
+         if (!serverlinks.isEmpty()) {
+@@ -81,6 +_,8 @@
          LayeredRegistryAccess<RegistryLayer> layeredregistryaccess = this.server.registries();
          List<KnownPack> list = this.server.getResourceManager().listPacks().flatMap(p_325637_ -> p_325637_.location().knownPackInfo().stream()).toList();
          this.send(new ClientboundUpdateEnabledFeaturesPacket(FeatureFlags.REGISTRY.toNames(this.server.getWorldData().enabledFeatures())));
@@ -56,7 +25,7 @@
          this.synchronizeRegistriesTask = new SynchronizeRegistriesTask(list, layeredregistryaccess);
          this.configurationTasks.add(this.synchronizeRegistriesTask);
          this.addOptionalTasks();
-@@ -95,11 +_,38 @@
+@@ -95,6 +_,33 @@
  
      private void addOptionalTasks() {
          this.server.getServerResourcePack().ifPresent(p_296496_ -> this.configurationTasks.add(new ServerResourcePackConfigurationTask(p_296496_)));
@@ -84,14 +53,9 @@
 +            if (!this.connectionType.isNeoForge() && !net.neoforged.neoforge.network.registration.NetworkRegistry.initializeOtherConnection(this)) {
 +                return;
 +            }
++
 +            this.runConfiguration();
 +        }
-     }
- 
-     @Override
-     public void handleClientInformation(ServerboundClientInformationPacket p_302032_) {
-         this.clientInformation = p_302032_.information();
-+        this.connection.channel.attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).set(net.kyori.adventure.translation.Translator.parseLocale(p_302032_.information().language())); // Paper
      }
  
      @Override
@@ -110,21 +74,11 @@
  
          try {
              PlayerList playerlist = this.server.getPlayerList();
-@@ -134,14 +_,15 @@
-                 return;
+@@ -141,7 +_,7 @@
              }
  
--            Component component = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), this.gameProfile);
-+            Component component = null; // CraftBukkit - login checks already completed
-             if (component != null) {
-                 this.disconnect(component);
-                 return;
-             }
- 
--            ServerPlayer serverplayer = playerlist.getPlayerForLogin(this.gameProfile, this.clientInformation);
+             ServerPlayer serverplayer = new ServerPlayer(this.server, this.server.overworld(), this.gameProfile, this.clientInformation);
 -            playerlist.placeNewPlayer(this.connection, serverplayer, this.createCookie(this.clientInformation));
-+            playerlist.getPlayerForLogin$player = this.player;
-+            ServerPlayer serverplayer = playerlist.getPlayerForLogin(this.gameProfile, this.clientInformation); // CraftBukkit
 +            playerlist.placeNewPlayer(this.connection, serverplayer, this.createCookie(this.clientInformation, this.connectionType));
          } catch (Exception exception) {
              LOGGER.error("Couldn't place player in world", (Throwable)exception);

@@ -70,7 +70,9 @@ public enum InventoryAction {
      * is re-added to the player's inventory.
      *
      * The hotbar includes the player's off hand.
+     * @deprecated This action no longer happens, they are all {@link #HOTBAR_SWAP}s.
      */
+    @Deprecated(since = "1.20.6", forRemoval = true) // Paper
     HOTBAR_MOVE_AND_READD,
     /**
      * The clicked slot and the picked hotbar slot are swapped.
@@ -91,5 +93,29 @@ public enum InventoryAction {
      * An unrecognized ClickType.
      */
     UNKNOWN,
+    /**
+     * The first stack of items in the clicked bundle is moved to the cursor.
+     */
+    PICKUP_FROM_BUNDLE,
+    /**
+     * All of the items on the clicked slot are moved into the bundle on the cursor.
+     */
+    PICKUP_ALL_INTO_BUNDLE,
+    /**
+     * Some of the items on the clicked slot are moved into the bundle on the cursor.
+     */
+    PICKUP_SOME_INTO_BUNDLE,
+    /**
+     * The first stack of items is moved to the clicked slot.
+     */
+    PLACE_FROM_BUNDLE,
+    /**
+     * All of the items on the cursor are moved into the bundle in the clicked slot.
+     */
+    PLACE_ALL_INTO_BUNDLE,
+    /**
+     * Some of the items on the cursor are moved into the bundle in the clicked slot.
+     */
+    PLACE_SOME_INTO_BUNDLE,
     ;
 }

@@ -1,20 +1,22 @@
 package org.purpurmc.purpur.util;
 
-import java.io.File;
-import java.io.InputStream;
-import java.util.List;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginBase;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginLogger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import java.io.File;
+import java.io.InputStream;
+import java.util.List;
 
 public class MinecraftInternalPlugin extends PluginBase {
     private boolean enabled = true;
@@ -26,7 +28,6 @@ public class MinecraftInternalPlugin extends PluginBase {
         this.pluginName = "Minecraft";
         pdf = new PluginDescriptionFile(pluginName, "1.0", "nms");
     }
-
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
@@ -40,12 +41,11 @@ public class MinecraftInternalPlugin extends PluginBase {
     public PluginDescriptionFile getDescription() {
         return pdf;
     }
-    // Paper start
+
     @Override
     public io.papermc.paper.plugin.configuration.PluginMeta getPluginMeta() {
         return pdf;
     }
-    // Paper end
 
     @Override
     public FileConfiguration getConfig() {
@@ -142,10 +142,8 @@ public class MinecraftInternalPlugin extends PluginBase {
         throw new UnsupportedOperationException("Not supported.");
     }
 
-    // Paper start - lifecycle events
     @Override
-    public @NotNull io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager<org.bukkit.plugin.Plugin> getLifecycleManager() {
+    public @NotNull LifecycleEventManager<Plugin> getLifecycleManager() {
         throw new UnsupportedOperationException("Not supported.");
     }
-    // Paper end - lifecycle events
 }

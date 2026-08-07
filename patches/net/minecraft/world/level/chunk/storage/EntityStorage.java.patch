@@ -1,29 +1,16 @@
 --- a/net/minecraft/world/level/chunk/storage/EntityStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/EntityStorage.java
-@@ -92,10 +_,26 @@
-             }
-         } else {
-             ListTag listtag = new ListTag();
-+            final java.util.Map<net.minecraft.world.entity.EntityType<?>, Integer> savedEntityCounts = new java.util.HashMap<>(); // Paper - Entity load/save limit per chunk
-             p_156559_.getEntities().forEach(p_156567_ -> {
-+                // Paper start - Entity load/save limit per chunk
-+                final EntityType<?> entityType = p_156567_.getType();
-+                final int saveLimit = this.level.paperConfig().chunks.entityPerChunkSaveLimit.getOrDefault(entityType, -1);
-+                if (saveLimit > -1) {
-+                    if (savedEntityCounts.getOrDefault(entityType, 0) >= saveLimit) {
-+                        return;
-+                    }
-+                    savedEntityCounts.merge(entityType, 1, Integer::sum);
-+                }
-+                // Paper end - Entity load/save limit per chunk
-                 CompoundTag compoundtag1 = new CompoundTag();
-+                if (!p_156567_.canSaveToDisk()) return; // Purpur
-+                try {
-                 if (p_156567_.save(compoundtag1)) {
-                     listtag.add(compoundtag1);
-+                }
-+                } catch (Exception e) {
-+                    LOGGER.error("An Entity type {} has thrown an exception trying to write state. It will not persist. Report this to the mod author", p_156567_.getType(), e);
-                 }
-             });
-             CompoundTag compoundtag = NbtUtils.addCurrentDataVersion(new CompoundTag());
+@@ -108,9 +_,13 @@
+                             TagValueOutput tagvalueoutput = TagValueOutput.createWithContext(
+                                 problemreporter$scopedcollector.forChild(p_421446_.problemPath()), p_421446_.registryAccess()
+                             );
++                            try {
+                             if (p_421446_.save(tagvalueoutput)) {
+                                 CompoundTag compoundtag1 = tagvalueoutput.buildResult();
+                                 listtag.add(compoundtag1);
++                            }
++                            } catch (Exception e) {
++                                LOGGER.error("An Entity type {} has thrown an exception trying to write state. It will not persist. Report this to the mod author", p_421446_.getType(), e);
+                             }
+                         }
+                     );

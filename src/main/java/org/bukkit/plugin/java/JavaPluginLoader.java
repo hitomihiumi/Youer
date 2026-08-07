@@ -1,9 +1,6 @@
 package org.bukkit.plugin.java;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.org.yaml.snakeyaml.error.YAMLException;
-import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.util.I18n;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -42,27 +39,27 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.SimplePluginManager;
-import org.bukkit.plugin.TimedRegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.yaml.snakeyaml.error.YAMLException;
 
 /**
  * Represents a Java plugin loader, allowing plugins in the form of .jar
  */
+@Deprecated(forRemoval = true) // Paper - The PluginLoader system will not function in the near future. This implementation will be moved.
 public final class JavaPluginLoader implements PluginLoader {
     final Server server;
     private final Pattern[] fileFilters = new Pattern[]{Pattern.compile("\\.jar$")};
     private final List<PluginClassLoader> loaders = new CopyOnWriteArrayList<PluginClassLoader>();
     private final LibraryLoader libraryLoader;
-    public static boolean SuppressLibraryLoaderLogger = false; // Purpur
 
     /**
      * This class was not meant to be constructed explicitly
      *
      * @param instance the server instance
      */
-    @Deprecated
+    @Deprecated(since = "1.4.5")
     public JavaPluginLoader(@NotNull Server instance) {
         Preconditions.checkArgument(instance != null, "Server cannot be null");
         server = instance;
@@ -233,13 +230,12 @@ public final class JavaPluginLoader implements PluginLoader {
         Preconditions.checkArgument(plugin != null, "Plugin can not be null");
         Preconditions.checkArgument(listener != null, "Listener can not be null");
 
-        boolean useTimings = server.getPluginManager().useTimings();
-        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new HashMap<Class<? extends Event>, Set<RegisteredListener>>();
+        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new HashMap<>();
         Set<Method> methods;
         try {
             Method[] publicMethods = listener.getClass().getMethods();
             Method[] privateMethods = listener.getClass().getDeclaredMethods();
-            methods = new HashSet<Method>(publicMethods.length + privateMethods.length, 1.0f);
+            methods = new HashSet<>(publicMethods.length + privateMethods.length, 1.0f);
             for (Method method : publicMethods) {
                 methods.add(method);
             }
@@ -268,7 +264,7 @@ public final class JavaPluginLoader implements PluginLoader {
             method.setAccessible(true);
             Set<RegisteredListener> eventSet = ret.get(eventClass);
             if (eventSet == null) {
-                eventSet = new HashSet<RegisteredListener>();
+                eventSet = new HashSet<>();
                 ret.put(eventClass, eventSet);
             }
 
@@ -294,9 +290,9 @@ public final class JavaPluginLoader implements PluginLoader {
                 }
             }
 
-            EventExecutor executor = new EventExecutor() {
+            EventExecutor executor = new co.aikar.timings.TimedEventExecutor(new EventExecutor() { // Paper
                 @Override
-                public void execute(@NotNull Listener listener, @NotNull Event event) throws EventException {
+                public void execute(@NotNull Listener listener, @NotNull Event event) throws EventException { // Paper
                     try {
                         if (!eventClass.isAssignableFrom(event.getClass())) {
                             return;
@@ -308,12 +304,8 @@ public final class JavaPluginLoader implements PluginLoader {
                         throw new EventException(t);
                     }
                 }
-            };
-            if (false) { // Spigot - RL handles useTimings check now
-                eventSet.add(new TimedRegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
-            } else {
-                eventSet.add(new RegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
-            }
+            }, plugin, method, eventClass); // Paper
+            eventSet.add(new RegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
         }
         return ret;
     }
@@ -323,7 +315,7 @@ public final class JavaPluginLoader implements PluginLoader {
         Preconditions.checkArgument(plugin instanceof JavaPlugin, "Plugin is not associated with this PluginLoader");
 
         if (!plugin.isEnabled()) {
-            plugin.getLogger().info(I18n.as("minecraftserver.plugin.load.enabling", plugin.getDescription().getFullName()));
+            plugin.getLogger().info("Enabling " + plugin.getDescription().getFullName());
 
             JavaPlugin jPlugin = (JavaPlugin) plugin;
 
@@ -331,19 +323,13 @@ public final class JavaPluginLoader implements PluginLoader {
 
             if (!loaders.contains(pluginLoader)) {
                 loaders.add(pluginLoader);
-                server.getLogger().log(Level.WARNING, I18n.as( "mohist.i18n.20", plugin.getDescription().getFullName()));
+                server.getLogger().log(Level.WARNING, "Enabled plugin with unregistered PluginClassLoader " + plugin.getDescription().getFullName());
             }
 
             try {
                 jPlugin.setEnabled(true);
             } catch (Throwable ex) {
-                gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
-                server.getLogger().log(Level.SEVERE, I18n.as("mohist.i18n.21", plugin.getDescription().getFullName()), ex);
-                gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
-                // Paper start - Disable plugins that fail to load
-                this.server.getPluginManager().disablePlugin(jPlugin);
-                return;
-                // Paper end
+                server.getLogger().log(Level.SEVERE, "Error occurred while enabling " + plugin.getDescription().getFullName() + " (Is it up to date?)", ex);
             }
 
             // Perhaps abort here, rather than continue going, but as it stands,
@@ -357,7 +343,8 @@ public final class JavaPluginLoader implements PluginLoader {
         Preconditions.checkArgument(plugin instanceof JavaPlugin, "Plugin is not associated with this PluginLoader");
 
         if (plugin.isEnabled()) {
-            plugin.getLogger().info(I18n.as("minecraftserver.plugin.load.disabling",plugin.getDescription().getFullName()));
+            String message = String.format("Disabling %s", plugin.getDescription().getFullName());
+            plugin.getLogger().info(message);
 
             server.getPluginManager().callEvent(new PluginDisableEvent(plugin));
 
@@ -367,9 +354,7 @@ public final class JavaPluginLoader implements PluginLoader {
             try {
                 jPlugin.setEnabled(false);
             } catch (Throwable ex) {
-                gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
-                server.getLogger().log(Level.SEVERE, I18n.as( "mohist.i18n.22", plugin.getDescription().getFullName()), ex);
-                gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
+                server.getLogger().log(Level.SEVERE, "Error occurred while disabling " + plugin.getDescription().getFullName() + " (Is it up to date?)", ex);
             }
 
             if (cloader instanceof PluginClassLoader) {
@@ -384,8 +369,7 @@ public final class JavaPluginLoader implements PluginLoader {
 
                 try {
                     loader.close();
-                } catch (IOException ex) {
-                    //
+                } catch (IOException ignored) {
                 }
             }
         }

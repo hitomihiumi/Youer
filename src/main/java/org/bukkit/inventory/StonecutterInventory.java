@@ -1,6 +1,6 @@
 package org.bukkit.inventory;
 
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Nullable; // Paper
 
 /**
  * Interface to the inventory of a Stonecutter.

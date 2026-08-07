@@ -1,6 +1,7 @@
 package org.bukkit.block;
 
 import java.util.Collection;
+import org.bukkit.Nameable;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;

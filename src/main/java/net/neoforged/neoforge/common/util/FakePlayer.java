@@ -5,20 +5,14 @@
 
 package net.neoforged.neoforge.common.util;
 
-import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mojang.authlib.GameProfile;
-import com.mojang.datafixers.DataFixer;
-import java.nio.file.Path;
+import io.netty.channel.ChannelFutureListener;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Consumer;
 import javax.annotation.ParametersAreNonnullByDefault;
-import net.minecraft.advancements.AdvancementHolder;
-import net.minecraft.advancements.AdvancementProgress;
-import net.minecraft.network.Connection;
 import net.minecraft.network.DisconnectionDetails;
 import net.minecraft.network.PacketListener;
-import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
@@ -49,7 +43,6 @@ import net.minecraft.network.protocol.game.ServerboundLockDifficultyPacket;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket;
 import net.minecraft.network.protocol.game.ServerboundPaddleBoatPacket;
-import net.minecraft.network.protocol.game.ServerboundPickItemPacket;
 import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
@@ -73,20 +66,18 @@ import net.minecraft.network.protocol.game.ServerboundTeleportToEntityPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.PlayerAdvancements;
-import net.minecraft.server.ServerAdvancementManager;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.server.players.PlayerList;
 import net.minecraft.stats.Stat;
 import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.entity.PositionMoveRotation;
+import net.minecraft.world.entity.Relative;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
@@ -99,11 +90,7 @@ public class FakePlayer extends ServerPlayer {
     public FakePlayer(ServerLevel level, GameProfile name) {
         super(level.getServer(), level, name, ClientInformation.createDefault());
         this.connection = new FakePlayerNetHandler(level.getServer(), this);
-    }
-
-    @Override
-    public CraftFakePlayer getBukkitEntity() {
-        return new CraftFakePlayer(server.server, this);
+        this.setInvulnerable(true);
     }
 
     @Override
@@ -111,11 +98,6 @@ public class FakePlayer extends ServerPlayer {
 
     @Override
     public void awardStat(Stat<?> stat, int amount) {}
-
-    @Override
-    public boolean isInvulnerableTo(DamageSource source) {
-        return true;
-    }
 
     @Override
     public boolean canHarmPlayer(Player player) {
@@ -155,51 +137,9 @@ public class FakePlayer extends ServerPlayer {
         return true;
     }
 
-    public static class FakePlayerAdvancements extends PlayerAdvancements {
-        public FakePlayerAdvancements(DataFixer fixer, PlayerList playerList, ServerAdvancementManager manager, Path path, ServerPlayer player) {
-            super(fixer, playerList, manager, path, player);
-        }
-
-        @Override
-        protected void load(ServerAdvancementManager manager) {}
-
-        @Override
-        public void setPlayer(ServerPlayer player) {}
-
-        @Override
-        public void stopListening() {}
-
-        @Override
-        public void reload(ServerAdvancementManager manager) {}
-
-        @Override
-        public void save() {}
-
-        @Override
-        public boolean award(AdvancementHolder advancement, String criterion) {
-            return false;
-        }
-
-        @Override
-        public boolean revoke(AdvancementHolder advancement, String criterion) {
-            return false;
-        }
-
-        @Override
-        public void flushDirty(ServerPlayer player) {}
-
-        @Override
-        public void setSelectedTab(@Nullable AdvancementHolder advancement) {}
-
-        @Override
-        public AdvancementProgress getOrStartProgress(AdvancementHolder advancement) {
-            return new AdvancementProgress();
-        }
-    }
-
     @ParametersAreNonnullByDefault
     private static class FakePlayerNetHandler extends ServerGamePacketListenerImpl {
-        private static final Connection DUMMY_CONNECTION = new FakeConnection();
+        private static final net.minecraft.network.Connection DUMMY_CONNECTION = new FakeConnection();
 
         public FakePlayerNetHandler(MinecraftServer server, ServerPlayer player) {
             super(server, DUMMY_CONNECTION, player, CommonListenerCookie.createInitial(player.getGameProfile(), false));
@@ -240,9 +180,6 @@ public class FakePlayer extends ServerPlayer {
 
         @Override
         public void handleSetCommandMinecart(ServerboundSetCommandMinecartPacket packet) {}
-
-        @Override
-        public void handlePickItem(ServerboundPickItemPacket packet) {}
 
         @Override
         public void handleRenameItem(ServerboundRenameItemPacket packet) {}
@@ -302,7 +239,7 @@ public class FakePlayer extends ServerPlayer {
         public void send(Packet<?> packet) {}
 
         @Override
-        public void send(Packet<?> packet, @Nullable PacketSendListener sendListener) {}
+        public void send(Packet<?> packet, @Nullable ChannelFutureListener sendListener) {}
 
         @Override
         public void handleSetCarriedItem(ServerboundSetCarriedItemPacket packet) {}
@@ -359,7 +296,7 @@ public class FakePlayer extends ServerPlayer {
         public void handleLockDifficulty(ServerboundLockDifficultyPacket packet) {}
 
         @Override
-        public void teleport(double x, double y, double z, float yaw, float pitch, Set<RelativeMovement> relativeSet) {}
+        public void teleport(PositionMoveRotation posMoveRot, Set<Relative> relatives) {}
 
         @Override
         public void ackBlockChangesUpTo(int sequence) {}
@@ -371,9 +308,6 @@ public class FakePlayer extends ServerPlayer {
         public void handleChatAck(ServerboundChatAckPacket packet) {}
 
         @Override
-        public void addPendingMessage(PlayerChatMessage message) {}
-
-        @Override
         public void sendPlayerChatMessage(PlayerChatMessage message, ChatType.Bound boundChatType) {}
 
         @Override
@@ -383,7 +317,7 @@ public class FakePlayer extends ServerPlayer {
         public void handleChatSessionUpdate(ServerboundChatSessionUpdatePacket packet) {}
     }
 
-    private static final class FakeConnection extends Connection {
+    private static final class FakeConnection extends net.minecraft.network.Connection {
         public FakeConnection() {
             super(PacketFlow.SERVERBOUND);
         }

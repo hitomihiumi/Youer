@@ -1,92 +1,22 @@
 --- a/net/minecraft/world/entity/animal/Cat.java
 +++ b/net/minecraft/world/entity/animal/Cat.java
-@@ -4,9 +_,7 @@
- import java.util.function.Predicate;
- import javax.annotation.Nullable;
- import net.minecraft.core.BlockPos;
--import net.minecraft.core.Direction;
- import net.minecraft.core.Holder;
--import net.minecraft.core.component.DataComponents;
- import net.minecraft.core.registries.BuiltInRegistries;
- import net.minecraft.core.registries.Registries;
- import net.minecraft.nbt.CompoundTag;
-@@ -72,6 +_,7 @@
- import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
- import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
- import net.minecraft.world.phys.AABB;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class Cat extends TamableAnimal implements VariantHolder<Holder<CatVariant>> {
-     public static final double TEMPT_SPEED_MOD = 0.6;
-@@ -231,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.CAT_DEATH;
-     }
- 
-@@ -358,6 +_,13 @@
-                 if (item instanceof DyeItem dyeitem) {
-                     DyeColor dyecolor = dyeitem.getDyeColor();
-                     if (dyecolor != this.getCollarColor()) {
-+                        // Paper start - Add EntityDyeEvent and CollarColorable interface
-+                        final io.papermc.paper.event.entity.EntityDyeEvent event = new io.papermc.paper.event.entity.EntityDyeEvent(this.getBukkitEntity(), org.bukkit.DyeColor.getByWoolData((byte) dyecolor.getId()), ((net.minecraft.server.level.ServerPlayer) p_28153_).getBukkitEntity());
-+                        if (!event.callEvent()) {
-+                            return InteractionResult.FAIL;
-+                        }
-+                        dyecolor = DyeColor.byId(event.getColor().getWoolData());
-+                        // Paper end - Add EntityDyeEvent and CollarColorable interface
-                         if (!this.level().isClientSide()) {
-                             this.setCollarColor(dyecolor);
-                             itemstack.consume(1, p_28153_);
-@@ -368,9 +_,10 @@
+@@ -387,9 +_,9 @@
                      }
                  } else if (this.isFood(itemstack) && this.getHealth() < this.getMaxHealth()) {
                      if (!this.level().isClientSide()) {
 -                        this.usePlayerItem(p_28153_, p_28154_, itemstack);
--                        FoodProperties foodproperties = itemstack.get(DataComponents.FOOD);
-+                        FoodProperties foodproperties = itemstack.getFoodProperties(this);
-+                        this.pushHealReason(org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.EATING); // Paper - Add missing regain reason
-                         this.heal(foodproperties != null ? (float)foodproperties.nutrition() : 1.0F);
+                         FoodProperties foodproperties = itemstack.get(DataComponents.FOOD);
+                         this.heal(foodproperties != null ? foodproperties.nutrition() : 1.0F);
 +                        this.usePlayerItem(p_28153_, p_28154_, itemstack);
+                         this.playEatingSound();
                      }
  
-                     return InteractionResult.sidedSuccess(this.level().isClientSide());
-@@ -430,7 +_,7 @@
+@@ -451,7 +_,7 @@
      }
  
      private void tryToTame(Player p_333858_) {
 -        if (this.random.nextInt(3) == 0) {
-+        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333858_) && !CraftEventFactory.callEntityTameEvent(this, p_333858_).isCancelled()) { // CraftBukkit
++        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333858_)) {
              this.tame(p_333858_);
              this.setOrderedToSit(true);
              this.level().broadcastEntityEvent(this, (byte)7);
-@@ -567,17 +_,15 @@
-                 .create(LootContextParamSets.GIFT);
- 
-             for (ItemStack itemstack : loottable.getRandomItems(lootparams)) {
--                this.cat
--                    .level()
--                    .addFreshEntity(
--                        new ItemEntity(
--                            this.cat.level(),
--                            (double)blockpos$mutableblockpos.getX() - (double)Mth.sin(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
--                            (double)blockpos$mutableblockpos.getY(),
--                            (double)blockpos$mutableblockpos.getZ() + (double)Mth.cos(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
--                            itemstack
--                        )
--                    );
-+                // CraftBukkit start
-+                ItemEntity entityitem = new ItemEntity(this.cat.level(), (double) blockpos$mutableblockpos.getX() - (double) Mth.sin(this.cat.yBodyRot * 0.017453292F), (double) blockpos$mutableblockpos.getY(), (double) blockpos$mutableblockpos.getZ() + (double) Mth.cos(this.cat.yBodyRot * 0.017453292F), itemstack);
-+                org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.cat.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
-+                entityitem.level().getCraftServer().getPluginManager().callEvent(event);
-+                if (event.isCancelled()) {
-+                    continue;
-+                }
-+                this.cat.level().addFreshEntity(entityitem);
-+                // CraftBukkit end
-             }
-         }
- 

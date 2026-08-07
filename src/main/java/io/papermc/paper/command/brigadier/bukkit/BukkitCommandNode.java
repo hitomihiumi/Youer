@@ -10,17 +10,19 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.commands.CommandSource;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 import org.bukkit.entity.Player;
 import org.bukkit.event.server.TabCompleteEvent;
 
@@ -62,10 +64,10 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
 
     public static class BukkitBrigCommand implements com.mojang.brigadier.Command<CommandSourceStack> {
 
-        private final Command command;
+        private final org.bukkit.command.Command command;
         private final String literal;
 
-        BukkitBrigCommand(Command command, String literal) {
+        BukkitBrigCommand(org.bukkit.command.Command command, String literal) {
             this.command = command;
             this.literal = literal;
         }
@@ -87,10 +89,10 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
 
     static class BukkitBrigSuggestionProvider implements SuggestionProvider<CommandSourceStack> {
 
-        private final Command command;
+        private final org.bukkit.command.Command command;
         private final String literal;
 
-        BukkitBrigSuggestionProvider(Command command, String literal) {
+        BukkitBrigSuggestionProvider(org.bukkit.command.Command command, String literal) {
             this.command = command;
             this.literal = literal;
         }
@@ -98,7 +100,7 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
         @Override
         public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) throws CommandSyntaxException {
             // Paper start
-            CommandSender sender = context.getSource().getSender();
+            org.bukkit.command.CommandSender sender = context.getSource().getSender();
             String[] args = builder.getRemaining().split(" ", -1); // We need the command included -- Set limit to -1, allow for trailing spaces
 
             List<String> results = null;
@@ -106,12 +108,12 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
             try {
                 results = this.command.tabComplete(sender, this.literal, args, pos.clone());
             } catch (CommandException ex) {
-                sender.sendMessage(ChatColor.RED + "An internal error occurred while attempting to tab-complete this command");
+                sender.sendMessage(Component.text("An internal error occurred while attempting to tab-complete this command", NamedTextColor.RED));
                 Bukkit.getServer().getLogger().log(Level.SEVERE, "Exception when " + sender.getName() + " attempted to tab complete " + builder.getRemaining(), ex);
             }
 
             if (sender instanceof final Player player) {
-                TabCompleteEvent tabEvent = new TabCompleteEvent(player, builder.getInput(), results != null ? results : new ArrayList<>(), true, pos); // Paper - AsyncTabCompleteEvent
+                TabCompleteEvent tabEvent = new org.bukkit.event.server.TabCompleteEvent(player, builder.getInput(), results != null ? results : new ArrayList<>(), true, pos); // Paper - AsyncTabCompleteEvent
                 if (!tabEvent.callEvent()) {
                     results = null;
                 } else {

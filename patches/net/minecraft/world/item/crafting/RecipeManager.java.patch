@@ -1,148 +1,44 @@
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
-@@ -3,6 +_,8 @@
- import com.google.common.annotations.VisibleForTesting;
- import com.google.common.collect.ImmutableMap;
- import com.google.common.collect.ImmutableMultimap;
-+import com.google.common.collect.LinkedHashMultimap;
-+import com.google.common.collect.Maps;
- import com.google.common.collect.Multimap;
- import com.google.common.collect.ImmutableMultimap.Builder;
- import com.google.gson.Gson;
-@@ -10,10 +_,14 @@
- import com.google.gson.JsonElement;
- import com.google.gson.JsonObject;
- import com.google.gson.JsonParseException;
-+import com.mohistmc.youer.Youer;
-+import com.mohistmc.youer.feature.ban.bans.BanRecipe;
-+import com.mohistmc.youer.util.I18n;
- import com.mojang.logging.LogUtils;
- import com.mojang.serialization.JsonOps;
- import java.util.Collection;
- import java.util.Comparator;
-+import java.util.Iterator;
- import java.util.List;
- import java.util.Map;
- import java.util.Optional;
-@@ -50,24 +_,30 @@
-         this.hasErrors = false;
-         Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
-         com.google.common.collect.ImmutableMap.Builder<ResourceLocation, RecipeHolder<?>> builder1 = ImmutableMap.builder();
--        RegistryOps<JsonElement> registryops = this.registries.createSerializationContext(JsonOps.INSTANCE);
-+        RegistryOps<JsonElement> registryops = this.makeConditionalOps(); // Neo: add condition context
+@@ -63,6 +_,7 @@
+     private SelectableRecipe.SingleInputSet<StonecutterRecipe> stonecutterRecipes = SelectableRecipe.SingleInputSet.empty();
+     private List<RecipeManager.ServerDisplayInfo> allDisplays = List.of();
+     private Map<ResourceKey<Recipe<?>>, List<RecipeManager.ServerDisplayInfo>> recipeToDisplay = Map.of();
++    private Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities = it.unimi.dsi.fastutil.objects.Object2IntMaps.emptyMap(); // Neo: recipe priorities set from RecipePriorityManager.
  
-         for (Entry<ResourceLocation, JsonElement> entry : p_44037_.entrySet()) {
-             ResourceLocation resourcelocation = entry.getKey();
--
-+            if (resourcelocation.getPath().startsWith("_")) continue; //Forge: filter anything beginning with "_" as it's used for metadata.
-+            if (BanRecipe.checkBan(resourcelocation)) continue;
-             try {
--                Recipe<?> recipe = Recipe.CODEC.parse(registryops, entry.getValue()).getOrThrow(JsonParseException::new);
-+                var decoded = Recipe.CONDITIONAL_CODEC.parse(registryops, entry.getValue()).getOrThrow(JsonParseException::new);
-+                decoded.ifPresentOrElse(r -> {
-+                Recipe<?> recipe = r.carrier();
-                 RecipeHolder<?> recipeholder = new RecipeHolder<>(resourcelocation, recipe);
-                 builder.put(recipe.getType(), recipeholder);
-                 builder1.put(resourcelocation, recipeholder);
-+                }, () -> {
-+                    LOGGER.debug("Skipping loading recipe {} as its conditions were not met", resourcelocation);
-+                });
-             } catch (IllegalArgumentException | JsonParseException jsonparseexception) {
--                LOGGER.error("Parsing error loading recipe {}", resourcelocation, jsonparseexception);
-+                if (Youer.DEBUG) LOGGER.error("Parsing error loading recipe {}", resourcelocation, jsonparseexception);
-             }
-         }
- 
-         this.byType = builder.build();
-         this.byName = builder1.build();
--        LOGGER.info("Loaded {} recipes", this.byType.size());
-+        LOGGER.info(I18n.as("recipemanager.loaded", this.byType.size()));
+     public RecipeManager(HolderLookup.Provider p_324137_) {
+         this.registries = p_324137_;
+@@ -71,7 +_,7 @@
+     protected RecipeMap prepare(ResourceManager p_379845_, ProfilerFiller p_380058_) {
+         SortedMap<ResourceLocation, Recipe<?>> sortedmap = new TreeMap<>();
+         SimpleJsonResourceReloadListener.scanDirectory(
+-            p_379845_, RECIPE_LISTER, this.registries.createSerializationContext(JsonOps.INSTANCE), Recipe.CODEC, sortedmap
++            p_379845_, RECIPE_LISTER, new net.neoforged.neoforge.common.conditions.ConditionalOps<>(this.registries.createSerializationContext(JsonOps.INSTANCE), getContext()), Recipe.CODEC, sortedmap // Neo: add condition context
+         );
+         List<RecipeHolder<?>> list = new ArrayList<>(sortedmap.size());
+         sortedmap.forEach((p_379232_, p_379233_) -> {
+@@ -88,6 +_,7 @@
      }
  
-     public boolean hadErrorsLoading() {
-@@ -91,9 +_,9 @@
-         if (p_345826_.isEmpty()) {
-             return Optional.empty();
-         } else {
--            return p_346407_ != null && p_346407_.value().matches(p_345826_, p_220251_)
--                ? Optional.of(p_346407_)
--                : this.byType(p_220249_).stream().filter(p_344413_ -> p_344413_.value().matches(p_345826_, p_220251_)).findFirst();
-+            if (p_346407_ != null && p_346407_.value().matches(p_345826_, p_220251_)) return Optional.of(p_346407_);
-+            List<RecipeHolder<T>> list = this.byType(p_220249_).stream().filter(p_344413_ -> p_344413_.value().matches(p_345826_, p_220251_)).toList();
-+            return list.isEmpty() ? Optional.empty() : Optional.of(list.getLast()); // CraftBukkit - SPIGOT-4638: last recipe gets priority
-         }
-     }
- 
-@@ -113,8 +_,12 @@
-         return (Collection<RecipeHolder<T>>)(Collection<?>)this.byType.get(p_44055_);
-     }
- 
-+    @Nullable
-+    public RecipeHolder<?> previousRecipe = null;
-     public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsFor(RecipeType<T> p_44070_, I p_345118_, Level p_44072_) {
--        Optional<RecipeHolder<T>> optional = this.getRecipeFor(p_44070_, p_345118_, p_44072_);
-+        // Paper start - Perf: improve performance of mass crafts
-+        Optional<RecipeHolder<T>> optional = this.getRecipeFor(p_44070_, p_345118_, p_44072_, (RecipeHolder<T>) previousRecipe);
-+        // Paper end - Perf: improve performance of mass crafts
-         if (optional.isPresent()) {
-             return optional.get().value().getRemainingItems(p_345118_);
-         } else {
-@@ -127,6 +_,10 @@
-             return nonnulllist;
-         }
-     }
-+    public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsForPaper(RecipeType<T> p_44070_, I p_345118_, Level p_44072_, @Nullable RecipeHolder<T> previousRecipe) {
-+        this.previousRecipe = previousRecipe;
-+        return getRemainingItemsFor(p_44070_, p_345118_, p_44072_);
+     public void finalizeRecipeLoading(FeatureFlagSet p_379660_) {
++        this.recipes.order(this.recipePriorities); // Neo: order recipes by priority.
+         List<SelectableRecipe.SingleInputEntry<StonecutterRecipe>> list = new ArrayList<>();
+         List<RecipeManager.IngredientCollector> list1 = RECIPE_PROPERTY_SETS.entrySet()
+             .stream()
+@@ -261,6 +_,16 @@
+         return p_380850_ -> p_380850_.getType() == p_381108_ && p_380850_ instanceof SingleItemRecipe singleitemrecipe
+             ? Optional.of(singleitemrecipe.input())
+             : Optional.empty();
 +    }
- 
-     public Optional<RecipeHolder<?>> byKey(ResourceLocation p_44044_) {
-         return Optional.ofNullable(this.byName.get(p_44044_));
-@@ -193,5 +_,47 @@
++
++    // Neo: expose recipe map
++    public RecipeMap recipeMap() {
++        return this.recipes;
++    }
++
++    // Neo: set recipe priority map
++    public void setPriorityMap(Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities) {
++        this.recipePriorities = recipePriorities;
+     }
  
      public interface CachedCheck<I extends RecipeInput, T extends Recipe<I>> {
-         Optional<RecipeHolder<T>> getRecipeFor(I p_344938_, Level p_220281_);
-+    }
-+
-+    public synchronized void addRecipe(RecipeHolder<?> recipe) {
-+        Multimap<RecipeType<?>, RecipeHolder<?>> mutableByType = LinkedHashMultimap.create(this.byType);
-+        Map<ResourceLocation, RecipeHolder<?>> mutableByName = Maps.newHashMap(this.byName);
-+
-+        if (mutableByName.containsKey(recipe.id())) {
-+            throw new IllegalStateException("Duplicate recipe ignored with ID " + recipe.id());
-+        }
-+
-+        mutableByType.put(recipe.value().getType(), recipe);
-+        mutableByName.put(recipe.id(), recipe);
-+
-+        this.byType = ImmutableMultimap.copyOf(mutableByType);
-+        this.byName = ImmutableMap.copyOf(mutableByName);
-+    }
-+
-+    public synchronized boolean removeRecipe(ResourceLocation mcKey) {
-+        Multimap<RecipeType<?>, RecipeHolder<?>> mutableByType = LinkedHashMultimap.create(this.byType);
-+        Map<ResourceLocation, RecipeHolder<?>> mutableByName = Maps.newHashMap(this.byName);
-+
-+        Iterator<RecipeHolder<?>> iter = mutableByType.values().iterator();
-+        boolean removed = false;
-+        while (iter.hasNext()) {
-+            RecipeHolder<?> recipe = iter.next();
-+            if (recipe.id().equals(mcKey)) {
-+                iter.remove();
-+                removed = true;
-+            }
-+        }
-+        removed |= mutableByName.remove(mcKey) != null;
-+
-+        if (removed) {
-+            this.byType = ImmutableMultimap.copyOf(mutableByType);
-+            this.byName = ImmutableMap.copyOf(mutableByName);
-+        }
-+        return removed;
-+    }
-+
-+    public void clearRecipes() {
-+        this.byType = ImmutableMultimap.of();
-+        this.byName = ImmutableMap.of();
-     }
- }

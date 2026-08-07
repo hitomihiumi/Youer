@@ -1,28 +1,21 @@
 package org.bukkit.craftbukkit.entity;
 
-import com.destroystokyo.paper.loottable.PaperLootableEntityInventory;
-import net.minecraft.world.entity.vehicle.ChestBoat;
+import net.minecraft.world.entity.vehicle.AbstractChestBoat;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 
-public class CraftChestBoat extends CraftBoat implements org.bukkit.entity.ChestBoat, PaperLootableEntityInventory {
-
+public abstract class CraftChestBoat extends CraftBoat implements org.bukkit.entity.ChestBoat, com.destroystokyo.paper.loottable.PaperLootableEntityInventory { // Paper
     private final Inventory inventory;
 
-    public CraftChestBoat(CraftServer server, ChestBoat entity) {
+    public CraftChestBoat(CraftServer server, AbstractChestBoat entity) {
         super(server, entity);
         this.inventory = new CraftInventory(entity);
     }
 
     @Override
-    public ChestBoat getHandle() {
-        return (ChestBoat) this.entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftChestBoat";
+    public AbstractChestBoat getHandle() {
+        return (AbstractChestBoat) this.entity;
     }
 
     @Override

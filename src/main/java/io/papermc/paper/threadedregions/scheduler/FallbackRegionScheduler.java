@@ -1,9 +1,10 @@
 package io.papermc.paper.threadedregions.scheduler;
 
-import java.util.function.Consumer;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Consumer;
 
 public final class FallbackRegionScheduler implements RegionScheduler {
 

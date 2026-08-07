@@ -1,24 +1,28 @@
 package org.bukkit.command;
 
-import java.util.Set;
-import java.util.UUID;
-import org.apache.commons.lang3.NotImplementedException;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
+
+import java.util.Set;
+import java.util.UUID;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * For when all you care about is just messaging
+ *
+ * @deprecated Timings will be removed in the future
  */
+@Deprecated(forRemoval = true)
 public interface MessageCommandSender extends CommandSender {
 
     @Override
-    default void sendMessage(@NotNull String[] messages) {
+    default void sendMessage(@NotNull String @NotNull [] messages) {
         for (String message : messages) {
             sendMessage(message);
         }
@@ -30,7 +34,7 @@ public interface MessageCommandSender extends CommandSender {
     }
 
     @Override
-    default void sendMessage(@Nullable UUID sender, @NotNull String[] messages) {
+    default void sendMessage(@Nullable UUID sender, @NotNull String @NotNull [] messages) {
         for (String message : messages) {
             sendMessage(message);
         }
@@ -52,83 +56,83 @@ public interface MessageCommandSender extends CommandSender {
     @NotNull
     @Override
     default String getName() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     default boolean isOp() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     default void setOp(boolean value) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     default boolean isPermissionSet(@NotNull String name) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     default boolean isPermissionSet(@NotNull Permission perm) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     default boolean hasPermission(@NotNull String name) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     default boolean hasPermission(@NotNull Permission perm) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
     default PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
     default PermissionAttachment addAttachment(@NotNull Plugin plugin) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
     default PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value, int ticks) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
     default PermissionAttachment addAttachment(@NotNull Plugin plugin, int ticks) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     default void removeAttachment(@NotNull PermissionAttachment attachment) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     default void recalculatePermissions() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
     default Set<PermissionAttachmentInfo> getEffectivePermissions() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
     default Spigot spigot() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
 }

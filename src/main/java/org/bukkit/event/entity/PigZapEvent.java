@@ -1,40 +1,34 @@
 package org.bukkit.event.entity;
 
+import com.destroystokyo.paper.event.entity.EntityZapEvent;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.Pig;
 import org.bukkit.entity.PigZombie;
 import org.bukkit.event.Cancellable;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Stores data for pigs being zapped
  */
-public class PigZapEvent extends com.destroystokyo.paper.event.entity.EntityZapEvent implements Cancellable { // Paper
-    // private static final HandlerList handlers = new HandlerList(); // Paper - moved in the super class
-    private boolean canceled;
-    private final PigZombie pigzombie;
+public class PigZapEvent extends EntityZapEvent implements Cancellable {
+
+    private final PigZombie zombifiedPiglin;
     private final LightningStrike bolt;
 
-    public PigZapEvent(@NotNull final Pig pig, @NotNull final LightningStrike bolt, @NotNull final PigZombie pigzombie) {
-        super(pig, bolt, pigzombie); // Paper
+    private boolean cancelled;
+
+    @ApiStatus.Internal
+    public PigZapEvent(@NotNull final Pig pig, @NotNull final LightningStrike bolt, @NotNull final PigZombie zombifiedPiglin) {
+        super(pig, bolt, zombifiedPiglin);
         this.bolt = bolt;
-        this.pigzombie = pigzombie;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return canceled;
-    }
-
-    @Override
-    public void setCancelled(boolean cancel) {
-        canceled = cancel;
+        this.zombifiedPiglin = zombifiedPiglin;
     }
 
     @NotNull
     @Override
     public Pig getEntity() {
-        return (Pig) entity;
+        return (Pig) this.entity;
     }
 
     /**
@@ -44,34 +38,29 @@ public class PigZapEvent extends com.destroystokyo.paper.event.entity.EntityZapE
      */
     @NotNull
     public LightningStrike getLightning() {
-        return bolt;
+        return this.bolt;
     }
 
     /**
-     * Gets the zombie pig that will replace the pig, provided the event is
+     * Gets the zombified piglin that will replace the pig, provided the event is
      * not cancelled first.
      *
      * @return resulting entity
      * @deprecated use {@link EntityTransformEvent#getTransformedEntity()}
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.13.2")
     public PigZombie getPigZombie() {
-        return pigzombie;
+        return this.zombifiedPiglin;
     }
 
-    // Paper start
-    /*
-    @NotNull
     @Override
-    public HandlerList getHandlers() {
-        return handlers;
+    public boolean isCancelled() {
+        return this.cancelled;
     }
 
-    @NotNull
-    public static HandlerList getHandlerList() {
-        return handlers;
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
     }
-    */
-    // Paper end
 }

@@ -4,9 +4,6 @@ import com.google.common.graph.MutableGraph;
 import io.papermc.paper.plugin.PermissionManager;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
-import java.io.File;
-import java.util.List;
-import java.util.Set;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandMap;
@@ -26,6 +23,10 @@ import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
+import java.util.List;
+import java.util.Set;
 
 public class PaperPluginManagerImpl implements PluginManager, DependencyContext {
 
@@ -231,7 +232,7 @@ public class PaperPluginManagerImpl implements PluginManager, DependencyContext 
 
     @Override
     public boolean useTimings() {
-        return false;
+        return co.aikar.timings.Timings.isTimingsEnabled();
     }
 
     @Override

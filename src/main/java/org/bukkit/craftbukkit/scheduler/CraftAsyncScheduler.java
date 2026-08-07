@@ -23,8 +23,10 @@
 
 package org.bukkit.craftbukkit.scheduler;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.destroystokyo.paper.ServerSchedulerReportingWrapper;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.bukkit.plugin.Plugin;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,17 +35,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.bukkit.plugin.Plugin;
 
 public class CraftAsyncScheduler extends CraftScheduler {
 
-    private final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
+            4, Integer.MAX_VALUE,30L, TimeUnit.SECONDS, new SynchronousQueue<>(),
+            new ThreadFactoryBuilder().setNameFormat("Craft Scheduler Thread - %1$d").build());
     private final Executor management = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
             .setNameFormat("Craft Async Scheduler Management Thread").build());
     private final List<CraftTask> temp = new ArrayList<>();
 
     CraftAsyncScheduler() {
         super(true);
+        executor.allowCoreThreadTimeOut(true);
+        executor.prestartAllCoreThreads();
     }
 
     @Override
@@ -63,8 +68,8 @@ public class CraftAsyncScheduler extends CraftScheduler {
     }
 
     @Override
-    public void mainThreadHeartbeat(int currentTick) {
-        this.currentTick = currentTick;
+    public void mainThreadHeartbeat() {
+        this.currentTick++;
         this.management.execute(() -> this.runTasks(currentTick));
     }
 

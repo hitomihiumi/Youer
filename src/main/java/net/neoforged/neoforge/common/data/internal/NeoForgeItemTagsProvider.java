@@ -10,9 +10,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.tags.IntrinsicHolderTagsProvider;
-import net.minecraft.data.tags.ItemTagsProvider;
+import net.minecraft.data.tags.TagAppender;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
@@ -21,11 +21,11 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.common.Tags;
-import net.neoforged.neoforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.common.data.BlockTagCopyingItemTagProvider;
 
-public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
-    public NeoForgeItemTagsProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> lookupProvider, CompletableFuture<TagLookup<Block>> blockTagProvider, ExistingFileHelper existingFileHelper) {
-        super(output, lookupProvider, blockTagProvider, "neoforge", existingFileHelper);
+public final class NeoForgeItemTagsProvider extends BlockTagCopyingItemTagProvider {
+    public NeoForgeItemTagsProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> lookupProvider, CompletableFuture<TagLookup<Block>> blockTags) {
+        super(output, lookupProvider, blockTags, "neoforge");
     }
 
     @SuppressWarnings("unchecked")
@@ -35,9 +35,10 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         copy(Tags.Blocks.BARRELS_WOODEN, Tags.Items.BARRELS_WOODEN);
         tag(Tags.Items.BONES).add(Items.BONE);
         copy(Tags.Blocks.BOOKSHELVES, Tags.Items.BOOKSHELVES);
-        tag(Tags.Items.BRICKS).addTags(Tags.Items.BRICKS_NORMAL, Tags.Items.BRICKS_NETHER);
+        tag(Tags.Items.BRICKS).addTags(Tags.Items.BRICKS_NORMAL, Tags.Items.BRICKS_NETHER, Tags.Items.BRICKS_RESIN);
         tag(Tags.Items.BRICKS_NORMAL).add(Items.BRICK);
         tag(Tags.Items.BRICKS_NETHER).add(Items.NETHER_BRICK);
+        tag(Tags.Items.BRICKS_RESIN).add(Items.RESIN_BRICK);
         tag(Tags.Items.BUCKETS_EMPTY).add(Items.BUCKET);
         tag(Tags.Items.BUCKETS_WATER).add(Items.WATER_BUCKET);
         tag(Tags.Items.BUCKETS_LAVA).add(Items.LAVA_BUCKET);
@@ -53,6 +54,8 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         copy(Tags.Blocks.CHESTS_TRAPPED, Tags.Items.CHESTS_TRAPPED);
         copy(Tags.Blocks.CHESTS_WOODEN, Tags.Items.CHESTS_WOODEN);
         copy(Tags.Blocks.CLUSTERS, Tags.Items.CLUSTERS);
+        tag(Tags.Items.CLUMPS).addTags(Tags.Items.CLUMPS_RESIN);
+        tag(Tags.Items.CLUMPS_RESIN).add(Items.RESIN_CLUMP);
         copy(Tags.Blocks.COBBLESTONES, Tags.Items.COBBLESTONES);
         copy(Tags.Blocks.COBBLESTONES_NORMAL, Tags.Items.COBBLESTONES_NORMAL);
         copy(Tags.Blocks.COBBLESTONES_INFESTED, Tags.Items.COBBLESTONES_INFESTED);
@@ -110,7 +113,7 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         tag(Tags.Items.DUSTS_REDSTONE).add(Items.REDSTONE);
         addColored(Tags.Items.DYES, "{color}_dye");
         addColoredTags(tag(Tags.Items.DYES)::addTags, Tags.Items.DYES);
-        tag(Tags.Items.EGGS).add(Items.EGG);
+        tag(Tags.Items.EGGS).add(Items.EGG, Items.BROWN_EGG, Items.BLUE_EGG);
         tag(Tags.Items.ENCHANTING_FUELS).addTag(Tags.Items.GEMS_LAPIS);
         copy(Tags.Blocks.END_STONES, Tags.Items.END_STONES);
         tag(Tags.Items.ENDER_PEARLS).add(Items.ENDER_PEARL);
@@ -121,12 +124,14 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         copy(Tags.Blocks.FENCES_NETHER_BRICK, Tags.Items.FENCES_NETHER_BRICK);
         copy(Tags.Blocks.FENCES_WOODEN, Tags.Items.FENCES_WOODEN);
         tag(Tags.Items.FERTILIZERS).add(Items.BONE_MEAL);
+        copy(Tags.Blocks.FLOWERS_SMALL, Tags.Items.FLOWERS_SMALL);
+        copy(Tags.Blocks.FLOWERS_TALL, Tags.Items.FLOWERS_TALL);
+        copy(Tags.Blocks.FLOWERS, Tags.Items.FLOWERS);
         tag(Tags.Items.FOODS_FRUIT).add(Items.APPLE, Items.GOLDEN_APPLE, Items.ENCHANTED_GOLDEN_APPLE, Items.CHORUS_FRUIT, Items.MELON_SLICE);
         tag(Tags.Items.FOODS_VEGETABLE).add(Items.CARROT, Items.GOLDEN_CARROT, Items.POTATO, Items.BEETROOT);
         tag(Tags.Items.FOODS_BERRY).add(Items.SWEET_BERRIES, Items.GLOW_BERRIES);
         tag(Tags.Items.FOODS_BREAD).add(Items.BREAD);
         tag(Tags.Items.FOODS_COOKIE).add(Items.COOKIE);
-        tag(Tags.Items.FOODS_DOUGH);
         tag(Tags.Items.FOODS_RAW_MEAT).add(Items.BEEF, Items.PORKCHOP, Items.CHICKEN, Items.RABBIT, Items.MUTTON);
         tag(Tags.Items.FOODS_RAW_FISH).add(Items.COD, Items.SALMON, Items.TROPICAL_FISH, Items.PUFFERFISH);
         tag(Tags.Items.FOODS_COOKED_MEAT).add(Items.COOKED_BEEF, Items.COOKED_PORKCHOP, Items.COOKED_CHICKEN, Items.COOKED_RABBIT, Items.COOKED_MUTTON);
@@ -139,10 +144,10 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         tag(Tags.Items.FOODS_FOOD_POISONING).add(Items.POISONOUS_POTATO, Items.PUFFERFISH, Items.SPIDER_EYE, Items.CHICKEN, Items.ROTTEN_FLESH);
         tag(Tags.Items.FOODS)
                 .add(Items.BAKED_POTATO, Items.PUMPKIN_PIE, Items.HONEY_BOTTLE, Items.OMINOUS_BOTTLE, Items.DRIED_KELP)
-                .addTags(Tags.Items.FOODS_FRUIT, Tags.Items.FOODS_VEGETABLE, Tags.Items.FOODS_BERRY, Tags.Items.FOODS_BREAD,
-                        Tags.Items.FOODS_COOKIE, Tags.Items.FOODS_DOUGH, Tags.Items.FOODS_RAW_MEAT, Tags.Items.FOODS_RAW_FISH,
-                        Tags.Items.FOODS_COOKED_MEAT, Tags.Items.FOODS_COOKED_FISH, Tags.Items.FOODS_SOUP, Tags.Items.FOODS_CANDY,
-                        Tags.Items.FOODS_PIE, Tags.Items.FOODS_GOLDEN, Tags.Items.FOODS_EDIBLE_WHEN_PLACED, Tags.Items.FOODS_FOOD_POISONING);
+                .addTags(Tags.Items.FOODS_FRUIT, Tags.Items.FOODS_VEGETABLE, Tags.Items.FOODS_BERRY, Tags.Items.FOODS_BREAD, Tags.Items.FOODS_COOKIE,
+                        Tags.Items.FOODS_RAW_MEAT, Tags.Items.FOODS_RAW_FISH, Tags.Items.FOODS_COOKED_MEAT, Tags.Items.FOODS_COOKED_FISH,
+                        Tags.Items.FOODS_SOUP, Tags.Items.FOODS_CANDY, Tags.Items.FOODS_PIE, Tags.Items.FOODS_GOLDEN,
+                        Tags.Items.FOODS_EDIBLE_WHEN_PLACED, Tags.Items.FOODS_FOOD_POISONING);
         tag(Tags.Items.ANIMAL_FOODS)
                 .addTags(ItemTags.ARMADILLO_FOOD, ItemTags.AXOLOTL_FOOD, ItemTags.BEE_FOOD, ItemTags.CAMEL_FOOD,
                         ItemTags.CAT_FOOD, ItemTags.CHICKEN_FOOD, ItemTags.COW_FOOD, ItemTags.FOX_FOOD, ItemTags.FROG_FOOD,
@@ -173,22 +178,18 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         tag(Tags.Items.INGOTS_NETHERITE).add(Items.NETHERITE_INGOT);
         tag(Tags.Items.LEATHERS).add(Items.LEATHER);
         tag(Tags.Items.MUSHROOMS).add(Items.BROWN_MUSHROOM, Items.RED_MUSHROOM);
-        tag(Tags.Items.MUSIC_DISCS).add(Items.MUSIC_DISC_13, Items.MUSIC_DISC_CAT, Items.MUSIC_DISC_BLOCKS, Items.MUSIC_DISC_CHIRP,
-                Items.MUSIC_DISC_FAR, Items.MUSIC_DISC_MALL, Items.MUSIC_DISC_MELLOHI, Items.MUSIC_DISC_STAL, Items.MUSIC_DISC_STRAD,
-                Items.MUSIC_DISC_WARD, Items.MUSIC_DISC_11, Items.MUSIC_DISC_WAIT, Items.MUSIC_DISC_OTHERSIDE, Items.MUSIC_DISC_5,
-                Items.MUSIC_DISC_PIGSTEP, Items.MUSIC_DISC_RELIC, Items.MUSIC_DISC_CREATOR, Items.MUSIC_DISC_CREATOR_MUSIC_BOX,
-                Items.MUSIC_DISC_PRECIPICE);
-        tag(Tags.Items.LOOM_PATTERNS).add(Items.FLOWER_BANNER_PATTERN, Items.CREEPER_BANNER_PATTERN, Items.SKULL_BANNER_PATTERN,
-                Items.MOJANG_BANNER_PATTERN, Items.GLOBE_BANNER_PATTERN, Items.PIGLIN_BANNER_PATTERN,
-                Items.FLOW_BANNER_PATTERN, Items.GUSTER_BANNER_PATTERN);
+        tag(Tags.Items.MUSIC_DISCS).add(
+                Items.MUSIC_DISC_13, Items.MUSIC_DISC_CAT, Items.MUSIC_DISC_BLOCKS, Items.MUSIC_DISC_CHIRP, Items.MUSIC_DISC_FAR,
+                Items.MUSIC_DISC_MALL, Items.MUSIC_DISC_MELLOHI, Items.MUSIC_DISC_STAL, Items.MUSIC_DISC_STRAD, Items.MUSIC_DISC_WARD,
+                Items.MUSIC_DISC_11, Items.MUSIC_DISC_WAIT, Items.MUSIC_DISC_OTHERSIDE, Items.MUSIC_DISC_5, Items.MUSIC_DISC_PIGSTEP,
+                Items.MUSIC_DISC_RELIC, Items.MUSIC_DISC_CREATOR, Items.MUSIC_DISC_CREATOR_MUSIC_BOX, Items.MUSIC_DISC_PRECIPICE,
+                Items.MUSIC_DISC_TEARS, Items.MUSIC_DISC_LAVA_CHICKEN);
         tag(Tags.Items.NETHER_STARS).add(Items.NETHER_STAR);
         copy(Tags.Blocks.NETHERRACKS, Tags.Items.NETHERRACKS);
         tag(Tags.Items.NUGGETS).addTags(Tags.Items.NUGGETS_GOLD, Tags.Items.NUGGETS_IRON);
         tag(Tags.Items.NUGGETS_IRON).add(Items.IRON_NUGGET);
         tag(Tags.Items.NUGGETS_GOLD).add(Items.GOLD_NUGGET);
         copy(Tags.Blocks.OBSIDIANS, Tags.Items.OBSIDIANS);
-        copy(Tags.Blocks.OBSIDIANS_NORMAL, Tags.Items.OBSIDIANS_NORMAL);
-        copy(Tags.Blocks.OBSIDIANS_CRYING, Tags.Items.OBSIDIANS_CRYING);
         copy(Tags.Blocks.ORE_BEARING_GROUND_DEEPSLATE, Tags.Items.ORE_BEARING_GROUND_DEEPSLATE);
         copy(Tags.Blocks.ORE_BEARING_GROUND_NETHERRACK, Tags.Items.ORE_BEARING_GROUND_NETHERRACK);
         copy(Tags.Blocks.ORE_BEARING_GROUND_STONE, Tags.Items.ORE_BEARING_GROUND_STONE);
@@ -209,10 +210,18 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         copy(Tags.Blocks.ORES_IN_GROUND_DEEPSLATE, Tags.Items.ORES_IN_GROUND_DEEPSLATE);
         copy(Tags.Blocks.ORES_IN_GROUND_NETHERRACK, Tags.Items.ORES_IN_GROUND_NETHERRACK);
         copy(Tags.Blocks.ORES_IN_GROUND_STONE, Tags.Items.ORES_IN_GROUND_STONE);
+        tag(Tags.Items.PIGLIN_USABLE_CROSSBOWS).addTag(Tags.Items.TOOLS_CROSSBOW);
+        tag(Tags.Items.PILLAGER_USABLE_CROSSBOWS).addTags(Tags.Items.TOOLS_CROSSBOW);
         copy(Tags.Blocks.PLAYER_WORKSTATIONS_CRAFTING_TABLES, Tags.Items.PLAYER_WORKSTATIONS_CRAFTING_TABLES);
         copy(Tags.Blocks.PLAYER_WORKSTATIONS_FURNACES, Tags.Items.PLAYER_WORKSTATIONS_FURNACES);
-        tag(Tags.Items.POTION_BOTTLE).add(Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION);
-        tag(Tags.Items.POTIONS).addTags(Tags.Items.POTION_BOTTLE);
+        tag(Tags.Items.POTIONS_BOTTLE).add(Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION);
+        tag(Tags.Items.POTIONS).addTags(Tags.Items.POTIONS_BOTTLE);
+        copy(Tags.Blocks.OBSIDIANS_NORMAL, Tags.Items.OBSIDIANS_NORMAL);
+        copy(Tags.Blocks.OBSIDIANS_CRYING, Tags.Items.OBSIDIANS_CRYING);
+        copy(Tags.Blocks.PUMPKINS, Tags.Items.PUMPKINS);
+        copy(Tags.Blocks.PUMPKINS_NORMAL, Tags.Items.PUMPKINS_NORMAL);
+        copy(Tags.Blocks.PUMPKINS_CARVED, Tags.Items.PUMPKINS_CARVED);
+        copy(Tags.Blocks.PUMPKINS_JACK_O_LANTERNS, Tags.Items.PUMPKINS_JACK_O_LANTERNS);
         tag(Tags.Items.RAW_MATERIALS).addTags(Tags.Items.RAW_MATERIALS_COPPER, Tags.Items.RAW_MATERIALS_GOLD, Tags.Items.RAW_MATERIALS_IRON);
         tag(Tags.Items.RAW_MATERIALS_COPPER).add(Items.RAW_COPPER);
         tag(Tags.Items.RAW_MATERIALS_GOLD).add(Items.RAW_GOLD);
@@ -225,10 +234,6 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         copy(Tags.Blocks.SANDS, Tags.Items.SANDS);
         copy(Tags.Blocks.SANDS_COLORLESS, Tags.Items.SANDS_COLORLESS);
         copy(Tags.Blocks.SANDS_RED, Tags.Items.SANDS_RED);
-        copy(Tags.Blocks.PUMPKINS, Tags.Items.PUMPKINS);
-        copy(Tags.Blocks.PUMPKINS_NORMAL, Tags.Items.PUMPKINS_NORMAL);
-        copy(Tags.Blocks.PUMPKINS_CARVED, Tags.Items.PUMPKINS_CARVED);
-        copy(Tags.Blocks.PUMPKINS_JACK_O_LANTERNS, Tags.Items.PUMPKINS_JACK_O_LANTERNS);
         copy(Tags.Blocks.SANDSTONE_BLOCKS, Tags.Items.SANDSTONE_BLOCKS);
         copy(Tags.Blocks.SANDSTONE_SLABS, Tags.Items.SANDSTONE_SLABS);
         copy(Tags.Blocks.SANDSTONE_STAIRS, Tags.Items.SANDSTONE_STAIRS);
@@ -238,14 +243,15 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         copy(Tags.Blocks.SANDSTONE_UNCOLORED_BLOCKS, Tags.Items.SANDSTONE_UNCOLORED_BLOCKS);
         copy(Tags.Blocks.SANDSTONE_UNCOLORED_SLABS, Tags.Items.SANDSTONE_UNCOLORED_SLABS);
         copy(Tags.Blocks.SANDSTONE_UNCOLORED_STAIRS, Tags.Items.SANDSTONE_UNCOLORED_STAIRS);
-        tag(Tags.Items.SEEDS).addTags(Tags.Items.SEEDS_BEETROOT, Tags.Items.SEEDS_MELON, Tags.Items.SEEDS_PUMPKIN, Tags.Items.SEEDS_TORCHFLOWER, Tags.Items.SEEDS_WHEAT);
+        tag(Tags.Items.SEEDS).addTags(Tags.Items.SEEDS_BEETROOT, Tags.Items.SEEDS_MELON, Tags.Items.SEEDS_PUMPKIN, Tags.Items.SEEDS_TORCHFLOWER, Tags.Items.SEEDS_PITCHER_PLANT, Tags.Items.SEEDS_WHEAT);
         tag(Tags.Items.SEEDS_BEETROOT).add(Items.BEETROOT_SEEDS);
         tag(Tags.Items.SEEDS_MELON).add(Items.MELON_SEEDS);
         tag(Tags.Items.SEEDS_PUMPKIN).add(Items.PUMPKIN_SEEDS);
         tag(Tags.Items.SEEDS_TORCHFLOWER).add(Items.TORCHFLOWER_SEEDS);
+        tag(Tags.Items.SEEDS_PITCHER_PLANT).add(Items.PITCHER_POD);
         tag(Tags.Items.SEEDS_WHEAT).add(Items.WHEAT_SEEDS);
-        tag(Tags.Items.SLIMEBALLS).add(Items.SLIME_BALL); // Deprecated
-        tag(Tags.Items.SLIME_BALLS).add(Items.SLIME_BALL).addOptionalTag(Tags.Items.SLIMEBALLS);
+        tag(Tags.Items.SKELETON_USABLE_BOWS).addTag(Tags.Items.TOOLS_BOW);
+        tag(Tags.Items.SLIME_BALLS).add(Items.SLIME_BALL);
         tag(Tags.Items.SHULKER_BOXES)
                 .add(Items.SHULKER_BOX).add(Items.WHITE_SHULKER_BOX).add(Items.ORANGE_SHULKER_BOX)
                 .add(Items.MAGENTA_SHULKER_BOX).add(Items.LIGHT_BLUE_SHULKER_BOX).add(Items.YELLOW_SHULKER_BOX)
@@ -269,6 +275,7 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         copy(Tags.Blocks.STORAGE_BLOCKS_RAW_GOLD, Tags.Items.STORAGE_BLOCKS_RAW_GOLD);
         copy(Tags.Blocks.STORAGE_BLOCKS_RAW_IRON, Tags.Items.STORAGE_BLOCKS_RAW_IRON);
         copy(Tags.Blocks.STORAGE_BLOCKS_REDSTONE, Tags.Items.STORAGE_BLOCKS_REDSTONE);
+        copy(Tags.Blocks.STORAGE_BLOCKS_RESIN, Tags.Items.STORAGE_BLOCKS_RESIN);
         copy(Tags.Blocks.STORAGE_BLOCKS_SLIME, Tags.Items.STORAGE_BLOCKS_SLIME);
         copy(Tags.Blocks.STORAGE_BLOCKS_WHEAT, Tags.Items.STORAGE_BLOCKS_WHEAT);
         tag(Tags.Items.STRINGS).add(Items.STRING);
@@ -308,8 +315,8 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         // Backwards compat with pre-1.21 tags. Done after so optional tag is last for better readability.
         // TODO: Remove backwards compat tag entries in 1.22
         tagWithOptionalLegacy(Tags.Items.BONES);
-        tag(Tags.Items.BRICKS_NORMAL).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "ingots/brick"));
-        tag(Tags.Items.BRICKS_NETHER).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "ingots/nether_brick"));
+        tag(Tags.Items.BRICKS_NORMAL).addOptionalTag(forge("ingots/brick"));
+        tag(Tags.Items.BRICKS_NETHER).addOptionalTag(forge("ingots/nether_brick"));
         tagWithOptionalLegacy(Tags.Items.CROPS);
         tagWithOptionalLegacy(Tags.Items.CROPS_BEETROOT);
         tagWithOptionalLegacy(Tags.Items.CROPS_CARROT);
@@ -321,59 +328,58 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         tagWithOptionalLegacy(Tags.Items.DUSTS_REDSTONE);
         tagColoredWithOptionalLegacy(Tags.Items.DYES);
         tag(Tags.Items.DYED_BLACK)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/black"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/black"));
+                .addOptionalTag(forge("glass/black"))
+                .addOptionalTag(forge("stained_glass/black"));
         tag(Tags.Items.DYED_BLUE)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/blue"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/blue"));
+                .addOptionalTag(forge("glass/blue"))
+                .addOptionalTag(forge("stained_glass/blue"));
         tag(Tags.Items.DYED_BROWN)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/brown"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/brown"));
+                .addOptionalTag(forge("glass/brown"))
+                .addOptionalTag(forge("stained_glass/brown"));
         tag(Tags.Items.DYED_CYAN)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/cyan"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/cyan"));
+                .addOptionalTag(forge("glass/cyan"))
+                .addOptionalTag(forge("stained_glass/cyan"));
         tag(Tags.Items.DYED_GRAY)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/gray"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/gray"));
+                .addOptionalTag(forge("glass/gray"))
+                .addOptionalTag(forge("stained_glass/gray"));
         tag(Tags.Items.DYED_GREEN)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/green"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/green"));
+                .addOptionalTag(forge("glass/green"))
+                .addOptionalTag(forge("stained_glass/green"));
         tag(Tags.Items.DYED_LIGHT_BLUE)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/light_blue"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/light_blue"));
+                .addOptionalTag(forge("glass/light_blue"))
+                .addOptionalTag(forge("stained_glass/light_blue"));
         tag(Tags.Items.DYED_LIGHT_GRAY)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/light_gray"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/light_gray"));
+                .addOptionalTag(forge("glass/light_gray"))
+                .addOptionalTag(forge("stained_glass/light_gray"));
         tag(Tags.Items.DYED_LIME)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/lime"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/lime"));
+                .addOptionalTag(forge("glass/lime"))
+                .addOptionalTag(forge("stained_glass/lime"));
         tag(Tags.Items.DYED_MAGENTA)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/magenta"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/magenta"));
+                .addOptionalTag(forge("glass/magenta"))
+                .addOptionalTag(forge("stained_glass/magenta"));
         tag(Tags.Items.DYED_MAGENTA)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/magenta"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/magenta"));
+                .addOptionalTag(forge("glass/magenta"))
+                .addOptionalTag(forge("stained_glass/magenta"));
         tag(Tags.Items.DYED_ORANGE)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/orange"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/orange"));
+                .addOptionalTag(forge("glass/orange"))
+                .addOptionalTag(forge("stained_glass/orange"));
         tag(Tags.Items.DYED_PINK)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/pink"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/pink"));
+                .addOptionalTag(forge("glass/pink"))
+                .addOptionalTag(forge("stained_glass/pink"));
         tag(Tags.Items.DYED_PURPLE)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/purple"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/purple"));
+                .addOptionalTag(forge("glass/purple"))
+                .addOptionalTag(forge("stained_glass/purple"));
         tag(Tags.Items.DYED_RED)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/red"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/red"));
+                .addOptionalTag(forge("glass/red"))
+                .addOptionalTag(forge("stained_glass/red"));
         tag(Tags.Items.DYED_WHITE)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/white"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/white"));
+                .addOptionalTag(forge("glass/white"))
+                .addOptionalTag(forge("stained_glass/white"));
         tag(Tags.Items.DYED_YELLOW)
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "glass/yellow"))
-                .addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "stained_glass/yellow"));
+                .addOptionalTag(forge("glass/yellow"))
+                .addOptionalTag(forge("stained_glass/yellow"));
         tagWithOptionalLegacy(Tags.Items.ENDER_PEARLS);
         tagWithOptionalLegacy(Tags.Items.FEATHERS);
-        tag(Tags.Items.FOODS_DOUGH).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/doughs"));
         tagWithOptionalLegacy(Tags.Items.GEMS);
         tagWithOptionalLegacy(Tags.Items.GEMS_AMETHYST);
         tagWithOptionalLegacy(Tags.Items.GEMS_DIAMOND);
@@ -381,13 +387,13 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         tagWithOptionalLegacy(Tags.Items.GEMS_LAPIS);
         tagWithOptionalLegacy(Tags.Items.GEMS_PRISMARINE);
         tagWithOptionalLegacy(Tags.Items.GEMS_QUARTZ);
-        tag(Tags.Items.GUNPOWDERS).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "gunpowder"));
+        tag(Tags.Items.GUNPOWDERS).addOptionalTag(forge("gunpowder"));
         tagWithOptionalLegacy(Tags.Items.INGOTS);
         tagWithOptionalLegacy(Tags.Items.INGOTS_COPPER);
         tagWithOptionalLegacy(Tags.Items.INGOTS_GOLD);
         tagWithOptionalLegacy(Tags.Items.INGOTS_IRON);
         tagWithOptionalLegacy(Tags.Items.INGOTS_NETHERITE);
-        tag(Tags.Items.LEATHERS).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "leather"));
+        tag(Tags.Items.LEATHERS).addOptionalTag(forge("leather"));
         tagWithOptionalLegacy(Tags.Items.MUSHROOMS);
         tagWithOptionalLegacy(Tags.Items.NETHER_STARS);
         tagWithOptionalLegacy(Tags.Items.NUGGETS);
@@ -407,40 +413,40 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         tagWithOptionalLegacy(Tags.Items.SEEDS_WHEAT);
         tagWithOptionalLegacy(Tags.Items.SLIME_BALLS);
         tagWithOptionalLegacy(Tags.Items.STRINGS);
-        tag(Tags.Items.TOOLS_SHEAR).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "shears"));
-        tag(Tags.Items.TOOLS_SPEAR).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "tools/tridents"));
+        tag(Tags.Items.TOOLS_SHEAR).addOptionalTag(forge("shears"));
+        tag(Tags.Items.TOOLS_SPEAR).addOptionalTag(forge("tools/tridents"));
         tagWithOptionalLegacy(Tags.Items.TOOLS);
         tagWithOptionalLegacy(Tags.Items.ARMORS);
-        tag(Tags.Items.TOOLS_SHIELD).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "tools/shields"));
-        tag(Tags.Items.TOOLS_BOW).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "tools/bows"));
-        tag(Tags.Items.TOOLS_BRUSH).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "tools/brushes"));
-        tag(Tags.Items.TOOLS_CROSSBOW).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "tools/crossbows"));
-        tag(Tags.Items.TOOLS_FISHING_ROD).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "tools/fishing_rods"));
-        tag(Tags.Items.TOOLS_SHEAR).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "tools/shears"));
-        tag(Tags.Items.TOOLS_SPEAR).addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", "tools/tridents"));
-        tag(Tags.Items.TOOLS_SHIELD).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "tools/shields"));
-        tag(Tags.Items.TOOLS_BOW).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "tools/bows"));
-        tag(Tags.Items.TOOLS_BRUSH).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "tools/brushes"));
-        tag(Tags.Items.TOOLS_CROSSBOW).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "tools/crossbows"));
-        tag(Tags.Items.TOOLS_FISHING_ROD).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "tools/fishing_rods"));
-        tag(Tags.Items.TOOLS_SHEAR).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "tools/shears"));
-        tag(Tags.Items.TOOLS_SPEAR).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "tools/tridents"));
-        tag(Tags.Items.FOODS_FRUIT).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/fruits"));
-        tag(Tags.Items.FOODS_VEGETABLE).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/vegetables"));
-        tag(Tags.Items.FOODS_BERRY).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/berries"));
-        tag(Tags.Items.FOODS_BREAD).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/breads"));
-        tag(Tags.Items.FOODS_COOKIE).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/cookies"));
-        tag(Tags.Items.FOODS_RAW_MEAT).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/raw_meats"));
-        tag(Tags.Items.FOODS_COOKED_MEAT).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/cooked_meats"));
-        tag(Tags.Items.FOODS_RAW_FISH).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/raw_fishes"));
-        tag(Tags.Items.FOODS_COOKED_FISH).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/cooked_fishes"));
-        tag(Tags.Items.FOODS_SOUP).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/soups"));
-        tag(Tags.Items.FOODS_CANDY).addOptionalTag(ResourceLocation.fromNamespaceAndPath("c", "foods/candies"));
+        tag(Tags.Items.TOOLS_SHIELD).addOptionalTag(forge("tools/shields"));
+        tag(Tags.Items.TOOLS_BOW).addOptionalTag(forge("tools/bows"));
+        tag(Tags.Items.TOOLS_BRUSH).addOptionalTag(forge("tools/brushes"));
+        tag(Tags.Items.TOOLS_CROSSBOW).addOptionalTag(forge("tools/crossbows"));
+        tag(Tags.Items.TOOLS_FISHING_ROD).addOptionalTag(forge("tools/fishing_rods"));
+        tag(Tags.Items.TOOLS_SHEAR).addOptionalTag(forge("tools/shears"));
+        tag(Tags.Items.TOOLS_SPEAR).addOptionalTag(forge("tools/tridents"));
+        tag(Tags.Items.TOOLS_SHIELD).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "tools/shields")));
+        tag(Tags.Items.TOOLS_BOW).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "tools/bows")));
+        tag(Tags.Items.TOOLS_BRUSH).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "tools/brushes")));
+        tag(Tags.Items.TOOLS_CROSSBOW).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "tools/crossbows")));
+        tag(Tags.Items.TOOLS_FISHING_ROD).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "tools/fishing_rods")));
+        tag(Tags.Items.TOOLS_SHEAR).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "tools/shears")));
+        tag(Tags.Items.TOOLS_SPEAR).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "tools/tridents")));
+        tag(Tags.Items.FOODS_FRUIT).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/fruits")));
+        tag(Tags.Items.FOODS_VEGETABLE).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/vegetables")));
+        tag(Tags.Items.FOODS_BERRY).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/berries")));
+        tag(Tags.Items.FOODS_BREAD).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/breads")));
+        tag(Tags.Items.FOODS_COOKIE).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/cookies")));
+        tag(Tags.Items.FOODS_RAW_MEAT).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/raw_meats")));
+        tag(Tags.Items.FOODS_COOKED_MEAT).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/cooked_meats")));
+        tag(Tags.Items.FOODS_RAW_FISH).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/raw_fishes")));
+        tag(Tags.Items.FOODS_COOKED_FISH).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/cooked_fishes")));
+        tag(Tags.Items.FOODS_SOUP).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/soups")));
+        tag(Tags.Items.FOODS_CANDY).addOptionalTag(ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "foods/candies")));
     }
 
-    private IntrinsicHolderTagsProvider.IntrinsicTagAppender<Item> tagWithOptionalLegacy(TagKey<Item> tag) {
-        IntrinsicHolderTagsProvider.IntrinsicTagAppender<Item> tagAppender = tag(tag);
-        tagAppender.addOptionalTag(ResourceLocation.fromNamespaceAndPath("forge", tag.location().getPath()));
+    private TagAppender<Item, Item> tagWithOptionalLegacy(TagKey<Item> tag) {
+        var tagAppender = tag(tag);
+        tagAppender.addOptionalTag(forge(tag.location().getPath()));
         return tagAppender;
     }
 
@@ -457,7 +463,7 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         for (DyeColor color : DyeColor.values()) {
             ResourceLocation key = ResourceLocation.fromNamespaceAndPath("minecraft", pattern.replace("{color}", color.getName()));
             TagKey<Item> tag = getForgeItemTag(prefix + color.getName());
-            Item item = BuiltInRegistries.ITEM.get(key);
+            Item item = BuiltInRegistries.ITEM.getValue(key);
             if (item == null || item == Items.AIR)
                 throw new IllegalStateException("Unknown vanilla item: " + key);
             tag(tag).add(item);
@@ -490,6 +496,10 @@ public final class NeoForgeItemTagsProvider extends ItemTagsProvider {
         } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
             throw new IllegalStateException(Tags.Items.class.getName() + " is missing tag name: " + name);
         }
+    }
+
+    private static TagKey<Item> forge(String name) {
+        return TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("forge", name));
     }
 
     @Override

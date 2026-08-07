@@ -10,7 +10,6 @@ import java.util.EnumSet;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -27,7 +26,6 @@ import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.neoforge.common.ItemAbilities;
 import net.neoforged.neoforge.common.ItemAbility;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
-import org.bukkit.event.block.BlockDropItemEvent;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class BlockEvent extends Event {
@@ -70,12 +68,10 @@ public abstract class BlockEvent extends Event {
      */
     public static class BreakEvent extends BlockEvent implements ICancellableEvent {
         private final Player player;
-        private boolean dropItems;
 
         public BreakEvent(Level level, BlockPos pos, BlockState state, Player player) {
             super(level, pos, state);
             this.player = player;
-            this.dropItems = true; // Defaults to dropping items as it normally would
         }
 
         /**
@@ -92,31 +88,6 @@ public abstract class BlockEvent extends Event {
         public void setCanceled(boolean canceled) {
             ICancellableEvent.super.setCanceled(canceled);
         }
-
-        /**
-         * Sets whether or not the block will attempt to drop items as it normally
-         * would.
-         *
-         * If and only if this is false then {@link BlockDropItemEvent} will not be
-         * called after this event.
-         *
-         * @param dropItems Whether or not the block will attempt to drop items
-         */
-        public void setDropItems(boolean dropItems) {
-            this.dropItems = dropItems;
-        }
-
-        /**
-         * Gets whether or not the block will attempt to drop items.
-         *
-         * If and only if this is false then {@link BlockDropItemEvent} will not be
-         * called after this event.
-         *
-         * @return Whether or not the block will attempt to drop items
-         */
-        public boolean isDropItems() {
-            return this.dropItems;
-        }
     }
 
     /**
@@ -129,8 +100,6 @@ public abstract class BlockEvent extends Event {
         private final BlockSnapshot blockSnapshot;
         private final BlockState placedBlock;
         private final BlockState placedAgainst;
-        private Direction placeEventDirection = null;
-        private InteractionHand placeEventHand = InteractionHand.MAIN_HAND;
 
         public EntityPlaceEvent(BlockSnapshot blockSnapshot, BlockState placedAgainst, @Nullable Entity entity) {
             super(blockSnapshot.getLevel(), blockSnapshot.getPos(), !(entity instanceof Player) ? blockSnapshot.getState() : blockSnapshot.getCurrentState());
@@ -160,20 +129,6 @@ public abstract class BlockEvent extends Event {
         public BlockState getPlacedAgainst() {
             return placedAgainst;
         }
-        // Youer start
-        public void setPlaceEventDirection(Direction placeEventDirection) {
-            this.placeEventDirection = placeEventDirection;
-        }
-        public Direction getPlaceEventDirection() {
-            return placeEventDirection;
-        }
-        public void setPlaceEventHand(InteractionHand placeEventHand) {
-            this.placeEventHand = placeEventHand;
-        }
-        public InteractionHand getPlaceEventHand() {
-            return placeEventHand;
-        }
-        // Youer end
     }
 
     /**
@@ -291,9 +246,9 @@ public abstract class BlockEvent extends Event {
      */
     public static class FarmlandTrampleEvent extends BlockEvent implements ICancellableEvent {
         private final Entity entity;
-        private final float fallDistance;
+        private final double fallDistance;
 
-        public FarmlandTrampleEvent(Level level, BlockPos pos, BlockState state, float fallDistance, Entity entity) {
+        public FarmlandTrampleEvent(Level level, BlockPos pos, BlockState state, double fallDistance, Entity entity) {
             super(level, pos, state);
             this.entity = entity;
             this.fallDistance = fallDistance;
@@ -303,7 +258,7 @@ public abstract class BlockEvent extends Event {
             return entity;
         }
 
-        public float getFallDistance() {
+        public double getFallDistance() {
             return fallDistance;
         }
     }

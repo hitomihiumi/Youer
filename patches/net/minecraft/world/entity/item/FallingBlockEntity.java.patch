@@ -1,66 +1,7 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -21,7 +_,6 @@
- import net.minecraft.server.level.ServerEntity;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.tags.BlockTags;
--import net.minecraft.tags.FluidTags;
- import net.minecraft.util.Mth;
- import net.minecraft.world.damagesource.DamageSource;
- import net.minecraft.world.entity.Entity;
-@@ -47,11 +_,13 @@
- import net.minecraft.world.phys.BlockHitResult;
- import net.minecraft.world.phys.HitResult;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.event.entity.EntityRemoveEvent;
- import org.slf4j.Logger;
- 
- public class FallingBlockEntity extends Entity {
-     private static final Logger LOGGER = LogUtils.getLogger();
--    private BlockState blockState = Blocks.SAND.defaultBlockState();
-+    public BlockState blockState = Blocks.SAND.defaultBlockState();
-     public int time;
-     public boolean dropItem = true;
-     public boolean cancelDrop;
-@@ -62,12 +_,13 @@
-     public CompoundTag blockData;
-     public boolean forceTickAfterTeleportToDuplicate;
-     protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
-+    public boolean autoExpire = true; // Paper - Expand FallingBlock API
- 
-     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> p_31950_, Level p_31951_) {
-         super(p_31950_, p_31951_);
-     }
- 
--    private FallingBlockEntity(Level p_31953_, double p_31954_, double p_31955_, double p_31956_, BlockState p_31957_) {
-+    public FallingBlockEntity(Level p_31953_, double p_31954_, double p_31955_, double p_31956_, BlockState p_31957_) {
-         this(EntityType.FALLING_BLOCK, p_31953_);
-         this.blockState = p_31957_;
-         this.blocksBuilding = true;
-@@ -128,17 +_,28 @@
-     @Override
-     public void tick() {
-         if (this.blockState.isAir()) {
-+            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
-             this.discard();
-         } else {
-             Block block = this.blockState.getBlock();
-             this.time++;
-             this.applyGravity();
-             this.move(MoverType.SELF, this.getDeltaMovement());
-+            // Paper start - Configurable falling blocks height nerf
-+            if (this.level().paperConfig().fixes.fallingBlockHeightNerf.test(v -> this.getY() > v)) {
-+                if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
-+                    this.spawnAtLocation(block);
-+                }
-+
-+                this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
-+                return;
-+            }
-+            // Paper end - Configurable falling blocks height nerf
-             this.handlePortal();
-             if (!this.level().isClientSide && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
+@@ -159,7 +_,7 @@
+             if (this.level() instanceof ServerLevel serverlevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
                  BlockPos blockpos = this.blockPosition();
                  boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
 -                boolean flag1 = flag && this.level().getFluidState(blockpos).is(FluidTags.WATER);
@@ -68,7 +9,7 @@
                  double d0 = this.getDeltaMovement().lengthSqr();
                  if (flag && d0 > 1.0) {
                      BlockHitResult blockhitresult = this.level()
-@@ -147,7 +_,7 @@
+@@ -168,7 +_,7 @@
                                  new Vec3(this.xo, this.yo, this.zo), this.position(), ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, this
                              )
                          );
@@ -77,89 +18,13 @@
                          blockpos = blockhitresult.getBlockPos();
                          flag1 = true;
                      }
-@@ -169,12 +_,19 @@
-                                     this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, Boolean.valueOf(true));
-                                 }
+@@ -252,6 +_,9 @@
+             }
  
-+                                // CraftBukkit start
-+                                if (!CraftEventFactory.callEntityChangeBlockEvent(this, blockpos, this.blockState)) {
-+                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // SPIGOT-6586 called before the event in previous versions
-+                                    return;
-+                                }
-+                                // CraftBukkit end
-+
-                                 if (this.level().setBlock(blockpos, this.blockState, 3)) {
-                                     ((ServerLevel)this.level())
-                                         .getChunkSource()
-                                         .chunkMap
-                                         .broadcast(this, new ClientboundBlockUpdatePacket(blockpos, this.level().getBlockState(blockpos)));
--                                    this.discard();
-+                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
-                                     if (block instanceof Fallable) {
-                                         ((Fallable)block).onLand(this.level(), blockpos, this.blockState, blockstate, this);
-                                     }
-@@ -198,12 +_,12 @@
-                                         }
-                                     }
-                                 } else if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
--                                    this.discard();
-+                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
-                                     this.callOnBrokenAfterFall(block, blockpos);
-                                     this.spawnAtLocation(block);
-                                 }
-                             } else {
--                                this.discard();
-+                                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
-                                 if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
-                                     this.callOnBrokenAfterFall(block, blockpos);
-                                     this.spawnAtLocation(block);
-@@ -216,8 +_,8 @@
-                     }
-                 } else if (!this.level().isClientSide
-                     && (
--                        this.time > 100 && (blockpos.getY() <= this.level().getMinBuildHeight() || blockpos.getY() > this.level().getMaxBuildHeight())
--                            || this.time > 600
-+                        (this.time > 100 && autoExpire) && (blockpos.getY() <= this.level().getMinBuildHeight() || blockpos.getY() > this.level().getMaxBuildHeight())
-+                            || (this.time > 600 && autoExpire)
-                     )) {
-                     if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
-                         this.spawnAtLocation(block);
-@@ -280,6 +_,7 @@
+             this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
++            if (isAlive() && block instanceof net.neoforged.neoforge.common.extensions.IFallableExtension feblock) {
++                feblock.fallingTick(level(), blockPosition(), this);
++            }
          }
- 
-         p_31973_.putBoolean("CancelDrop", this.cancelDrop);
-+        if (!autoExpire) {p_31973_.putBoolean("Paper.AutoExpire", false);} // Paper - Expand FallingBlock API
      }
  
-     @Override
-@@ -298,7 +_,7 @@
-             this.dropItem = p_31964_.getBoolean("DropItem");
-         }
- 
--        if (p_31964_.contains("TileEntityData", 10)) {
-+        if (p_31964_.contains("TileEntityData", 10) && !(this.level().paperConfig().entities.spawning.filterBadTileEntityNbtFromFallingBlocks && this.blockState.getBlock() instanceof net.minecraft.world.level.block.GameMasterBlock)) { // Paper - Filter bad block entity nbt data from falling blocks
-             this.blockData = p_31964_.getCompound("TileEntityData").copy();
-         }
- 
-@@ -306,6 +_,12 @@
-         if (this.blockState.isAir()) {
-             this.blockState = Blocks.SAND.defaultBlockState();
-         }
-+
-+        // Paper start - Expand FallingBlock API
-+        if (p_31964_.contains("Paper.AutoExpire")) {
-+            this.autoExpire = p_31964_.getBoolean("Paper.AutoExpire");
-+        }
-+        // Paper end - Expand FallingBlock API
-     }
- 
-     public void setHurtsEntities(float p_149657_, int p_149658_) {
-@@ -367,7 +_,7 @@
-         ResourceKey<Level> resourcekey1 = this.level().dimension();
-         boolean flag = (resourcekey1 == Level.END || resourcekey == Level.END) && resourcekey1 != resourcekey;
-         Entity entity = super.changeDimension(p_351015_);
--        this.forceTickAfterTeleportToDuplicate = entity != null && flag;
-+        this.forceTickAfterTeleportToDuplicate = entity != null && flag && io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowUnsafeEndPortalTeleportation; // Paper
-         return entity;
-     }
- }

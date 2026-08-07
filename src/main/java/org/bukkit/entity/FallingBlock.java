@@ -15,7 +15,7 @@ public interface FallingBlock extends Entity {
      * @return Material of the block
      * @deprecated use {@link #getBlockData()}
      */
-    @Deprecated
+    @Deprecated(since = "1.6.2")
     @NotNull
     Material getMaterial();
 
@@ -47,7 +47,7 @@ public interface FallingBlock extends Entity {
     org.bukkit.block.BlockState getBlockState();
 
     /**
-     * Sets the {@link BlockData} and possibly present tile entity data for the falling block.
+     * Sets the {@link BlockData} and possibly present block entity data for the falling block.
      *
      * @param blockState the BlockState to use
      */
@@ -154,7 +154,7 @@ public interface FallingBlock extends Entity {
      */
     void setMaxDamage(int damage);
 
-    /**
+     /**
      * Gets the source block location of the FallingBlock
      *
      * @return the source block location the FallingBlock was spawned from

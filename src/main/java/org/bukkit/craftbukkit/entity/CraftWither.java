@@ -1,7 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import com.destroystokyo.paper.entity.CraftRangedEntity;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import org.bukkit.boss.BossBar;
@@ -10,7 +9,7 @@ import org.bukkit.craftbukkit.boss.CraftBossBar;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Wither;
 
-public class CraftWither extends CraftMonster implements Wither, CraftRangedEntity<WitherBoss> {
+public class CraftWither extends CraftMonster implements Wither, com.destroystokyo.paper.entity.CraftRangedEntity<WitherBoss> { // Paper
 
     private BossBar bossBar;
 
@@ -25,11 +24,6 @@ public class CraftWither extends CraftMonster implements Wither, CraftRangedEnti
     @Override
     public WitherBoss getHandle() {
         return (WitherBoss) this.entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftWither";
     }
 
     @Override
@@ -69,7 +63,6 @@ public class CraftWither extends CraftMonster implements Wither, CraftRangedEnti
         this.getHandle().setInvulnerableTicks(ticks);
     }
 
-    // Paper start
     @Override
     public boolean isCharged() {
         return getHandle().isPowered();
@@ -99,18 +92,4 @@ public class CraftWither extends CraftMonster implements Wither, CraftRangedEnti
     public void enterInvulnerabilityPhase() {
         this.getHandle().makeInvulnerable();
     }
-    // Paper end
-
-    // Purpur start
-    @Override
-    @org.jetbrains.annotations.Nullable
-    public java.util.UUID getSummoner() {
-        return getHandle().getSummoner();
-    }
-
-    @Override
-    public void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner) {
-        getHandle().setSummoner(summoner);
-    }
-    // Purpur end
 }

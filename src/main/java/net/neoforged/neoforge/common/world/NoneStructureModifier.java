@@ -11,10 +11,6 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.neoforged.neoforge.common.NeoForgeMod;
 
 public class NoneStructureModifier implements StructureModifier {
-    /**
-     * @deprecated Use {@code new NoneStructureModifier()} instead if an instance is required
-     */
-    @Deprecated(forRemoval = true)
     public static final NoneStructureModifier INSTANCE = new NoneStructureModifier();
 
     @Override

@@ -1,248 +1,50 @@
 package ca.spottedleaf.dataconverter.minecraft.datatypes;
 
-import ca.spottedleaf.dataconverter.minecraft.versions.V100;
-import ca.spottedleaf.dataconverter.minecraft.versions.V101;
-import ca.spottedleaf.dataconverter.minecraft.versions.V102;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1022;
-import ca.spottedleaf.dataconverter.minecraft.versions.V105;
-import ca.spottedleaf.dataconverter.minecraft.versions.V106;
-import ca.spottedleaf.dataconverter.minecraft.versions.V107;
-import ca.spottedleaf.dataconverter.minecraft.versions.V108;
-import ca.spottedleaf.dataconverter.minecraft.versions.V109;
-import ca.spottedleaf.dataconverter.minecraft.versions.V110;
-import ca.spottedleaf.dataconverter.minecraft.versions.V111;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1125;
-import ca.spottedleaf.dataconverter.minecraft.versions.V113;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1344;
-import ca.spottedleaf.dataconverter.minecraft.versions.V135;
-import ca.spottedleaf.dataconverter.minecraft.versions.V143;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1446;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1450;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1451;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1456;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1458;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1460;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1466;
-import ca.spottedleaf.dataconverter.minecraft.versions.V147;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1470;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1474;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1475;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1480;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1483;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1484;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1486;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1487;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1488;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1490;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1492;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1494;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1496;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1500;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1501;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1502;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1506;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1510;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1514;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1515;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1624;
-import ca.spottedleaf.dataconverter.minecraft.versions.V165;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1800;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1801;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1802;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1803;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1904;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1905;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1906;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1909;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1911;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1914;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1917;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1918;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1920;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1925;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1928;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1929;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1931;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1936;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1946;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1948;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1953;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1955;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1961;
-import ca.spottedleaf.dataconverter.minecraft.versions.V1963;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2100;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2202;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2209;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2211;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2218;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2501;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2502;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2503;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2505;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2508;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2509;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2511;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2514;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2516;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2518;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2519;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2522;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2523;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2527;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2528;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2529;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2531;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2533;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2535;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2538;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2550;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2551;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2552;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2553;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2558;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2568;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2671;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2679;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2680;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2684;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2686;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2688;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2690;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2691;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2693;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2696;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2700;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2701;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2702;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2707;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2710;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2717;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2825;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2831;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2832;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2833;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2838;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2841;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2842;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2843;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2846;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2852;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2967;
-import ca.spottedleaf.dataconverter.minecraft.versions.V2970;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3077;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3078;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3081;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3082;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3083;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3084;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3086;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3087;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3088;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3090;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3093;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3094;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3097;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3108;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3201;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3203;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3204;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3209;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3214;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3319;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3322;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3325;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3326;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3327;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3328;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3438;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3439;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3440;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3441;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3447;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3448;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3450;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3451;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3459;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3564;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3565;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3566;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3568;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3682;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3683;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3685;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3689;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3692;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3799;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3800;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3803;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3807;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3808;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3809;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3812;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3813;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3814;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3816;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3818;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3820;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3825;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3828;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3833;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3938;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3939;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3943;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3945;
-import ca.spottedleaf.dataconverter.minecraft.versions.V501;
-import ca.spottedleaf.dataconverter.minecraft.versions.V502;
-import ca.spottedleaf.dataconverter.minecraft.versions.V505;
-import ca.spottedleaf.dataconverter.minecraft.versions.V700;
-import ca.spottedleaf.dataconverter.minecraft.versions.V701;
-import ca.spottedleaf.dataconverter.minecraft.versions.V702;
-import ca.spottedleaf.dataconverter.minecraft.versions.V703;
-import ca.spottedleaf.dataconverter.minecraft.versions.V704;
-import ca.spottedleaf.dataconverter.minecraft.versions.V705;
-import ca.spottedleaf.dataconverter.minecraft.versions.V804;
-import ca.spottedleaf.dataconverter.minecraft.versions.V806;
-import ca.spottedleaf.dataconverter.minecraft.versions.V808;
-import ca.spottedleaf.dataconverter.minecraft.versions.V813;
-import ca.spottedleaf.dataconverter.minecraft.versions.V816;
-import ca.spottedleaf.dataconverter.minecraft.versions.V820;
-import ca.spottedleaf.dataconverter.minecraft.versions.V99;
+import ca.spottedleaf.dataconverter.minecraft.versions.*;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
+import java.text.DecimalFormat;
 
 public final class MCTypeRegistry {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final MCDataType LEVEL              = new MCDataType("Level");
-    public static final MCDataType PLAYER             = new MCDataType("Player");
-    public static final MCDataType CHUNK              = new MCDataType("Chunk");
-    public static final MCDataType HOTBAR             = new MCDataType("CreativeHotbar");
-    public static final MCDataType OPTIONS            = new MCDataType("Options");
-    public static final MCDataType STRUCTURE          = new MCDataType("Structure");
-    public static final MCDataType STATS              = new MCDataType("Stats");
-    public static final MCDataType ADVANCEMENTS       = new MCDataType("Advancements");
-    public static final MCDataType POI_CHUNK          = new MCDataType("PoiChunk");
-    public static final MCDataType ENTITY_CHUNK       = new MCDataType("EntityChunk");
-    public static final IDDataType TILE_ENTITY        = new IDDataType("TileEntity");
-    public static final IDDataType ITEM_STACK         = new IDDataType("ItemStack");
-    public static final MCDataType BLOCK_STATE        = new MCDataType("BlockState");
-    public static final MCValueType FLAT_BLOCK_STATE  = new MCValueType("FlatBlockState");
-    public static final MCDataType DATA_COMPONENTS    = new MCDataType("DataComponents");
-    public static final MCDataType VILLAGER_TRADE     = new MCDataType("VillagerTrade");
-    public static final DynamicDataType PARTICLE      = new DynamicDataType("Particle");
-    public static final MCValueType ENTITY_NAME       = new MCValueType("EntityName");
-    public static final IDDataType ENTITY             = new IDDataType("Entity");
-    public static final MCValueType BLOCK_NAME        = new MCValueType("BlockName");
-    public static final MCValueType ITEM_NAME         = new MCValueType("ItemName");
-    public static final MCDataType UNTAGGED_SPAWNER   = new MCDataType("Spawner");
-    public static final MCDataType STRUCTURE_FEATURE  = new MCDataType("StructureFeature");
-    public static final MCDataType OBJECTIVE          = new MCDataType("Objective");
-    public static final MCDataType TEAM               = new MCDataType("Team");
-    public static final MCValueType RECIPE            = new MCValueType("RecipeName");
-    public static final MCValueType BIOME             = new MCValueType("Biome");
-    public static final MCDataType WORLD_GEN_SETTINGS = new MCDataType("WorldGenSettings");
-    public static final MCValueType GAME_EVENT_NAME   = new MCValueType("GameEventName");
+    public static final MCDataType LEVEL               = new MCDataType("Level");
+    public static final MCDataType LIGHTWEIGHT_LEVEL   = new MCDataType("LightweightLevel");
+    public static final MCDataType PLAYER              = new MCDataType("Player");
+    public static final MCDataType CHUNK               = new MCDataType("Chunk");
+    public static final MCDataType HOTBAR              = new MCDataType("CreativeHotbar");
+    public static final MCDataType OPTIONS             = new MCDataType("Options");
+    public static final MCDataType STRUCTURE           = new MCDataType("Structure");
+    public static final MCDataType STATS               = new MCDataType("Stats");
+    public static final MCDataType ADVANCEMENTS        = new MCDataType("Advancements");
+    public static final MCDataType POI_CHUNK           = new MCDataType("PoiChunk");
+    public static final MCDataType ENTITY_CHUNK        = new MCDataType("EntityChunk");
+    public static final IDDataType TILE_ENTITY         = new IDDataType("TileEntity");
+    public static final IDDataType ITEM_STACK          = new IDDataType("ItemStack");
+    public static final MCDataType BLOCK_STATE         = new MCDataType("BlockState");
+    public static final MCValueType FLAT_BLOCK_STATE   = new MCValueType("FlatBlockState");
+    public static final MCDataType DATA_COMPONENTS     = new MCDataType("DataComponents");
+    public static final MCDataType VILLAGER_TRADE      = new MCDataType("VillagerTrade");
+    public static final DynamicDataType PARTICLE       = new DynamicDataType("Particle");
+    public static final MCValueType ENTITY_NAME        = new MCValueType("EntityName");
+    public static final IDDataType ENTITY              = new IDDataType("Entity");
+    public static final MCValueType BLOCK_NAME         = new MCValueType("BlockName");
+    public static final MCValueType ITEM_NAME          = new MCValueType("ItemName");
+    public static final MCDataType UNTAGGED_SPAWNER    = new MCDataType("Spawner");
+    public static final MCDataType STRUCTURE_FEATURE   = new MCDataType("StructureFeature");
+    public static final MCDataType OBJECTIVE           = new MCDataType("Objective");
+    public static final MCDataType TEAM                = new MCDataType("Team");
+    public static final MCValueType RECIPE             = new MCValueType("RecipeName");
+    public static final MCValueType BIOME              = new MCValueType("Biome");
+    public static final MCDataType WORLD_GEN_SETTINGS  = new MCDataType("WorldGenSettings");
+    public static final MCValueType GAME_EVENT_NAME    = new MCValueType("GameEventName");
+    // NOTE: Prior to V165, TEXT_COMPONENT _also_ mark plain strings (not components!) to be converted to json format.
+    // So, great care should be taken to ensure that when dealing with versions up to and including V165 that BOTH formats
+    // of JSON and plain text are parsed properly.
+    // As a result, we differ from Vanilla's schemas to ensure that legacy data converts correctly.
+    public static final DynamicDataType TEXT_COMPONENT = new DynamicDataType("TextComponent");
+    public static final MCDataType ENTITY_EQUIPMENT    = new MCDataType("EntityEquipment");
 
     public static final MCValueType MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST = new MCValueType("MultiNoiseBiomeSourceParameterList");
 
@@ -252,19 +54,29 @@ public final class MCTypeRegistry {
     public static final MCDataType SAVED_DATA_MAP_DATA                  = new MCDataType("SavedData/MapData");
     public static final MCDataType SAVED_DATA_RAIDS                     = new MCDataType("SavedData/Raids");
     public static final MCDataType SAVED_DATA_COMMAND_STORAGE           = new MCDataType("SavedData/CommandStorage");
-    public static final MCDataType SAVED_DATA_FORCED_CHUNKS             = new MCDataType("SavedData/Chunks");
     public static final MCDataType SAVED_DATA_MAP_INDEX                 = new MCDataType("SavedData/IdCounts");
+    public static final MCDataType SAVED_DATA_TICKETS                   = new MCDataType("SavedData/Tickets");
 
-    public static final MCValueType DATACONVERTER_CUSTOM_TYPE_COMMAND = new MCValueType("DC_Custom/Command");
+    public static final DynamicDataType DATACONVERTER_CUSTOM_TYPE_COMMAND = new DynamicDataType("DC_Custom/Command");
 
     static {
+        LOGGER.info("Initialising converters for DataConverter...");
+
+        final long start = System.nanoTime();
         try {
             registerAll();
         } catch (final Throwable thr) {
             LOGGER.error(LogUtils.FATAL_MARKER, "Failed to register data converters", thr);
             throw new RuntimeException(thr);
         }
+        final long end = System.nanoTime();
+
+        final DecimalFormat oneDecimalFormat = new DecimalFormat("#,##0.0");
+
+        LOGGER.info("Finished initialising converters for DataConverter in " + oneDecimalFormat.format((double)(end - start) / 1.0E6) + "ms");
     }
+
+    public static void init() {}
 
     private static void registerAll() {
         // General notes:
@@ -393,6 +205,7 @@ public final class MCTypeRegistry {
         V2531.register();
         V2533.register();
         V2535.register();
+        V2537.register();
         V2538.register();
         V2550.register();
         V2551.register();
@@ -452,7 +265,7 @@ public final class MCTypeRegistry {
         V3097.register();
         V3108.register();
         V3201.register();
-        // V3202 registers a simple tile entity
+        V3202.register();
         V3203.register();
         V3204.register();
         V3209.register();
@@ -503,6 +316,54 @@ public final class MCTypeRegistry {
         V3939.register();
         V3943.register();
         V3945.register();
+        // V1.21.2
+        V4054.register();
+        V4055.register();
+        V4057.register();
+        V4059.register();
+        V4061.register();
+        V4064.register();
+        V4067.register();
+        V4068.register();
+        V4070.register();
+        V4071.register();
+        // V1.21.3
+        V4081.register();
+        // V1.21.4
+        V4173.register();
+        V4175.register();
+        V4176.register();
+        V4180.register();
+        V4181.register();
+        V4185.register();
+        V4187.register();
+        // V1.21.5
+        V4290.register();
+        V4291.register();
+        V4292.register();
+        V4293.register();
+        V4294.register();
+        V4295.register();
+        V4296.register();
+        V4297.register();
+        V4299.register();
+        V4300.register();
+        V4301.register();
+        V4302.register();
+        V4303.register();
+        V4305.register();
+        V4306.register();
+        V4307.register();
+        V4309.register();
+        V4311.register();
+        V4312.register();
+        V4314.register();
+        // V1.21.6
+        V4420.register();
+        V4421.register();
+        V4424.register();
+        // V1.21.8
+        V4439.register(); // Fix https://github.com/PaperMC/DataConverter/commit/b6675e47ca068f152c3b648b3869fe63ca12b720
     }
 
     private MCTypeRegistry() {}

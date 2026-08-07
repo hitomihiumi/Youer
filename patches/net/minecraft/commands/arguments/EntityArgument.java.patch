@@ -1,64 +1,11 @@
 --- a/net/minecraft/commands/arguments/EntityArgument.java
 +++ b/net/minecraft/commands/arguments/EntityArgument.java
-@@ -13,6 +_,7 @@
- import java.util.Collection;
- import java.util.List;
- import java.util.concurrent.CompletableFuture;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import net.minecraft.commands.CommandBuildContext;
- import net.minecraft.commands.CommandSourceStack;
- import net.minecraft.commands.SharedSuggestionProvider;
-@@ -102,9 +_,17 @@
-         return this.parse(p_353128_, EntitySelectorParser.allowSelectors(p_353120_));
-     }
- 
-+
-+    public AtomicBoolean parse$overridePermissions = new AtomicBoolean(false);
-+    public EntitySelector parse(StringReader stringreader, boolean flag, boolean overridePermissions) throws CommandSyntaxException {
-+        parse$overridePermissions.set(overridePermissions);
-+        return parse(stringreader, flag);
-+    }
-+
-     private EntitySelector parse(StringReader p_353134_, boolean p_353142_) throws CommandSyntaxException {
-         int i = 0;
-         EntitySelectorParser entityselectorparser = new EntitySelectorParser(p_353134_, p_353142_);
-+        entityselectorparser.parse$overridePermissions.set(parse$overridePermissions.getAndSet(false));
-         EntitySelector entityselector = entityselectorparser.parse();
-         if (entityselector.getMaxResults() > 1 && this.single) {
-             if (this.playersOnly) {
-@@ -127,8 +_,12 @@
+@@ -127,7 +_,7 @@
          if (p_91482_.getSource() instanceof SharedSuggestionProvider sharedsuggestionprovider) {
              StringReader stringreader = new StringReader(p_91483_.getInput());
              stringreader.setCursor(p_91483_.getStart());
 -            EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, EntitySelectorParser.allowSelectors(sharedsuggestionprovider));
--
-+            // Paper start - Fix EntityArgument permissions
-+            final boolean permission = p_91482_.getSource() instanceof CommandSourceStack stack
-+                    ? stack.bypassSelectorPermissions || stack.hasPermission(2, "minecraft.command.selector")
-+                    : sharedsuggestionprovider.hasPermission(2);
-+            EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, permission || net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(sharedsuggestionprovider), true); // Paper - tell clients to ask server for suggestions for EntityArguments
-+            // Paper end - Fix EntityArgument permissions
++            EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(sharedsuggestionprovider));
+ 
              try {
                  entityselectorparser.parse();
-             } catch (CommandSyntaxException commandsyntaxexception) {
-@@ -137,7 +_,19 @@
-             return entityselectorparser.fillSuggestions(
-                 p_91483_,
-                 p_91457_ -> {
--                    Collection<String> collection = sharedsuggestionprovider.getOnlinePlayerNames();
-+                    // Paper start - tell clients to ask server for suggestions for EntityArguments
-+                    final Collection<String> collection;
-+                    if (sharedsuggestionprovider instanceof CommandSourceStack commandSourceStack && commandSourceStack.getEntity() instanceof ServerPlayer sourcePlayer) {
-+                        collection = new java.util.ArrayList<>();
-+                        for (final ServerPlayer player : commandSourceStack.getServer().getPlayerList().getPlayers()) {
-+                            if (sourcePlayer.getBukkitEntity().canSee(player.getBukkitEntity())) {
-+                                collection.add(player.getGameProfile().getName());
-+                            }
-+                        }
-+                    } else {
-+                        collection = sharedsuggestionprovider.getOnlinePlayerNames();
-+                    }
-+                    // Paper end - tell clients to ask server for suggestions for EntityArguments
-                     Iterable<String> iterable = (Iterable<String>)(this.playersOnly
-                         ? collection
-                         : Iterables.concat(collection, sharedsuggestionprovider.getSelectedEntities()));

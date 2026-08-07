@@ -1,8 +1,8 @@
 package io.papermc.paper.plugin.storage;
 
 import io.papermc.paper.plugin.entrypoint.strategy.LegacyPluginLoadingStrategy;
-import io.papermc.paper.plugin.entrypoint.strategy.ProviderConfiguration;
 import io.papermc.paper.plugin.entrypoint.strategy.modern.ModernPluginLoadingStrategy;
+import io.papermc.paper.plugin.entrypoint.strategy.ProviderConfiguration;
 
 public abstract class ConfiguredProviderStorage<T> extends SimpleProviderStorage<T> {
 

@@ -1,8 +1,9 @@
 package io.papermc.paper.plugin.provider.configuration.serializer.constraints;
 
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Constraint;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import io.papermc.paper.plugin.util.NamespaceChecker;
+import org.spongepowered.configurate.objectmapping.meta.Constraint;
+import org.spongepowered.configurate.serialize.SerializationException;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -12,6 +13,7 @@ import java.lang.reflect.Type;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
+
 public final class PluginConfigConstraints {
 
     public static final Set<String> RESERVED_KEYS = Set.of("bukkit", "minecraft", "mojang", "spigot", "paper");

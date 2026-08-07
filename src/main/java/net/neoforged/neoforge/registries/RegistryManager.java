@@ -140,7 +140,7 @@ public class RegistryManager {
                 }
             }
 
-            MappedRegistry<?> registry = (MappedRegistry<?>) BuiltInRegistries.REGISTRY.get(registryName);
+            MappedRegistry<?> registry = (MappedRegistry<?>) BuiltInRegistries.REGISTRY.getValue(registryName);
             applySnapshot(registry, snapshot, missingEntries);
         });
 
@@ -169,21 +169,15 @@ public class RegistryManager {
         ResourceKey<? extends Registry<T>> registryKey = registry.key();
         Registry<T> backup = snapshot.getFullBackup();
 
-        forgeRegistry.unfreeze();
+        forgeRegistry.unfreeze(false);
 
         if (backup == null) {
             forgeRegistry.clear(false);
-            boolean foundMissing = false;
             for (var entry : snapshot.getIds().int2ObjectEntrySet()) {
                 ResourceKey<T> key = ResourceKey.create(registryKey, entry.getValue());
                 if (!registry.containsKey(key)) {
                     missing.add(key);
-                    foundMissing = true;
-                } else if (!foundMissing) {
-                    // ID mappings must only be added if this registry didn't encounter missing entries before, otherwise certain operations such
-                    // as iterating the registry will crash due to the ID->value list being filled up with nulls to add the next known entry.
-                    // Encountering entries unknown to the client in the snapshot sent by the server guarantees that the player will be disconnected
-                    // and the registry reverted to the frozen state, so the incomplete ID mapping registration cannot cause issues later.
+                } else {
                     forgeRegistry.registerIdMapping(key, entry.getIntKey());
                 }
             }

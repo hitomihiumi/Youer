@@ -1,66 +1,11 @@
 --- a/net/minecraft/world/entity/decoration/LeashFenceKnotEntity.java
 +++ b/net/minecraft/world/entity/decoration/LeashFenceKnotEntity.java
-@@ -24,6 +_,7 @@
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.phys.AABB;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class LeashFenceKnotEntity extends BlockAttachedEntity {
-     public static final double OFFSET_Y = 0.375;
-@@ -80,6 +_,15 @@
- 
-             for (Leashable leashable : list) {
-                 if (leashable.getLeashHolder() == p_31842_) {
-+                    // CraftBukkit start
-+                    if (leashable instanceof Entity leashed) {
-+                        if (CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, p_31842_, p_31843_).isCancelled()) {
-+                            ((net.minecraft.server.level.ServerPlayer) p_31842_).connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket(leashed, leashable.getLeashHolder()));
-+                            flag = true; // Also set true when the event is cancelled otherwise it tries to unleash the entities
-+                            continue;
-+                        }
-+                    }
-+                    // CraftBukkit end
-                     leashable.setLeashedTo(this, true);
-                     flag = true;
-                 }
-@@ -87,14 +_,36 @@
- 
-             boolean flag1 = false;
-             if (!flag) {
--                this.discard();
--                if (p_31842_.getAbilities().instabuild) {
-+                // CraftBukkit start - Move below
-+                // this.discard();
-+                boolean die = true;
-+                // CraftBukkit end
-+                if (true || p_31842_.getAbilities().instabuild) { // CraftBukkit - Process for non-creative as well
-                     for (Leashable leashable1 : list) {
-                         if (leashable1.isLeashed() && leashable1.getLeashHolder() == this) {
--                            leashable1.dropLeash(true, false);
-+                            // CraftBukkit start
-+                            boolean dropLeash = !p_31842_.hasInfiniteMaterials();
-+                            if (leashable1 instanceof Entity leashed) {
-+                                // Paper start - Expand EntityUnleashEvent
-+                                org.bukkit.event.player.PlayerUnleashEntityEvent event = CraftEventFactory.callPlayerUnleashEntityEvent(leashed, p_31842_, p_31843_, dropLeash);
-+                                dropLeash = event.isDropLeash();
-+                                if (event.isCancelled()) {
-+                                    // Paper end - Expand EntityUnleashEvent
-+                                    die = false;
-+                                    continue;
-+                                }
-+                            }
-+                            leashable1.dropLeash(true, dropLeash); // false -> survival mode boolean
-+                            // CraftBukkit end
-                             flag1 = true;
-                         }
-                     }
-+                    // CraftBukkit start
-+                    if (die) {
-+                        this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
-+                        this.discard();
-+                    }
-+                    // CraftBukkit end
-                 }
-             }
- 
+@@ -72,7 +_,7 @@
+         if (this.level().isClientSide) {
+             return InteractionResult.SUCCESS;
+         } else {
+-            if (p_31842_.getItemInHand(p_31843_).is(Items.SHEARS)) {
++            if (p_31842_.getItemInHand(p_31843_).canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHEARS_HARVEST)) {
+                 InteractionResult interactionresult = super.interact(p_31842_, p_31843_);
+                 if (interactionresult instanceof InteractionResult.Success interactionresult$success && interactionresult$success.wasItemInteraction()) {
+                     return interactionresult;

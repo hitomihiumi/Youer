@@ -2,6 +2,10 @@ package io.papermc.paper.threadedregions.scheduler;
 
 import ca.spottedleaf.concurrentutil.util.Validate;
 import com.mojang.logging.LogUtils;
+import org.bukkit.plugin.IllegalPluginAccessException;
+import org.bukkit.plugin.Plugin;
+import org.slf4j.Logger;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -15,13 +19,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-import org.bukkit.plugin.IllegalPluginAccessException;
-import org.bukkit.plugin.Plugin;
-import org.slf4j.Logger;
 
 public final class FoliaAsyncScheduler implements AsyncScheduler {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private final Executor executors = new ThreadPoolExecutor(Math.max(4, Runtime.getRuntime().availableProcessors() / 2), Integer.MAX_VALUE,
         30L, TimeUnit.SECONDS, new SynchronousQueue<>(),
@@ -180,7 +181,7 @@ public final class FoliaAsyncScheduler implements AsyncScheduler {
 
         private void setDelay(final ScheduledFuture<?> delay) {
             this.delay = delay;
-            this.state = STATE_SCHEDULED_EXECUTOR;
+            this.state = delay == null ? STATE_SCHEDULED_EXECUTOR : STATE_ON_TIMER;
         }
 
         @Override

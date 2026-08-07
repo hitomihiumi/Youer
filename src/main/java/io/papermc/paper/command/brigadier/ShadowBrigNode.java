@@ -2,6 +2,7 @@ package io.papermc.paper.command.brigadier;
 
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
+
 import java.util.Collection;
 
 public class ShadowBrigNode extends LiteralCommandNode<CommandSourceStack> {

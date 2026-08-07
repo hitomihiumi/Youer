@@ -6,10 +6,11 @@ import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlat
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
+
 import java.util.HashMap;
 import java.util.Map;
 
-public final class ConverterFlattenEntity extends DataConverter<MapType<String>, MapType<String>> {
+public final class ConverterFlattenEntity extends DataConverter<MapType, MapType> {
 
     private static final Map<String, Integer> BLOCK_NAME_TO_ID = new HashMap<>();
     static {
@@ -285,7 +286,7 @@ public final class ConverterFlattenEntity extends DataConverter<MapType<String>,
     public static void register() {
         MCTypeRegistry.ENTITY.addConverterForId("minecraft:falling_block", new DataConverter<>(VERSION, 3) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final int blockId;
                 if (data.hasKey("Block")) {
                     final Number id = data.getNumber("Block");
@@ -342,7 +343,7 @@ public final class ConverterFlattenEntity extends DataConverter<MapType<String>,
     }
 
     @Override
-    public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+    public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
         if (this.paths.length == 1) {
             data.remove(this.paths[0]);
             return null;

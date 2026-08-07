@@ -1,42 +1,6 @@
 --- a/net/minecraft/world/entity/monster/Husk.java
 +++ b/net/minecraft/world/entity/monster/Husk.java
-@@ -18,6 +_,7 @@
- public class Husk extends Zombie {
-     public Husk(EntityType<? extends Husk> p_32889_, Level p_32890_) {
-         super(p_32889_, p_32890_);
-+        this.setShouldBurnInDay(false); // Purpur - API for any mob to burn daylight
-     }
- 
-     public static boolean checkHuskSpawnRules(
-@@ -28,8 +_,8 @@
-     }
- 
-     @Override
--    protected boolean isSunSensitive() {
--        return false;
-+    public boolean isSunSensitive() {
-+        return this.shouldBurnInDay; // Purpur - moved to LivingEntity; keep methods for ABI compatibility - API for any mob to burn daylight
-     }
- 
-     @Override
-@@ -43,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.HUSK_DEATH;
-     }
- 
-@@ -57,6 +_,7 @@
-         boolean flag = super.doHurtTarget(p_32892_);
-         if (flag && this.getMainHandItem().isEmpty() && p_32892_ instanceof LivingEntity) {
-             float f = this.level().getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
-+            ((LivingEntity)p_32892_).addEffectCause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
-             ((LivingEntity)p_32892_).addEffect(new MobEffectInstance(MobEffects.HUNGER, 140 * (int)f), this);
-         }
- 
-@@ -70,6 +_,7 @@
+@@ -71,6 +_,7 @@
  
      @Override
      protected void doUnderWaterConversion() {

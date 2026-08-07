@@ -1,44 +1,11 @@
 --- a/net/minecraft/world/entity/monster/Evoker.java
 +++ b/net/minecraft/world/entity/monster/Evoker.java
-@@ -115,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.EVOKER_DEATH;
-     }
- 
-@@ -124,12 +_,12 @@
-         return SoundEvents.EVOKER_HURT;
-     }
- 
--    void setWololoTarget(@Nullable Sheep p_32635_) {
-+    public void setWololoTarget(@Nullable Sheep p_32635_) {
-         this.wololoTarget = p_32635_;
-     }
- 
-     @Nullable
--    Sheep getWololoTarget() {
-+    public Sheep getWololoTarget() {
-         return this.wololoTarget;
-     }
- 
-@@ -274,7 +_,7 @@
-                     if (playerteam != null) {
-                         serverlevel.getScoreboard().addPlayerToTeam(vex.getScoreboardName(), playerteam);
-                     }
--
-+                    vex.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPELL); // CraftBukkit - Add SpawnReason
-                     serverlevel.addFreshEntityWithPassengers(vex);
-                     serverlevel.gameEvent(GameEvent.ENTITY_PLACE, blockpos, GameEvent.Context.of(Evoker.this));
-                 }
-@@ -305,7 +_,7 @@
-                 return false;
-             } else if (Evoker.this.tickCount < this.nextAttackTickCount) {
-                 return false;
--            } else if (!Evoker.this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+            } else if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(Evoker.this.level(), Evoker.this)) {
+@@ -284,7 +_,7 @@
                  return false;
              } else {
-                 List<Sheep> list = Evoker.this.level()
+                 ServerLevel serverlevel = getServerLevel(Evoker.this.level());
+-                if (!serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
++                if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, Evoker.this)) {
+                     return false;
+                 } else {
+                     List<Sheep> list = serverlevel.getNearbyEntities(

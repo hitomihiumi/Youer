@@ -1,29 +1,5 @@
 --- a/net/minecraft/CrashReport.java
 +++ b/net/minecraft/CrashReport.java
-@@ -14,9 +_,8 @@
- import java.util.Locale;
- import java.util.concurrent.CompletionException;
- import javax.annotation.Nullable;
--import net.minecraft.util.MemoryReserve;
--import org.apache.commons.io.IOUtils;
- import org.apache.commons.lang3.ArrayUtils;
-+import org.bukkit.craftbukkit.CraftCrashReport;
- import org.slf4j.Logger;
- 
- public class CrashReport {
-@@ -30,10 +_,12 @@
-     private boolean trackingStackTrace = true;
-     private StackTraceElement[] uncategorizedStackTrace = new StackTraceElement[0];
-     private final SystemReport systemReport = new SystemReport();
-+    private List<String> extraInfo = List.of("", "DO NOT REPORT THIS TO PAPER! REPORT TO YOUER INSTEAD!", ""); // Purpur - Rebrand
- 
-     public CrashReport(String p_127509_, Throwable p_127510_) {
-         this.title = p_127509_;
-         this.exception = p_127510_;
-+        this.systemReport.setDetail("CraftBukkit Information", new CraftCrashReport()); // CraftBukkit
-     }
- 
-     public String getTitle() {
 @@ -58,14 +_,8 @@
          if (this.uncategorizedStackTrace != null && this.uncategorizedStackTrace.length > 0) {
              p_127520_.append("-- Head --\n");
@@ -69,38 +45,3 @@
      }
  
      public String getFriendlyReport(ReportType p_350860_, List<String> p_350563_) {
-@@ -128,7 +_,7 @@
-     }
- 
-     public String getFriendlyReport(ReportType p_351019_) {
--        return this.getFriendlyReport(p_351019_, List.of());
-+        return this.getFriendlyReport(p_351019_, extraInfo); // Purpur - Rebrand
-     }
- 
-     @Nullable
-@@ -159,7 +_,7 @@
-     }
- 
-     public boolean saveToFile(Path p_350691_, ReportType p_350920_) {
--        return this.saveToFile(p_350691_, p_350920_, List.of());
-+        return this.saveToFile(p_350691_, p_350920_, extraInfo); // Purpur - Rebrand
-     }
- 
-     public SystemReport getSystemReport() {
-@@ -203,6 +_,7 @@
-     }
- 
-     public static CrashReport forThrowable(Throwable p_127522_, String p_127523_) {
-+        if (p_127522_ instanceof ThreadDeath) com.destroystokyo.paper.util.SneakyThrow.sneaky(p_127522_); // Paper
-         while (p_127522_ instanceof CompletionException && p_127522_.getCause() != null) {
-             p_127522_ = p_127522_.getCause();
-         }
-@@ -218,7 +_,7 @@
-     }
- 
-     public static void preload() {
--        MemoryReserve.allocate();
-+        // MemoryReserve.allocate(); // Paper - Disable memory reserve allocating
-         new CrashReport("Don't panic!", new Throwable()).getFriendlyReport(ReportType.CRASH);
-     }
- }

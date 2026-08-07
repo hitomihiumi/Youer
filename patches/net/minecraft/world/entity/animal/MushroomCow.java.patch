@@ -1,89 +1,23 @@
 --- a/net/minecraft/world/entity/animal/MushroomCow.java
 +++ b/net/minecraft/world/entity/animal/MushroomCow.java
-@@ -8,7 +_,6 @@
- import net.minecraft.core.particles.ParticleTypes;
- import net.minecraft.nbt.CompoundTag;
- import net.minecraft.nbt.NbtOps;
--import net.minecraft.nbt.Tag;
- import net.minecraft.network.syncher.EntityDataAccessor;
- import net.minecraft.network.syncher.EntityDataSerializers;
- import net.minecraft.network.syncher.SynchedEntityData;
-@@ -41,6 +_,7 @@
- import net.minecraft.world.level.block.SuspiciousEffectHolder;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.gameevent.GameEvent;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class MushroomCow extends Cow implements Shearable, VariantHolder<MushroomCow.MushroomType> {
-     private static final EntityDataAccessor<String> DATA_TYPE = SynchedEntityData.defineId(MushroomCow.class, EntityDataSerializers.STRING);
-@@ -108,7 +_,7 @@
- 
-             this.playSound(soundevent, 1.0F, 1.0F);
-             return InteractionResult.sidedSuccess(this.level().isClientSide);
--        } else if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
-+        } else if (false && itemstack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
-             this.shear(SoundSource.PLAYERS);
-             this.gameEvent(GameEvent.SHEAR, p_28941_);
-             if (!this.level().isClientSide) {
-@@ -162,13 +_,30 @@
-     }
- 
+@@ -171,11 +_,19 @@
      @Override
-+    public java.util.List<ItemStack> generateDefaultDrops() {
-+        java.util.List<ItemStack> dropEntities = new java.util.ArrayList<>(5);
-+        for (int i = 0; i < 5; ++i) {
-+            dropEntities.add(new ItemStack(this.getVariant().getBlockState().getBlock()));
-+        }
-+        return dropEntities;
-+    }
-+
-+    @Override
-+    public void shearPaper(SoundSource p_28924_, java.util.List<net.minecraft.world.item.ItemStack> drops) {
-+        shear$drops = drops;
-+        this.shear(p_28924_);
-+    }
-+
-+    public java.util.List<net.minecraft.world.item.ItemStack> shear$drops = new java.util.ArrayList<>();
-+    @Override
-     public void shear(SoundSource p_28924_) {
-         this.level().playSound(null, this, SoundEvents.MOOSHROOM_SHEAR, p_28924_, 1.0F, 1.0F);
-         if (!this.level().isClientSide()) {
-+            if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.COW, (timer) -> {})) return;
-             Cow cow = EntityType.COW.create(this.level());
-             if (cow != null) {
-+                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, cow);
-                 ((ServerLevel)this.level()).sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(0.5), this.getZ(), 1, 0.0, 0.0, 0.0, 0.0);
--                this.discard();
-                 cow.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
-                 cow.setHealth(this.getHealth());
-                 cow.yBodyRot = this.yBodyRot;
-@@ -182,13 +_,23 @@
-                 }
- 
-                 cow.setInvulnerable(this.isInvulnerable());
-+                // CraftBukkit start
-+                if (CraftEventFactory.callEntityTransformEvent(this, cow, org.bukkit.event.entity.EntityTransformEvent.TransformReason.SHEARED).isCancelled()) {
-+                    return;
-+                }
-+                cow.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SHEARED);
-                 this.level().addFreshEntity(cow);
--
--                for (int i = 0; i < 5; i++) {
--                    this.level()
--                        .addFreshEntity(
--                            new ItemEntity(this.level(), this.getX(), this.getY(1.0), this.getZ(), new ItemStack(this.getVariant().blockState.getBlock()))
--                        );
-+                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
-+                this.discard();
-+                // CraftBukkit end
-+                for (final ItemStack drop : shear$drops.isEmpty() ? generateDefaultDrops() : shear$drops) {
+     public void shear(ServerLevel p_376375_, SoundSource p_28924_, ItemStack p_373092_) {
+         p_376375_.playSound(null, this, SoundEvents.MOOSHROOM_SHEAR, p_28924_, 1.0F, 1.0F);
++        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.COW, (timer) -> {})) return;
+         this.convertTo(EntityType.COW, ConversionParams.single(this, false, false), p_427076_ -> {
++            net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, p_427076_);
+             p_376375_.sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(0.5), this.getZ(), 1, 0.0, 0.0, 0.0, 0.0);
+             this.dropFromShearingLootTable(p_376375_, BuiltInLootTables.SHEAR_MOOSHROOM, p_373092_, (p_427077_, p_427078_) -> {
+                 for (int i = 0; i < p_427078_.getCount(); i++) {
+-                    p_427077_.addFreshEntity(new ItemEntity(this.level(), this.getX(), this.getY(1.0), this.getZ(), p_427078_.copyWithCount(1)));
 +                    // Neo: Change from addFreshEntity to spawnAtLocation to ensure captureDrops can capture this, we also need to unset the default pickup delay from the item
 +                    // Vanilla uses this.getY(1.0) for the y-level, which is this.getY() + this.getBbHeight() * 1.0, so we pass the BB height as the Y-offset.
-+                    ItemEntity item = spawnAtLocation(drop, this.getBbHeight());
++                    ItemEntity item = spawnAtLocation(p_376375_, p_427078_.copyWithCount(1), this.getBbHeight());
 +                    if (item != null) {
 +                        // addFreshEntity does not incur a pickup delay, while spawnAtLocation sets the default pickup delay.
 +                        item.setNoPickUpDelay();
 +                    }
                  }
-             }
-         }
+             });
+         });

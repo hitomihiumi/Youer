@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.scheduler;
 
 import java.util.function.Consumer;
+
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -23,8 +24,8 @@ public class CraftTask implements BukkitTask, Runnable { // Spigot
      */
     private volatile long period;
     private long nextRun;
-    private final Runnable rTask;
-    private final Consumer<BukkitTask> cTask;
+    public final Runnable rTask;
+    public final Consumer<BukkitTask> cTask;
     private final Plugin plugin;
     private final int id;
     private final long createdAt = System.nanoTime();
@@ -132,9 +133,4 @@ public class CraftTask implements BukkitTask, Runnable { // Spigot
         return true;
     }
 
-    // Spigot start
-    public String getTaskName() {
-        return (this.getTaskClass() == null) ? "Unknown" : this.getTaskClass().getName();
-    }
-    // Spigot end
 }

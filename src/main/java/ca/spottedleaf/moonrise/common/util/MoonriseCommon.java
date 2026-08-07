@@ -1,15 +1,16 @@
 package ca.spottedleaf.moonrise.common.util;
 
 import ca.spottedleaf.concurrentutil.executor.thread.PrioritisedThreadPool;
+import ca.spottedleaf.moonrise.common.PlatformHooks;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class MoonriseCommon {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MoonriseCommon.class);
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     public static final PrioritisedThreadPool WORKER_POOL = new PrioritisedThreadPool(
             new Consumer<>() {
@@ -18,7 +19,7 @@ public final class MoonriseCommon {
                 @Override
                 public void accept(Thread thread) {
                     thread.setDaemon(true);
-                    thread.setName("Moonrise Common Worker #" + this.idGenerator.getAndIncrement());
+                    thread.setName(PlatformHooks.get().getBrand() + " Common Worker #" + this.idGenerator.getAndIncrement());
                     thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                         @Override
                         public void uncaughtException(final Thread thread, final Throwable throwable) {
@@ -43,7 +44,7 @@ public final class MoonriseCommon {
         } else {
             defaultWorkerThreads = defaultWorkerThreads / 2;
         }
-        defaultWorkerThreads = Integer.getInteger("Moonrise.WorkerThreadCount", Integer.valueOf(defaultWorkerThreads));
+        defaultWorkerThreads = Integer.getInteger(PlatformHooks.get().getBrand() + ".WorkerThreadCount", Integer.valueOf(defaultWorkerThreads));
 
         int workerThreads = configWorkerThreads;
 
@@ -56,7 +57,7 @@ public final class MoonriseCommon {
         WORKER_POOL.adjustThreadCount(workerThreads);
         IO_POOL.adjustThreadCount(ioThreads);
 
-        LOGGER.info("Paper is using " + workerThreads + " worker threads, " + ioThreads + " I/O threads");
+        LOGGER.info(PlatformHooks.get().getBrand() + " is using " + workerThreads + " worker threads, " + ioThreads + " I/O threads");
     }
 
     public static final PrioritisedThreadPool IO_POOL = new PrioritisedThreadPool(
@@ -66,7 +67,7 @@ public final class MoonriseCommon {
                 @Override
                 public void accept(final Thread thread) {
                     thread.setDaemon(true);
-                    thread.setName("Paper I/O Worker #" + this.idGenerator.getAndIncrement());
+                    thread.setName(PlatformHooks.get().getBrand() + " I/O Worker #" + this.idGenerator.getAndIncrement());
                     thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                         @Override
                         public void uncaughtException(final Thread thread, final Throwable throwable) {

@@ -18,7 +18,6 @@ public interface ShulkerBullet extends Projectile {
      * @param target the entity to target
      */
     void setTarget(@Nullable Entity target);
-
     // Paper start
     /**
      * Gets the relative offset that this shulker bullet should move towards,

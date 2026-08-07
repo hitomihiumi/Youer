@@ -1,6 +1,5 @@
 package gg.pufferfish.pufferfish;
 
-import com.mohistmc.youer.util.I18n;
 import gg.pufferfish.pufferfish.simd.SIMDDetection;
 import java.io.File;
 import java.io.IOException;

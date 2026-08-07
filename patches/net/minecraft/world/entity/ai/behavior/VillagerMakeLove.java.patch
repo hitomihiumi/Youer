@@ -1,31 +1,9 @@
 --- a/net/minecraft/world/entity/ai/behavior/VillagerMakeLove.java
 +++ b/net/minecraft/world/entity/ai/behavior/VillagerMakeLove.java
-@@ -16,6 +_,7 @@
- import net.minecraft.world.entity.ai.village.poi.PoiTypes;
- import net.minecraft.world.entity.npc.Villager;
- import net.minecraft.world.level.pathfinder.Path;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class VillagerMakeLove extends Behavior<Villager> {
-     private long birthTimestamp;
-@@ -107,11 +_,20 @@
-         if (villager == null) {
-             return Optional.empty();
-         } else {
--            p_24657_.setAge(6000);
--            p_24658_.setAge(6000);
+@@ -112,6 +_,8 @@
              villager.setAge(-24000);
-             villager.moveTo(p_24657_.getX(), p_24657_.getY(), p_24657_.getZ(), 0.0F, 0.0F);
-+            // CraftBukkit start - call EntityBreedEvent
-+            if (CraftEventFactory.callEntityBreedEvent(villager, p_24657_, p_24658_, null, null, 0).isCancelled()) {
-+                return Optional.empty();
-+            }
-+            // Move age setting down
-+            p_24657_.setAge(6000);
-+            p_24658_.setAge(6000);
-+            villager.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);
+             villager.snapTo(p_24657_.getX(), p_24657_.getY(), p_24657_.getZ(), 0.0F, 0.0F);
              p_24656_.addFreshEntityWithPassengers(villager);
-+            // CraftBukkit end
 +            // Neo: If villager is blocked from spawning (e.g., FinalizeSpawnEvent), then breed should be unsuccessful
 +            if (!villager.isAddedToLevel()) return Optional.empty();
              p_24656_.broadcastEntityEvent(villager, (byte)12);

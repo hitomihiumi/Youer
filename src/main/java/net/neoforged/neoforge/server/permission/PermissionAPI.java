@@ -5,8 +5,6 @@
 
 package net.neoforged.neoforge.server.permission;
 
-import com.mohistmc.youer.YouerConfig;
-import com.mohistmc.youer.neoforge.BukkitPermissionsHandler;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -15,7 +13,7 @@ import net.minecraft.ResourceLocationException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.common.NeoForgeConfig;
+import net.neoforged.neoforge.common.config.NeoForgeServerConfig;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import net.neoforged.neoforge.server.permission.events.PermissionGatherEvent;
 import net.neoforged.neoforge.server.permission.exceptions.UnregisteredPermissionException;
@@ -37,10 +35,6 @@ public final class PermissionAPI {
     }
 
     private PermissionAPI() {}
-
-    public static IPermissionHandler getActiveHandler() {
-        return activeHandler;
-    }
 
     /**
      * @return the Identifier of the currently active permission handler
@@ -104,7 +98,7 @@ public final class PermissionAPI {
         Map<ResourceLocation, IPermissionHandlerFactory> availableHandlers = handlerEvent.getAvailablePermissionHandlerFactories();
 
         try {
-            ResourceLocation selectedPermissionHandler = ResourceLocation.parse(NeoForgeConfig.SERVER.permissionHandler.get());
+            ResourceLocation selectedPermissionHandler = ResourceLocation.parse(NeoForgeServerConfig.INSTANCE.permissionHandler.get());
             if (!availableHandlers.containsKey(selectedPermissionHandler)) {
                 LOGGER.error("Unable to find configured permission handler {}, will use {}", selectedPermissionHandler, DefaultPermissionHandler.IDENTIFIER);
                 selectedPermissionHandler = DefaultPermissionHandler.IDENTIFIER;
@@ -123,11 +117,6 @@ public final class PermissionAPI {
             LOGGER.info("Successfully initialized permission handler {}", PermissionAPI.activeHandler.getIdentifier());
         } catch (ResourceLocationException e) {
             LOGGER.error("Error parsing config value 'permissionHandler'", e);
-        }
-        if (YouerConfig.bukkitpermissionshandler) {
-            var handler = new BukkitPermissionsHandler(activeHandler);
-            LOGGER.info("Forwarding neoforge permission[{}] to bukkit[{}]", activeHandler.getIdentifier(), handler.getIdentifier());
-            activeHandler = handler;
         }
     }
 }

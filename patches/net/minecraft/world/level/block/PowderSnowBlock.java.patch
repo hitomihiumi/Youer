@@ -1,38 +1,6 @@
 --- a/net/minecraft/world/level/block/PowderSnowBlock.java
 +++ b/net/minecraft/world/level/block/PowderSnowBlock.java
-@@ -30,6 +_,7 @@
- import net.minecraft.world.phys.shapes.EntityCollisionContext;
- import net.minecraft.world.phys.shapes.Shapes;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class PowderSnowBlock extends Block implements BucketPickup {
-     public static final MapCodec<PowderSnowBlock> CODEC = simpleCodec(PowderSnowBlock::new);
-@@ -62,6 +_,7 @@
- 
-     @Override
-     protected void entityInside(BlockState p_154263_, Level p_154264_, BlockPos p_154265_, Entity p_154266_) {
-+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_154266_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_154264_, p_154265_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
-         if (!(p_154266_ instanceof LivingEntity) || p_154266_.getInBlockState().is(this)) {
-             p_154266_.makeStuckInBlock(p_154263_, new Vec3(0.9F, 1.5, 0.9F));
-             if (p_154264_.isClientSide) {
-@@ -83,9 +_,12 @@
- 
-         p_154266_.setIsInPowderSnow(true);
-         if (!p_154264_.isClientSide) {
--            if (p_154266_.isOnFire()
--                && (p_154264_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) || p_154266_ instanceof Player)
--                && p_154266_.mayInteract(p_154264_, p_154265_)) {
-+            // CraftBukkit start
-+            if (p_154266_.isOnFire() && p_154266_.mayInteract(p_154264_, p_154265_)) {
-+                if (!CraftEventFactory.callEntityChangeBlockEvent(p_154266_, p_154265_, Blocks.AIR.defaultBlockState(), !(p_154264_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) || p_154266_ instanceof Player))) {
-+                    return;
-+                }
-+                // CraftBukkit end
-                 p_154264_.destroyBlock(p_154265_, false);
-             }
- 
-@@ -130,7 +_,7 @@
+@@ -138,7 +_,7 @@
          if (p_154256_.getType().is(EntityTypeTags.POWDER_SNOW_WALKABLE_MOBS)) {
              return true;
          } else {

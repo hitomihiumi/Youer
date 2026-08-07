@@ -1,8 +1,6 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.youer.neoforge.compat.SableCompat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -262,19 +260,6 @@ public class CraftInventory implements Inventory {
         return this.inventory.isEmpty();
     }
 
-    public int firstPartial(Material material) {
-        Preconditions.checkArgument(material != null, "Material cannot be null");
-        material = CraftLegacy.fromLegacy(material);
-        ItemStack[] inventory = this.getStorageContents();
-        for (int i = 0; i < inventory.length; i++) {
-            ItemStack item = inventory[i];
-            if (item != null && item.getType() == material && item.getAmount() < item.getMaxStackSize()) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     private int firstPartial(ItemStack item) {
         ItemStack[] inventory = this.getStorageContents();
         ItemStack filteredItem = CraftItemStack.asCraftCopy(item);
@@ -283,7 +268,7 @@ public class CraftInventory implements Inventory {
         }
         for (int i = 0; i < inventory.length; i++) {
             ItemStack cItem = inventory[i];
-            if (cItem != null && cItem.getAmount() < cItem.getMaxStackSize() && cItem.isSimilar(filteredItem)) {
+            if (cItem != null && cItem.getAmount() < this.getMaxItemStack(cItem) && cItem.isSimilar(filteredItem)) {
                 return i;
             }
         }
@@ -319,11 +304,12 @@ public class CraftInventory implements Inventory {
                         break;
                     } else {
                         // More than a single stack!
-                        if (item.getAmount() > this.getMaxItemStack()) {
+                        int maxAmount = this.getMaxItemStack(item);
+                        if (item.getAmount() > maxAmount) {
                             CraftItemStack stack = CraftItemStack.asCraftCopy(item);
-                            stack.setAmount(this.getMaxItemStack());
+                            stack.setAmount(maxAmount);
                             this.setItem(firstFree, stack);
-                            item.setAmount(item.getAmount() - this.getMaxItemStack());
+                            item.setAmount(item.getAmount() - maxAmount);
                         } else {
                             // Just store it
                             this.setItem(firstFree, item);
@@ -336,7 +322,7 @@ public class CraftInventory implements Inventory {
 
                     int amount = item.getAmount();
                     int partialAmount = partialItem.getAmount();
-                    int maxAmount = partialItem.getMaxStackSize();
+                    int maxAmount = this.getMaxItemStack(partialItem);
 
                     // Check if it fully fits
                     if (amount + partialAmount <= maxAmount) {
@@ -416,8 +402,8 @@ public class CraftInventory implements Inventory {
         return leftover;
     }
 
-    private int getMaxItemStack() {
-        return this.getInventory().getMaxStackSize();
+    private int getMaxItemStack(ItemStack itemstack) {
+        return Math.min(itemstack.getMaxStackSize(), this.getInventory().getMaxStackSize());
     }
 
     @Override
@@ -453,7 +439,6 @@ public class CraftInventory implements Inventory {
             this.clear(i);
         }
     }
-
     // Paper start
     @Override
     public int close() {
@@ -511,7 +496,7 @@ public class CraftInventory implements Inventory {
             // Paper start
         } else if (this.inventory instanceof io.papermc.paper.inventory.PaperInventoryCustomHolderContainer holderContainer) {
             return holderContainer.getType();
-            // Paper end
+        // Paper end
         } else if (this.inventory instanceof PlayerEnderChestContainer) {
             return InventoryType.ENDER_CHEST;
         } else if (this.inventory instanceof MerchantContainer) {
@@ -561,7 +546,7 @@ public class CraftInventory implements Inventory {
     // Paper start - getHolder without snapshot
     @Override
     public InventoryHolder getHolder(boolean useSnapshot) {
-        return inventory instanceof net.minecraft.world.level.block.entity.BlockEntity ? ((net.minecraft.world.level.block.entity.BlockEntity) inventory).getOwner(useSnapshot) : getHolder();
+        return this.inventory instanceof net.minecraft.world.level.block.entity.BlockEntity blockEntity ? blockEntity.getOwner(useSnapshot) : getHolder();
     }
     // Paper end
 
@@ -587,10 +572,6 @@ public class CraftInventory implements Inventory {
 
     @Override
     public Location getLocation() {
-        var loc = this.inventory.getLocation();
-        if (ServerAPI.hasSable()) {
-            loc = SableCompat.at(loc);
-        }
-        return loc;
+        return this.inventory.getLocation();
     }
 }

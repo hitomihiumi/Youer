@@ -1,57 +1,30 @@
 --- a/net/minecraft/world/level/levelgen/PhantomSpawner.java
 +++ b/net/minecraft/world/level/levelgen/PhantomSpawner.java
-@@ -1,5 +_,6 @@
- package net.minecraft.world.level.levelgen;
+@@ -33,13 +_,15 @@
+                         for (ServerPlayer serverplayer : p_64576_.players()) {
+                             if (!serverplayer.isSpectator()) {
+                                 BlockPos blockpos = serverplayer.blockPosition();
+-                                if (!p_64576_.dimensionType().hasSkyLight() || blockpos.getY() >= p_64576_.getSeaLevel() && p_64576_.canSeeSky(blockpos)) {
++                                var event = net.neoforged.neoforge.event.EventHooks.firePlayerSpawnPhantoms(serverplayer, p_64576_, blockpos);
++                                boolean isAllow = event.getResult() == net.neoforged.neoforge.event.entity.player.PlayerSpawnPhantomsEvent.Result.ALLOW;
++                                if (event.shouldSpawnPhantoms(p_64576_, blockpos)) {
+                                     DifficultyInstance difficultyinstance = p_64576_.getCurrentDifficultyAt(blockpos);
+-                                    if (difficultyinstance.isHarderThan(randomsource.nextFloat() * 3.0F)) {
++                                    if (isAllow || difficultyinstance.isHarderThan(randomsource.nextFloat() * 3.0F)) {
+                                         ServerStatsCounter serverstatscounter = serverplayer.getStats();
+                                         int i = Mth.clamp(serverstatscounter.getValue(Stats.CUSTOM.get(Stats.TIME_SINCE_REST)), 1, Integer.MAX_VALUE);
+                                         int j = 24000;
+-                                        if (randomsource.nextInt(i) >= 72000) {
++                                        if (isAllow || randomsource.nextInt(i) >= 72000) {
+                                             BlockPos blockpos1 = blockpos.above(20 + randomsource.nextInt(15))
+                                                 .east(-10 + randomsource.nextInt(21))
+                                                 .south(-10 + randomsource.nextInt(21));
+@@ -47,7 +_,7 @@
+                                             FluidState fluidstate = p_64576_.getFluidState(blockpos1);
+                                             if (NaturalSpawner.isValidEmptySpawnBlock(p_64576_, blockpos1, blockstate, fluidstate, EntityType.PHANTOM)) {
+                                                 SpawnGroupData spawngroupdata = null;
+-                                                int k = 1 + randomsource.nextInt(difficultyinstance.getDifficulty().getId() + 1);
++                                                int k = event.getPhantomsToSpawn();
  
-+import com.destroystokyo.paper.event.entity.PhantomPreSpawnEvent;
- import net.minecraft.core.BlockPos;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.server.level.ServerPlayer;
-@@ -40,15 +_,17 @@
-                     int i = 0;
- 
-                     for (ServerPlayer serverplayer : p_64576_.players()) {
--                        if (!serverplayer.isSpectator()) {
-+                        if (!serverplayer.isSpectator() && (!p_64576_.paperConfig().entities.behavior.phantomsDoNotSpawnOnCreativePlayers || !serverplayer.isCreative())) { // Paper - Add phantom creative and insomniac controls
-                             BlockPos blockpos = serverplayer.blockPosition();
--                            if (!p_64576_.dimensionType().hasSkyLight() || blockpos.getY() >= p_64576_.getSeaLevel() && p_64576_.canSeeSky(blockpos)) {
-+                            var event = net.neoforged.neoforge.event.EventHooks.firePlayerSpawnPhantoms(serverplayer, p_64576_, blockpos);
-+                            boolean isAllow = event.getResult() == net.neoforged.neoforge.event.entity.player.PlayerSpawnPhantomsEvent.Result.ALLOW;
-+                            if (event.shouldSpawnPhantoms(p_64576_, blockpos)) {
-                                 DifficultyInstance difficultyinstance = p_64576_.getCurrentDifficultyAt(blockpos);
--                                if (difficultyinstance.isHarderThan(randomsource.nextFloat() * 3.0F)) {
-+                                if (isAllow || difficultyinstance.isHarderThan(randomsource.nextFloat() * 3.0F)) {
-                                     ServerStatsCounter serverstatscounter = serverplayer.getStats();
-                                     int j = Mth.clamp(serverstatscounter.getValue(Stats.CUSTOM.get(Stats.TIME_SINCE_REST)), 1, Integer.MAX_VALUE);
-                                     int k = 24000;
--                                    if (randomsource.nextInt(j) >= 72000) {
-+                                    if (isAllow || randomsource.nextInt(j) >= 72000) {
-                                         BlockPos blockpos1 = blockpos.above(20 + randomsource.nextInt(15))
-                                             .east(-10 + randomsource.nextInt(21))
-                                             .south(-10 + randomsource.nextInt(21));
-@@ -56,13 +_,24 @@
-                                         FluidState fluidstate = p_64576_.getFluidState(blockpos1);
-                                         if (NaturalSpawner.isValidEmptySpawnBlock(p_64576_, blockpos1, blockstate, fluidstate, EntityType.PHANTOM)) {
-                                             SpawnGroupData spawngroupdata = null;
--                                            int l = 1 + randomsource.nextInt(difficultyinstance.getDifficulty().getId() + 1);
-+                                            int l = event.getPhantomsToSpawn();
- 
-                                             for (int i1 = 0; i1 < l; i1++) {
-+                                                // Paper start - PhantomPreSpawnEvent
-+                                                PhantomPreSpawnEvent eventPaper = new PhantomPreSpawnEvent(io.papermc.paper.util.MCUtil.toLocation(p_64576_, blockpos1), serverplayer.getBukkitEntity(), org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL);
-+                                                if (!eventPaper.callEvent()) {
-+                                                    if (eventPaper.shouldAbortSpawn()) {
-+                                                        break;
-+                                                    }
-+                                                    continue;
-+                                                }
-+                                                // Paper end - PhantomPreSpawnEvent
-                                                 Phantom phantom = EntityType.PHANTOM.create(p_64576_);
-                                                 if (phantom != null) {
-+                                                    phantom.setSpawningEntity(serverplayer.getUUID()); // Paper - PhantomPreSpawnEvent
-                                                     phantom.moveTo(blockpos1, 0.0F, 0.0F);
-                                                     spawngroupdata = phantom.finalizeSpawn(p_64576_, difficultyinstance, MobSpawnType.NATURAL, spawngroupdata);
-+                                                    phantom.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL);  // CraftBukkit
-                                                     p_64576_.addFreshEntityWithPassengers(phantom);
-                                                     i++;
-                                                 }
+                                                 for (int l = 0; l < k; l++) {
+                                                     Phantom phantom = EntityType.PHANTOM.create(p_64576_, EntitySpawnReason.NATURAL);

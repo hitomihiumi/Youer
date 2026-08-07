@@ -1,21 +1,21 @@
 package org.bukkit.configuration.file;
 
-import com.mohistmc.org.yaml.snakeyaml.DumperOptions;
-import com.mohistmc.org.yaml.snakeyaml.nodes.Node;
-import com.mohistmc.org.yaml.snakeyaml.representer.Representer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.jetbrains.annotations.NotNull;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.representer.Representer;
 
 public class YamlRepresenter extends Representer {
 
     /**
      * @deprecated options required
      */
-    @Deprecated
+    @Deprecated(since = "1.19.4")
     public YamlRepresenter() {
         this(new DumperOptions());
     }

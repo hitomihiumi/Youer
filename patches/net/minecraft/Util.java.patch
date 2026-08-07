@@ -1,114 +1,7 @@
 --- a/net/minecraft/Util.java
 +++ b/net/minecraft/Util.java
-@@ -82,6 +_,7 @@
- import net.minecraft.util.TimeSource;
- import net.minecraft.util.datafix.DataFixers;
- import net.minecraft.world.level.block.state.properties.Property;
-+import org.bukkit.NamespacedKey;
- import org.slf4j.Logger;
- 
- public class Util {
-@@ -92,6 +_,22 @@
-     private static final ExecutorService BACKGROUND_EXECUTOR = makeExecutor("Main");
-     private static final ExecutorService IO_POOL = makeIoExecutor("IO-Worker-", false);
-     private static final ExecutorService DOWNLOAD_POOL = makeIoExecutor("Download-", true);
-+    // Paper start - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
-+    public static final ExecutorService PROFILE_EXECUTOR = Executors.newFixedThreadPool(2, new java.util.concurrent.ThreadFactory() {
-+
-+        private final AtomicInteger count = new AtomicInteger();
-+
-+        @Override
-+        public Thread newThread(Runnable run) {
-+            Thread ret = new Thread(run);
-+            ret.setName("Profile Lookup Executor #" + this.count.getAndIncrement());
-+            ret.setUncaughtExceptionHandler((Thread thread, Throwable throwable) -> {
-+                LOGGER.error("Uncaught exception in thread " + thread.getName(), throwable);
-+            });
-+            return ret;
-+        }
-+    });
-+    // Paper end - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
-     private static final DateTimeFormatter FILENAME_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss", Locale.ROOT);
-     public static final int LINEAR_LOOKUP_THRESHOLD = 8;
-     private static final Set<String> ALLOWED_UNTRUSTED_LINK_PROTOCOLS = Set.of("http", "https");
-@@ -130,12 +_,18 @@
-             : p_137493_ + "." + p_137494_.getNamespace() + "." + p_137494_.getPath().replace('/', '.');
-     }
- 
-+    public static String makeDescriptionId(String p_137493_, @Nullable NamespacedKey p_137494_) {
-+        return p_137494_ == null
-+                ? p_137493_ + ".unregistered_sadface"
-+                : p_137493_ + "." + p_137494_.getNamespace() + "." + p_137494_.getKey().replace('/', '.');
-+    }
-+
-     public static long getMillis() {
-         return getNanos() / 1000000L;
-     }
- 
-     public static long getNanos() {
--        return timeSource.getAsLong();
-+        return System.nanoTime(); // Paper
-     }
- 
-     public static long getEpochMillis() {
-@@ -167,6 +_,7 @@
-                     }
-                 };
-                 forkjoinworkerthread.setName("Worker-" + p_137478_ + "-" + atomicinteger.getAndIncrement());
-+                forkjoinworkerthread.setPriority(1);
-                 return forkjoinworkerthread;
-             }, Util::onThreadException, true);
-         }
-@@ -174,6 +_,30 @@
-         return executorservice;
-     }
- 
-+    private static ExecutorService makeExecutorPaper(String p_137478_, int priorityModifier) {
-+        // Paper start - Perf: use simpler thread pool that allows 1 thread and reduce worldgen thread worker count for low core count CPUs
-+        int cpus = Runtime.getRuntime().availableProcessors() / 2;
-+        int i;
-+        if (cpus <= 4) {
-+            i = cpus <= 2 ? 1 : 2;
-+        } else if (cpus <= 8) {
-+            // [5, 8]
-+            i = Math.max(3, cpus - 2);
-+        } else {
-+            i = cpus * 2 / 3;
-+        }
-+        i = Math.min(8, i);
-+        i = Integer.getInteger("Paper.WorkerThreadCount", i);
-+        ExecutorService executorService;
-+        if (i <= 0) {
-+            executorService = MoreExecutors.newDirectExecutorService();
-+        } else {
-+            executorService = new java.util.concurrent.ThreadPoolExecutor(i, i,0L, TimeUnit.MILLISECONDS, new java.util.concurrent.LinkedBlockingQueue<>(), target -> new io.papermc.paper.util.ServerWorkerThread(target, p_137478_, priorityModifier));
-+        }
-+
-+        return executorService;
-+    }
-+
-     private static int getMaxThreads() {
-         String s = System.getProperty("max.bg.threads");
-         if (s != null) {
-@@ -229,6 +_,7 @@
-         return Executors.newCachedThreadPool(p_314387_ -> {
-             Thread thread = new Thread(p_314387_);
-             thread.setName(p_314465_ + atomicinteger.getAndIncrement());
-+            thread.setPriority(1);
-             thread.setDaemon(p_314461_);
-             thread.setUncaughtExceptionHandler(Util::onThreadException);
-             return thread;
-@@ -239,7 +_,7 @@
-         throw p_137560_ instanceof RuntimeException ? (RuntimeException)p_137560_ : new RuntimeException(p_137560_);
-     }
- 
--    private static void onThreadException(Thread p_137496_, Throwable p_137497_) {
-+    public static void onThreadException(Thread p_137496_, Throwable p_137497_) {
-         pauseInIde(p_137497_);
-         if (p_137497_ instanceof CompletionException) {
-             p_137497_ = p_137497_.getCause();
-@@ -267,8 +_,8 @@
-                 .getSchema(DataFixUtils.makeKey(SharedConstants.getCurrentVersion().getDataVersion().getVersion()))
+@@ -268,8 +_,8 @@
+                 .getSchema(DataFixUtils.makeKey(SharedConstants.getCurrentVersion().dataVersion().version()))
                  .getChoiceType(p_137552_, p_137553_);
          } catch (IllegalArgumentException illegalargumentexception) {
 -            LOGGER.error("No data fixer registered for {}", p_137553_);
@@ -118,7 +11,7 @@
                  throw illegalargumentexception;
              }
          }
-@@ -526,20 +_,20 @@
+@@ -651,20 +_,20 @@
  
      public static void logAndPauseIfInIde(String p_143786_) {
          LOGGER.error(p_143786_);
@@ -142,21 +35,3 @@
              LOGGER.error("Trying to throw a fatal exception, pausing in IDE", p_137571_);
              doPause(p_137571_.getMessage());
          }
-@@ -977,16 +_,7 @@
-         }
- 
-         public void openUri(URI p_137649_) {
--            try {
--                Process process = AccessController.doPrivileged(
--                    (PrivilegedExceptionAction<Process>)(() -> Runtime.getRuntime().exec(this.getOpenUriArguments(p_137649_)))
--                );
--                process.getInputStream().close();
--                process.getErrorStream().close();
--                process.getOutputStream().close();
--            } catch (IOException | PrivilegedActionException privilegedactionexception) {
--                Util.LOGGER.error("Couldn't open location '{}'", p_137649_, privilegedactionexception);
--            }
-+            throw new IllegalStateException("This method is not useful on dedicated servers."); // Paper - Fix warnings on build by removing client-only code
-         }
- 
-         public void openFile(File p_137645_) {

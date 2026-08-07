@@ -1,12 +1,13 @@
 package io.papermc.paper.configuration.transformation;
 
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.NodePath;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
 import io.papermc.paper.configuration.Configuration;
 import io.papermc.paper.configuration.Configurations;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.NodePath;
+import org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import org.spongepowered.configurate.transformation.TransformAction;
 
-import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
+import static org.spongepowered.configurate.NodePath.path;
 
 public final class Transformations {
     private Transformations() {

@@ -1,6 +1,7 @@
 package ca.spottedleaf.dataconverter.util;
 
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
+
 import java.util.Arrays;
 
 public class Int2IntArraySortedMap {

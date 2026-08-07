@@ -42,7 +42,7 @@ public class PlayerInsertLecternBookEvent extends PlayerEvent implements Cancell
 
     /**
      * Fetches the lectern block state that was part of this event.
-     * This method constructs a new snapshot {@link BlockState}.
+     * This method constructs a new snapshot {@link org.bukkit.block.BlockState}.
      *
      * @return a new lectern state snapshot of the involved lectern
      * @throws IllegalStateException if the block at {@link #getBlock()} is no longer a lectern

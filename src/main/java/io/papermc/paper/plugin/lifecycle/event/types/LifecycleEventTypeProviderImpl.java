@@ -2,15 +2,12 @@ package io.papermc.paper.plugin.lifecycle.event.types;
 
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEvent;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventOwner;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.framework.qual.DefaultQualifier;
 
 @DefaultQualifier(NonNull.class)
 public final class LifecycleEventTypeProviderImpl implements LifecycleEventTypeProvider {
-
-    public static boolean canPrioritized() {
-        return LifecycleEventTypeProvider.isPresent();
-    }
 
     public static LifecycleEventTypeProviderImpl instance() {
         return (LifecycleEventTypeProviderImpl) LifecycleEventTypeProvider.provider();

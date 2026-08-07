@@ -1,13 +1,15 @@
 package org.bukkit.block;
 
-import com.destroystokyo.paper.loottable.LootableBlockInventory;
+import com.destroystokyo.paper.loottable.LootableBlockInventory; // Paper
+import org.bukkit.Nameable; // Paper
 import org.bukkit.inventory.Inventory;
+import org.bukkit.loot.Lootable;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a captured state of a chest.
  */
-public interface Chest extends Container, LootableBlockInventory, Lidded {
+public interface Chest extends Container, LootableBlockInventory, Lidded { // Paper
 
     /**
      * Gets the inventory of the chest block represented by this block state.

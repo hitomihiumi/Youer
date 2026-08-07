@@ -1,17 +1,14 @@
 package com.destroystokyo.paper.event.brigadier;
 
-import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.destroystokyo.paper.brigadier.BukkitBrigadierCommand;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
-import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
-import com.destroystokyo.paper.brigadier.BukkitBrigadierCommand;
 import org.bukkit.Warning;
 import org.bukkit.command.Command;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.server.ServerEvent;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -21,10 +18,8 @@ import org.jetbrains.annotations.NotNull;
  * This is done at Plugin Enable time after commands have been registered, but may also
  * run at a later point in the server lifetime due to plugins, a server reload, etc.</p>
  *
- * <p>This is a draft/experimental API and is subject to change.</p>
  * @deprecated For removal, use the new brigadier api.
  */
-@ApiStatus.Experimental
 @Deprecated(since = "1.20.6")
 @Warning(reason = "This event has been superseded by the Commands API and will be removed in a future release. Listen to LifecycleEvents.COMMANDS instead.", value = true)
 public class CommandRegisteredEvent<S extends com.destroystokyo.paper.brigadier.BukkitBrigadierCommandSource> extends ServerEvent implements Cancellable {
@@ -60,7 +55,7 @@ public class CommandRegisteredEvent<S extends com.destroystokyo.paper.brigadier.
     /**
      * Gets the {@link BukkitBrigadierCommand} for the {@link Command} being registered. This can be used
      * as the {@link com.mojang.brigadier.Command command executor} or
-     * {@link SuggestionProvider} of a {@link CommandNode}
+     * {@link com.mojang.brigadier.suggestion.SuggestionProvider} of a {@link com.mojang.brigadier.tree.CommandNode}
      * to delegate to the {@link Command} being registered.
      *
      * @return the {@link BukkitBrigadierCommand}

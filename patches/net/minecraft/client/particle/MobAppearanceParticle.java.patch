@@ -1,7 +1,7 @@
 --- a/net/minecraft/client/particle/MobAppearanceParticle.java
 +++ b/net/minecraft/client/particle/MobAppearanceParticle.java
-@@ -52,6 +_,13 @@
-         multibuffersource$buffersource.endBatch();
+@@ -56,6 +_,13 @@
+     public void render(VertexConsumer p_107125_, Camera p_107126_, float p_107127_) {
      }
  
 +    // Neo: this "particle" is locked to the player's camera, a render BB at the particle's in-world position

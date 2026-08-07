@@ -2,6 +2,8 @@ package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
 import com.mojang.authlib.GameProfile;
+import io.papermc.paper.adventure.PaperAdventure;
+import net.kyori.adventure.text.Component;
 import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -29,8 +31,8 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     private static final int MAX_OWNER_LENGTH = 16;
     private ResolvableProfile profile;
 
-    public CraftSkull(World world, SkullBlockEntity tileEntity) {
-        super(world, tileEntity);
+    public CraftSkull(World world, SkullBlockEntity blockEntity) {
+        super(world, blockEntity);
     }
 
     protected CraftSkull(CraftSkull state, Location location) {
@@ -38,10 +40,10 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     }
 
     @Override
-    public void load(SkullBlockEntity skull) {
-        super.load(skull);
+    public void load(SkullBlockEntity blockEntity) {
+        super.load(blockEntity);
 
-        ResolvableProfile owner = skull.getOwnerProfile();
+        ResolvableProfile owner = blockEntity.getOwnerProfile();
         if (owner != null) {
             this.profile = owner;
         }
@@ -74,13 +76,13 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
 
     @Override
     public OfflinePlayer getOwningPlayer() {
-        if (hasOwner()) {
-            if (profile.id().filter(u -> !u.equals(Util.NIL_UUID)).isPresent()) {
-                return Bukkit.getOfflinePlayer(profile.id().get());
+        if (this.hasOwner()) {
+            if (this.profile.id().filter(u -> !u.equals(Util.NIL_UUID)).isPresent()) {
+                return Bukkit.getOfflinePlayer(this.profile.id().get());
             }
 
-            if (profile.name().filter(s -> !s.isEmpty()).isPresent()) {
-                return Bukkit.getOfflinePlayer(profile.name().get());
+            if (this.profile.name().filter(s -> !s.isEmpty()).isPresent()) {
+                return Bukkit.getOfflinePlayer(this.profile.name().get());
             }
         }
 
@@ -113,6 +115,7 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     // Paper end
 
     @Override
+    @Deprecated // Paper
     public PlayerProfile getOwnerProfile() {
         if (!this.hasOwner()) {
             return null;
@@ -122,6 +125,7 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     }
 
     @Override
+    @Deprecated // Paper
     public void setOwnerProfile(PlayerProfile profile) {
         if (profile == null) {
             this.profile = null;
@@ -197,11 +201,11 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     }
 
     @Override
-    public void applyTo(SkullBlockEntity skull) {
-        super.applyTo(skull);
+    public void applyTo(SkullBlockEntity blockEntity) {
+        super.applyTo(blockEntity);
 
         if (this.getSkullType() == SkullType.PLAYER) {
-            skull.setOwner(hasOwner() ? profile : null);
+            blockEntity.setOwner(this.hasOwner() ? this.profile : null);
         }
     }
 
@@ -213,5 +217,17 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     @Override
     public CraftSkull copy(Location location) {
         return new CraftSkull(this, location);
+    }
+
+    @Override
+    public @Nullable Component customName() {
+        SkullBlockEntity snapshot = getSnapshot();
+        return snapshot.customName == null ? null : PaperAdventure.asAdventure(snapshot.customName);
+    }
+
+    @Override
+    public void customName(@Nullable Component customName) {
+        SkullBlockEntity snapshot = getSnapshot();
+        snapshot.customName = customName == null ? null : PaperAdventure.asVanilla(customName);
     }
 }

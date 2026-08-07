@@ -1,13 +1,11 @@
 package org.bukkit.entity;
 
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents an ominous item spawner.
  */
-@ApiStatus.Experimental
 public interface OminousItemSpawner extends Entity {
 
     /**
@@ -15,7 +13,7 @@ public interface OminousItemSpawner extends Entity {
      *
      * @return the item
      */
-    @Nullable
+    @org.jetbrains.annotations.NotNull // Paper
     ItemStack getItem();
 
     /**

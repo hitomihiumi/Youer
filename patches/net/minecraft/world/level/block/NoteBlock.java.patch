@@ -1,51 +1,17 @@
 --- a/net/minecraft/world/level/block/NoteBlock.java
 +++ b/net/minecraft/world/level/block/NoteBlock.java
-@@ -31,6 +_,7 @@
- import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.phys.BlockHitResult;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class NoteBlock extends Block {
-     public static final MapCodec<NoteBlock> CODEC = simpleCodec(NoteBlock::new);
-@@ -68,21 +_,25 @@
- 
+@@ -115,7 +_,9 @@
      @Override
-     public BlockState getStateForPlacement(BlockPlaceContext p_55018_) {
-+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return this.defaultBlockState(); // Paper - place without considering instrument
-         return this.setInstrument(p_55018_.getLevel(), p_55018_.getClickedPos(), this.defaultBlockState());
-     }
- 
-     @Override
-     protected BlockState updateShape(BlockState p_55048_, Direction p_55049_, BlockState p_55050_, LevelAccessor p_55051_, BlockPos p_55052_, BlockPos p_55053_) {
-+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return p_55048_; // Paper - prevent noteblock instrument from updating
-         boolean flag = p_55049_.getAxis() == Direction.Axis.Y;
-         return flag ? this.setInstrument(p_55051_, p_55052_, p_55048_) : super.updateShape(p_55048_, p_55049_, p_55050_, p_55051_, p_55052_, p_55053_);
-     }
- 
-     @Override
-     protected void neighborChanged(BlockState p_55041_, Level p_55042_, BlockPos p_55043_, Block p_55044_, BlockPos p_55045_, boolean p_55046_) {
-+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return; // Paper - prevent noteblock powered-state from updating
-         boolean flag = p_55042_.hasNeighborSignal(p_55043_);
-         if (flag != p_55041_.getValue(POWERED)) {
-             if (flag) {
-                 this.playNote(null, p_55041_, p_55042_, p_55043_);
-+                p_55041_ = p_55042_.getBlockState(p_55043_); // CraftBukkit - SPIGOT-5617: update in case changed in event
-             }
- 
-             p_55042_.setBlock(p_55043_, p_55041_.setValue(POWERED, Boolean.valueOf(flag)), 3);
-@@ -110,7 +_,9 @@
-         if (p_316774_.isClientSide) {
-             return InteractionResult.SUCCESS;
-         } else {
+     protected InteractionResult useWithoutItem(BlockState p_316441_, Level p_316774_, BlockPos p_316344_, Player p_316884_, BlockHitResult p_316631_) {
+         if (!p_316774_.isClientSide) {
 -            p_316441_ = p_316441_.cycle(NOTE);
 +            int _new = net.neoforged.neoforge.common.CommonHooks.onNoteChange(p_316774_, p_316344_, p_316441_, p_316441_.getValue(NOTE), p_316441_.cycle(NOTE).getValue(NOTE));
 +            if (_new == -1) return InteractionResult.FAIL;
-+            if (!io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) p_316441_ = p_316441_.setValue(NOTE, _new);
++            p_316441_ = p_316441_.setValue(NOTE, _new);
              p_316774_.setBlock(p_316344_, p_316441_, 3);
              this.playNote(p_316884_, p_316441_, p_316774_, p_316344_);
              p_316884_.awardStat(Stats.TUNE_NOTEBLOCK);
-@@ -132,10 +_,17 @@
+@@ -138,6 +_,9 @@
  
      @Override
      protected boolean triggerEvent(BlockState p_55023_, Level p_55024_, BlockPos p_55025_, int p_55026_, int p_55027_) {
@@ -53,23 +19,5 @@
 +        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(e).isCanceled()) return false;
 +        p_55023_ = p_55023_.setValue(NOTE, e.getVanillaNoteId()).setValue(INSTRUMENT, e.getInstrument());
          NoteBlockInstrument noteblockinstrument = p_55023_.getValue(INSTRUMENT);
-+        // Paper start - move NotePlayEvent call to fix instrument/note changes
-+        org.bukkit.event.block.NotePlayEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callNotePlayEvent(p_55024_, p_55025_, noteblockinstrument, p_55023_.getValue(NOTE));
-+        if (event.isCancelled()) return false;
-+        // Paper end - move NotePlayEvent call to fix instrument/note changes
          float f;
          if (noteblockinstrument.isTunable()) {
--            int i = p_55023_.getValue(NOTE);
-+            int i = event.getNote().getId(); // Paper - move NotePlayEvent call to fix instrument/note changes
-             f = getPitchFromNote(i);
-             p_55024_.addParticle(
-                 ParticleTypes.NOTE, (double)p_55025_.getX() + 0.5, (double)p_55025_.getY() + 1.2, (double)p_55025_.getZ() + 0.5, (double)i / 24.0, 0.0, 0.0
-@@ -153,7 +_,7 @@
- 
-             holder = Holder.direct(SoundEvent.createVariableRangeEvent(resourcelocation));
-         } else {
--            holder = noteblockinstrument.getSoundEvent();
-+            holder = org.bukkit.craftbukkit.block.data.CraftBlockData.toNMS(event.getInstrument(), NoteBlockInstrument.class).getSoundEvent(); // Paper - move NotePlayEvent call to fix instrument/note changes
-         }
- 
-         p_55024_.playSeededSound(

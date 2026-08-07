@@ -1,70 +1,12 @@
 --- a/net/minecraft/network/FriendlyByteBuf.java
 +++ b/net/minecraft/network/FriendlyByteBuf.java
-@@ -70,6 +_,7 @@
- public class FriendlyByteBuf extends ByteBuf implements net.neoforged.neoforge.common.extensions.IFriendlyByteBufExtension {
-     public static final int DEFAULT_NBT_QUOTA = 2097152;
-     private final ByteBuf source;
-+    @Nullable public final java.util.Locale adventure$locale; // Paper - track player's locale for server-side translations
-     public static final short MAX_STRING_LENGTH = 32767;
-     public static final int MAX_COMPONENT_STRING_LENGTH = 262144;
-     private static final int PUBLIC_KEY_SIZE = 256;
-@@ -78,6 +_,7 @@
-     private static final Gson GSON = new Gson();
- 
-     public FriendlyByteBuf(ByteBuf p_130051_) {
-+        this.adventure$locale = PacketEncoder.ADVENTURE_LOCALE.get(); // Paper - track player's locale for server-side translations
-         this.source = p_130051_;
-     }
- 
-@@ -106,8 +_,12 @@
-     }
- 
-     public <T> void writeJsonWithCodec(Codec<T> p_273285_, T p_272770_) {
-+        // Paper start - Adventure; add max length parameter
-+        this.writeJsonWithCodec(p_273285_, p_272770_, MAX_STRING_LENGTH);
-+    }
-+    public <T> void writeJsonWithCodec(Codec<T> p_273285_, T p_272770_, int maxLength) {
-         DataResult<JsonElement> dataresult = p_273285_.encodeStart(JsonOps.INSTANCE, p_272770_);
--        this.writeUtf(GSON.toJson(dataresult.getOrThrow(p_339402_ -> new EncoderException("Failed to encode: " + p_339402_ + " " + p_272770_))));
-+        this.writeUtf(GSON.toJson(dataresult.getOrThrow(p_339402_ -> new EncoderException("Failed to encode: " + p_339402_ + " " + p_272770_))), maxLength); // Paper - Adventure; add max length parameter
-     }
- 
-     public static <T> IntFunction<T> limitValue(IntFunction<T> p_182696_, int p_182697_) {
-@@ -122,7 +_,7 @@
- 
-     public <T, C extends Collection<T>> C readCollection(IntFunction<C> p_236839_, StreamDecoder<? super FriendlyByteBuf, T> p_320606_) {
-         int i = this.readVarInt();
--        C c = (C)p_236839_.apply(i);
-+        C c = (C)p_236839_.apply(Math.min(i, net.minecraft.network.codec.ByteBufCodecs.MAX_INITIAL_COLLECTION_SIZE));
- 
-         for (int j = 0; j < i; j++) {
-             c.add(p_320606_.decode(this));
-@@ -163,7 +_,7 @@
-         IntFunction<M> p_236842_, StreamDecoder<? super FriendlyByteBuf, K> p_320803_, StreamDecoder<? super FriendlyByteBuf, V> p_320748_
-     ) {
-         int i = this.readVarInt();
--        M m = (M)p_236842_.apply(i);
-+        M m = (M)p_236842_.apply(Math.min(i, net.minecraft.network.codec.ByteBufCodecs.MAX_INITIAL_COLLECTION_SIZE));
- 
-         for (int j = 0; j < i; j++) {
-             K k = p_320803_.decode(this);
-@@ -511,7 +_,7 @@
- 
-         try {
-             NbtIo.writeAnyTag(p_320692_, new ByteBufOutputStream(p_320344_));
--        } catch (IOException ioexception) {
-+        } catch (Exception ioexception) { // CraftBukkit - IOException -> Exception
-             throw new EncoderException(ioexception);
-         }
-     }
-@@ -1588,5 +_,10 @@
-     @Override
+@@ -1649,4 +_,9 @@
      public boolean release(int p_130347_) {
          return this.source.release(p_130347_);
-+    }
+     }
 +
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public ByteBuf getSource() {
 +        return this.source;
-     }
++    }
  }

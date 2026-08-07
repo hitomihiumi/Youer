@@ -58,7 +58,7 @@ public interface Sign extends TileState, Colorable {
      * @return Array of Strings containing each line of text
      * @deprecated  A sign may have multiple writable sides now. Use {@link Sign#getSide(Side)} and {@link SignSide#lines()}.
      */
-    @Deprecated
+    @Deprecated(since = "1.20")
     @NotNull
     public String[] getLines();
 
@@ -72,7 +72,7 @@ public interface Sign extends TileState, Colorable {
      * @throws IndexOutOfBoundsException Thrown when the line does not exist
      * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#line(int)}.
      */
-    @Deprecated
+    @Deprecated(since = "1.20")
     @NotNull
     public String getLine(int index) throws IndexOutOfBoundsException;
 
@@ -87,7 +87,7 @@ public interface Sign extends TileState, Colorable {
      * @throws IndexOutOfBoundsException If the index is out of the range 0..3
      * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#line(int, net.kyori.adventure.text.Component)}.
      */
-    @Deprecated
+    @Deprecated(since = "1.20")
     public void setLine(int index, @NotNull String line) throws IndexOutOfBoundsException;
 
     /**
@@ -96,7 +96,7 @@ public interface Sign extends TileState, Colorable {
      * @return if this sign is currently editable
      * @deprecated use {@link #isWaxed()} instead
      */
-    @Deprecated
+    @Deprecated(since = "1.20.1")
     public boolean isEditable();
 
     /**
@@ -105,7 +105,7 @@ public interface Sign extends TileState, Colorable {
      * @param editable if this sign is currently editable
      * @deprecated use {@link #setWaxed(boolean)} instead
      */
-    @Deprecated
+    @Deprecated(since = "1.20.1")
     public void setEditable(boolean editable);
 
     /**
@@ -130,7 +130,7 @@ public interface Sign extends TileState, Colorable {
      * @return if this sign has glowing text
      * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#isGlowingText()}.
      */
-    @Deprecated
+    @Deprecated(since = "1.20")
     public boolean isGlowingText();
 
     /**
@@ -139,7 +139,7 @@ public interface Sign extends TileState, Colorable {
      * @param glowing if this sign has glowing text
      * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#setGlowingText(boolean)}.
      */
-    @Deprecated
+    @Deprecated(since = "1.20")
     public void setGlowingText(boolean glowing);
 
     /**
@@ -149,7 +149,7 @@ public interface Sign extends TileState, Colorable {
      */
     @NotNull
     @Override
-    @Deprecated
+    @Deprecated(since = "1.20")
     public DyeColor getColor();
 
     /**
@@ -158,7 +158,7 @@ public interface Sign extends TileState, Colorable {
      * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#setColor(org.bukkit.DyeColor)}.
      */
     @Override
-    @Deprecated
+    @Deprecated(since = "1.20")
     public void setColor(@NotNull DyeColor color);
 
     /**
@@ -182,6 +182,8 @@ public interface Sign extends TileState, Colorable {
     /**
      * Gets the player that is currently allowed to edit this sign. <br>
      * Edits from other players will be rejected if this value is not null.
+     * <br><br>You should prefer {@link #getAllowedEditorUniqueId()} if you don't
+     * need the player instance as this method will fetch the player from UUID.
      *
      * @return the player allowed to edit this sign, or null
      */

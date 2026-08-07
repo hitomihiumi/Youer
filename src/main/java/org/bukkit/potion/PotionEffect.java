@@ -2,6 +2,7 @@ package org.bukkit.potion;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.bukkit.Bukkit;
@@ -175,7 +176,7 @@ public class PotionEffect implements ConfigurationSerializable {
     private static PotionEffectType getEffectType(@NotNull Map<?, ?> map) {
         PotionEffectType effect;
         if (map.get(TYPE) instanceof String value) {
-            effect = Bukkit.getUnsafe().get(Registry.EFFECT, NamespacedKey.fromString(value));
+            effect = Bukkit.getUnsafe().get(RegistryKey.MOB_EFFECT, NamespacedKey.fromString(value));
         } else {
             int type = getInt(map, TYPE);
             effect = PotionEffectType.getById(type);
@@ -206,12 +207,12 @@ public class PotionEffect implements ConfigurationSerializable {
     @NotNull
     public Map<String, Object> serialize() {
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder() // Paper
-                .put(TYPE, type.getKey().toString())
-                .put(DURATION, duration)
-                .put(AMPLIFIER, amplifier)
-                .put(AMBIENT, ambient)
-                .put(PARTICLES, particles)
-                .put(ICON, icon);
+            .put(TYPE, type.getKey().toString())
+            .put(DURATION, duration)
+            .put(AMPLIFIER, amplifier)
+            .put(AMBIENT, ambient)
+            .put(PARTICLES, particles)
+            .put(ICON, icon);
         // Paper start
         if (this.hiddenEffect != null) {
             builder.put(HIDDEN_EFFECT, this.hiddenEffect);
@@ -326,7 +327,7 @@ public class PotionEffect implements ConfigurationSerializable {
      * @return color of this potion's particles. May be null if the potion has no particles or defined color.
      * @deprecated color is not part of potion effects
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     @Nullable
     @Contract("-> null")
     public Color getColor() {

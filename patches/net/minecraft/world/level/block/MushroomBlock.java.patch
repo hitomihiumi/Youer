@@ -1,52 +1,10 @@
 --- a/net/minecraft/world/level/block/MushroomBlock.java
 +++ b/net/minecraft/world/level/block/MushroomBlock.java
-@@ -2,7 +_,6 @@
- 
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
--import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
- import java.util.Optional;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Holder;
-@@ -19,6 +_,7 @@
- import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
- import net.minecraft.world.phys.shapes.CollisionContext;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class MushroomBlock extends BushBlock implements BonemealableBlock {
-     public static final MapCodec<MushroomBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -48,7 +_,7 @@
- 
-     @Override
-     protected void randomTick(BlockState p_221784_, ServerLevel p_221785_, BlockPos p_221786_, RandomSource p_221787_) {
--        if (p_221787_.nextInt(25) == 0) {
-+        if (p_221787_.nextFloat() < (p_221785_.spigotConfig.mushroomModifier / (100.0f * 25))) { // Spigot - SPIGOT-7159: Better modifier resolution
-             int i = 5;
-             int j = 4;
- 
-@@ -61,6 +_,7 @@
-             }
- 
-             BlockPos blockpos1 = p_221786_.offset(p_221787_.nextInt(3) - 1, p_221787_.nextInt(2) - p_221787_.nextInt(2), p_221787_.nextInt(3) - 1);
-+            final BlockPos sourcePos = p_221786_; // Paper - Use correct source for mushroom block spread event
- 
-             for (int k = 0; k < 4; k++) {
-                 if (p_221785_.isEmptyBlock(blockpos1) && p_221784_.canSurvive(p_221785_, blockpos1)) {
-@@ -71,7 +_,7 @@
-             }
- 
-             if (p_221785_.isEmptyBlock(blockpos1) && p_221784_.canSurvive(p_221785_, blockpos1)) {
--                p_221785_.setBlock(blockpos1, p_221784_, 2);
-+                CraftEventFactory.handleBlockSpreadEvent(p_221785_, sourcePos, blockpos1, p_221784_, 2); // CraftBukkit // Paper - Use correct source for mushroom block spread event
-             }
-         }
-     }
-@@ -85,19 +_,31 @@
+@@ -84,15 +_,24 @@
      protected boolean canSurvive(BlockState p_54880_, LevelReader p_54881_, BlockPos p_54882_) {
          BlockPos blockpos = p_54882_.below();
          BlockState blockstate = p_54881_.getBlockState(blockpos);
-+        net.neoforged.neoforge.common.util.TriState soilDecision = blockstate.canSustainPlant(p_54881_, blockpos, net.minecraft.core.Direction.UP, p_54880_);
++        var soilDecision = blockstate.canSustainPlant(p_54881_, blockpos, net.minecraft.core.Direction.UP, p_54880_);
          return blockstate.is(BlockTags.MUSHROOM_GROW_BLOCK)
              ? true
 -            : p_54881_.getRawBrightness(p_54882_, 0) < 13 && this.mayPlaceOn(blockstate, p_54881_, blockpos);
@@ -55,8 +13,8 @@
  
      public boolean growMushroom(ServerLevel p_221774_, BlockPos p_221775_, BlockState p_221776_, RandomSource p_221777_) {
          Optional<? extends Holder<ConfiguredFeature<?, ?>>> optional = p_221774_.registryAccess()
-             .registryOrThrow(Registries.CONFIGURED_FEATURE)
-             .getHolder(this.feature);
+             .lookupOrThrow(Registries.CONFIGURED_FEATURE)
+             .get(this.feature);
 +
 +        // Neo: Fire the BlockGrowFeatureEvent and update the result of the Optional local with the new feature.
 +        var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(p_221774_, p_221777_, p_221775_, optional.orElse(null));
@@ -68,10 +26,3 @@
          if (optional.isEmpty()) {
              return false;
          } else {
-             p_221774_.removeBlock(p_221775_, false);
-+            // CraftBukkit start
-+            SaplingBlock.treeType = (this == Blocks.BROWN_MUSHROOM) ? org.bukkit.TreeType.BROWN_MUSHROOM : org.bukkit.TreeType.RED_MUSHROOM;
-+            // CraftBukkit end
-             if (optional.get().value().place(p_221774_, p_221774_.getChunkSource().getGenerator(), p_221777_, p_221775_)) {
-                 return true;
-             } else {

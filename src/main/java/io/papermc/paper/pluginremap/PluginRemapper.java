@@ -1,10 +1,6 @@
 package io.papermc.paper.pluginremap;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.mohistmc.art.api.Renamer;
-import com.mohistmc.art.api.SignatureStripperConfig;
-import com.mohistmc.art.api.Transformer;
-import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.plugin.provider.type.PluginFileType;
 import io.papermc.paper.util.AtomicFiles;
@@ -32,6 +28,9 @@ import java.util.jar.Manifest;
 import java.util.stream.Stream;
 import net.minecraft.DefaultUncaughtExceptionHandlerWithName;
 import net.minecraft.util.ExceptionCollector;
+import net.neoforged.art.api.Renamer;
+import net.neoforged.art.api.SignatureStripperConfig;
+import net.neoforged.art.api.Transformer;
 import net.neoforged.srgutils.IMappingFile;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,7 +48,7 @@ public final class PluginRemapper {
     private static final String EXTRA_PLUGINS = "extra-plugins";
     private static final String REMAP_CLASSPATH = "remap-classpath";
     private static final String REVERSED_MAPPINGS = "mappings/reversed";
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private final ExecutorService threadPool;
     private final ReobfServer reobf;
@@ -76,7 +75,11 @@ public final class PluginRemapper {
             return null;
         }
 
-        return new PluginRemapper(pluginsDir);
+        try {
+            return new PluginRemapper(pluginsDir);
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to create PluginRemapper, try deleting the '" + pluginsDir.resolve(PAPER_REMAPPED) + "' directory", e);
+        }
     }
 
     public void shutdown() {
@@ -341,7 +344,7 @@ public final class PluginRemapper {
         }
 
         return this.reobf.remapped().thenApplyAsync(reobfServer -> {
-            LOGGER.info(I18n.as("pluginremapper.1", library ? "library" : "plugin", inputFile));
+            LOGGER.info("Remapping {} '{}'...", library ? "library" : "plugin", inputFile);
             final long start = System.currentTimeMillis();
             try (final DebugLogger logger = DebugLogger.forOutputFile(destination)) {
                 try (final Renamer renamer = Renamer.builder()
@@ -358,7 +361,7 @@ public final class PluginRemapper {
             } catch (final Exception ex) {
                 throw new RuntimeException("Failed to remap plugin jar '" + inputFile + "'", ex);
             }
-            LOGGER.info(I18n.as("pluginremapper.2", library ? "library" : "plugin", inputFile, System.currentTimeMillis() - start));
+            LOGGER.info("Done remapping {} '{}' in {}ms.", library ? "library" : "plugin", inputFile, System.currentTimeMillis() - start);
             return destination;
         }, this.threadPool);
     }

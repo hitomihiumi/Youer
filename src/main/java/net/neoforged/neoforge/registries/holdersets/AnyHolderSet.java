@@ -37,7 +37,6 @@ import net.neoforged.neoforge.common.NeoForgeMod;
  * </pre>
  */
 public record AnyHolderSet<T>(HolderLookup.RegistryLookup<T> registryLookup) implements ICustomHolderSet<T> {
-
     @Override
     public HolderSetType type() {
         return NeoForgeMod.ANY_HOLDER_SET.value();
@@ -95,9 +94,15 @@ public record AnyHolderSet<T>(HolderLookup.RegistryLookup<T> registryLookup) imp
     }
 
     @Override
+    public boolean isBound() {
+        return true;
+    }
+
+    @Override
     public String toString() {
         return "AnySet(" + this.registryLookup.key() + ")";
     }
+
     public static class Type implements HolderSetType {
         @Override
         public <T> MapCodec<? extends ICustomHolderSet<T>> makeCodec(ResourceKey<? extends Registry<T>> registryKey, Codec<Holder<T>> holderCodec, boolean forceList) {

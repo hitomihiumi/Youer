@@ -1,25 +1,15 @@
 package io.papermc.paper.plugin.provider.type.spigot;
 
-import io.papermc.paper.plugin.entrypoint.dependency.DependencyContextHolder;
+import com.destroystokyo.paper.util.SneakyThrow;
+import com.destroystokyo.paper.utils.PaperPluginLogger;
 import io.papermc.paper.plugin.manager.PaperPluginManagerImpl;
+import io.papermc.paper.plugin.provider.configuration.LoadOrderConfiguration;
+import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
+import io.papermc.paper.plugin.entrypoint.dependency.DependencyContextHolder;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.provider.ProviderStatus;
 import io.papermc.paper.plugin.provider.ProviderStatusHolder;
-import io.papermc.paper.plugin.provider.configuration.LoadOrderConfiguration;
-import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
-import com.destroystokyo.paper.util.SneakyThrow;
-import com.destroystokyo.paper.utils.PaperPluginLogger;
-import java.io.File;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.jar.JarFile;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
@@ -30,6 +20,17 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.java.LibraryLoader;
 import org.bukkit.plugin.java.PluginClassLoader;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.jar.JarFile;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SpigotPluginProvider implements PluginProvider<JavaPlugin>, ProviderStatusHolder, DependencyContextHolder {
 

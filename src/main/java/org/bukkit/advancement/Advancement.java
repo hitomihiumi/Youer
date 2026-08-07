@@ -19,6 +19,14 @@ public interface Advancement extends Keyed {
     @NotNull
     Collection<String> getCriteria();
 
+    /**
+     * Returns the requirements for this advancement.
+     *
+     * @return an AdvancementRequirements object.
+     */
+    @NotNull
+    AdvancementRequirements getRequirements();
+
     // Paper start
     /**
      * Get the display info of this advancement.

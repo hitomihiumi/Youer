@@ -1,15 +1,17 @@
 package io.papermc.paper.logging;
 
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 public final class SysoutCatcher {
     private static final boolean SUPPRESS_NAGS = Boolean.getBoolean("io.papermc.paper.suppress.sout.nags");

@@ -1,260 +1,72 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -1,5 +_,7 @@
- package net.minecraft.world.entity;
- 
-+import com.destroystokyo.paper.event.entity.EntityJumpEvent;
-+import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent;
- import com.google.common.annotations.VisibleForTesting;
- import com.google.common.base.Objects;
- import com.google.common.collect.ImmutableList;
-@@ -7,24 +_,39 @@
- import com.google.common.collect.Iterables;
- import com.google.common.collect.Lists;
- import com.google.common.collect.Maps;
-+import com.mohistmc.youer.feature.ban.bans.BanItem;
-+import com.mohistmc.youer.neoforge.BukkitDamageHooks;
-+import com.mohistmc.youer.util.EmeraldClose;
-+import com.mohistmc.youer.util.ItemEntityTools;
- import com.mojang.datafixers.util.Pair;
- import com.mojang.logging.LogUtils;
- import com.mojang.serialization.DataResult;
- import com.mojang.serialization.Dynamic;
-+import io.papermc.paper.event.entity.EntityKnockbackEvent;
-+import io.papermc.paper.event.entity.EntityMoveEvent;
-+import io.papermc.paper.event.player.PlayerStopUsingItemEvent;
- import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
- import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
- import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
-+import java.util.ArrayList;
- import java.util.Collection;
-+import java.util.Collections;
- import java.util.ConcurrentModificationException;
-+import java.util.HashSet;
- import java.util.Iterator;
- import java.util.List;
- import java.util.Map;
-+import java.util.Map.Entry;
- import java.util.Optional;
- import java.util.Set;
--import java.util.Map.Entry;
-+import java.util.Stack;
-+import java.util.UUID;
-+import java.util.concurrent.atomic.AtomicBoolean;
-+import java.util.concurrent.atomic.AtomicReference;
- import java.util.function.Predicate;
- import javax.annotation.Nonnull;
- import javax.annotation.Nullable;
-+import net.kyori.adventure.util.TriState;
- import net.minecraft.BlockUtil;
- import net.minecraft.Util;
- import net.minecraft.advancements.CriteriaTriggers;
-@@ -39,6 +_,8 @@
- import net.minecraft.core.particles.ParticleOptions;
- import net.minecraft.core.particles.ParticleTypes;
- import net.minecraft.nbt.CompoundTag;
-+import net.minecraft.nbt.FloatTag;
-+import net.minecraft.nbt.IntTag;
- import net.minecraft.nbt.ListTag;
- import net.minecraft.nbt.NbtOps;
- import net.minecraft.nbt.Tag;
-@@ -88,7 +_,6 @@
- import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
- import net.minecraft.world.entity.ai.targeting.TargetingConditions;
- import net.minecraft.world.entity.animal.FlyingAnimal;
--import net.minecraft.world.entity.animal.Wolf;
- import net.minecraft.world.entity.boss.wither.WitherBoss;
- import net.minecraft.world.entity.item.ItemEntity;
- import net.minecraft.world.entity.player.Player;
-@@ -96,7 +_,6 @@
- import net.minecraft.world.entity.projectile.Projectile;
- import net.minecraft.world.food.FoodProperties;
- import net.minecraft.world.item.ArmorItem;
--import net.minecraft.world.item.AxeItem;
- import net.minecraft.world.item.ElytraItem;
- import net.minecraft.world.item.Equipable;
- import net.minecraft.world.item.Item;
-@@ -126,13 +_,48 @@
- import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
- import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
- import net.minecraft.world.phys.AABB;
-+import net.minecraft.world.phys.EntityHitResult;
- import net.minecraft.world.phys.HitResult;
- import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.scores.PlayerTeam;
- import net.minecraft.world.scores.Scoreboard;
-+import net.minecraft.world.scores.Team;
-+import net.neoforged.neoforge.common.CommonHooks;
-+import net.neoforged.neoforge.common.ItemAbilities;
-+import net.neoforged.neoforge.common.NeoForge;
-+import net.neoforged.neoforge.common.NeoForgeMod;
-+import net.neoforged.neoforge.common.damagesource.DamageContainer;
-+import net.neoforged.neoforge.common.extensions.ILivingEntityExtension;
-+import net.neoforged.neoforge.event.EventHooks;
-+import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
-+import net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent;
-+import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
-+import org.bukkit.Location;
-+import org.bukkit.craftbukkit.CraftEquipmentSlot;
-+import org.bukkit.craftbukkit.attribute.CraftAttributeMap;
-+import org.bukkit.craftbukkit.entity.CraftLivingEntity;
-+import org.bukkit.craftbukkit.entity.CraftPlayer;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.event.entity.ArrowBodyCountChangeEvent;
-+import org.bukkit.event.entity.EntityDamageEvent;
-+import org.bukkit.event.entity.EntityDeathEvent;
-+import org.bukkit.event.entity.EntityDropItemEvent;
-+import org.bukkit.event.entity.EntityPotionEffectEvent;
-+import org.bukkit.event.entity.EntityRegainHealthEvent;
-+import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
-+import org.bukkit.event.entity.EntityRemoveEvent;
-+import org.bukkit.event.entity.EntityResurrectEvent;
-+import org.bukkit.event.entity.EntityTeleportEvent;
-+import org.bukkit.event.player.PlayerItemConsumeEvent;
-+import org.bukkit.event.player.PlayerTeleportEvent;
-+import org.bukkit.util.Vector;
-+import org.purpurmc.purpur.event.entity.RidableMoveEvent;
- import org.slf4j.Logger;
-+import org.spigotmc.AsyncCatcher;
-+import org.spigotmc.SpigotConfig;
- 
--public abstract class LivingEntity extends Entity implements Attackable, net.neoforged.neoforge.common.extensions.ILivingEntityExtension {
-+public abstract class LivingEntity extends Entity implements Attackable, ILivingEntityExtension {
-     private static final Logger LOGGER = LogUtils.getLogger();
-     private static final String TAG_ACTIVE_EFFECTS = "active_effects";
-     private static final ResourceLocation SPEED_MODIFIER_POWDER_SNOW_ID = ResourceLocation.withDefaultNamespace("powder_snow");
-@@ -158,7 +_,7 @@
-     private static final double MAX_LINE_OF_SIGHT_TEST_RANGE = 128.0;
-     protected static final int LIVING_ENTITY_FLAG_IS_USING = 1;
-     protected static final int LIVING_ENTITY_FLAG_OFF_HAND = 2;
--    protected static final int LIVING_ENTITY_FLAG_SPIN_ATTACK = 4;
-+    public static final int LIVING_ENTITY_FLAG_SPIN_ATTACK = 4;
-     protected static final EntityDataAccessor<Byte> DATA_LIVING_ENTITY_FLAGS = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.BYTE);
-     public static final EntityDataAccessor<Float> DATA_HEALTH_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.FLOAT);
-     private static final EntityDataAccessor<List<ParticleOptions>> DATA_EFFECT_PARTICLES = SynchedEntityData.defineId(
-@@ -204,7 +_,7 @@
-     public float yHeadRotO;
-     @Nullable
-     public Player lastHurtByPlayer;
--    protected int lastHurtByPlayerTime;
-+    public int lastHurtByPlayerTime;
-     protected boolean dead;
-     protected int noActionTime;
-     protected float oRun;
-@@ -214,10 +_,10 @@
-     protected float rotOffs;
-     protected int deathScore;
-     public float lastHurt;
--    protected boolean jumping;
--    public float xxa;
--    public float yya;
--    public float zza;
-+    public boolean jumping;
-+    public float xxa; public float getStrafeMot() { return xxa; } public void setStrafeMot(float strafe) { xxa = strafe; } // Purpur - OBFHELPER
-+    public float yya; public float getVerticalMot() { return yya; } public void setVerticalMot(float vertical) { yya = vertical; } // Purpur - OBFHELPER
-+    public float zza; public float getForwardMot() { return zza; } public void setForwardMot(float forward) { zza = forward; } // Purpur - OBFHELPER
-     protected int lerpSteps;
-     protected double lerpX;
-     protected double lerpY;
-@@ -251,14 +_,49 @@
-     private float swimAmount;
-     private float swimAmountO;
-     protected Brain<?> brain;
--    private boolean skipDropExperience;
-+    public boolean skipDropExperience;
-     private final Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>> activeLocationDependentEnchantments = new Reference2ObjectArrayMap<>();
-     protected float appliedScale = 1.0F;
+@@ -189,13 +_,19 @@
+     protected static final EntityDimensions SLEEPING_DIMENSIONS = EntityDimensions.fixed(0.2F, 0.2F).withEyeHeight(0.2F);
+     public static final float EXTRA_RENDER_CULLING_SIZE_WITH_BIG_HAT = 0.5F;
+     public static final float DEFAULT_BABY_SCALE = 0.5F;
+-    public static final Predicate<LivingEntity> PLAYER_NOT_WEARING_DISGUISE_ITEM = p_401735_ -> {
++    // Neo: Support IItemExtension#isGazeDisguise
++    public static final java.util.function.BiPredicate<LivingEntity, @org.jetbrains.annotations.Nullable LivingEntity> PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET = (p_401735_, target) -> {
+         if (p_401735_ instanceof Player player) {
+             ItemStack itemstack = player.getItemBySlot(EquipmentSlot.HEAD);
+-            return !itemstack.is(ItemTags.GAZE_DISGUISE_EQUIPMENT);
++            return !itemstack.isGazeDisguise(player, target);
+         } else {
+             return true;
+         }
++    };
++    /** @deprecated Neo: use {@link #PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET} with target info instead */
++    @Deprecated
++    public static final Predicate<LivingEntity> PLAYER_NOT_WEARING_DISGUISE_ITEM = p_401735_ -> {
++        return PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET.test(p_401735_, null);
+     };
+     private static final Dynamic<?> EMPTY_BRAIN = new Dynamic<>(JavaOps.INSTANCE, Map.of("memories", Map.of()));
+     private final AttributeMap attributes;
+@@ -265,6 +_,14 @@
+     );
+     protected final EntityEquipment equipment;
+     private Waypoint.Icon locatorBarIcon = new Waypoint.Icon();
 +    /**
 +     * This field stores information about damage dealt to this entity.
-+     * a new {@link DamageContainer} is instantiated
++     * a new {@link net.neoforged.neoforge.common.damagesource.DamageContainer} is instantiated
 +     * via {@link #hurt(DamageSource, float)} after invulnerability checks, and is removed from
 +     * the stack before the method's return.
-+    **/
++     **/
 +    @Nullable
-+    protected Stack<DamageContainer> damageContainers = new Stack<>();
-+
-+    // CraftBukkit start
-+    public int expToDrop;
-+    public final CraftAttributeMap craftAttributes;
-+    public boolean collides = true;
-+    public Set<UUID> collidableExemptions = new HashSet<>();
-+    public boolean bukkitPickUpLoot;
-+    public TriState frictionState = TriState.NOT_SET; // Paper - Friction API
-+    public CraftLivingEntity getBukkitLivingEntity() { return (CraftLivingEntity) super.getBukkitEntity(); } // Paper
-+    public boolean silentDeath = false; // Paper - mark entity as dying silently for cancellable death event
-+    protected boolean shouldBurnInDay = false; public boolean shouldBurnInDay() { return this.shouldBurnInDay; } public void setShouldBurnInDay(boolean shouldBurnInDay) { this.shouldBurnInDay = shouldBurnInDay; } // Purpur - API for any mob to burn daylight
-+    @Override
-+    public float getBukkitYaw() {
-+        return getYHeadRot();
-+    }
-+    // CraftBukkit end
-+    // Spigot start
-+    public void inactiveTick()
-+    {
-+        super.inactiveTick();
-+        ++this.noActionTime; // Above all the floats
-+    }
-+    // Spigot end
-+    public EntityDamageEvent bukkitEntityDamageEvent;
++    protected java.util.Stack<net.neoforged.neoforge.common.damagesource.DamageContainer> damageContainers = new java.util.Stack<>();
  
      protected LivingEntity(EntityType<? extends LivingEntity> p_20966_, Level p_20967_) {
          super(p_20966_, p_20967_);
-         this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_));
-+        this.craftAttributes = new CraftAttributeMap(attributes); // CraftBukkit
-+        this.fake$setHealth(true);
-         this.setHealth(this.getMaxHealth());
-+        this.entityData.set(DATA_HEALTH_ID, (float) this.getAttribute(Attributes.MAX_HEALTH).getValue());
-         this.blocksBuilding = true;
-         this.rotA = (float)((Math.random() + 1.0) * 0.01F);
-         this.reapplyPosition();
-@@ -320,8 +_,11 @@
-             .add(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)
-             .add(Attributes.WATER_MOVEMENT_EFFICIENCY)
+@@ -338,7 +_,9 @@
              .add(Attributes.MOVEMENT_EFFICIENCY)
--            .add(Attributes.ATTACK_KNOCKBACK);
-+            .add(Attributes.ATTACK_KNOCKBACK)
-+            .add(NeoForgeMod.SWIM_SPEED)
-+            .add(NeoForgeMod.NAMETAG_DISTANCE);
+             .add(Attributes.ATTACK_KNOCKBACK)
+             .add(Attributes.CAMERA_DISTANCE)
+-            .add(Attributes.WAYPOINT_TRANSMIT_RANGE);
++            .add(Attributes.WAYPOINT_TRANSMIT_RANGE)
++            .add(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED)
++            .add(net.neoforged.neoforge.common.NeoForgeMod.NAMETAG_DISTANCE);
      }
-+    public boolean shouldSendAttribute(Attribute attribute) { return true; } // Purpur
  
      @Override
-     protected void checkFallDamage(double p_20990_, boolean p_20991_, BlockState p_20992_, BlockPos p_20993_) {
-@@ -348,7 +_,14 @@
-                 float f = (float)Mth.ceil((double)this.fallDistance - d7);
-                 double d4 = Math.min((double)(0.2F + f / 15.0F), 2.5);
-                 int i = (int)(150.0 * d4);
--                ((ServerLevel)this.level()).sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, p_20992_), d0, d1, d2, i, 0.0, 0.0, 0.0, 0.15F);
-+                if (!p_20992_.addLandingEffects((ServerLevel) this.level(), p_20993_, p_20992_, this, i))
-+                    // CraftBukkit start - visiblity api
-+                    if (this instanceof ServerPlayer) {
-+                        ((ServerLevel) this.level()).sendParticles((ServerPlayer) this, new BlockParticleOption(ParticleTypes.BLOCK, p_20992_),  d0, d1, d2, i, 0.0D, 0.0D, 0.0D, 0.15000000596046448D, false);
-+                    } else {
-+                        ((ServerLevel) this.level()).sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, p_20992_),  d0, d1, d2, i, 0.0D, 0.0D, 0.0D, 0.15000000596046448D);
-+                    }
-+                // CraftBukkit end
+@@ -365,7 +_,8 @@
+ 
+                 double d7 = Math.min(0.2F + d6 / 15.0, 2.5);
+                 int i = (int)(150.0 * d7);
+-                serverlevel.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, p_20992_), d0, d1, d2, i, 0.0, 0.0, 0.0, 0.15F);
++                if (!p_20992_.addLandingEffects(serverlevel, p_20993_, p_20992_, this, i))
++                serverlevel.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, p_20992_, p_20993_), d0, d1, d2, i, 0.0, 0.0, 0.0, 0.15F);
              }
          }
  
-@@ -358,6 +_,7 @@
+@@ -375,6 +_,7 @@
          }
      }
  
 +    @Deprecated //FORGE: Use canDrownInFluidType instead
-     public final boolean canBreatheUnderwater() {
+     public boolean canBreatheUnderwater() {
          return this.getType().is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
      }
-@@ -390,7 +_,7 @@
-         if (this.isAlive()) {
-             boolean flag = this instanceof Player;
-             if (!this.level().isClientSide) {
--                if (this.isInWall()) {
-+                if (shouldCheckForSuffocation() && this.isInWall()) { // Pufferfish - optimize suffocation
-                     this.hurt(this.damageSources().inWall(), 1.0F);
-                 } else if (flag && !this.level().getWorldBorder().isWithinBounds(this.getBoundingBox())) {
-                     double d4 = this.level().getWorldBorder().getDistanceToBorder(this) + this.level().getWorldBorder().getDamageSafeZone();
-@@ -403,6 +_,9 @@
+@@ -419,6 +_,9 @@
                  }
              }
  
@@ -262,225 +74,33 @@
 +            net.neoforged.neoforge.common.CommonHooks.onLivingBreathe(this, airSupply - decreaseAirSupply(airSupply), increaseAirSupply(airSupply) - airSupply);
 +            if (false) // Forge: Handled in ForgeHooks#onLivingBreathe(LivingEntity, int, int)
              if (this.isEyeInFluid(FluidTags.WATER)
-                 && !this.level().getBlockState(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())).is(Blocks.BUBBLE_COLUMN)) {
+                 && !serverlevel1.getBlockState(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())).is(Blocks.BUBBLE_COLUMN)) {
                  boolean flag1 = !this.canBreatheUnderwater()
-@@ -441,7 +_,7 @@
-             }
-         }
- 
--        if (this.isAlive() && (this.isInWaterRainOrBubble() || this.isInPowderSnow)) {
-+        if (this.isAlive() && (this.isInWaterRainOrBubble() || this.isInPowderSnow || this.isInFluidType((fluidType, height) -> this.canFluidExtinguish(fluidType)))) {
-             this.extinguishFire();
-         }
- 
-@@ -542,6 +_,7 @@
-         this.deathTime++;
-         if (this.deathTime >= 20 && !this.level().isClientSide() && !this.isRemoved()) {
-             this.level().broadcastEntityEvent(this, (byte)60);
-+            this.removeReason(EntityRemoveEvent.Cause.DEATH);
-             this.remove(Entity.RemovalReason.KILLED);
-         }
-     }
-@@ -634,7 +_,7 @@
-     }
- 
-     public boolean shouldDiscardFriction() {
--        return this.discardFriction;
-+        return !this.frictionState.toBooleanOrElse(!this.discardFriction); // Paper - Friction API
-     }
- 
-     public void setDiscardFriction(boolean p_147245_) {
-@@ -664,6 +_,25 @@
-         }
-     }
- 
-+    public void onEquipItem(EquipmentSlot p_238393_, ItemStack p_238394_, ItemStack p_238395_, boolean silent) {
-+        boolean flag = p_238395_.isEmpty() && p_238394_.isEmpty();
-+        if (!flag && !ItemStack.isSameItemSameComponents(p_238394_, p_238395_) && !this.firstTick) {
-+            Equipable equipable = Equipable.get(p_238395_);
-+            if (!this.level().isClientSide() && !this.isSpectator()) {
-+                if (!this.isSilent() && equipable != null && equipable.getEquipmentSlot() == p_238393_ && !silent) {
-+                    this.level()
-+                            .playSeededSound(
-+                                    null, this.getX(), this.getY(), this.getZ(), equipable.getEquipSound(), this.getSoundSource(), 1.0F, 1.0F, this.random.nextLong()
-+                            );
+@@ -767,7 +_,11 @@
+         } else {
+             ItemEntity itementity = this.createItemStackToDrop(p_401947_, p_401861_, p_401913_);
+             if (itementity != null) {
+-                this.level().addFreshEntity(itementity);
++                if (captureDrops() != null) {
++                    captureDrops().add(itementity);
++                } else {
++                    this.level().addFreshEntity(itementity);
 +                }
-+
-+                if (this.doesEmitEquipEvent(p_238393_)) {
-+                    this.gameEvent(equipable != null ? GameEvent.EQUIP : GameEvent.UNEQUIP);
-+                }
-+            }
-+        }
-+    }
-+
-     @Override
-     public void remove(Entity.RemovalReason p_276115_) {
-         if (p_276115_ == Entity.RemovalReason.KILLED || p_276115_ == Entity.RemovalReason.DISCARDED) {
-@@ -674,16 +_,33 @@
-         this.brain.clearMemories();
-     }
- 
-+    @Override
-+    public void removeCB(RemovalReason p_276115_, EntityRemoveEvent.Cause cause) {
-+        // CraftBukkit end
-+        if (p_276115_ == RemovalReason.KILLED || p_276115_ == RemovalReason.DISCARDED) {
-+            this.triggerOnDeathMobEffects(p_276115_);
-+        }
-+
-+        super.removeCB(p_276115_, cause); // CraftBukkit
-+        this.brain.clearMemories();
-+    }
-+
-     protected void triggerOnDeathMobEffects(Entity.RemovalReason p_350496_) {
-         for (MobEffectInstance mobeffectinstance : this.getActiveEffects()) {
-             mobeffectinstance.onMobRemoved(this, p_350496_);
-         }
- 
-+        this.removeAllEffects(EntityPotionEffectEvent.Cause.DEATH); // CraftBukkit
-         this.activeEffects.clear();
-     }
- 
-     @Override
-     public void addAdditionalSaveData(CompoundTag p_21145_) {
-+        // Paper start - Friction API
-+        if (this.frictionState != TriState.NOT_SET) {
-+            p_21145_.putString("Paper.FrictionState", this.frictionState.toString());
-+        }
-+        // Paper end - Friction API
-         p_21145_.putFloat("Health", this.getHealth());
-         p_21145_.putShort("HurtTime", (short)this.hurtTime);
-         p_21145_.putInt("HurtByTimestamp", this.lastHurtByMobTimestamp);
-@@ -708,11 +_,28 @@
-         });
-         DataResult<Tag> dataresult = this.brain.serializeStart(NbtOps.INSTANCE);
-         dataresult.resultOrPartial(LOGGER::error).ifPresent(p_21102_ -> p_21145_.put("Brain", p_21102_));
-+        p_21145_.putBoolean("Purpur.ShouldBurnInDay", this.shouldBurnInDay); // Purpur - API for any mob to burn daylight
-     }
- 
-     @Override
-     public void readAdditionalSaveData(CompoundTag p_21096_) {
--        this.internalSetAbsorptionAmount(p_21096_.getFloat("AbsorptionAmount"));
-+        // Paper start - Check for NaN
-+        float absorptionAmount = p_21096_.getFloat("AbsorptionAmount");
-+        if (Float.isNaN(absorptionAmount)) {
-+            absorptionAmount = 0;
-+        }
-+        this.internalSetAbsorptionAmount(absorptionAmount);
-+        // Paper end - Check for NaN
-+        // Paper start - Friction API
-+        if (p_21096_.contains("Paper.FrictionState")) {
-+            String fs = p_21096_.getString("Paper.FrictionState");
-+            try {
-+                frictionState = TriState.valueOf(fs);
-+            } catch (Exception ignored) {
-+                LOGGER.error("Unknown friction state " + fs + " for " + this);
-+            }
-+        }
-+        // Paper end - Friction API
-         if (p_21096_.contains("attributes", 9) && this.level() != null && !this.level().isClientSide) {
-             this.getAttributes().load(p_21096_.getList("attributes", 10));
-         }
-@@ -729,6 +_,17 @@
              }
-         }
  
-+        // CraftBukkit start
-+        if (p_21096_.contains("Bukkit.MaxHealth")) {
-+            Tag nbtbase = p_21096_.get("Bukkit.MaxHealth");
-+            if (nbtbase.getId() == 5) {
-+                this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(((FloatTag) nbtbase).getAsDouble());
-+            } else if (nbtbase.getId() == 3) {
-+                this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(((IntTag) nbtbase).getAsDouble());
-+            }
-+        }
-+        // CraftBukkit end
-+
-         if (p_21096_.contains("Health", 99)) {
-             this.setHealth(p_21096_.getFloat("Health"));
-         }
-@@ -740,6 +_,7 @@
-             String s = p_21096_.getString("Team");
-             Scoreboard scoreboard = this.level().getScoreboard();
-             PlayerTeam playerteam = scoreboard.getPlayerTeam(s);
-+            if (this.level().paperConfig() != null && !this.level().paperConfig().scoreboards.allowNonPlayerEntitiesOnScoreboards && !(this instanceof Player)) { playerteam = null; } // Paper - Perf: Disable Scoreboards for non players by default
-             boolean flag = playerteam != null && scoreboard.addPlayerToTeam(this.getStringUUID(), playerteam);
-             if (!flag) {
-                 LOGGER.warn("Unable to add mob to team \"{}\" (that team probably doesn't exist)", s);
-@@ -762,17 +_,53 @@
-         if (p_21096_.contains("Brain", 10)) {
-             this.brain = this.makeBrain(new Dynamic<>(NbtOps.INSTANCE, p_21096_.get("Brain")));
-         }
--    }
-+        // Purpur start - API for any mob to burn daylight
-+        if (p_21096_.contains("Purpur.ShouldBurnInDay")) {
-+            this.shouldBurnInDay = p_21096_.getBoolean("Purpur.ShouldBurnInDay");
-+        }
-+        // Purpur end - API for any mob to burn daylight
-+    }
-+
-+    // CraftBukkit start
-+    private boolean isTickingEffects = false;
-+    private List<ProcessableEffect> effectsToProcess = Lists.newArrayList();
-+
-+    private static class ProcessableEffect {
-+
-+        private Holder<MobEffect> type;
-+        private MobEffectInstance effect;
-+        private final EntityPotionEffectEvent.Cause cause;
-+
-+        private ProcessableEffect(MobEffectInstance effect, EntityPotionEffectEvent.Cause cause) {
-+            this.effect = effect;
-+            this.cause = cause;
-+        }
-+
-+        private ProcessableEffect(Holder<MobEffect>  type, EntityPotionEffectEvent.Cause cause) {
-+            this.type = type;
-+            this.cause = cause;
-+        }
-+    }
-+    // CraftBukkit end
- 
-     protected void tickEffects() {
-         Iterator<Holder<MobEffect>> iterator = this.activeEffects.keySet().iterator();
- 
-+        isTickingEffects = true; // CraftBukkit
-         try {
-             while (iterator.hasNext()) {
-                 Holder<MobEffect> holder = iterator.next();
-                 MobEffectInstance mobeffectinstance = this.activeEffects.get(holder);
-                 if (!mobeffectinstance.tick(this, () -> this.onEffectUpdated(mobeffectinstance, true, null))) {
--                    if (!this.level().isClientSide) {
-+                    if (!this.level().isClientSide && !NeoForge.EVENT_BUS.post(new MobEffectEvent.Expired(this, mobeffectinstance)).isCanceled()) {
-+                        // CraftBukkit start
-+                        if (!AsyncCatcher.catchAsync()) {
-+                            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffectinstance, null, EntityPotionEffectEvent.Cause.EXPIRATION);
-+                            if (event.isCancelled()) {
-+                                continue;
-+                            }
-+                        }
-+                        // CraftBukkit end
+             return itementity;
+@@ -826,8 +_,10 @@
+                     Holder<MobEffect> holder = iterator.next();
+                     MobEffectInstance mobeffectinstance = this.activeEffects.get(holder);
+                     if (!mobeffectinstance.tickServer(serverlevel, this, () -> this.onEffectUpdated(mobeffectinstance, true, null))) {
++                        if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.MobEffectEvent.Expired(this, mobeffectinstance)).isCanceled()) {
                          iterator.remove();
-                         this.onEffectRemoved(mobeffectinstance);
+                         this.onEffectsRemoved(List.of(mobeffectinstance));
++                        }
+                     } else if (mobeffectinstance.getDuration() % 600 == 0) {
+                         this.onEffectUpdated(mobeffectinstance, false, null);
                      }
-@@ -782,6 +_,17 @@
-             }
-         } catch (ConcurrentModificationException concurrentmodificationexception) {
-         }
-+        // CraftBukkit start
-+        isTickingEffects = false;
-+        for (ProcessableEffect e : effectsToProcess) {
-+            if (e.effect != null) {
-+                addEffect(e.effect, e.cause);
-+            } else {
-+                removeEffect(e.type, e.cause);
-+            }
-+        }
-+        effectsToProcess.clear();
-+        // CraftBukkit end
- 
-         if (this.effectsDirty) {
-             if (!this.level().isClientSide) {
-@@ -817,8 +_,9 @@
+@@ -871,8 +_,9 @@
          List<ParticleOptions> list = this.activeEffects
              .values()
              .stream()
@@ -492,7 +112,7 @@
              .toList();
          this.entityData.set(DATA_EFFECT_PARTICLES, list);
          this.entityData.set(DATA_EFFECT_AMBIENCE_ID, areAllEffectsAmbient(this.activeEffects.values()));
-@@ -858,6 +_,7 @@
+@@ -912,6 +_,7 @@
              }
          }
  
@@ -500,132 +120,42 @@
          return d0;
      }
  
-@@ -891,20 +_,43 @@
-         this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
-     }
- 
-+    private final AtomicReference<EntityPotionEffectEvent.Cause> removeAllEffects$cause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
-+    public void removeAllEffects$cause(EntityPotionEffectEvent.Cause cause) {
-+        removeAllEffects$cause.set(cause);
-+    }
-     public boolean removeAllEffects() {
-         if (this.level().isClientSide) {
+@@ -947,8 +_,13 @@
+         } else if (this.activeEffects.isEmpty()) {
              return false;
          } else {
-+            try {
-             Iterator<MobEffectInstance> iterator = this.activeEffects.values().iterator();
- 
-             boolean flag;
-             for (flag = false; iterator.hasNext(); flag = true) {
--                this.onEffectRemoved(iterator.next());
-+                MobEffectInstance effect = iterator.next();
-+                if(EventHooks.onEffectRemoved(this, effect, null)) continue;
-+                // CraftBukkit start
-+                if (!AsyncCatcher.catchAsync()) {
-+                    EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, null, removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
-+                    if (event.isCancelled()) {
-+                        continue;
-+                    }
+-            Map<Holder<MobEffect>, MobEffectInstance> map = Maps.newHashMap(this.activeEffects);
+-            this.activeEffects.clear();
++            Map<Holder<MobEffect>, MobEffectInstance> map = new java.util.HashMap<>(this.activeEffects.size());
++            for (Map.Entry<Holder<MobEffect>, MobEffectInstance> entry : this.activeEffects.entrySet()) {
++                if (!net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, entry.getValue())) {
++                    map.put(entry.getKey(), entry.getValue());
 +                }
-+                this.onEffectRemoved(effect);
-+                // CraftBukkit end
-                 iterator.remove();
-             }
- 
-             return flag;
-+            } catch (ConcurrentModificationException e) {
-+                return false;
 +            }
++            map.keySet().forEach(this.activeEffects::remove);
+             this.onEffectsRemoved(map.values());
+             return true;
          }
-+    }
-+
-+    public boolean removeAllEffects(EntityPotionEffectEvent.Cause cause) {
-+        removeAllEffects$cause(cause);
-+        return removeAllEffects();
-     }
- 
-     public Collection<MobEffectInstance> getActiveEffects() {
-@@ -925,22 +_,59 @@
-     }
- 
-     public final boolean addEffect(MobEffectInstance p_21165_) {
--        return this.addEffect(p_21165_, null);
-+        return this.addEffect(p_21165_, (Entity) null);
-+    }
-+
-+    // CraftBukkit start
-+    public boolean addEffect(MobEffectInstance pEffectInstance, EntityPotionEffectEvent.Cause cause) {
-+        return addEffect(pEffectInstance, (Entity) null, cause);
-+    }
-+
-+    // Youer start
-+    private final AtomicReference<EntityPotionEffectEvent.Cause> addEffect$Cause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
-+    private final AtomicBoolean addEffect$fireEvent = new AtomicBoolean(true);
-+
-+    public void AddEffect$fireEvent(boolean value) {
-+        this.addEffect$fireEvent.set(value);
-+    }
-+
-+    public void addEffectCause(EntityPotionEffectEvent.Cause cause) {
-+        this.addEffect$Cause.set(cause);
+@@ -981,11 +_,12 @@
      }
  
      public boolean addEffect(MobEffectInstance p_147208_, @Nullable Entity p_147209_) {
 -        if (!this.canBeAffected(p_147208_)) {
-+        if (!CommonHooks.canMobEffectBeApplied(this, p_147208_, p_147209_)) {
++        if (!net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, p_147208_, p_147209_)) {
              return false;
          } else {
              MobEffectInstance mobeffectinstance = this.activeEffects.get(p_147208_.getEffect());
              boolean flag = false;
-+
-+            // CraftBukkit start
-+            boolean override = false;
-+            if (mobeffectinstance != null) {
-+                override = new MobEffectInstance(mobeffectinstance).update(p_147208_);
-+            }
-+
-+            if (!AsyncCatcher.catchAsync() && addEffect$fireEvent.getAndSet(true)) {
-+                EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffectinstance, p_147208_, addEffect$Cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), override);
-+                override = event.isOverride(); // Paper - Don't fire sync event during generation
-+                if (event.isCancelled()) {
-+                    return false;
-+                }
-+            }
-+            // CraftBukkit end
-+
-+            NeoForge.EVENT_BUS.post(new MobEffectEvent.Added(this, mobeffectinstance, p_147208_, p_147209_));
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.MobEffectEvent.Added(this, mobeffectinstance, p_147208_, p_147209_));
              if (mobeffectinstance == null) {
                  this.activeEffects.put(p_147208_.getEffect(), p_147208_);
                  this.onEffectAdded(p_147208_, p_147209_);
-                 flag = true;
-                 p_147208_.onEffectAdded(this);
--            } else if (mobeffectinstance.update(p_147208_)) {
-+                // CraftBukkit start
-+            } else if (override) {
-+                mobeffectinstance.update(p_147208_);
-                 this.onEffectUpdated(mobeffectinstance, true, p_147209_);
-+                // CraftBukkit end
-                 flag = true;
-             }
- 
-@@ -949,6 +_,26 @@
+@@ -1001,6 +_,14 @@
          }
      }
  
-+    public boolean addEffect(MobEffectInstance mobeffect, @Nullable Entity entity, EntityPotionEffectEvent.Cause cause) {
-+        // Paper start - Don't fire sync event during generation
-+        return this.addEffect(mobeffect, entity, cause, true);
-+    }
-+
-+    public boolean addEffect(MobEffectInstance pEffectInstance, @Nullable Entity pEntity, EntityPotionEffectEvent.Cause cause, boolean fireEvent) {
-+        addEffect$Cause.set(cause);
-+        addEffect$fireEvent.set(fireEvent);
-+        return addEffect(pEffectInstance, pEntity);
-+    }
-+    // Youer end
-+
 +    /**
-+     * Neo: Override-Only. Call via {@link net.neoforged.neoforge.common.CommonHooks#canMobEffectBeApplied(LivingEntity, MobEffectInstance,Entity)}
++     * Neo: Override-Only. Call via {@link net.neoforged.neoforge.common.CommonHooks#canMobEffectBeApplied(LivingEntity, MobEffectInstance, Entity)}
 +     *
 +     * @param p_21197_ A mob effect instance
 +     * @return If the mob effect instance can be applied to this entity
@@ -635,7 +165,7 @@
      public boolean canBeAffected(MobEffectInstance p_21197_) {
          if (this.getType().is(EntityTypeTags.IMMUNE_TO_INFESTED)) {
              return !p_21197_.is(MobEffects.INFESTED);
-@@ -962,7 +_,7 @@
+@@ -1014,7 +_,7 @@
      }
  
      public void forceAddEffect(MobEffectInstance p_147216_, @Nullable Entity p_147217_) {
@@ -644,693 +174,182 @@
              MobEffectInstance mobeffectinstance = this.activeEffects.put(p_147216_.getEffect(), p_147216_);
              if (mobeffectinstance == null) {
                  this.onEffectAdded(p_147216_, p_147217_);
-@@ -977,12 +_,42 @@
-         return this.getType().is(EntityTypeTags.INVERTED_HEALING_AND_HARM);
+@@ -1035,6 +_,7 @@
      }
  
-+    // Youer start
-+    private AtomicReference<EntityPotionEffectEvent.Cause> removeEffectNoUpdateCause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
-+    public void removeEffectNoUpdateCause(EntityPotionEffectEvent.Cause cause) {
-+        removeEffectNoUpdateCause.set(cause);
-+    }
-     @Nullable
-     public MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> p_316233_) {
-+        if (isTickingEffects) {
-+            effectsToProcess.add(new ProcessableEffect(p_316233_, removeEffectNoUpdateCause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN)));
-+            return null;
-+        }
-+
-+        MobEffectInstance effect = this.activeEffects.get(p_316233_);
-+        if (effect == null) {
-+            return null;
-+        }
-+
-+        if (!AsyncCatcher.catchAsync()) {
-+            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, null, removeEffectNoUpdateCause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN));
-+            if (event.isCancelled()) {
-+                return null;
-+            }
-+        }
-+
-         return this.activeEffects.remove(p_316233_);
-     }
- 
-+    @Nullable
-+    public MobEffectInstance c(Holder<MobEffect> pEffect, EntityPotionEffectEvent.Cause cause) {
-+        removeEffectNoUpdateCause.set(cause);
-+        return removeEffectNoUpdate(pEffect);
-+    }
-+
-+
      public boolean removeEffect(Holder<MobEffect> p_316570_) {
-+        if (EventHooks.onEffectRemoved(this, p_316570_, null)) return false;
++        if (net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, p_316570_)) return false;
          MobEffectInstance mobeffectinstance = this.removeEffectNoUpdate(p_316570_);
          if (mobeffectinstance != null) {
-             this.onEffectRemoved(mobeffectinstance);
-@@ -992,6 +_,12 @@
-         }
+             this.onEffectsRemoved(List.of(mobeffectinstance));
+@@ -1126,6 +_,8 @@
      }
  
-+    public boolean removeEffect(Holder<MobEffect> pEffect, EntityPotionEffectEvent.Cause cause) {
-+        removeEffectNoUpdateCause.set(cause);
-+        return removeEffect(pEffect);
-+    }
-+    // Youer end
-+
-     protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
-         this.effectsDirty = true;
-         if (!this.level().isClientSide) {
-@@ -1060,18 +_,74 @@
-         }
-     }
- 
-+    // Youer start
-+    private RegainReason heal$regainReason = RegainReason.CUSTOM;
-+    public void pushHealReason(RegainReason regainReason) {
-+        this.heal$regainReason = regainReason;
-+    }
-+    private final AtomicBoolean heal$isFastRegen = new AtomicBoolean(false);
-+    public void pushHeal$isFastRegen(boolean isFastRegen) {
-+        this.heal$isFastRegen.set(isFastRegen);
-+    }
-+
      public void heal(float p_21116_) {
 +        p_21116_ = net.neoforged.neoforge.event.EventHooks.onLivingHeal(this, p_21116_);
 +        if (p_21116_ <= 0) return;
          float f = this.getHealth();
          if (f > 0.0F) {
--            this.setHealth(f + p_21116_);
-+            EntityRegainHealthEvent event = new EntityRegainHealthEvent(this.getBukkitEntity(), p_21116_, heal$regainReason, heal$isFastRegen.getAndSet(false));
-+            // Suppress during worldgen
-+            if (this.valid) {
-+                this.level().getCraftServer().getPluginManager().callEvent(event);
-+            }
-+            if (!event.isCancelled()) {
-+                this.setHealth((float) (f + event.getAmount()));
-+            }
-+            // CraftBukkit end
-         }
-+    }
-+
-+    public void heal(float f, RegainReason regainReason) {
-+        this.pushHealReason(regainReason);
-+        this.heal(f);
-+    }
-+
-+    public void heal(float f, RegainReason regainReason, boolean isFastRegen) {
-+        this.pushHealReason(regainReason);
-+        this.pushHeal$isFastRegen(isFastRegen);
-+        this.heal(f);
-     }
- 
-     public float getHealth() {
-+        // CraftBukkit start - Use unscaled health
-+        if (this instanceof ServerPlayer serverPlayer) {
-+            return (float) serverPlayer.getBukkitEntity().getHealth();
-+        }
-+        // CraftBukkit end
-         return this.entityData.get(DATA_HEALTH_ID);
-     }
- 
-+    public AtomicBoolean fake$setHealth = new AtomicBoolean(false);
-+    public void fake$setHealth(boolean fake) {
-+        fake$setHealth.set(fake);
-+    }
-     public void setHealth(float p_21154_) {
-+        if (fake$setHealth.getAndSet(false)) {
-+            return;
-+        }
-+        // Paper start - Check for NaN
-+        if (Float.isNaN(p_21154_)) { p_21154_ = getMaxHealth(); if (this.valid) {
-+            System.err.println("[NAN-HEALTH] " + getScoreboardName() + " had NaN health set");
-+        } } // Paper end - Check for NaN
-+        // CraftBukkit start - Handle scaled health
-+        if (this instanceof ServerPlayer serverPlayer) {
-+            CraftPlayer player = serverPlayer.getBukkitEntity();
-+            double realHealth = Mth.clamp(p_21154_, 0.0F, player.getMaxHealth());
-+            player.setRealHealth(realHealth);
-+            player.updateScaledHealth(false);
-+            return;
-+        }
-+        // CraftBukkit end
-         this.entityData.set(DATA_HEALTH_ID, Mth.clamp(p_21154_, 0.0F, this.getMaxHealth()));
-     }
- 
-@@ -1079,63 +_,142 @@
-         return this.getHealth() <= 0.0F;
-     }
- 
-+    // Pufferfish start - optimize suffocation
-+    public boolean couldPossiblyBeHurt(float amount) {
-+        if ((float) this.invulnerableTime > (float) this.invulnerableDuration / 2.0F && amount <= this.lastHurt) {
-+            return false;
-+        }
-+        return true;
-+    }
-+
-+    public boolean shouldCheckForSuffocation() {
-+        return !gg.pufferfish.pufferfish.PufferfishConfig.enableSuffocationOptimization || (tickCount % 10 == 0 && couldPossiblyBeHurt(1.0F));
-+    }
-+    // Pufferfish end
-+
-     @Override
-     public boolean hurt(DamageSource p_21016_, float p_21017_) {
-         if (this.isInvulnerableTo(p_21016_)) {
-             return false;
-         } else if (this.level().isClientSide) {
-             return false;
--        } else if (this.isDeadOrDying()) {
-+        } else if (this.isRemoved() || this.dead || this.isDeadOrDying()) { // CraftBukkit - Don't allow entities that got set to dead/killed elsewhere to get damaged and die
-             return false;
-         } else if (p_21016_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE)) {
+             this.setHealth(f + p_21116_);
+@@ -1153,11 +_,14 @@
+         } else if (p_376460_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE)) {
              return false;
          } else {
-+            this.damageContainers.push(new net.neoforged.neoforge.common.damagesource.DamageContainer(p_21016_, p_21017_));
-+            if (net.neoforged.neoforge.common.CommonHooks.onEntityIncomingDamage(this, this.damageContainers.peek())) {
-+                this.damageContainers.pop(); // Youer - fix stack leak on cancelled incoming damage (upstream 1.21.2+ fix)
-+                return false;
-+            }
-             if (this.isSleeping() && !this.level().isClientSide) {
++            this.damageContainers.push(new net.neoforged.neoforge.common.damagesource.DamageContainer(p_376460_, p_376610_));
++            if (net.neoforged.neoforge.common.CommonHooks.onEntityIncomingDamage(this, this.damageContainers.peek())) return false;
+             if (this.isSleeping()) {
                  this.stopSleeping();
              }
  
              this.noActionTime = 0;
-+            p_21017_ = this.damageContainers.peek().getNewDamage(); //Neo: enforce damage container as source of truth for damage amount
-+
-+            // Youer start
-+            bukkitEntityDamageEvent = BukkitDamageHooks.handleEntityDamage(this, p_21016_, p_21017_); // Transmits the mod's modified damage value to the Bukkit event
-+            if (bukkitEntityDamageEvent == null || bukkitEntityDamageEvent.isCancelled()) {
-+                this.damageContainers.pop();
-+                return false;
-+            }
-+            damageContainers.peek().setNewDamage((float) bukkitEntityDamageEvent.getDamage());
-+            p_21017_ = (float) bukkitEntityDamageEvent.getDamage();
-+            // Youer end
-+
-             float f = p_21017_;
-             boolean flag = false;
-             float f1 = 0.0F;
--            if (p_21017_ > 0.0F && this.isDamageSourceBlocked(p_21016_)) {
--                this.hurtCurrentlyUsedShield(p_21017_);
--                f1 = p_21017_;
--                p_21017_ = 0.0F;
--                if (!p_21016_.is(DamageTypeTags.IS_PROJECTILE) && p_21016_.getDirectEntity() instanceof LivingEntity livingentity) {
--                    this.blockUsingShield(livingentity);
-+            net.neoforged.neoforge.event.entity.living.LivingShieldBlockEvent ev;
-+            if (p_21017_ > 0.0F) {
-+                boolean originalBlocked = this.isDamageSourceBlocked(p_21016_);
-+                ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, this.damageContainers.peek(), originalBlocked);
-+                // Youer start - only override vanilla blocking when the plugin actually modified the BLOCKING modifier.
-+                // This keeps vanilla/neo-forge blocking intact (incl. non-player shields, which have no BLOCKING
-+                // modifier), respects state changes made during the bukkit event, and avoids the live-reference
-+                // mismatch between getBlockedDamage() and getOriginalBlockedDamage().
-+                if (bukkitEntityDamageEvent != null
-+                    && bukkitEntityDamageEvent.isApplicable(EntityDamageEvent.DamageModifier.BLOCKING)
-+                    && Math.abs(bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.BLOCKING) - bukkitEntityDamageEvent.getOriginalDamage(EntityDamageEvent.DamageModifier.BLOCKING)) >= Mth.EPSILON) {
-+                    float bukkit = -(float) bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.BLOCKING);
-+                    if (bukkit > 0.0F) {
-+                        ev.setBlocked(true);
-+                        ev.setBlockedDamage(bukkit);
-+                    } else {
-+                        ev.setBlocked(false);
-+                    }
-                 }
-+                // Youer end
-+                if (ev.getBlocked()) {
-+                    this.damageContainers.peek().setBlockedDamage(ev);
-+                    if (ev.shieldDamage() > 0) {
-+                        this.hurtCurrentlyUsedShield(ev.shieldDamage());
-+                    }
-+                    f1 = ev.getBlockedDamage();
-+                    ev.setBlockedDamage(-f1);
-+                    p_21017_ = ev.getDamageContainer().getNewDamage();
-+                    if (!p_21016_.is(DamageTypeTags.IS_PROJECTILE) && p_21016_.getDirectEntity() instanceof LivingEntity livingentity) {
-+                        this.blockUsingShield(livingentity);
-+                    }
- 
--                flag = true;
-+                    flag = p_21017_ <= 0;
-+                }
++            p_376610_ = this.damageContainers.peek().getNewDamage(); //Neo: enforce damage container as source of truth for damage amount
+             if (p_376610_ < 0.0F) {
+                 p_376610_ = 0.0F;
              }
- 
-             if (p_21016_.is(DamageTypeTags.IS_FREEZING) && this.getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
--                p_21017_ *= 5.0F;
-+                // Youer start - when the plugin modified the FREEZING modifier, apply the plugin value directly
-+                // instead of the vanilla x5 (the plain isStillOriginal check never matches here since current == base).
-+                if (bukkitEntityDamageEvent != null
-+                    && bukkitEntityDamageEvent.isApplicable(EntityDamageEvent.DamageModifier.FREEZING)
-+                    && Math.abs(bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.FREEZING) - (-4.0 * p_21017_)) >= Mth.EPSILON) {
-+                    p_21017_ = (float) (bukkitEntityDamageEvent.getDamage() + bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.FREEZING));
-+                } else {
-+                    p_21017_ = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.FREEZING, p_21017_);
-+                    p_21017_ *= 5.0F;
-+                }
-+                // Youer end
+@@ -1177,24 +_,28 @@
+             if (Float.isNaN(p_376610_) || Float.isInfinite(p_376610_)) {
+                 p_376610_ = Float.MAX_VALUE;
              }
++            this.damageContainers.peek().setNewDamage(p_376610_); //update container with vanilla changes
  
-             if (p_21016_.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
--                this.hurtHelmet(p_21016_, p_21017_);
--                p_21017_ *= 0.75F;
-+                // Youer start - same for HARD_HAT; expected value is -0.25x the damage after the freezing step
-+                if (bukkitEntityDamageEvent != null
-+                    && bukkitEntityDamageEvent.isApplicable(EntityDamageEvent.DamageModifier.HARD_HAT)
-+                    && Math.abs(bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.HARD_HAT) - (-0.25 * p_21017_)) >= Mth.EPSILON) {
-+                    p_21017_ = (float) (bukkitEntityDamageEvent.getDamage() + bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.HARD_HAT));
-+                    this.hurtHelmet(p_21016_, p_21017_);
-+                } else {
-+                    p_21017_ = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.HARD_HAT, p_21017_);
-+                    this.hurtHelmet(p_21016_, p_21017_);
-+                    p_21017_ *= 0.75F;
-+                }
-+                // Youer end
-             }
- 
-+            this.damageContainers.peek().setNewDamage(p_21017_); //update container with vanilla changes
-             this.walkAnimation.setSpeed(1.5F);
              boolean flag1 = true;
--            if ((float)this.invulnerableTime > 10.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
-+            if ((float) this.invulnerableTime > (float) this.invulnerableDuration / 2.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
-                 if (p_21017_ <= this.lastHurt) {
+             if (this.invulnerableTime > 10.0F && !p_376460_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
+                 if (p_376610_ <= this.lastHurt) {
 +                    this.damageContainers.pop();
                      return false;
                  }
  
 +                this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INVULNERABILITY, this.lastHurt);
-                 this.actuallyHurt(p_21016_, p_21017_ - this.lastHurt);
-                 this.lastHurt = p_21017_;
+                 this.actuallyHurt(p_376221_, p_376460_, p_376610_ - this.lastHurt);
+                 this.lastHurt = p_376610_;
                  flag1 = false;
              } else {
-                 this.lastHurt = p_21017_;
+                 this.lastHurt = p_376610_;
 -                this.invulnerableTime = 20;
 +                this.invulnerableTime = this.damageContainers.peek().getPostAttackInvulnerabilityTicks();
-                 this.actuallyHurt(p_21016_, p_21017_);
+                 this.actuallyHurt(p_376221_, p_376460_, p_376610_);
                  this.hurtDuration = 10;
                  this.hurtTime = this.hurtDuration;
              }
  
-+            p_21017_ = this.damageContainers.peek().getNewDamage(); //update local with container value
-             Entity entity = p_21016_.getEntity();
-             if (entity != null) {
-                 if (entity instanceof LivingEntity livingentity1
-@@ -1147,9 +_,9 @@
-                 if (entity instanceof Player player1) {
-                     this.lastHurtByPlayerTime = 100;
-                     this.lastHurtByPlayer = player1;
--                } else if (entity instanceof Wolf wolf && wolf.isTame()) {
-+                } else if (entity instanceof TamableAnimal tamableAnimal && tamableAnimal.isTame()) {
-                     this.lastHurtByPlayerTime = 100;
--                    if (wolf.getOwner() instanceof Player player) {
-+                    if (tamableAnimal.getOwner() instanceof Player player) {
-                         this.lastHurtByPlayer = player;
-                     } else {
-                         this.lastHurtByPlayer = null;
-@@ -1179,7 +_,8 @@
-                         d0 = p_21016_.getSourcePosition().x() - this.getX();
-                         d1 = p_21016_.getSourcePosition().z() - this.getZ();
-                     }
--
-+                    this.knockback$attacker = entity;
-+                    this.knockback$cause = (entity == null ? EntityKnockbackEvent.Cause.DAMAGE : EntityKnockbackEvent.Cause.ENTITY_ATTACK);
-                     this.knockback(0.4F, d0, d1);
-                     if (!flag) {
-                         this.indicateDamage(d0, d1);
-@@ -1189,11 +_,12 @@
- 
-             if (this.isDeadOrDying()) {
-                 if (!this.checkTotemDeathProtection(p_21016_)) {
--                    if (flag1) {
--                        this.makeSound(this.getDeathSound());
--                    }
-+                    // Paper start - moved into CraftEventFactory event caller for cancellable death event
-+                    this.silentDeath = !flag1; // mark entity as dying silently
-+                    // Paper end
- 
-                     this.die(p_21016_);
-+                    this.silentDeath = false; // Paper - cancellable death event - reset to default
-                 }
-             } else if (flag1) {
-                 this.playHurtSound(p_21016_);
-@@ -1220,6 +_,7 @@
-                 CriteriaTriggers.PLAYER_HURT_ENTITY.trigger((ServerPlayer)entity, this, p_21016_, f, p_21017_, flag);
++            p_376610_ = this.damageContainers.peek().getNewDamage(); //update local with container value
+             this.resolveMobResponsibleForDamage(p_376460_);
+             this.resolvePlayerResponsibleForDamage(p_376460_);
+             if (flag1) {
+@@ -1263,6 +_,7 @@
+                 CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverplayer1, this, p_376460_, p_376610_, p_376610_, flag);
              }
  
 +            this.damageContainers.pop();
              return flag2;
          }
      }
-@@ -1229,7 +_,7 @@
-     }
+@@ -1276,7 +_,7 @@
+                 return 0.0F;
+             } else {
+                 BlocksAttacks blocksattacks = itemstack.get(DataComponents.BLOCKS_ATTACKS);
+-                if (blocksattacks != null && !blocksattacks.bypassedBy().map(p_401067_::is).orElse(false)) {
++                if (blocksattacks != null) {
+                     if (p_401067_.getDirectEntity() instanceof AbstractArrow abstractarrow && abstractarrow.getPierceLevel() > 0) {
+                         return 0.0F;
+                     } else {
+@@ -1292,7 +_,14 @@
+                         }
  
-     protected void blockedByShield(LivingEntity p_21246_) {
--        p_21246_.knockback(0.5, p_21246_.getX() - this.getX(), p_21246_.getZ() - this.getZ());
-+        p_21246_.knockback(0.5, p_21246_.getX() - this.getX(), p_21246_.getZ() - this.getZ(), null, EntityKnockbackEvent.Cause.SHIELD_BLOCK); // CraftBukkit // Paper - fix attacker & knockback events
-     }
- 
-     private boolean checkTotemDeathProtection(DamageSource p_21263_) {
-@@ -1238,31 +_,49 @@
-         } else {
-             ItemStack itemstack = null;
- 
-+            // CraftBukkit start
-+            InteractionHand hand = null;
-+            ItemStack itemstack1 = ItemStack.EMPTY;
-             for (InteractionHand interactionhand : InteractionHand.values()) {
--                ItemStack itemstack1 = this.getItemInHand(interactionhand);
--                if (itemstack1.is(Items.TOTEM_OF_UNDYING)) {
-+                itemstack1 = this.getItemInHand(interactionhand);
-+                if (itemstack1.is(Items.TOTEM_OF_UNDYING) && CommonHooks.onLivingUseTotem(this, p_21263_, itemstack1, interactionhand)) {
-+                    hand = interactionhand; // CraftBukkit
-                     itemstack = itemstack1.copy();
-+                    // itemstack1.shrink(1); // CraftBukkit
-+                    break;
-+                }
-+            }
+                         float f = blocksattacks.resolveBlockedDamage(p_401067_, p_401377_, d0);
+-                        blocksattacks.hurtBlockingItem(this.level(), itemstack, this, this.getUsedItemHand(), f);
 +
-+            org.bukkit.inventory.EquipmentSlot handSlot = (hand != null) ? CraftEquipmentSlot.getHand(hand) : null;
-+            EntityResurrectEvent event = new EntityResurrectEvent((org.bukkit.entity.LivingEntity) this.getBukkitEntity(), handSlot);
-+            event.setCancelled(itemstack == null);
-+            this.level().getCraftServer().getPluginManager().callEvent(event);
-+            if (!event.isCancelled()) {
-+                if (!itemstack1.isEmpty() && itemstack != null) { // Paper - only reduce item if actual totem was found
++                        var ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, this.damageContainers.peek(), f, !blocksattacks.bypassedBy().map(p_401067_::is).orElse(false));
++                        if (!ev.getBlocked()) return 0.0F;
++
++                        f = ev.getBlockedDamage();
++                        this.damageContainers.peek().setBlockedDamage(ev);
++
++                        blocksattacks.hurtBlockingItem(this.level(), itemstack, this, this.getUsedItemHand(), f, ev.shieldDamage());
+                         if (!p_401067_.is(DamageTypeTags.IS_PROJECTILE) && p_401067_.getDirectEntity() instanceof LivingEntity livingentity) {
+                             this.blockUsingItem(p_401171_, livingentity);
+                         }
+@@ -1326,9 +_,9 @@
+         Entity entity = p_388609_.getEntity();
+         if (entity instanceof Player player) {
+             this.setLastHurtByPlayer(player, 100);
+-        } else if (entity instanceof Wolf wolf && wolf.isTame()) {
+-            if (wolf.getOwnerReference() != null) {
+-                this.setLastHurtByPlayer(wolf.getOwnerReference().getUUID(), 100);
++        } else if (entity instanceof TamableAnimal tamableAnimal && tamableAnimal.isTame()) {
++            if (tamableAnimal.getOwnerReference() != null) {
++                this.setLastHurtByPlayer(tamableAnimal.getOwnerReference().getUUID(), 100);
+             } else {
+                 this.lastHurtByPlayer = null;
+                 this.lastHurtByPlayerMemoryTime = 0;
+@@ -1356,7 +_,7 @@
+             for (InteractionHand interactionhand : InteractionHand.values()) {
+                 ItemStack itemstack1 = this.getItemInHand(interactionhand);
+                 deathprotection = itemstack1.get(DataComponents.DEATH_PROTECTION);
+-                if (deathprotection != null) {
++                if (deathprotection != null && net.neoforged.neoforge.common.CommonHooks.onLivingUseTotem(this, p_21263_, itemstack1, interactionhand)) {
+                     itemstack = itemstack1.copy();
                      itemstack1.shrink(1);
--                    break;
-                 }
--            }
--
--            if (itemstack != null) {
--                if (this instanceof ServerPlayer serverplayer) {
--                    serverplayer.awardStat(Stats.ITEM_USED.get(Items.TOTEM_OF_UNDYING));
-+                if (itemstack != null && this instanceof ServerPlayer serverplayer) {
-+                    // CraftBukkit end
-+                    serverplayer.awardStat(Stats.ITEM_USED.get(Items.TOTEM_OF_UNDYING), 1);
-                     CriteriaTriggers.USED_TOTEM.trigger(serverplayer, itemstack);
-                     this.gameEvent(GameEvent.ITEM_INTERACT_FINISH);
-                 }
- 
-                 this.setHealth(1.0F);
--                this.removeAllEffects();
-+                this.removeEffectsCuredBy(net.neoforged.neoforge.common.EffectCures.PROTECTED_BY_TOTEM);
-+                // CraftBukkit start
-+                this.removeAllEffects(EntityPotionEffectEvent.Cause.TOTEM);
-+                this.addEffectCause(EntityPotionEffectEvent.Cause.TOTEM);
-                 this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
-+                this.addEffectCause(EntityPotionEffectEvent.Cause.TOTEM);
-                 this.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
-+                this.addEffectCause(EntityPotionEffectEvent.Cause.TOTEM);
-                 this.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
-+                // CraftBukkit end
-                 this.level().broadcastEntityEvent(this, (byte)35);
-             }
- 
--            return itemstack != null;
-+            return !event.isCancelled();
-         }
-     }
- 
-@@ -1326,9 +_,11 @@
+                     break;
+@@ -1420,6 +_,7 @@
      }
  
      public void die(DamageSource p_21014_) {
-+        if (CommonHooks.onLivingDeath(this, p_21014_)) return;
++        if (net.neoforged.neoforge.common.CommonHooks.onLivingDeath(this, p_21014_)) return;
          if (!this.isRemoved() && !this.dead) {
              Entity entity = p_21014_.getEntity();
              LivingEntity livingentity = this.getKillCredit();
-+            /* // Paper - move down to make death event cancellable - this is the awardKillScore below
-             if (this.deathScore >= 0 && livingentity != null) {
-                 livingentity.awardKillScore(this, this.deathScore, p_21014_);
-             }
-@@ -1338,60 +_,143 @@
-             }
- 
-             if (!this.level().isClientSide && this.hasCustomName()) {
--                LOGGER.info("Named entity {} died: {}", this, this.getCombatTracker().getDeathMessage().getString());
-+                if (org.spigotmc.SpigotConfig.logNamedDeaths) LOGGER.info("Named entity {} died: {}", this, this.getCombatTracker().getDeathMessage().getString());
-             }
-+            */ // Paper - move down to make death event cancellable - this is the awardKillScore below
- 
-             this.dead = true;
--            this.getCombatTracker().recheckStatus();
-+            // Paper - moved into if below
-             if (this.level() instanceof ServerLevel serverlevel) {
--                if (entity == null || entity.killedEntity(serverlevel, this)) {
-+                // Paper - move below into if for onKill
-+
-+                // Paper start
-+                this.dropAllDeathLoot(serverlevel, p_21014_);
-+                if (deathEvent == null || !deathEvent.isCancelled()) {
-+                    // if (this.deathScore >= 0 && entityliving != null) { // Paper - Fix item duplication and teleport issues; moved to be run earlier in #dropAllDeathLoot before destroying the drop items in CraftEventFactory#callEntityDeathEvent
-+                    //     entityliving.awardKillScore(this, this.deathScore, damageSource);
-+                    // }
-+                    // Paper start - clear equipment if event is not cancelled
-+                    if (this instanceof Mob) {
-+                        for (EquipmentSlot slot : this.clearedEquipmentSlots) {
-+                            this.setItemSlot(slot, ItemStack.EMPTY);
-+                        }
-+                        this.clearedEquipmentSlots.clear();
-+                    }
-+                    // Paper end
-+
-+                    if (this.isSleeping()) {
-+                        this.stopSleeping();
-+                    }
-+
-+                    if (!this.level().isClientSide && this.hasCustomName()) {
-+                        if (SpigotConfig.logNamedDeaths) LivingEntity.LOGGER.info("Named entity {} died: {}", this, this.getCombatTracker().getDeathMessage().getString()); // Spigot
-+                    }
-+
-+                    this.getCombatTracker().recheckStatus();
-+                    if (entity != null) {
-+                        entity.killedEntity((ServerLevel) this.level(), this);
-+                    }
-                     this.gameEvent(GameEvent.ENTITY_DIE);
--                    this.dropAllDeathLoot(serverlevel, p_21014_);
--                    this.createWitherRose(livingentity);
-+                } else {
-+                    this.dead = false;
-+                    this.setHealth((float) deathEvent.getReviveHealth());
-                 }
--
--                this.level().broadcastEntityEvent(this, (byte)3);
--            }
--
--            this.setPose(Pose.DYING);
-+                // Paper end
-+                this.createWitherRose(livingentity);
-+            }
-+
-+            // Paper start
-+            if (this.dead) { // Paper
-+                this.level().broadcastEntityEvent(this, (byte) 3);
-+
-+                this.setPose(Pose.DYING);
-+            }
-+            // Paper end
-         }
-     }
- 
-     protected void createWitherRose(@Nullable LivingEntity p_21269_) {
-         if (!this.level().isClientSide) {
+@@ -1455,7 +_,7 @@
+         if (this.level() instanceof ServerLevel serverlevel) {
              boolean flag = false;
--            if (p_21269_ instanceof WitherBoss) {
--                if (this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+            if (this.dead && p_21269_ instanceof WitherBoss) {
-+                if (EventHooks.canEntityGrief(this.level(), p_21269_)) {
+             if (p_21269_ instanceof WitherBoss) {
+-                if (serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
++                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, p_21269_)) {
                      BlockPos blockpos = this.blockPosition();
                      BlockState blockstate = Blocks.WITHER_ROSE.defaultBlockState();
                      if (this.level().getBlockState(blockpos).isAir() && blockstate.canSurvive(this.level(), blockpos)) {
--                        this.level().setBlock(blockpos, blockstate, 3);
--                        flag = true;
-+                        // CraftBukkit start - call EntityBlockFormEvent for Wither Rose
-+                        flag = CraftEventFactory.handleBlockFormEvent(this.level(), blockpos, blockstate, 3, this);
-+                        // CraftBukkit end
-                     }
-                 }
- 
-                 if (!flag) {
-                     ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), new ItemStack(Items.WITHER_ROSE));
-+
-+                    // CraftBukkit start
-+                    EntityDropItemEvent event = new EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) itementity.getBukkitEntity());
-+                    CraftEventFactory.callEvent(event);
-+                    if (event.isCancelled()) {
-+                        return;
-+                    }
-+                    // CraftBukkit end
-                     this.level().addFreshEntity(itementity);
-                 }
-             }
-         }
+@@ -1473,6 +_,7 @@
      }
  
-+    protected AtomicBoolean shouldDropExperience = new AtomicBoolean(true);
-+    // Paper start
-+    protected boolean clearEquipmentSlots = true;
-+    protected Set<EquipmentSlot> clearedEquipmentSlots = new HashSet<>();
-+    protected EntityDeathEvent deathEvent = null;
      protected void dropAllDeathLoot(ServerLevel p_348524_, DamageSource p_21192_) {
-+        this.captureDrops(new ArrayList<>());
-         boolean flag = this.lastHurtByPlayerTime > 0;
--        if (this.shouldDropLoot() && p_348524_.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
-+        this.dropEquipment(); // CraftBukkit - from below
-+        if (this.shouldDropLoot() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
-             this.dropFromLootTable(p_21192_, flag);
-+            // Paper start
-+            final boolean prev = this.clearEquipmentSlots;
-+            this.clearEquipmentSlots = false;
-+            this.clearedEquipmentSlots.clear();
-+            // Paper end
-             this.dropCustomDeathLoot(p_348524_, p_21192_, flag);
-+            this.clearEquipmentSlots = prev; // Paper
-         }
++        this.captureDrops(new java.util.ArrayList<>());
+         boolean flag = this.lastHurtByPlayerMemoryTime > 0;
+         if (this.shouldDropLoot() && p_348524_.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
+             this.dropFromLootTable(p_348524_, p_21192_, flag);
+@@ -1481,6 +_,10 @@
  
--        this.dropEquipment();
--        this.dropExperience(p_21192_.getEntity());
+         this.dropEquipment(p_348524_);
+         this.dropExperience(p_348524_, p_21192_.getEntity());
++
 +        Collection<ItemEntity> drops = captureDrops(null);
-+        EmeraldClose.init(this, drops); // Mohist
-+        deathEvent = CraftEventFactory.callEntityDeathEvent(this, p_21192_, drops, new Runnable() {
-+            @Override
-+            public void run() {
-+                final LivingEntity entityliving = LivingEntity.this.getKillCredit();
-+                if (LivingEntity.this.deathScore >= 0 && entityliving != null) {
-+                    entityliving.awardKillScore(LivingEntity.this, LivingEntity.this.deathScore, p_21192_);
-+                }
-+            }
-+        }); // Paper end
-+        this.postDeathDropItems(deathEvent); // Paper
-+        if (!(this instanceof ServerPlayer)) {
-+            drops = ItemEntityTools.convertDrops(deathEvent, this);
-+        }
-+        if (!CommonHooks.onLivingDrops(this, p_21192_, drops, lastHurtByPlayerTime > 0))
++        if (!net.neoforged.neoforge.common.CommonHooks.onLivingDrops(this, p_21192_, drops, lastHurtByPlayerMemoryTime > 0))
 +            drops.forEach(e -> level().addFreshEntity(e));
-+        if (this instanceof ServerPlayer) {
-+            if (shouldDropExperience.getAndSet(true)) {
-+                this.dropExperience(p_21192_.getEntity());
-+            }
-+        } else {
-+            this.dropExperience(p_21192_.getEntity());
-+        }
      }
  
-     protected void dropEquipment() {
-     }
- 
-+    protected void postDeathDropItems(EntityDeathEvent event) {} // Paper - method for post death logic that cannot be ran before the event is potentially cancelled
-+
-+
-     protected void dropExperience(@Nullable Entity p_345346_) {
-         if (this.level() instanceof ServerLevel serverlevel
-             && !this.wasExperienceConsumed()
-@@ -1399,7 +_,9 @@
+     protected void dropEquipment(ServerLevel p_376330_) {
+@@ -1492,7 +_,8 @@
                  this.isAlwaysExperienceDropper()
-                     || this.lastHurtByPlayerTime > 0 && this.shouldDropExperience() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)
+                     || this.lastHurtByPlayerMemoryTime > 0 && this.shouldDropExperience() && p_376909_.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)
              )) {
--            ExperienceOrb.award(serverlevel, this.position(), this.getExperienceReward(serverlevel, p_345346_));
-+            int reward = EventHooks.getExperienceDrop(this, this.lastHurtByPlayer, expToDrop);
-+            ExperienceOrb.awardPaper(this instanceof ServerPlayer ? org.bukkit.entity.ExperienceOrb.SpawnReason.PLAYER_DEATH : org.bukkit.entity.ExperienceOrb.SpawnReason.ENTITY_DEATH, p_345346_, this); // Paper
+-            ExperienceOrb.award(p_376909_, this.position(), this.getExperienceReward(p_376909_, p_345346_));
++            int reward = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, this.getLastHurtByPlayer(), this.getExperienceReward(p_376909_, p_345346_));
 +            ExperienceOrb.award((ServerLevel) this.level(), this.position(), reward);
          }
      }
  
-@@ -1439,10 +_,17 @@
-         loottable.getRandomItems(lootparams, this.getLootTableSeed(), this::spawnAtLocation);
+@@ -1573,6 +_,11 @@
      }
  
-+    public EntityKnockbackEvent.Cause knockback$cause = EntityKnockbackEvent.Cause.UNKNOWN;
-+    public Entity knockback$attacker = null;
      public void knockback(double p_147241_, double p_147242_, double p_147243_) {
-+        LivingKnockBackEvent event = CommonHooks.onLivingKnockBack(this, (float) p_147241_, p_147242_, p_147243_);
++        net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent event = net.neoforged.neoforge.common.CommonHooks.onLivingKnockBack(this, (float) p_147241_, p_147242_, p_147243_);
 +        if(event.isCanceled()) return;
 +        p_147241_ = event.getStrength();
 +        p_147242_ = event.getRatioX();
 +        p_147243_ = event.getRatioZ();
          p_147241_ *= 1.0 - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
          if (!(p_147241_ <= 0.0)) {
--            this.hasImpulse = true;
-+            //this.hasImpulse = true; // CraftBukkit - Move down
-             Vec3 vec3 = this.getDeltaMovement();
- 
-             while (p_147242_ * p_147242_ + p_147243_ * p_147243_ < 1.0E-5F) {
-@@ -1451,8 +_,24 @@
-             }
- 
-             Vec3 vec31 = new Vec3(p_147242_, 0.0, p_147243_).normalize().scale(p_147241_);
--            this.setDeltaMovement(vec3.x / 2.0 - vec31.x, this.onGround() ? Math.min(0.4, vec3.y / 2.0 + p_147241_) : vec3.y, vec3.z / 2.0 - vec31.z);
-+            // Paper start - knockback events
-+            Vec3 finalVelocity = new Vec3(vec3.x / 2.0D - vec31.x, this.onGround() ? Math.min(0.4D, vec3.y / 2.0D + p_147241_) : vec3.y, vec3.z / 2.0D - vec31.z);
-+            Vec3 diff = finalVelocity.subtract(vec3);
-+            EntityKnockbackEvent eventCB = CraftEventFactory.callEntityKnockbackEvent((CraftLivingEntity) this.getBukkitEntity(), knockback$attacker, knockback$attacker, knockback$cause, p_147241_, diff);
-+            // Paper end - knockback events
-+            if (eventCB.isCancelled()) {
-+                return;
-+            }
-+            this.hasImpulse = true;
-+            this.setDeltaMovement(vec3.add(eventCB.getKnockback().getX(), eventCB.getKnockback().getY(), eventCB.getKnockback().getZ())); // Paper - knockback events
-+            // CraftBukkit end
-         }
-+    }
-+
-+    public void knockback(double p_147241_, double p_147242_, double p_147243_, Entity attacker, EntityKnockbackEvent.Cause cause) {
-+        this.knockback$attacker = attacker;
-+        this.knockback$cause = cause;
-+        knockback(p_147241_, p_147242_, p_147243_);
-     }
- 
-     public void indicateDamage(double p_270514_, double p_270826_) {
-@@ -1464,7 +_,7 @@
-     }
- 
-     @Nullable
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.GENERIC_DEATH;
-     }
- 
-@@ -1511,25 +_,54 @@
-         return p_21202_.getEatingSound();
-     }
- 
-+    // CraftBukkit start - Add delegate methods
-+    public SoundEvent getHurtSound0(DamageSource damagesource) {
-+        return getHurtSound(damagesource);
-+    }
-+
-+    public SoundEvent getDeathSound0() {
-+        return getDeathSound();
-+    }
-+
-+    public SoundEvent getFallDamageSound0(int fallHeight) {
-+        return getFallDamageSound(fallHeight);
-+    }
-+
-+    public SoundEvent getDrinkingSound0(ItemStack itemstack) {
-+        return getDrinkingSound(itemstack);
-+    }
-+
-+    public SoundEvent getEatingSound0(ItemStack itemstack) {
-+        return getEatingSound(itemstack);
-+    }
-+    // CraftBukkit end
-+
-     public Optional<BlockPos> getLastClimbablePos() {
-         return this.lastClimbablePos;
-     }
- 
-+    // Pufferfish start
-+    private boolean cachedOnClimable = false;
-+    private BlockPos lastClimbingPosition = null;
-+
-+    public boolean onClimableCached() {
-+        if (!this.blockPosition().equals(this.lastClimbingPosition)) {
-+            this.cachedOnClimable = this.onClimbable();
-+            this.lastClimbingPosition = this.blockPosition();
-+        }
-+        return this.cachedOnClimable;
-+    }
-+    // Pufferfish end
-+
-     public boolean onClimbable() {
-         if (this.isSpectator()) {
-             return false;
+             this.hasImpulse = true;
+@@ -1646,15 +_,9 @@
          } else {
              BlockPos blockpos = this.blockPosition();
              BlockState blockstate = this.getInBlockState();
@@ -1349,40 +368,19 @@
          }
      }
  
-@@ -1544,7 +_,7 @@
+@@ -1700,6 +_,11 @@
  
      @Override
-     public boolean isAlive() {
--        return !this.isRemoved() && this.getHealth() > 0.0F;
-+        return !this.isRemoved() && (this.entityData != null && this.getHealth() > 0.0F) && !this.dead; // Paper - Check this.dead
-     }
- 
-     @Override
-@@ -1558,12 +_,22 @@
- 
-     @Override
-     public boolean causeFallDamage(float p_147187_, float p_147188_, DamageSource p_147189_) {
-+        float[] ret = net.neoforged.neoforge.common.CommonHooks.onLivingFall(this, p_147187_, p_147188_);
-+        if (ret == null) return false;
-+        p_147187_ = ret[0];
-+        p_147188_ = ret[1];
+     public boolean causeFallDamage(double p_397597_, float p_147187_, DamageSource p_147189_) {
++        var event = net.neoforged.neoforge.common.CommonHooks.onLivingFall(this, p_397597_, p_147187_);
++        if (event.isCanceled()) return false;
++        p_397597_ = event.getDistance();
++        p_147187_ = event.getDamageMultiplier();
 +
-         boolean flag = super.causeFallDamage(p_147187_, p_147188_, p_147189_);
-         int i = this.calculateFallDamage(p_147187_, p_147188_);
+         boolean flag = super.causeFallDamage(p_397597_, p_147187_, p_147189_);
+         int i = this.calculateFallDamage(p_397597_, p_147187_);
          if (i > 0) {
-+            // CraftBukkit start
-+            if (!this.hurt(p_147189_, (float) i)) {
-+                return true;
-+            }
-+            // CraftBukkit end
-             this.playSound(this.getFallDamageSound(i), 1.0F, 1.0F);
-             this.playBlockFallSound();
--            this.hurt(p_147189_, (float)i);
-+            // this.hurt(p_147189_, (float)i); // CraftBukkit - moved up
-             return true;
-         } else {
-             return flag;
-@@ -1585,9 +_,10 @@
+@@ -1730,10 +_,10 @@
              int i = Mth.floor(this.getX());
              int j = Mth.floor(this.getY() - 0.2F);
              int k = Mth.floor(this.getZ());
@@ -1391,11 +389,12 @@
 +            BlockState blockstate = this.level().getBlockState(pos);
              if (!blockstate.isAir()) {
 -                SoundType soundtype = blockstate.getSoundType();
-+                SoundType soundtype = blockstate.getSoundType(level(), pos, this);
-                 this.playSound(soundtype.getFallSound(), soundtype.getVolume() * 0.5F, soundtype.getPitch() * 0.75F);
+-                this.playSound(soundtype.getFallSound(), soundtype.getVolume() * 0.5F, soundtype.getPitch() * 0.75F);
++                blockstate.playFallSound(this.level(), pos, this);
              }
          }
-@@ -1616,6 +_,8 @@
+     }
+@@ -1758,6 +_,8 @@
          if (!(p_330394_ <= 0.0F)) {
              int i = (int)Math.max(1.0F, p_330394_ / 4.0F);
  
@@ -1403,53 +402,16 @@
 +            if (true) return; //Neo: Invalidates the loop. Armor damage happens in common hook.
              for (EquipmentSlot equipmentslot : p_331314_) {
                  ItemStack itemstack = this.getItemBySlot(equipmentslot);
-                 if (itemstack.getItem() instanceof ArmorItem && itemstack.canBeHurtBy(p_330843_)) {
-@@ -1625,9 +_,10 @@
-         }
-     }
- 
--    protected float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
-+    public AtomicBoolean calDamageEvent = new AtomicBoolean(false);
-+    public float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
-         if (!p_21162_.is(DamageTypeTags.BYPASSES_ARMOR)) {
--            this.hurtArmor(p_21162_, p_21163_);
-+            if (!calDamageEvent.getAndSet(false)) this.hurtArmor(p_21162_, p_21163_);
-             p_21163_ = CombatRules.getDamageAfterAbsorb(
-                 this, p_21163_, p_21162_, (float)this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
-             );
-@@ -1636,7 +_,19 @@
-         return p_21163_;
-     }
- 
--    protected float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) {
-+    protected float applyBukkitDamageModifier(EntityDamageEvent.DamageModifier modifier, float currentDamage) { // Youer - protected so Player.actuallyHurt can apply modifiers
-+        if (bukkitEntityDamageEvent != null && bukkitEntityDamageEvent.isApplicable(modifier)) {
-+            double baseDamage = bukkitEntityDamageEvent.getDamage();
-+            if (bukkitEntityDamageEvent.isStillOriginal(modifier, baseDamage, currentDamage)) {
-+                return (float) (baseDamage + bukkitEntityDamageEvent.getDamage(modifier));
-+            } else {
-+                return (float) (baseDamage + (currentDamage - baseDamage));
-+            }
-+        }
-+        return currentDamage;
-+    }
-+
-+    public float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) {
-         if (p_21193_.is(DamageTypeTags.BYPASSES_EFFECTS)) {
-             return p_21194_;
-         } else {
-@@ -1646,8 +_,10 @@
-                 float f = p_21194_ * (float)j;
-                 float f1 = p_21194_;
+                 Equippable equippable = itemstack.get(DataComponents.EQUIPPABLE);
+@@ -1791,6 +_,7 @@
                  p_21194_ = Math.max(f / 25.0F, 0.0F);
-+                p_21194_ = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.RESISTANCE, p_21194_);
                  float f2 = f1 - p_21194_;
                  if (f2 > 0.0F && f2 < 3.4028235E37F) {
 +                    this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.MOB_EFFECTS, f2);
                      if (this instanceof ServerPlayer) {
                          ((ServerPlayer)this).awardStat(Stats.DAMAGE_RESISTED, Math.round(f2 * 10.0F));
                      } else if (p_21193_.getEntity() instanceof ServerPlayer) {
-@@ -1670,6 +_,7 @@
+@@ -1813,6 +_,7 @@
  
                  if (f3 > 0.0F) {
                      p_21194_ = CombatRules.getDamageAfterMagicAbsorb(p_21194_, f3);
@@ -1457,39 +419,27 @@
                  }
  
                  return p_21194_;
-@@ -1679,11 +_,26 @@
+@@ -1822,11 +_,14 @@
  
-     protected void actuallyHurt(DamageSource p_21240_, float p_21241_) {
-         if (!this.isInvulnerableTo(p_21240_)) {
+     protected void actuallyHurt(ServerLevel p_376745_, DamageSource p_21240_, float p_21241_) {
+         if (!this.isInvulnerableTo(p_376745_, p_21240_)) {
 -            p_21241_ = this.getDamageAfterArmorAbsorb(p_21240_, p_21241_);
 -            p_21241_ = this.getDamageAfterMagicAbsorb(p_21240_, p_21241_);
 -            float f1 = Math.max(p_21241_ - this.getAbsorptionAmount(), 0.0F);
 -            this.setAbsorptionAmount(this.getAbsorptionAmount() - (p_21241_ - f1));
 -            float f = p_21241_ - f1;
-+            float armorAbsorb = this.getDamageAfterArmorAbsorb(p_21240_, this.damageContainers.peek().getNewDamage());
-+            armorAbsorb = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.ARMOR, armorAbsorb);
-+            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - armorAbsorb);
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - this.getDamageAfterArmorAbsorb(p_21240_, this.damageContainers.peek().getNewDamage()));
 +            this.getDamageAfterMagicAbsorb(p_21240_, this.damageContainers.peek().getNewDamage());
-+            // Youer start - apply MAGIC modifier (enchantment + effect reduction step)
-+            this.damageContainers.peek().setNewDamage(applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.MAGIC, this.damageContainers.peek().getNewDamage()));
-+            // Youer end
-+            // Youer start - clamp negative damage (plugin/mod may set a negative value, which would otherwise
-+            // refund absorption and heal the entity instead of damaging it)
-+            float damage = Math.max(net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek()), 0.0F);
-+            this.damageContainers.peek().setNewDamage(damage);
-+            // Youer end
++            float damage = net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek());
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION, Math.min(this.getAbsorptionAmount(), damage));
 +            float absorbed = Math.min(damage, this.damageContainers.peek().getReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION));
 +            this.setAbsorptionAmount(Math.max(0, this.getAbsorptionAmount() - absorbed));
-+            // Youer start - apply ABSORPTION modifier on the post-absorption damage, clamped to avoid healing
-+            float f1 = Math.max(applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.ABSORPTION, this.damageContainers.peek().getNewDamage()), 0.0F);
-+            this.damageContainers.peek().setNewDamage(f1);
-+            // Youer end
++            float f1 = this.damageContainers.peek().getNewDamage();
 +            float f = absorbed;
              if (f > 0.0F && f < 3.4028235E37F && p_21240_.getEntity() instanceof ServerPlayer serverplayer) {
                  serverplayer.awardStat(Stats.DAMAGE_DEALT_ABSORBED, Math.round(f * 10.0F));
              }
-@@ -1691,9 +_,10 @@
+@@ -1834,9 +_,10 @@
              if (f1 != 0.0F) {
                  this.getCombatTracker().recordDamage(p_21240_, f1);
                  this.setHealth(this.getHealth() - f1);
@@ -1501,33 +451,7 @@
          }
      }
  
-@@ -1722,10 +_,25 @@
-         return this.entityData.get(DATA_ARROW_COUNT_ID);
-     }
- 
-+
-+    private final AtomicBoolean setArrowCount$flag = new AtomicBoolean(false);
-+    public void setArrowCount$flag(boolean flag) {
-+        this.setArrowCount$flag.set(flag);
-+    }
-     public final void setArrowCount(int p_21318_) {
-+        ArrowBodyCountChangeEvent event = CraftEventFactory.callArrowBodyCountChangeEvent(this, getArrowCount(), p_21318_, setArrowCount$flag.getAndSet(false));
-+        if (event.isCancelled()) {
-+            return;
-+        }
-         this.entityData.set(DATA_ARROW_COUNT_ID, p_21318_);
-     }
- 
-+    public final void setArrowCount(int i, boolean flag) {
-+        this.setArrowCount$flag(flag);
-+        this.setArrowCount(i);
-+    }
-+    // CraftBukkit end
-+
-     public final int getStingerCount() {
-         return this.entityData.get(DATA_STINGER_COUNT_ID);
-     }
-@@ -1747,6 +_,8 @@
+@@ -1890,6 +_,8 @@
      }
  
      public void swing(InteractionHand p_21012_, boolean p_21013_) {
@@ -1536,7 +460,7 @@
          if (!this.swinging || this.swingTime >= this.getCurrentSwingDuration() / 2 || this.swingTime < 0) {
              this.swingTime = -1;
              this.swinging = true;
-@@ -1859,13 +_,15 @@
+@@ -2014,8 +_,10 @@
  
      private void swapHandItems() {
          ItemStack itemstack = this.getItemBySlot(EquipmentSlot.OFFHAND);
@@ -1549,60 +473,7 @@
      }
  
      @Override
-     protected void onBelowWorld() {
--        this.hurt(this.damageSources().fellOutOfWorld(), 4.0F);
-+        this.hurt(this.damageSources().fellOutOfWorld(), this.level().getWorld().getVoidDamageAmount()); // Paper - use configured void damage amount
-     }
- 
-     protected void updateSwingTime() {
-@@ -1956,6 +_,12 @@
- 
-     public abstract ItemStack getItemBySlot(EquipmentSlot p_21127_);
- 
-+    // CraftBukkit start
-+    public void setItemSlot(EquipmentSlot enumitemslot, ItemStack itemstack, boolean silent) {
-+        this.setItemSlot(enumitemslot, itemstack);
-+    }
-+    // CraftBukkit end
-+
-     public abstract void setItemSlot(EquipmentSlot p_21036_, ItemStack p_21037_);
- 
-     public Iterable<ItemStack> getHandSlots() {
-@@ -2000,7 +_,7 @@
-         }
-     }
- 
--    protected float getSoundVolume() {
-+    public float getSoundVolume() {
-         return 1.0F;
-     }
- 
-@@ -2052,27 +_,43 @@
-         return this.hasEffect(MobEffects.JUMP) ? 0.1F * ((float)this.getEffect(MobEffects.JUMP).getAmplifier() + 1.0F) : 0.0F;
-     }
- 
-+    protected long lastJumpTime = 0L; // Paper - Prevent excessive velocity through repeated crits
-     @VisibleForTesting
-     public void jumpFromGround() {
-         float f = this.getJumpPower();
-         if (!(f <= 1.0E-5F)) {
-             Vec3 vec3 = this.getDeltaMovement();
-+            // Paper start - Prevent excessive velocity through repeated crits
-+            long time = System.nanoTime();
-+            boolean canCrit = true;
-+            if (this instanceof Player) {
-+                canCrit = false;
-+                if (time - this.lastJumpTime > (long)(0.250e9)) {
-+                    this.lastJumpTime = time;
-+                    canCrit = true;
-+                }
-+            }
-+            // Paper end - Prevent excessive velocity through repeated crits
-             this.setDeltaMovement(vec3.x, (double)f, vec3.z);
-             if (this.isSprinting()) {
-                 float f1 = this.getYRot() * (float) (Math.PI / 180.0);
-+                if (canCrit) // Paper - Prevent excessive velocity through repeated crits
-                 this.addDeltaMovement(new Vec3((double)(-Mth.sin(f1)) * 0.2, 0.0, (double)Mth.cos(f1) * 0.2));
+@@ -2221,15 +_,18 @@
              }
  
              this.hasImpulse = true;
@@ -1623,47 +494,56 @@
      }
  
      protected float getWaterSlowDown() {
-@@ -2097,7 +_,8 @@
+@@ -2252,7 +_,8 @@
+ 
+     public void travel(Vec3 p_21280_) {
+         FluidState fluidstate = this.level().getFluidState(this.blockPosition());
+-        if ((this.isInWater() || this.isInLava()) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
++        // Neo: Call (patched-in overload of) #travelInFluid for custom fluid types
++        if ((this.isInWater() || this.isInLava() || this.isInFluidType(fluidstate)) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
+             this.travelInFluid(p_21280_);
+         } else if (this.isFallFlying()) {
+             this.travelFallFlying(p_21280_);
+@@ -2283,7 +_,7 @@
+ 
+     private void travelInAir(Vec3 p_362457_) {
+         BlockPos blockpos = this.getBlockPosBelowThatAffectsMyMovement();
+-        float f = this.onGround() ? this.level().getBlockState(blockpos).getBlock().getFriction() : 1.0F;
++        float f = this.onGround() ? this.level().getBlockState(blockpos).getFriction(this.level(), blockpos, this) : 1.0F;
+         float f1 = f * 0.91F;
+         Vec3 vec3 = this.handleRelativeFrictionAndCalculateMovement(p_362457_, f);
+         double d0 = vec3.y;
+@@ -2306,11 +_,20 @@
+         }
+     }
+ 
++    /**
++     * @deprecated Neo: use {@link #travelInFluid(Vec3, FluidState)} instead
++     */
++    @Deprecated
+     private void travelInFluid(Vec3 p_365480_) {
++        travelInFluid(p_365480_, net.minecraft.world.level.material.Fluids.EMPTY.defaultFluidState());
++    }
++
++    private void travelInFluid(Vec3 p_365480_, FluidState fluidState) {
+         boolean flag = this.getDeltaMovement().y <= 0.0;
+         double d0 = this.getY();
+         double d1 = this.getEffectiveGravity();
+-        if (this.isInWater()) {
++        // Neo: patched in to use the fluid the eye is in because fluidState is always EMPTY fluid.
++        if (this.isInWater() || (this.isInFluidType(this.getEyeInFluidType()) && !this.moveInFluid(this.level().getFluidState(BlockPos.containing(this.getEyePosition())), p_365480_, d1))) {
+             float f = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
+             float f1 = 0.02F;
+             float f2 = (float)this.getAttributeValue(Attributes.WATER_MOVEMENT_EFFICIENCY);
+@@ -2327,6 +_,7 @@
+                 f = 0.96F;
              }
  
-             FluidState fluidstate = this.level().getFluidState(this.blockPosition());
--            if (this.isInWater() && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
-+            if ((this.isInWater() || (this.isInFluidType(fluidstate) && fluidstate.getFluidType() != net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value())) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
-+                if (this.isInWater() || (this.isInFluidType(fluidstate) && !this.moveInFluid(fluidstate, p_21280_, d0))) {
-                 double d9 = this.getY();
-                 float f4 = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
-                 float f5 = 0.02F;
-@@ -2115,6 +_,7 @@
-                     f4 = 0.96F;
-                 }
- 
-+                f5 *= (float)this.getAttributeValue(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED);
-                 this.moveRelative(f5, p_21280_);
-                 this.move(MoverType.SELF, this.getDeltaMovement());
-                 Vec3 vec36 = this.getDeltaMovement();
-@@ -2128,6 +_,7 @@
-                 if (this.horizontalCollision && this.isFree(vec32.x, vec32.y + 0.6F - this.getY() + d9, vec32.z)) {
-                     this.setDeltaMovement(vec32.x, 0.3F, vec32.z);
-                 }
-+                }
-             } else if (this.isInLava() && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
-                 double d8 = this.getY();
-                 this.moveRelative(0.02F, p_21280_);
-@@ -2186,11 +_,12 @@
-                 }
- 
-                 if (this.onGround() && !this.level().isClientSide) {
-+                    if (getSharedFlag(7) && !CraftEventFactory.callToggleGlideEvent(this, false).isCancelled()) // CraftBukkit
-                     this.setSharedFlag(7, false);
-                 }
-             } else {
-                 BlockPos blockpos = this.getBlockPosBelowThatAffectsMyMovement();
--                float f2 = this.level().getBlockState(blockpos).getBlock().getFriction();
-+                float f2 = this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getFriction(level(), this.getBlockPosBelowThatAffectsMyMovement(), this);
-                 float f3 = this.onGround() ? f2 * 0.91F : 0.91F;
-                 Vec3 vec35 = this.handleRelativeFrictionAndCalculateMovement(p_21280_, f2);
-                 double d2 = vec35.y;
-@@ -2284,7 +_,7 @@
++            f1 *= (float)this.getAttributeValue(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED);
+             this.moveRelative(f1, p_365480_);
+             this.move(MoverType.SELF, this.getDeltaMovement());
+             Vec3 vec3 = this.getDeltaMovement();
+@@ -2485,7 +_,7 @@
              double d0 = Mth.clamp(p_21298_.x, -0.15F, 0.15F);
              double d1 = Mth.clamp(p_21298_.z, -0.15F, 0.15F);
              double d2 = Math.max(p_21298_.y, -0.15F);
@@ -1672,43 +552,16 @@
                  d2 = 0.0;
              }
  
-@@ -2444,6 +_,10 @@
-         }
-     }
- 
-+    public void detectEquipmentUpdatesPublic() { // CraftBukkit
-+        this.detectEquipmentUpdates();
-+    }
-+
-     public void detectEquipmentUpdates() {
-         Map<EquipmentSlot, ItemStack> map = this.collectEquipmentChanges();
-         if (map != null) {
-@@ -2466,6 +_,14 @@
-             };
+@@ -2649,6 +_,7 @@
+             ItemStack itemstack = this.lastEquipmentItems.get(equipmentslot);
              ItemStack itemstack1 = this.getItemBySlot(equipmentslot);
              if (this.equipmentHasChanged(itemstack, itemstack1)) {
-+                // Paper start - PlayerArmorChangeEvent
-+                if (this instanceof ServerPlayer && equipmentslot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
-+                    final org.bukkit.inventory.ItemStack oldItem = CraftItemStack.asBukkitCopy(itemstack);
-+                    final org.bukkit.inventory.ItemStack newItem = CraftItemStack.asBukkitCopy(itemstack1);
-+                    new PlayerArmorChangeEvent((org.bukkit.entity.Player) this.getBukkitEntity(), PlayerArmorChangeEvent.SlotType.valueOf(equipmentslot.name()), oldItem, newItem).callEvent();
-+                }
-+                // Paper end - PlayerArmorChangeEvent
-+                NeoForge.EVENT_BUS.post(new LivingEquipmentChangeEvent(this, equipmentslot, itemstack, itemstack1));
++                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent(this, equipmentslot, itemstack, itemstack1));
                  if (map == null) {
                      map = Maps.newEnumMap(EquipmentSlot.class);
                  }
-@@ -2543,7 +_,7 @@
-                     this.lastBodyItemStack = itemstack;
-             }
-         });
--        ((ServerLevel)this.level()).getChunkSource().broadcast(this, new ClientboundSetEquipmentPacket(this.getId(), list));
-+        ((ServerLevel)this.level()).getChunkSource().broadcast(this, new ClientboundSetEquipmentPacket(this.getId(), list, true)); // Paper - data sanitization
-     }
- 
-     private ItemStack getLastArmorItem(EquipmentSlot p_21199_) {
-@@ -2637,6 +_,9 @@
-         this.level().getProfiler().push("jump");
+@@ -2784,6 +_,9 @@
+         profilerfiller.push("jump");
          if (this.jumping && this.isAffectedByFluids()) {
              double d3;
 +            net.neoforged.neoforge.fluids.FluidType fluidType = this.getMaxHeightFluidType();
@@ -1717,18 +570,14 @@
              if (this.isInLava()) {
                  d3 = this.getFluidHeight(FluidTags.LAVA);
              } else {
-@@ -2647,15 +_,19 @@
+@@ -2794,15 +_,17 @@
              double d4 = this.getFluidJumpThreshold();
              if (!flag || this.onGround() && !(d3 > d4)) {
                  if (!this.isInLava() || this.onGround() && !(d3 > d4)) {
 +                    if (fluidType.isAir() || this.onGround() && !(d3 > d4)) {
                      if ((this.onGround() || flag && d3 <= d4) && this.noJumpDelay == 0) {
--                        this.jumpFromGround();
--                        this.noJumpDelay = 10;
-+                        if (new EntityJumpEvent(getBukkitLivingEntity()).callEvent()) { // Paper - Entity Jump API
-+                            this.jumpFromGround();
-+                            this.noJumpDelay = 10;
-+                        } else { this.setJumping(false); } // Paper - Entity Jump API; setJumping(false) stops a potential loop
+                         this.jumpFromGround();
+                         this.noJumpDelay = 10;
                      }
 +                    } else this.jumpInFluid(fluidType);
                  } else {
@@ -1741,220 +590,8 @@
              }
          } else {
              this.noJumpDelay = 0;
-@@ -2683,7 +_,7 @@
+@@ -3121,8 +_,11 @@
  
-         this.level().getProfiler().pop();
-         this.level().getProfiler().push("freezing");
--        if (!this.level().isClientSide && !this.isDeadOrDying()) {
-+        if (!this.level().isClientSide && !this.isDeadOrDying() && !this.freezeLocked) { // Paper - Freeze Tick Lock API
-             int i = this.getTicksFrozen();
-             if (this.isInPowderSnow && this.canFreeze()) {
-                 this.setTicksFrozen(Math.min(this.getTicksRequiredToFreeze(), i + 1));
-@@ -2705,11 +_,72 @@
-             this.checkAutoSpinAttack(aabb, this.getBoundingBox());
-         }
- 
--        this.pushEntities();
-+        // Youer start - throttle pushEntities: O(n²) hotspot in crowded areas
-+        if (((this.tickCount + this.getId()) & 3) == 0) {
-+            this.pushEntities();
-+        }
-+        // Youer end
-         this.level().getProfiler().pop();
-+        // Paper start - Add EntityMoveEvent
-+        if (this.xo != this.getX() || this.yo != this.getY() || this.zo != this.getZ() || this.yRotO != this.getYRot() || this.xRotO != this.getXRot()) {
-+            if (((ServerLevel) this.level()).hasEntityMoveEvent && !(this instanceof Player)) {
-+                Location from = new Location(this.level().getWorld(), this.xo, this.yo, this.zo, this.yRotO, this.xRotO);
-+                Location to = new Location(this.level().getWorld(), this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
-+                EntityMoveEvent event = new EntityMoveEvent(this.getBukkitLivingEntity(), from, to.clone());
-+                if (!event.callEvent()) {
-+                    this.absMoveTo(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch());
-+                } else if (!to.equals(event.getTo())) {
-+                    this.absMoveTo(event.getTo().getX(), event.getTo().getY(), event.getTo().getZ(), event.getTo().getYaw(), event.getTo().getPitch());
-+                }
-+            }
-+            // Purpur start
-+            if (getRider() != null) {
-+                getRider().resetLastActionTime();
-+                if (((ServerLevel) level()).hasRidableMoveEvent && this instanceof Mob) {
-+                    Location from = new Location(level().getWorld(), xo, yo, zo, this.yRotO, this.xRotO);
-+                    Location to = new Location(level().getWorld(), getX(), getY(), getZ(), this.getYRot(), this.getXRot());
-+                    RidableMoveEvent event = new RidableMoveEvent((org.bukkit.entity.Mob) getBukkitLivingEntity(), (org.bukkit.entity.Player) getRider().getBukkitEntity(), from, to.clone());
-+                    if (!event.callEvent()) {
-+                        absMoveTo(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch());
-+                    } else if (!to.equals(event.getTo())) {
-+                        absMoveTo(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
-+                    }
-+                }
-+            }
-+            // Purpur end
-+        }
-+        // Paper end - Add EntityMoveEvent
-         if (!this.level().isClientSide && this.isSensitiveToWater() && this.isInWaterRainOrBubble()) {
-             this.hurt(this.damageSources().drown(), 1.0F);
-         }
-+        // Purpur start - copied from Zombie - API for any mob to burn daylight
-+        if (this.isAlive()) {
-+            boolean flag = this.shouldBurnInDay() && this.isSunBurnTick(); // Paper - shouldBurnInDay API // Purpur - use shouldBurnInDay() method to handle Phantoms properly - API for any mob to burn daylight
-+
-+            if (flag) {
-+                ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);
-+
-+                if (!itemstack.isEmpty()) {
-+                    if (itemstack.isDamageableItem()) {
-+                        Item item = itemstack.getItem();
-+
-+                        itemstack.setDamageValue(itemstack.getDamageValue() + this.random.nextInt(2));
-+                        if (itemstack.getDamageValue() >= itemstack.getMaxDamage()) {
-+                            this.onEquippedItemBroken(item, EquipmentSlot.HEAD);
-+                            this.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
-+                        }
-+                    }
-+
-+                    flag = false;
-+                }
-+
-+                if (flag) {
-+                    if (getRider() == null || !this.isControllable()) // Purpur - ignore mobs which are uncontrollable or without rider - API for any mob to burn daylight
-+                        this.igniteForSeconds(8.0F);
-+                }
-+            }
-+        }
-+        // Purpur end - copied from Zombie - API for any mob to burn daylight
-     }
- 
-     public boolean isSensitiveToWater() {
-@@ -2720,6 +_,8 @@
-         boolean flag = this.getSharedFlag(7);
-         if (flag && !this.onGround() && !this.isPassenger() && !this.hasEffect(MobEffects.LEVITATION)) {
-             ItemStack itemstack = this.getItemBySlot(EquipmentSlot.CHEST);
-+            flag = itemstack.canElytraFly(this) && itemstack.elytraFlightTick(this, this.fallFlyTicks);
-+            if (false) //Neo: Moved to ElytraItem
-             if (itemstack.is(Items.ELYTRA) && ElytraItem.isFlyEnabled(itemstack)) {
-                 flag = true;
-                 int i = this.fallFlyTicks + 1;
-@@ -2739,6 +_,7 @@
-         }
- 
-         if (!this.level().isClientSide) {
-+            if (flag != this.getSharedFlag(7) && !CraftEventFactory.callToggleGlideEvent(this, flag).isCancelled()) // CraftBukkit
-             this.setSharedFlag(7, flag);
-         }
-     }
-@@ -2750,9 +_,23 @@
-         if (this.level().isClientSide()) {
-             this.level().getEntities(EntityTypeTest.forClass(Player.class), this.getBoundingBox(), EntitySelector.pushableBy(this)).forEach(this::doPush);
-         } else {
-+            // Paper start - don't run getEntities if we're not going to use its result
-+            if (!this.isPushable()) {
-+                return;
-+            }
-+            Team team = this.getTeam();
-+            if (team != null && team.getCollisionRule() == Team.CollisionRule.NEVER) {
-+                return;
-+            }
-+
-+            int i = this.level().getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
-+            if (i <= 0 && this.level().paperConfig() != null && this.level().paperConfig().collisions.maxEntityCollisions <= 0) {
-+                return;
-+            }
-+            // Paper end - don't run getEntities if we're not going to use its result
-             List<Entity> list = this.level().getEntities(this, this.getBoundingBox(), EntitySelector.pushableBy(this));
-             if (!list.isEmpty()) {
--                int i = this.level().getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
-+                // Paper - don't run getEntities if we're not going to use its result; moved up
-                 if (i > 0 && list.size() > i - 1 && this.random.nextInt(4) == 0) {
-                     int j = 0;
- 
-@@ -2766,9 +_,13 @@
-                         this.hurt(this.damageSources().cramming(), 6.0F);
-                     }
-                 }
--
-+                this.numCollisions = Math.max(0, this.numCollisions - this.level().paperConfig().collisions.maxEntityCollisions); // Paper - Cap entity collisions
-                 for (Entity entity1 : list) {
--                    this.doPush(entity1);
-+                    if (this.numCollisions < this.level().paperConfig().collisions.maxEntityCollisions) {
-+                        entity1.numCollisions++; // Paper - Cap entity collisions
-+                        this.numCollisions++; // Paper - Cap entity collisions
-+                        this.doPush(entity1);
-+                    }
-                 }
-             }
-         }
-@@ -2812,7 +_,7 @@
-     public void stopRiding() {
-         Entity entity = this.getVehicle();
-         super.stopRiding();
--        if (entity != null && entity != this.getVehicle() && !this.level().isClientSide) {
-+        if (entity != null && entity != this.getVehicle() && !this.level().isClientSide && entity.valid) { // Paper - don't process on world gen
-             this.dismountVehicle(entity);
-         }
-     }
-@@ -2881,7 +_,7 @@
-         if (!p_21030_.isRemoved()
-             && !this.level().isClientSide
-             && (p_21030_ instanceof ItemEntity || p_21030_ instanceof AbstractArrow || p_21030_ instanceof ExperienceOrb)) {
--            ((ServerLevel)this.level()).getChunkSource().broadcast(p_21030_, new ClientboundTakeItemEntityPacket(p_21030_.getId(), this.getId(), p_21031_));
-+            ((ServerLevel)this.level()).getChunkSource().broadcastAndSend(p_21030_, new ClientboundTakeItemEntityPacket(p_21030_.getId(), this.getId(), p_21031_)); // Paper - broadcast with collector as source
-         }
-     }
- 
-@@ -2891,7 +_,7 @@
-         } else {
-             Vec3 vec3 = new Vec3(this.getX(), this.getEyeY(), this.getZ());
-             Vec3 vec31 = new Vec3(p_147185_.getX(), p_147185_.getEyeY(), p_147185_.getZ());
--            return vec31.distanceTo(vec3) > 128.0
-+            return vec31.distanceTo(vec3) > 128.0D * 128.0D // Paper - Perf: Use distance squared
-                 ? false
-                 : this.level().clip(new ClipContext(vec3, vec31, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this)).getType() == HitResult.Type.MISS;
-         }
-@@ -2913,13 +_,20 @@
- 
-     @Override
-     public boolean isPickable() {
--        return !this.isRemoved();
-+        return !this.isRemoved() && this.collides; // CraftBukkit
-     }
- 
-     @Override
-     public boolean isPushable() {
--        return this.isAlive() && !this.isSpectator() && !this.onClimbable();
--    }
-+        return this.isAlive() && !this.isSpectator() && !this.onClimbable() && this.collides; // CraftBukkit
-+    }
-+
-+    // CraftBukkit start - collidable API
-+    @Override
-+    public boolean canCollideWithBukkit(Entity entity) {
-+        return isPushable() && this.collides != this.collidableExemptions.contains(entity.getUUID());
-+    }
-+    // CraftBukkit end
- 
-     @Override
-     public float getYHeadRot() {
-@@ -2950,7 +_,7 @@
-     }
- 
-     public final void setAbsorptionAmount(float p_21328_) {
--        this.internalSetAbsorptionAmount(Mth.clamp(p_21328_, 0.0F, this.getMaxAbsorption()));
-+        this.internalSetAbsorptionAmount(!Float.isNaN(p_21328_) ? Mth.clamp(p_21328_, 0.0F, this.getMaxAbsorption()) : 0.0F); // Paper - Check for NaN
-     }
- 
-     protected void internalSetAbsorptionAmount(float p_295258_) {
-@@ -2977,10 +_,22 @@
-         return (this.entityData.get(DATA_LIVING_ENTITY_FLAGS) & 2) > 0 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-     }
- 
-+    // Paper start - Properly cancel usable items
-+    public void resyncUsingItem(ServerPlayer serverPlayer) {
-+        this.resendPossiblyDesyncedDataValues(List.of(DATA_LIVING_ENTITY_FLAGS), serverPlayer);
-+    }
-+    // Paper end - Properly cancel usable items
-+    // Paper start - lag compensate eating
-+    protected long eatStartTime;
-+    protected int totalEatTimeTicks;
-+    // Paper end - lag compensate eating
      private void updatingUsingItem() {
          if (this.isUsingItem()) {
 -            if (ItemStack.isSameItem(this.getItemInHand(this.getUsedItemHand()), this.useItem)) {
@@ -1967,7 +604,7 @@
                  this.updateUsingItem(this.useItem);
              } else {
                  this.stopUsingItem();
-@@ -2989,12 +_,20 @@
+@@ -3166,8 +_,11 @@
      }
  
      protected void updateUsingItem(ItemStack p_147201_) {
@@ -1975,129 +612,46 @@
 +            this.useItemRemaining = net.neoforged.neoforge.event.EventHooks.onItemUseTick(this, p_147201_, this.getUseItemRemainingTicks());
 +        if (this.getUseItemRemainingTicks() > 0)
          p_147201_.onUseTick(this.level(), this, this.getUseItemRemainingTicks());
-         if (this.shouldTriggerItemUseEffects()) {
-             this.triggerItemUseEffects(p_147201_, 5);
-         }
- 
 -        if (--this.useItemRemaining == 0 && !this.level().isClientSide && !p_147201_.useOnRelease()) {
-+        // Paper start - lag compensate eating
-+        // we add 1 to the expected time to avoid lag compensating when we should not
-+        boolean shouldLagCompensate = this.useItem.has(DataComponents.FOOD) && this.eatStartTime != -1 && (System.nanoTime() - this.eatStartTime) > ((1L + this.totalEatTimeTicks) * 50L * (1000L * 1000L));
-+        if ((--this.useItemRemaining <= 0 || shouldLagCompensate) && !this.level().isClientSide && !p_147201_.useOnRelease()) {
-+            this.useItemRemaining = 0;
-+            // Paper end - lag compensate eating
++        if (--this.useItemRemaining <= 0 && !this.level().isClientSide && !p_147201_.useOnRelease()) {
              this.completeUsingItem();
          }
      }
-@@ -3015,7 +_,7 @@
-         }
-     }
- 
--    protected void setLivingEntityFlag(int p_21156_, boolean p_21157_) {
-+    public void setLivingEntityFlag(int p_21156_, boolean p_21157_) {
-         int i = this.entityData.get(DATA_LIVING_ENTITY_FLAGS);
-         if (p_21157_) {
-             i |= p_21156_;
-@@ -3029,8 +_,14 @@
+@@ -3195,8 +_,10 @@
      public void startUsingItem(InteractionHand p_21159_) {
          ItemStack itemstack = this.getItemInHand(p_21159_);
          if (!itemstack.isEmpty() && !this.isUsingItem()) {
-+            if (this instanceof ServerPlayer player && BanItem.check(player, itemstack)) return;
-+            int duration = EventHooks.onItemUseStart(this, itemstack, p_21159_, itemstack.getUseDuration(this));
++            int duration = net.neoforged.neoforge.event.EventHooks.onItemUseStart(this, itemstack, p_21159_, itemstack.getUseDuration(this));
 +            if (duration < 0) return; // Neo: Early return for negative values, as that indicates event cancellation.
              this.useItem = itemstack;
 -            this.useItemRemaining = itemstack.getUseDuration(this);
-+            // Paper start - lag compensate eating
-+            this.useItemRemaining = this.totalEatTimeTicks = duration;
-+            this.eatStartTime = System.nanoTime();
-+            // Paper end - lag compensate eating
++            this.useItemRemaining = duration;
              if (!this.level().isClientSide) {
                  this.setLivingEntityFlag(1, true);
                  this.setLivingEntityFlag(2, p_21159_ == InteractionHand.OFF_HAND);
-@@ -3054,7 +_,10 @@
-                 }
-             } else if (!this.isUsingItem() && !this.useItem.isEmpty()) {
-                 this.useItem = ItemStack.EMPTY;
--                this.useItemRemaining = 0;
-+                // Paper start - lag compensate eating
-+                this.useItemRemaining = this.totalEatTimeTicks = 0;
-+                this.eatStartTime = -1L;
-+                // Paper end - lag compensate eating
-             }
-         }
-     }
-@@ -3103,7 +_,7 @@
-         }
-     }
- 
--    protected void completeUsingItem() {
-+    public void completeUsingItem() {
-         if (!this.level().isClientSide || this.isUsingItem()) {
-             InteractionHand interactionhand = this.getUsedItemHand();
-             if (!this.useItem.equals(this.getItemInHand(interactionhand))) {
-@@ -3111,12 +_,45 @@
+@@ -3259,7 +_,8 @@
+                 this.releaseUsingItem();
              } else {
                  if (!this.useItem.isEmpty() && this.isUsingItem()) {
-                     this.triggerItemUseEffects(this.useItem, 16);
 -                    ItemStack itemstack = this.useItem.finishUsingItem(this.level(), this);
--                    if (itemstack != this.useItem) {
--                        this.setItemInHand(interactionhand, itemstack);
 +                    ItemStack copy = this.useItem.copy();
-+                    ItemStack itemstack;
-+                    PlayerItemConsumeEvent event = null; // Paper
-+                    // CraftBukkit start - fire PlayerItemConsumeEvent
-+                    if (this instanceof ServerPlayer) {
-+                        org.bukkit.inventory.ItemStack craftItem = CraftItemStack.asBukkitCopy(copy);
-+                        org.bukkit.inventory.EquipmentSlot hand = CraftEquipmentSlot.getHand(interactionhand);
-+                        event = new PlayerItemConsumeEvent((org.bukkit.entity.Player) this.getBukkitEntity(), craftItem, hand);
-+                        this.level().getCraftServer().getPluginManager().callEvent(event);
-+                        if (event.isCancelled()) {
-+                            this.stopUsingItem(); // Paper - event is using an item, clear active item to reset its use
-+                            // Update client
-+                            ((ServerPlayer) this).getBukkitEntity().updateInventory();
-+                            ((ServerPlayer) this).getBukkitEntity().updateScaledHealth();
-+                            return;
-+                        }
-+                        itemstack = (craftItem.equals(event.getItem())) ? this.useItem.finishUsingItem(this.level(), this) : CraftItemStack.asNMSCopy(event.getItem()).finishUsingItem(this.level(), this);
-+                    } else {
-+                        itemstack = this.useItem.finishUsingItem(this.level(), this);
-+                    }
-+                    // Paper start - save the default replacement item and change it if necessary
-+                    final ItemStack defaultReplacement = itemstack;
-+                    if (event != null && event.getReplacement() != null) {
-+                        itemstack = CraftItemStack.asNMSCopy(event.getReplacement());
-+                    }
-+                    // Paper end
-+                    // CraftBukkit end
-+                    ItemStack itemstackForge = EventHooks.onItemUseFinish(this, copy, getUseItemRemainingTicks(), itemstack);
-+
-+                    if (itemstackForge != this.useItem) {
-+                        this.setItemInHand(interactionhand, itemstackForge);
++                    ItemStack itemstack = net.neoforged.neoforge.event.EventHooks.onItemUseFinish(this, copy, getUseItemRemainingTicks(), this.useItem.finishUsingItem(this.level(), this));
+                     if (itemstack != this.useItem) {
+                         this.setItemInHand(interactionhand, itemstack);
                      }
- 
-                     this.stopUsingItem();
-+                    // Paper start - if the replacement is anything but the default, update the client inventory
-+                    if (this instanceof ServerPlayer && !Objects.equal(defaultReplacement, itemstack)) {
-+                        ((ServerPlayer) this).getBukkitEntity().updateInventory();
-+                    }
-+                    // Paper end
-                 }
-             }
-         }
-@@ -3136,7 +_,12 @@
- 
-     public void releaseUsingItem() {
-         if (!this.useItem.isEmpty()) {
-+            if (this instanceof ServerPlayer) new PlayerStopUsingItemEvent((org.bukkit.entity.Player) getBukkitEntity(), useItem.asBukkitMirror(), getTicksUsingItem()).callEvent(); // Paper - Add PlayerStopUsingItemEvent
-+            if (!EventHooks.onUseItemStop(this, useItem, this.getUseItemRemainingTicks())) {
-+                ItemStack copy = this instanceof Player ? useItem.copy() : null;
+@@ -3289,7 +_,11 @@
+         ItemStack itemstack = this.getItemInHand(this.getUsedItemHand());
+         if (!this.useItem.isEmpty() && ItemStack.isSameItem(itemstack, this.useItem)) {
+             this.useItem = itemstack;
++            if (!net.neoforged.neoforge.event.EventHooks.onUseItemStop(this, useItem, this.getUseItemRemainingTicks())) {
++            ItemStack copy = this instanceof Player ? useItem.copy() : null;
              this.useItem.releaseUsing(this.level(), this, this.getUseItemRemainingTicks());
-+              if (copy != null && useItem.isEmpty()) EventHooks.onPlayerDestroyItem((Player)this, copy, getUsedItemHand());
++            if (copy != null && useItem.isEmpty()) net.neoforged.neoforge.event.EventHooks.onPlayerDestroyItem((Player)this, copy, getUsedItemHand());
 +            }
              if (this.useItem.useOnRelease()) {
                  this.updatingUsingItem();
              }
-@@ -3146,6 +_,7 @@
+@@ -3299,6 +_,7 @@
      }
  
      public void stopUsingItem() {
@@ -2105,169 +659,22 @@
          if (!this.level().isClientSide) {
              boolean flag = this.isUsingItem();
              this.setLivingEntityFlag(1, false);
-@@ -3155,13 +_,16 @@
-         }
- 
-         this.useItem = ItemStack.EMPTY;
--        this.useItemRemaining = 0;
-+        // Paper start - lag compensate eating
-+        this.useItemRemaining = this.totalEatTimeTicks = 0;
-+        this.eatStartTime = -1L;
-+        // Paper end - lag compensate eating
-     }
- 
-     public boolean isBlocking() {
-         if (this.isUsingItem() && !this.useItem.isEmpty()) {
-             Item item = this.useItem.getItem();
--            return item.getUseAnimation(this.useItem) != UseAnim.BLOCK ? false : item.getUseDuration(this.useItem, this) - this.useItemRemaining >= 5;
-+            return !this.useItem.canPerformAction(ItemAbilities.SHIELD_BLOCK) ? false : item.getUseDuration(this.useItem, this) - this.useItemRemaining >= getShieldBlockingDelay(); // Paper - Make shield blocking delay configurable
-         } else {
-             return false;
-         }
-@@ -3171,6 +_,63 @@
-         return this.isShiftKeyDown();
-     }
- 
-+    // Paper start - Make shield blocking delay configurable
-+    public HitResult getRayTrace(int maxDistance, ClipContext.Fluid fluidCollisionOption) {
-+        if (maxDistance < 1 || maxDistance > 120) {
-+            throw new IllegalArgumentException("maxDistance must be between 1-120");
-+        }
-+
-+        Vec3 start = new Vec3(getX(), getY() + getEyeHeight(), getZ());
-+        Vector dir = getBukkitEntity().getLocation().getDirection().multiply(maxDistance);
-+        Vec3 end = new Vec3(start.x + dir.getX(), start.y + dir.getY(), start.z + dir.getZ());
-+        ClipContext raytrace = new ClipContext(start, end, ClipContext.Block.OUTLINE, fluidCollisionOption, this);
-+
-+        return this.level().clip(raytrace);
-+    }
-+
-+    public @Nullable EntityHitResult getTargetEntity(int maxDistance) {
-+        if (maxDistance < 1 || maxDistance > 120) {
-+            throw new IllegalArgumentException("maxDistance must be between 1-120");
-+        }
-+
-+        Vec3 start = this.getEyePosition(1.0F);
-+        Vec3 direction = this.getLookAngle();
-+        Vec3 end = start.add(direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance);
-+
-+        List<Entity> entityList = this.level().getEntities(this, getBoundingBox().expandTowards(direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance).inflate(1.0D, 1.0D, 1.0D), EntitySelector.NO_SPECTATORS.and(Entity::isPickable));
-+
-+        double distance = 0.0D;
-+        EntityHitResult result = null;
-+
-+        for (Entity entity : entityList) {
-+            final double inflationAmount = (double) entity.getPickRadius();
-+            AABB aabb = entity.getBoundingBox().inflate(inflationAmount, inflationAmount, inflationAmount);
-+            Optional<Vec3> rayTraceResult = aabb.clip(start, end);
-+
-+            if (rayTraceResult.isPresent()) {
-+                Vec3 rayTrace = rayTraceResult.get();
-+                double distanceTo = start.distanceToSqr(rayTrace);
-+                if (distanceTo < distance || distance == 0.0D) {
-+                    result = new EntityHitResult(entity, rayTrace);
-+                    distance = distanceTo;
-+                }
-+            }
-+        }
-+
-+        return result;
-+    }
-+
-+    public int shieldBlockingDelay = (this.level().paperConfig() == null) ? 5 : this.level().paperConfig().misc.shieldBlockingDelay;
-+
-+    public int getShieldBlockingDelay() {
-+        return shieldBlockingDelay;
-+    }
-+
-+    public void setShieldBlockingDelay(int shieldBlockingDelay) {
-+        this.shieldBlockingDelay = shieldBlockingDelay;
-+    }
-+    // Paper end - Make shield blocking delay configurable
-+
-     public boolean isFallFlying() {
-         return this.getSharedFlag(7);
-     }
-@@ -3185,6 +_,12 @@
-     }
- 
-     public boolean randomTeleport(double p_20985_, double p_20986_, double p_20987_, boolean p_20988_) {
-+        // CraftBukkit start
-+        return randomTeleport(p_20985_, p_20986_, p_20987_, p_20988_, PlayerTeleportEvent.TeleportCause.UNKNOWN).orElse(false);
-+    }
-+
-+    public Optional<Boolean> randomTeleport(double p_20985_, double p_20986_, double p_20987_, boolean p_20988_, PlayerTeleportEvent.TeleportCause cause) {
-+        // CraftBukkit end
-         double d0 = this.getX();
-         double d1 = this.getY();
-         double d2 = this.getZ();
-@@ -3207,16 +_,38 @@
-             }
- 
-             if (flag1) {
--                this.teleportTo(p_20985_, d3, p_20987_);
-+                // CraftBukkit start - Teleport event
-+                // first set position, to check if the place to teleport is valid
-+                this.setPos(p_20985_, d3, p_20987_);
-                 if (level.noCollision(this) && !level.containsAnyLiquid(this.getBoundingBox())) {
-                     flag = true;
-                 }
-+                // now revert and call event if the teleport place is valid
-+                this.setPos(d0, d1, d2);
-+                if (flag) {
-+                    if (!(this instanceof ServerPlayer)) {
-+                        EntityTeleportEvent teleport = new EntityTeleportEvent(this.getBukkitEntity(), new Location(this.level().getWorld(), d0, d1, d2), new Location(this.level().getWorld(), p_20985_, d3, p_20987_));
-+                        this.level().getCraftServer().getPluginManager().callEvent(teleport);
-+                        if (!teleport.isCancelled() && teleport.getTo() != null) {
-+                            Location to = teleport.getTo();
-+                            this.teleportTo(to.getX(), to.getY(), to.getZ());
-+                        } else {
-+                            return Optional.empty();
-+                        }
-+                    } else {
-+                        // player teleport event is called in the underlining code
-+                        if (!((ServerPlayer) this).connection.teleport(p_20985_, d3, p_20987_, this.getYRot(), this.getXRot(), Collections.emptySet(), cause)) {
-+                            return Optional.empty();
-+                        }
-+                    }
-+                }
-+                // CraftBukkit end
-             }
-         }
- 
-         if (!flag) {
--            this.teleportTo(d0, d1, d2);
--            return false;
-+            // this.teleportTo(d0, d1, d2); // CraftBukkit - already set the location back
-+            return Optional.of(false); // CraftBukkit
-         } else {
-             if (p_20988_) {
-                 level.broadcastEntityEvent(this, (byte)46);
-@@ -3226,7 +_,7 @@
-                 pathfindermob.getNavigation().stop();
-             }
- 
--            return true;
-+            return Optional.of(true); // CraftBukkit
-         }
-     }
- 
-@@ -3302,8 +_,8 @@
+@@ -3467,8 +_,8 @@
          }
  
          BlockState blockstate = this.level().getBlockState(p_21141_);
 -        if (blockstate.getBlock() instanceof BedBlock) {
--            this.level().setBlock(p_21141_, blockstate.setValue(BedBlock.OCCUPIED, Boolean.valueOf(true)), 3);
+-            this.level().setBlock(p_21141_, blockstate.setValue(BedBlock.OCCUPIED, true), 3);
 +        if (blockstate.isBed(level(), p_21141_, this)) {
 +            blockstate.setBedOccupied(level(), p_21141_, this, true);
          }
  
          this.setPose(Pose.SLEEPING);
-@@ -3318,15 +_,17 @@
+@@ -3483,15 +_,17 @@
      }
  
      private boolean checkBedExists() {
--        return this.getSleepingPos().map(p_352707_ -> this.level().getBlockState(p_352707_).getBlock() instanceof BedBlock).orElse(false);
+-        return this.getSleepingPos().map(p_423228_ -> this.level().getBlockState(p_423228_).getBlock() instanceof BedBlock).orElse(false);
 +        // Neo: Overwrite the vanilla instanceof BedBlock check with isBed and fire the CanContinueSleepingEvent.
 +        boolean hasBed = this.getSleepingPos().map(pos -> this.level().getBlockState(pos).isBed(this.level(), pos, this)).orElse(false);
 +        return net.neoforged.neoforge.event.EventHooks.canEntityContinueSleeping(this, hasBed ? null : Player.BedSleepingProblem.NOT_POSSIBLE_HERE);
@@ -2279,23 +686,23 @@
 -            if (blockstate.getBlock() instanceof BedBlock) {
 +            if (blockstate.isBed(level(), p_261435_, this)) {
                  Direction direction = blockstate.getValue(BedBlock.FACING);
--                this.level().setBlock(p_261435_, blockstate.setValue(BedBlock.OCCUPIED, Boolean.valueOf(false)), 3);
+-                this.level().setBlock(p_261435_, blockstate.setValue(BedBlock.OCCUPIED, false), 3);
 +                blockstate.setBedOccupied(level(), p_261435_, this, false);
                  Vec3 vec31 = BedBlock.findStandUpPosition(this.getType(), this.level(), p_261435_, direction, this.getYRot()).orElseGet(() -> {
                      BlockPos blockpos = p_261435_.above();
-                     return new Vec3((double)blockpos.getX() + 0.5, (double)blockpos.getY() + 0.1, (double)blockpos.getZ() + 0.5);
-@@ -3347,7 +_,9 @@
+                     return new Vec3(blockpos.getX() + 0.5, blockpos.getY() + 0.1, blockpos.getZ() + 0.5);
+@@ -3512,7 +_,9 @@
      @Nullable
      public Direction getBedOrientation() {
          BlockPos blockpos = this.getSleepingPos().orElse(null);
 -        return blockpos != null ? BedBlock.getBedOrientation(this.level(), blockpos) : null;
-+        if (blockpos == null) return Direction.UP;
++        if (blockpos == null) return null;
 +        BlockState state = this.level().getBlockState(blockpos);
-+        return !state.isBed(level(), blockpos, this) ? Direction.UP : state.getBedDirection(level(), blockpos);
++        return !state.isBed(level(), blockpos, this) ? null : state.getBedDirection(level(), blockpos);
      }
  
      @Override
-@@ -3356,11 +_,11 @@
+@@ -3521,7 +_,7 @@
      }
  
      public ItemStack getProjectile(ItemStack p_21272_) {
@@ -2303,82 +710,13 @@
 +        return net.neoforged.neoforge.common.CommonHooks.getProjectile(this, p_21272_, ItemStack.EMPTY);
      }
  
-     public final ItemStack eat(Level p_21067_, ItemStack p_21068_) {
--        FoodProperties foodproperties = p_21068_.get(DataComponents.FOOD);
-+        FoodProperties foodproperties = p_21068_.getFoodProperties(this);
-         return foodproperties != null ? this.eat(p_21067_, p_21068_, foodproperties) : p_21068_;
+     private static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
+@@ -3577,6 +_,8 @@
      }
  
-@@ -3385,13 +_,14 @@
-         if (!this.level().isClientSide()) {
-             for (FoodProperties.PossibleEffect foodproperties$possibleeffect : p_335472_.effects()) {
-                 if (this.random.nextFloat() < foodproperties$possibleeffect.probability()) {
-+                    this.addEffectCause(EntityPotionEffectEvent.Cause.FOOD); // CraftBukkit
-                     this.addEffect(foodproperties$possibleeffect.effect());
-                 }
-             }
-         }
-     }
- 
--    private static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
-+    public static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
-         return switch (p_21267_) {
-             case MAINHAND -> 47;
-             case OFFHAND -> 48;
-@@ -3411,6 +_,38 @@
-         return p_320526_ == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
-     }
- 
-+    /**
-+     * Neo: Removes all potion effects that have the given {@link net.neoforged.neoforge.common.EffectCure} in their set of cures
-+     * @param cure the EffectCure being used
-+     */
-+    public boolean removeEffectsCuredBy(net.neoforged.neoforge.common.EffectCure cure) {
-+        if (this.level().isClientSide)
-+            return false;
-+        boolean ret = false;
-+        Iterator<MobEffectInstance> itr = this.activeEffects.values().iterator();
-+        while (itr.hasNext()) {
-+            MobEffectInstance effect = itr.next();
-+            if (effect.getCures().contains(cure) && !net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, effect, cure)) {
-+                this.onEffectRemoved(effect);
-+                itr.remove();
-+                ret = true;
-+                this.effectsDirty = true;
-+            }
-+        }
-+        return ret;
-+    }
-+
-+    /**
-+     * Neo: Returns true if the entity's rider (EntityPlayer) should face forward when mounted.
-+     * currently only used in vanilla code by pigs.
-+     *
-+     * @param player The player who is riding the entity.
-+     * @return If the player should orient the same direction as this entity.
-+     */
-+    public boolean shouldRiderFaceForward(Player player) {
-+        return this instanceof net.minecraft.world.entity.animal.Pig;
-+    }
-+
-     @Override
-     public AABB getBoundingBoxForCulling() {
-         if (this.getItemBySlot(EquipmentSlot.HEAD).is(Items.DRAGON_HEAD)) {
-@@ -3422,6 +_,8 @@
-     }
- 
-     public EquipmentSlot getEquipmentSlotForItem(ItemStack p_147234_) {
+     public final EquipmentSlot getEquipmentSlotForItem(ItemStack p_147234_) {
 +        final EquipmentSlot slot = p_147234_.getEquipmentSlot();
 +        if (slot != null) return slot; // FORGE: Allow modders to set a non-default equipment slot for a stack; e.g. a non-armor chestplate-slot item
-         Equipable equipable = Equipable.get(p_147234_);
-         if (equipable != null) {
-             EquipmentSlot equipmentslot = equipable.getEquipmentSlot();
-@@ -3507,7 +_,7 @@
+         Equippable equippable = p_147234_.get(DataComponents.EQUIPPABLE);
+         return equippable != null && this.canUseSlot(equippable.slot()) ? equippable.slot() : EquipmentSlot.MAINHAND;
      }
- 
-     public boolean canDisableShield() {
--        return this.getWeaponItem().getItem() instanceof AxeItem;
-+        return this.getMainHandItem().canDisableShield(this.useItem, this, this); // Neo: Switch to using the item to determine if disables shield instead of hardcoded Axe check
-     }
- 
-     @Override

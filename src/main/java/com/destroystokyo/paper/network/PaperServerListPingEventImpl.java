@@ -1,11 +1,12 @@
 package com.destroystokyo.paper.network;
 
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent;
-import javax.annotation.Nullable;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.util.CachedServerIcon;
+
+import javax.annotation.Nullable;
 
 class PaperServerListPingEventImpl extends PaperServerListPingEvent {
 

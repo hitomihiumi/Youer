@@ -3,9 +3,13 @@ package org.bukkit.entity;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.bukkit.Chunk;
+import io.papermc.paper.datacomponent.DataComponentView;
+import io.papermc.paper.entity.LookAnchor;
+import net.kyori.adventure.util.TriState;
+import org.bukkit.Chunk; // Paper
 import org.bukkit.EntityEffect;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Nameable;
 import org.bukkit.Server;
 import org.bukkit.Sound;
@@ -13,8 +17,10 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.command.CommandSender;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Directional;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.persistence.PersistentDataHolder;
@@ -31,7 +37,7 @@ import org.jetbrains.annotations.Nullable;
  * Not all methods are guaranteed to work/may have side effects when
  * {@link #isInWorld()} is false.
  */
-public interface Entity extends Metadatable, CommandSender, Nameable, PersistentDataHolder, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowEntity>, net.kyori.adventure.sound.Sound.Emitter { // Paper
+public interface Entity extends Metadatable, CommandSender, Nameable, PersistentDataHolder, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowEntity>, net.kyori.adventure.sound.Sound.Emitter, DataComponentView { // Paper
 
     /**
      * Gets the entity's current position
@@ -126,7 +132,6 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      *
      * @param yaw the yaw
      * @param pitch the pitch
-     * @throws UnsupportedOperationException if used for players
      */
     public void setRotation(float yaw, float pitch);
 
@@ -151,6 +156,26 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @return <code>true</code> if the teleport was successful
      */
     boolean teleport(@NotNull Location location, @NotNull TeleportCause cause, @NotNull io.papermc.paper.entity.TeleportFlag @NotNull... teleportFlags);
+
+    /**
+     * Causes the entity to look towards the given position.
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param z z coordinate
+     * @param entityAnchor What part of the entity should face the given position
+     */
+    void lookAt(double x, double y, double z, @NotNull LookAnchor entityAnchor);
+
+    /**
+     * Causes the entity to look towards the given position.
+     *
+     * @param position Position to look at in the player's current world
+     * @param entityAnchor What part of the entity should face the given position
+     */
+    default void lookAt(@NotNull io.papermc.paper.math.Position position, @NotNull LookAnchor entityAnchor) {
+        this.lookAt(position.x(), position.y(), position.z(), entityAnchor);
+    }
     // Paper end - Teleport API
 
     /**
@@ -237,9 +262,13 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     public List<org.bukkit.entity.Entity> getNearbyEntities(double x, double y, double z);
 
     /**
-     * Returns a unique id for this entity
+     * Returns the network protocol ID for this entity. This is
+     * not to be used as an identifier for the entity except in
+     * network-related operations. Use {@link #getUniqueId()} as
+     * an entity identifier instead.
      *
-     * @return Entity id
+     * @return the network protocol ID
+     * @see #getUniqueId()
      */
     public int getEntityId();
 
@@ -269,16 +298,42 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     /**
      * Sets if the entity has visual fire (it will always appear to be on fire).
      *
+     * @deprecated This method doesn't allow visually extinguishing a burning entity,
+     * use {@link #setVisualFire(TriState)} instead
      * @param fire whether visual fire is enabled
      */
+    @Deprecated
     void setVisualFire(boolean fire);
+
+    /**
+     * Sets if the entity has visual fire (it will always appear to be on fire).
+     * <ul>
+     *     <li>{@link TriState#NOT_SET} – will revert the entity's visual fire to default</li>
+     *     <li>{@link TriState#TRUE} – will make the entity appear to be on fire</li>
+     *     <li>{@link TriState#FALSE} – will make the entity appear to be not on fire</li>
+     * </ul>
+     *
+     * @param fire a TriState value representing the state of the visual fire.
+     */
+    void setVisualFire(@NotNull TriState fire);
 
     /**
      * Gets if the entity has visual fire (it will always appear to be on fire).
      *
+     * @deprecated This method can't properly reflect the three possible states of visual fire,
+     * use {@link #getVisualFire()} instead
      * @return whether visual fire is enabled
      */
+    @Deprecated
     boolean isVisualFire();
+
+    /**
+     * Retrieves the visual fire state of the entity.
+     *
+     * @return A TriState indicating the current visual fire state.
+     */
+    @NotNull
+    TriState getVisualFire();
 
     /**
      * Returns the entity's current freeze ticks (amount of ticks the entity has
@@ -312,7 +367,6 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      */
     boolean isFrozen();
 
-    // Paper start - missing entity api
     /**
      * Sets whether the entity is invisible or not.
      * <p>
@@ -322,14 +376,14 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      *
      * @param invisible If the entity is invisible
      */
-    void setInvisible(boolean invisible); // Paper - moved up from LivingEntity
+    void setInvisible(boolean invisible);
 
     /**
      * Gets whether the entity is invisible or not.
      *
      * @return Whether the entity is invisible
      */
-    boolean isInvisible(); // Paper - moved up from LivingEntity
+    boolean isInvisible();
 
     /**
      * Sets this entities no physics status.
@@ -344,9 +398,7 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @return true if the entity does not have physics.
      */
     boolean hasNoPhysics();
-    // Paper end - missing entity api
 
-    // Paper start - Freeze Tick Lock API
     /**
      * Gets if the entity currently has its freeze ticks locked
      * to a set amount.
@@ -364,12 +416,11 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @param locked prevent vanilla modification or not
      */
     void lockFreezeTicks(boolean locked);
-    // Paper end - Freeze Tick Lock API
 
     /**
      * Mark the entity's removal.
      *
-     * @throws UnsupportedOperationException if you try to remove a {@link Player} use {@link Player#kickPlayer(String)} in this case instead
+     * @throws UnsupportedOperationException if you try to remove a {@link Player} use {@link Player#kick(net.kyori.adventure.text.Component)} in this case instead
      */
     public void remove();
 
@@ -432,7 +483,7 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @deprecated entities may have multiple passengers, use
      * {@link #getPassengers()}
      */
-    @Deprecated
+    @Deprecated(since = "1.11.2")
     @Nullable
     public Entity getPassenger();
 
@@ -444,7 +495,7 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @deprecated entities may have multiple passengers, use
      * {@link #addPassenger(org.bukkit.entity.Entity)}
      */
-    @Deprecated
+    @Deprecated(since = "1.11.2")
     public boolean setPassenger(@NotNull Entity passenger);
 
     /**
@@ -489,6 +540,15 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     public boolean eject();
 
     /**
+     * Gets the {@link ItemStack} that a player would select / create (in creative mode)
+     * when using the pick block action on this entity.
+     *
+     * @return item stack result or an empty item stack
+     */
+    @NotNull
+    ItemStack getPickItemStack();
+
+    /**
      * Returns the distance this entity has fallen
      *
      * @return The distance.
@@ -508,7 +568,8 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @param event a {@link EntityDamageEvent}
      * @deprecated method is for internal use only and will be removed
      */
-    @Deprecated(forRemoval = true)
+    @ApiStatus.Internal
+    @Deprecated(since = "1.20.4", forRemoval = true)
     public void setLastDamageCause(@Nullable EntityDamageEvent event);
 
     /**
@@ -555,9 +616,9 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * <p>
      * If the effect is not applicable to this class of entity, it will not play.
      *
-     * @param type Effect to play.
+     * @param effect Effect to play.
      */
-    public void playEffect(@NotNull EntityEffect type);
+    public void playEffect(@NotNull EntityEffect effect);
 
     /**
      * Get the type of the entity.
@@ -673,6 +734,15 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      */
     @NotNull
     Set<Player> getTrackedBy();
+
+    /**
+     * Checks to see if a player is currently tracking this entity.
+     *
+     * @param player the player to check
+     * @return if the player is currently tracking this entity
+     * @see #getTrackedBy()
+     */
+    boolean isTrackedBy(@NotNull Player player);
 
     /**
      * Sets whether the entity has a team colored (default: white) glow.
@@ -968,18 +1038,6 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     @Nullable
     Location getOrigin();
 
-
-    // Paper start - Folia schedulers
-    /**
-     * Returns the task scheduler for this entity. The entity scheduler can be used to schedule tasks
-     * that are guaranteed to always execute on the tick thread that owns the entity.
-     * <p><b>If you do not need/want to make your plugin run on Folia, use {@link org.bukkit.Server#getScheduler()} instead.</b></p>
-     * @return the task scheduler for this entity.
-     * @see io.papermc.paper.threadedregions.scheduler.EntityScheduler
-     */
-    @NotNull io.papermc.paper.threadedregions.scheduler.EntityScheduler getScheduler();
-    // Paper end - Folia schedulers
-
     /**
      * Returns whether this entity was spawned from a mob spawner.
      *
@@ -1016,23 +1074,43 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
 
     /**
      * Check if entity is in bubble column
+     *
+     * @deprecated check the block at the position of the entity
      */
-    boolean isInBubbleColumn();
+    @Deprecated(since = "1.21.5")
+    default boolean isInBubbleColumn() {
+        return this.getWorld().getBlockAt(this.getLocation()).getType() == Material.BUBBLE_COLUMN;
+    }
 
     /**
      * Check if entity is in water or rain
+     *
+     * @deprecated use {@link #isInWater()} and {@link #isInRain()}
      */
-    boolean isInWaterOrRain();
+    @Deprecated(since = "1.21.5")
+    default boolean isInWaterOrRain() {
+        return this.isInWater() || this.isInRain();
+    }
 
     /**
      * Check if entity is in water or bubble column
+     *
+     * @deprecated use {@link #isInWater()}, bubble column is considered as water
      */
-    boolean isInWaterOrBubbleColumn();
+    @Deprecated(since = "1.21.5")
+    default boolean isInWaterOrBubbleColumn() {
+        return this.isInWater();
+    }
 
     /**
      * Check if entity is in water or rain or bubble column
+     *
+     * @deprecated bubble column is considered as water, use {@link #isInWater()} and {@link #isInRain()}
      */
-    boolean isInWaterOrRainOrBubbleColumn();
+    @Deprecated(since = "1.21.5")
+    default boolean isInWaterOrRainOrBubbleColumn() {
+        return this.isInWaterOrRain();
+    }
 
     /**
      * Check if entity is in lava
@@ -1060,11 +1138,12 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * <p>
      * Also, this method will fire the same events as a normal entity spawn.
      *
-     * @param location The location to spawn the entity at.
-     * @return Whether the entity was successfully spawned.
+     * @param location the location to spawn the entity at
+     * @return whether the entity was successfully spawned
+     * @since 1.17.1
      */
-    public default boolean spawnAt(@NotNull Location location) {
-        return spawnAt(location, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
+    default boolean spawnAt(@NotNull Location location) {
+        return spawnAt(location, CreatureSpawnEvent.SpawnReason.DEFAULT);
     }
 
     /**
@@ -1074,11 +1153,12 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * <p>
      * Also, this method will fire the same events as a normal entity spawn.
      *
-     * @param location The location to spawn the entity at.
-     * @param reason   The reason for the entity being spawned.
-     * @return Whether the entity was successfully spawned.
+     * @param location the location to spawn the entity at
+     * @param reason   the reason for the entity being spawned
+     * @return whether the entity was successfully spawned
+     * @since 1.17.1
      */
-    public boolean spawnAt(@NotNull Location location, @NotNull org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason);
+    boolean spawnAt(@NotNull Location location, @NotNull CreatureSpawnEvent.SpawnReason reason);
 
     /**
      * Check if entity is inside powdered snow.
@@ -1125,30 +1205,6 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     float getYaw();
     // Paper end
 
-    // Paper start - broadcast hurt animation
-    /**
-     * Broadcasts a hurt animation. This fakes incoming damage towards the target entity.
-     * <p>
-     * The target players cannot include {@code this} player. For self-damage, use
-     * {@link Player#sendHurtAnimation(float)}.
-     *
-     * @param players the players to broadcast to (cannot include {@code this}
-     * @throws IllegalArgumentException if {@code this} is contained in {@code players}
-     */
-    void broadcastHurtAnimation(@NotNull java.util.Collection<Player> players);
-    // Paper end - broadcast hurt animation
-
-    // Paper start - entity scoreboard name
-    /**
-     * Gets the string name of the entity used to track it in {@link org.bukkit.scoreboard.Scoreboard Scoreboards}.
-     *
-     * @return the scoreboard entry name
-     * @see org.bukkit.scoreboard.Scoreboard#getScores(String)
-     * @see org.bukkit.scoreboard.Scoreboard#getEntries()
-     */
-    @NotNull String getScoreboardEntryName();
-    // Paper end - entity scoreboard name
-
     // Paper start - Collision API
     /**
      * Checks for any collisions with the entity's bounding box at the provided location.
@@ -1171,54 +1227,38 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     boolean wouldCollideUsing(@NotNull BoundingBox boundingBox);
     // Paper end - Collision API
 
-    // Purpur start
+    // Paper start - Folia schedulers
     /**
-     * Get the riding player
-     *
-     * @return Riding player
+     * Returns the task scheduler for this entity. The entity scheduler can be used to schedule tasks
+     * that are guaranteed to always execute on the tick thread that owns the entity.
+     * <p><b>If you do not need/want to make your plugin run on Folia, use {@link org.bukkit.Server#getScheduler()} instead.</b></p>
+     * @return the task scheduler for this entity.
+     * @see io.papermc.paper.threadedregions.scheduler.EntityScheduler
      */
-    @Nullable
-    Player getRider();
+    @NotNull io.papermc.paper.threadedregions.scheduler.EntityScheduler getScheduler();
+    // Paper end - Folia schedulers
 
+    // Paper start - entity scoreboard name
     /**
-     * Check if entity is being ridden
+     * Gets the string name of the entity used to track it in {@link org.bukkit.scoreboard.Scoreboard Scoreboards}.
      *
-     * @return True if being ridden
+     * @return the scoreboard entry name
+     * @see org.bukkit.scoreboard.Scoreboard#getScores(String)
+     * @see org.bukkit.scoreboard.Scoreboard#getEntries()
      */
-    boolean hasRider();
+    @NotNull String getScoreboardEntryName();
+    // Paper end - entity scoreboard name
 
+    // Paper start - broadcast hurt animation
     /**
-     * Check if entity is ridable
+     * Broadcasts a hurt animation. This fakes incoming damage towards the target entity.
+     * <p>
+     * The target players cannot include {@code this} player. For self-damage, use
+     * {@link Player#sendHurtAnimation(float)}.
      *
-     * @return True if ridable
+     * @param players the players to broadcast to (cannot include {@code this}
+     * @throws IllegalArgumentException if {@code this} is contained in {@code players}
      */
-    boolean isRidable();
-
-    /**
-     * Check if entity is ridable in water
-     *
-     * @return True if ridable in water
-     */
-    boolean isRidableInWater();
-
-    /**
-     * Checks if the entity is in daylight
-     *
-     * @return True if in daylight
-     */
-    boolean isInDaylight();
-
-    /**
-     * Checks if the entity is fire immune
-     *
-     * @return True if fire immune
-     */
-    boolean isImmuneToFire();
-
-    /**
-     * Sets if the entity is fire immune
-     * Set this to null to restore the entity type default
-     */
-    void setImmuneToFire(@Nullable Boolean fireImmune);
-    // Purpur end
+    void broadcastHurtAnimation(@NotNull java.util.Collection<Player> players);
+    // Paper end - broadcast hurt animation
 }

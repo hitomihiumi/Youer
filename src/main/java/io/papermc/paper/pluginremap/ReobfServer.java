@@ -1,17 +1,17 @@
 package io.papermc.paper.pluginremap;
 
-import com.mohistmc.art.api.Renamer;
-import com.mohistmc.art.api.Transformer;
-import com.mohistmc.art.internal.RenamerImpl;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.util.AtomicFiles;
 import io.papermc.paper.util.MappingEnvironment;
-import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import net.neoforged.art.api.Renamer;
+import net.neoforged.art.api.Transformer;
+import net.neoforged.art.internal.RenamerImpl;
 import net.neoforged.srgutils.IMappingFile;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.framework.qual.DefaultQualifier;
@@ -21,8 +21,7 @@ import static io.papermc.paper.pluginremap.InsertManifestAttribute.addNamespaceM
 
 @DefaultQualifier(NonNull.class)
 final class ReobfServer {
-
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private final Path remapClasspathDir;
     private final CompletableFuture<Void> load;
@@ -33,8 +32,8 @@ final class ReobfServer {
             this.load = mappings.thenAcceptAsync(this::remap, executor);
         } else {
             if (PluginRemapper.DEBUG_LOGGING) {
-                LOGGER.info("Have cached reobf server for current mappings.");
-            }
+				LOGGER.info("Have cached reobf server for current mappings.");
+			}
             this.load = CompletableFuture.completedFuture(null);
         }
     }
@@ -68,12 +67,12 @@ final class ReobfServer {
         try (final DebugLogger log = DebugLogger.forOutputFile(this.remappedPath())) {
             AtomicFiles.atomicWrite(this.remappedPath(), writeTo -> {
                 try (final RenamerImpl renamer = (RenamerImpl) Renamer.builder()
-                        .logger(log)
-                        .debug(log.debug())
-                        .threads(1)
-                        .add(Transformer.renamerFactory(mappings, false))
-                        .add(addNamespaceManifestAttribute(InsertManifestAttribute.SPIGOT_NAMESPACE))
-                        .build()) {
+                    .logger(log)
+                    .debug(log.debug())
+                    .threads(1)
+                    .add(Transformer.renamerFactory(mappings, false))
+                    .add(addNamespaceManifestAttribute(InsertManifestAttribute.SPIGOT_NAMESPACE))
+                    .build()) {
                     renamer.run(serverJar().toFile(), writeTo.toFile(), true);
                 }
             });
@@ -84,6 +83,10 @@ final class ReobfServer {
     }
 
     private static Path serverJar() {
-        return new File("libraries/com/mohistmc/installation/data/paper-remap.jar").toPath();
+        try {
+            return Path.of(ReobfServer.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        } catch (final URISyntaxException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

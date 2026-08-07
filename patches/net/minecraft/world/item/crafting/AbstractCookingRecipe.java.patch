@@ -1,19 +1,11 @@
 --- a/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
 +++ b/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
-@@ -5,7 +_,7 @@
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.Level;
- 
--public abstract class AbstractCookingRecipe implements Recipe<SingleRecipeInput> {
-+public abstract class AbstractCookingRecipe extends io.papermc.paper.inventory.recipe.RecipeBookExactChoiceRecipe<SingleRecipeInput> implements Recipe<SingleRecipeInput> {
-     protected final RecipeType<?> type;
-     protected final CookingBookCategory category;
-     protected final String group;
-@@ -24,6 +_,7 @@
-         this.result = p_252185_;
-         this.experience = p_252165_;
-         this.cookingTime = p_250256_;
-+        this.checkExactIngredients(); // Paper - improve exact recipe choices
-     }
- 
-     public boolean matches(SingleRecipeInput p_344849_, Level p_345973_) {
+@@ -75,7 +_,7 @@
+                         Codec.STRING.optionalFieldOf("group", "").forGetter(SingleItemRecipe::group),
+                         CookingBookCategory.CODEC.fieldOf("category").orElse(CookingBookCategory.MISC).forGetter(AbstractCookingRecipe::category),
+                         Ingredient.CODEC.fieldOf("ingredient").forGetter(SingleItemRecipe::input),
+-                        ItemStack.STRICT_SINGLE_ITEM_CODEC.fieldOf("result").forGetter(SingleItemRecipe::result),
++                        ItemStack.CODEC.fieldOf("result").forGetter(SingleItemRecipe::result),
+                         Codec.FLOAT.fieldOf("experience").orElse(0.0F).forGetter(AbstractCookingRecipe::experience),
+                         Codec.INT.fieldOf("cookingtime").orElse(p_379669_).forGetter(AbstractCookingRecipe::cookingTime)
+                     )

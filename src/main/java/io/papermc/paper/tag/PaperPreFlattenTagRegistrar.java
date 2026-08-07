@@ -52,7 +52,7 @@ public class PaperPreFlattenTagRegistrar<T> implements PaperRegistrar<BootstrapC
 
     @Override
     public Map<TagKey<T>, Collection<TagEntry<T>>> getAllTags() {
-        final ImmutableMap.Builder<TagKey<T>, Collection<TagEntry<T>>> builder = ImmutableMap.builderWithExpectedSize(this.tags.size());
+        final ImmutableMap.Builder<TagKey<T>, Collection<io.papermc.paper.tag.TagEntry<T>>> builder = ImmutableMap.builderWithExpectedSize(this.tags.size());
         for (final Map.Entry<ResourceLocation, List<TagLoader.EntryWithSource>> entry : this.tags.entrySet()) {
             final TagKey<T> key = TagKey.create(this.registryKey, CraftNamespacedKey.fromMinecraft(entry.getKey()));
             builder.put(key, convert(entry.getValue()));
@@ -60,12 +60,12 @@ public class PaperPreFlattenTagRegistrar<T> implements PaperRegistrar<BootstrapC
         return builder.build();
     }
 
-    private static <T> List<TagEntry<T>> convert(final List<TagLoader.EntryWithSource> nmsEntries) {
+    private static <T> List<io.papermc.paper.tag.TagEntry<T>> convert(final List<TagLoader.EntryWithSource> nmsEntries) {
         return Collections.unmodifiableList(Lists.transform(nmsEntries, PaperPreFlattenTagRegistrar::convert));
     }
 
-    private static <T> TagEntry<T> convert(final TagLoader.EntryWithSource nmsEntry) {
-        return new TagEntryImpl<>(CraftNamespacedKey.fromMinecraft(nmsEntry.entry().getId()), nmsEntry.entry().isTag(), nmsEntry.entry().isRequired());
+    private static <T> io.papermc.paper.tag.TagEntry<T> convert(final TagLoader.EntryWithSource nmsEntry) {
+        return new TagEntryImpl<>(CraftNamespacedKey.fromMinecraft(nmsEntry.entry().id), nmsEntry.entry().tag, nmsEntry.entry().required);
     }
 
     private TagLoader.EntryWithSource convert(final TagEntry<T> entry) {

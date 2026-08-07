@@ -1,51 +1,10 @@
 --- a/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/net/minecraft/world/level/block/SaplingBlock.java
-@@ -2,7 +_,6 @@
- 
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
--import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
- import net.minecraft.core.BlockPos;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.util.RandomSource;
-@@ -17,6 +_,7 @@
- import net.minecraft.world.level.block.state.properties.IntegerProperty;
- import net.minecraft.world.phys.shapes.CollisionContext;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.TreeType;
- 
- public class SaplingBlock extends BushBlock implements BonemealableBlock {
-     public static final MapCodec<SaplingBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -27,6 +_,7 @@
-     protected static final float AABB_OFFSET = 6.0F;
-     protected static final VoxelShape SHAPE = Block.box(2.0, 0.0, 2.0, 14.0, 12.0, 14.0);
-     protected final TreeGrower treeGrower;
-+    public static TreeType treeType; // CraftBukkit
- 
-     @Override
-     public MapCodec<? extends SaplingBlock> codec() {
-@@ -46,7 +_,8 @@
+@@ -45,6 +_,7 @@
  
      @Override
      protected void randomTick(BlockState p_222011_, ServerLevel p_222012_, BlockPos p_222013_, RandomSource p_222014_) {
--        if (p_222012_.getMaxLocalRawBrightness(p_222013_.above()) >= 9 && p_222014_.nextInt(7) == 0) {
 +        if (!p_222012_.isAreaLoaded(p_222013_, 1)) return; // Forge: prevent loading unloaded chunks when checking neighbor's light
-+        if (p_222012_.getMaxLocalRawBrightness(p_222013_.above()) >= 9 && p_222014_.nextFloat() < (p_222012_.spigotConfig.saplingModifier / (100.0f * 7))) { // Spigot - SPIGOT-7159: Better modifier resolution
+         if (p_222012_.getMaxLocalRawBrightness(p_222013_.above()) >= 9 && p_222014_.nextInt(7) == 0) {
              this.advanceTree(p_222012_, p_222013_, p_222011_, p_222014_);
          }
-     }
-@@ -55,7 +_,13 @@
-         if (p_222003_.getValue(STAGE) == 0) {
-             p_222001_.setBlock(p_222002_, p_222003_.cycle(STAGE), 4);
-         } else {
--            this.treeGrower.growTree(p_222001_, p_222001_.getChunkSource().getGenerator(), p_222002_, p_222003_, p_222004_);
-+            // CraftBukkit start
-+            if (p_222001_.captureTreeGeneration) {
-+                this.treeGrower.growTree(p_222001_, p_222001_.getChunkSource().getGenerator(), p_222002_, p_222003_, p_222004_);
-+            } else {
-+                this.treeGrower.youer(p_222001_).growTree(p_222001_, p_222001_.getChunkSource().getGenerator(), p_222002_, p_222003_, p_222004_);
-+            }
-+            // CraftBukkit end
-         }
-     }
- 

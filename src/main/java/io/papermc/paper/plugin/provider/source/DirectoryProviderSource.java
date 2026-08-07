@@ -17,8 +17,8 @@ import org.slf4j.Logger;
 public class DirectoryProviderSource implements ProviderSource<Path, List<Path>> {
 
     public static final DirectoryProviderSource INSTANCE = new DirectoryProviderSource();
-    private static final FileProviderSource FILE_PROVIDER_SOURCE = new FileProviderSource("Directory '%s'"::formatted, false);
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final FileProviderSource FILE_PROVIDER_SOURCE = new FileProviderSource("Directory '%s'"::formatted, false); // Paper - Remap plugins
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     @Override
     public List<Path> prepareContext(Path context) throws IOException {

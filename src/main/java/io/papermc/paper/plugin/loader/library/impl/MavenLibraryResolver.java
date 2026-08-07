@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.loader.library.impl;
 
-import com.mohistmc.youer.bukkit.PluginsLibrarySource;
 import io.papermc.paper.plugin.loader.library.ClassPathLibrary;
 import io.papermc.paper.plugin.loader.library.LibraryLoadingException;
 import io.papermc.paper.plugin.loader.library.LibraryStore;
@@ -51,7 +50,7 @@ import org.slf4j.LoggerFactory;
 @NullMarked
 public class MavenLibraryResolver implements ClassPathLibrary {
 
-    /**Add commentMore actions
+    /**
      * The default Maven Central mirror, configurable through the {@code PAPER_DEFAULT_CENTRAL_REPOSITORY} environment
      * variable. Use this instead of Maven Central directly when you do not have your own mirror, as using
      * Maven Central as a CDN is against the Maven Central Terms of Service, and you will cause users to hit
@@ -61,10 +60,10 @@ public class MavenLibraryResolver implements ClassPathLibrary {
      */
     public static final String MAVEN_CENTRAL_DEFAULT_MIRROR = getDefaultMavenCentralMirror();
     private static final List<String> MAVEN_CENTRAL_URLS = List.of(
-            "https://repo1.maven.org/maven2",
-            "http://repo1.maven.org/maven2",
-            "https://repo.maven.apache.org/maven2",
-            "http://repo.maven.apache.org/maven2"
+        "https://repo1.maven.org/maven2",
+        "http://repo1.maven.org/maven2",
+        "https://repo.maven.apache.org/maven2",
+        "http://repo.maven.apache.org/maven2"
     );
     private static final Logger LOGGER = LoggerFactory.getLogger("MavenLibraryResolver");
 
@@ -123,7 +122,8 @@ public class MavenLibraryResolver implements ClassPathLibrary {
     public void addRepository(final RemoteRepository remoteRepository) {
         if (MAVEN_CENTRAL_URLS.stream().anyMatch(remoteRepository.getUrl()::startsWith)) {
             LOGGER.warn(
-                    "Use of Maven Central as a CDN is against the Maven Central Terms of Service. Use MavenLibraryResolver.MAVEN_CENTRAL_DEFAULT_MIRROR instead."
+                "Use of Maven Central as a CDN is against the Maven Central Terms of Service. Use MavenLibraryResolver.MAVEN_CENTRAL_DEFAULT_MIRROR instead.",
+                new RuntimeException("Plugin used Maven Central for library resolution (%s)".formatted(remoteRepository.toString()))
             );
         }
         this.repositories.add(remoteRepository);
@@ -158,7 +158,7 @@ public class MavenLibraryResolver implements ClassPathLibrary {
             central = System.getProperty("org.bukkit.plugin.java.LibraryLoader.centralURL");
         }
         if (central == null) {
-            central = PluginsLibrarySource.DEFAULT;
+            central = "https://maven-central.storage-download.googleapis.com/maven2";
         }
         return central;
     }

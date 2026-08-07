@@ -4,10 +4,11 @@ import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.provider.configuration.LoadOrderConfiguration;
 import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
 import io.papermc.paper.plugin.provider.configuration.type.DependencyConfiguration;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.jetbrains.annotations.NotNull;
 
 public class PaperBootstrapOrderConfiguration implements LoadOrderConfiguration {
 

@@ -1,12 +1,13 @@
 package io.papermc.paper.plugin.manager;
 
+import org.bukkit.permissions.Permissible;
+import org.bukkit.permissions.Permission;
+
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import org.bukkit.permissions.Permissible;
-import org.bukkit.permissions.Permission;
 
 class NormalPaperPermissionManager extends PaperPermissionManager {
 

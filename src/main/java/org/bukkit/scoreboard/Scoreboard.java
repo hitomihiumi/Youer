@@ -22,11 +22,12 @@ public interface Scoreboard {
      *     exists
      * @deprecated a displayName should be explicitly specified
      */
-    @Deprecated
+    @Deprecated(since = "1.13")
     @NotNull
-    Objective registerNewObjective(@NotNull String name, @NotNull String criteria);
+    default Objective registerNewObjective(@NotNull String name, @NotNull String criteria) {
+        return this.registerNewObjective(name, criteria, name);
+    }
 
-    // Paper start - Adventure
     /**
      * Registers an Objective on this Scoreboard
      *
@@ -42,7 +43,10 @@ public interface Scoreboard {
      */
     @NotNull
     @Deprecated
-    Objective registerNewObjective(@NotNull String name, @NotNull String criteria, net.kyori.adventure.text.@Nullable Component displayName);
+    default Objective registerNewObjective(@NotNull String name, @NotNull String criteria, net.kyori.adventure.text.@Nullable Component displayName) {
+        return this.registerNewObjective(name, criteria, displayName, RenderType.INTEGER);
+    }
+
     /**
      * Registers an Objective on this Scoreboard
      *
@@ -60,6 +64,7 @@ public interface Scoreboard {
     @NotNull
     @Deprecated
     Objective registerNewObjective(@NotNull String name, @NotNull String criteria, net.kyori.adventure.text.@Nullable Component displayName, @NotNull RenderType renderType) throws IllegalArgumentException;
+
     /**
      * Registers an Objective on this Scoreboard
      *
@@ -73,7 +78,10 @@ public interface Scoreboard {
      *     exists
      */
     @NotNull
-    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, net.kyori.adventure.text.@Nullable Component displayName) throws IllegalArgumentException;
+    default Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, net.kyori.adventure.text.@Nullable Component displayName) throws IllegalArgumentException {
+        return this.registerNewObjective(name, criteria, displayName, RenderType.INTEGER);
+    }
+
     /**
      * Registers an Objective on this Scoreboard
      *
@@ -89,7 +97,6 @@ public interface Scoreboard {
      */
     @NotNull
     Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, net.kyori.adventure.text.@Nullable Component displayName, @NotNull RenderType renderType) throws IllegalArgumentException;
-    // Paper end - Adventure
 
     /**
      * Registers an Objective on this Scoreboard
@@ -104,9 +111,11 @@ public interface Scoreboard {
      *     exists
      * @deprecated use {@link #registerNewObjective(String, Criteria, net.kyori.adventure.text.Component)}
      */
-    @Deprecated
+    @Deprecated(since = "1.20.5")
     @NotNull
-    Objective registerNewObjective(@NotNull String name, @NotNull String criteria, @NotNull String displayName);
+    default Objective registerNewObjective(@NotNull String name, @NotNull String criteria, @NotNull String displayName) {
+        return this.registerNewObjective(name, criteria, displayName, RenderType.INTEGER);
+    }
 
     /**
      * Registers an Objective on this Scoreboard
@@ -122,7 +131,7 @@ public interface Scoreboard {
      *     exists
      * @deprecated use {@link #registerNewObjective(String, Criteria, net.kyori.adventure.text.Component, RenderType)}
      */
-    @Deprecated
+    @Deprecated(since = "1.20.5")
     @NotNull
     Objective registerNewObjective(@NotNull String name, @NotNull String criteria, @NotNull String displayName, @NotNull RenderType renderType);
 
@@ -141,7 +150,9 @@ public interface Scoreboard {
      */
     @NotNull
     @Deprecated // Paper
-    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, @NotNull String displayName);
+    default Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, @NotNull String displayName) {
+        return this.registerNewObjective(name, criteria, displayName, RenderType.INTEGER);
+    }
 
     /**
      * Registers an Objective on this Scoreboard
@@ -159,7 +170,9 @@ public interface Scoreboard {
      */
     @NotNull
     @Deprecated // Paper
-    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, @NotNull String displayName, @NotNull RenderType renderType);
+    default Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, @NotNull String displayName, @NotNull RenderType renderType) {
+        return this.registerNewObjective(name, criteria, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(displayName), renderType); // Paper - Adventure
+    }
 
     /**
      * Gets an Objective on this Scoreboard by name
@@ -177,7 +190,7 @@ public interface Scoreboard {
      * @return an immutable set of Objectives using the specified Criteria
      * @deprecated use {@link #getObjectivesByCriteria(Criteria)}
      */
-    @Deprecated
+    @Deprecated(since = "1.19.2")
     @NotNull
     Set<Objective> getObjectivesByCriteria(@NotNull String criteria);
 
@@ -216,7 +229,7 @@ public interface Scoreboard {
      * @return immutable set of all scores tracked for the player
      * @see #getScores(String)
      */
-    // @Deprecated // Paper
+    // @Deprecated(since = "1.7.8") // Paper
     @NotNull
     Set<Score> getScores(@NotNull OfflinePlayer player);
 
@@ -235,7 +248,7 @@ public interface Scoreboard {
      * @param player the player to drop all current scores for
      * @see #resetScores(String)
      */
-    // @Deprecated // Paper
+    // @Deprecated(since = "1.7.8") // Paper
     void resetScores(@NotNull OfflinePlayer player);
 
     /**
@@ -252,7 +265,7 @@ public interface Scoreboard {
      * @return the player's Team or null if the player is not on a team
      * @see #getEntryTeam(String)
      */
-    // @Deprecated // Paper
+    // @Deprecated(since = "1.8.6") // Paper
     @Nullable
     Team getPlayerTeam(@NotNull OfflinePlayer player);
 
@@ -299,7 +312,7 @@ public interface Scoreboard {
      * @see #getEntries()
      * @deprecated Scoreboards can contain entries that aren't players
      */
-    @Deprecated
+    @Deprecated(since = "1.7.8")
     @NotNull
     Set<OfflinePlayer> getPlayers();
 

@@ -1,441 +1,49 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1,17 +_,26 @@
- package net.minecraft.world.level;
- 
-+import ca.spottedleaf.moonrise.common.util.TickThread;
- import com.google.common.collect.Lists;
-+import com.mohistmc.youer.YouerConfig;
-+import com.mohistmc.youer.api.event.block.SetBlockEvent;
-+import com.mohistmc.youer.feature.ban.bans.BanBlock;
- import com.mojang.serialization.Codec;
-+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
- import java.io.IOException;
-+import java.util.ArrayList;
-+import java.util.Collection;
-+import java.util.EnumSet;
- import java.util.Iterator;
- import java.util.List;
-+import java.util.Map;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import java.util.function.Consumer;
- import java.util.function.Predicate;
- import java.util.function.Supplier;
- import javax.annotation.Nullable;
- import net.minecraft.CrashReport;
- import net.minecraft.CrashReportCategory;
--import net.minecraft.ReportedException;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
- import net.minecraft.core.Holder;
-@@ -26,6 +_,7 @@
- import net.minecraft.resources.ResourceLocation;
- import net.minecraft.server.MinecraftServer;
- import net.minecraft.server.level.FullChunkStatus;
-+import net.minecraft.server.level.ServerLevel;
- import net.minecraft.sounds.SoundEvent;
- import net.minecraft.sounds.SoundEvents;
- import net.minecraft.sounds.SoundSource;
-@@ -41,6 +_,7 @@
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.boss.EnderDragonPart;
- import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
-+import net.minecraft.world.entity.item.ItemEntity;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.alchemy.PotionBrewing;
-@@ -59,6 +_,7 @@
- import net.minecraft.world.level.chunk.LevelChunk;
- import net.minecraft.world.level.chunk.status.ChunkStatus;
- import net.minecraft.world.level.dimension.DimensionType;
-+import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.entity.EntityTypeTest;
- import net.minecraft.world.level.entity.LevelEntityGetter;
- import net.minecraft.world.level.gameevent.GameEvent;
-@@ -75,8 +_,29 @@
- import net.minecraft.world.phys.AABB;
+@@ -83,7 +_,7 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.Scoreboard;
-+import net.neoforged.neoforge.attachment.AttachmentHolder;
-+import net.neoforged.neoforge.common.extensions.ILevelExtension;
-+import net.neoforged.neoforge.common.util.BlockSnapshot;
-+import net.neoforged.neoforge.entity.PartEntity;
-+import net.neoforged.neoforge.event.EventHooks;
-+import net.neoforged.neoforge.server.timings.TimeTracker;
-+import org.bukkit.Bukkit;
-+import org.bukkit.Location;
-+import org.bukkit.World;
-+import org.bukkit.craftbukkit.CraftServer;
-+import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.craftbukkit.block.CapturedBlockState;
-+import org.bukkit.craftbukkit.block.CraftBlockState;
-+import org.bukkit.craftbukkit.block.data.CraftBlockData;
-+import org.bukkit.craftbukkit.util.CraftSpawnCategory;
-+import org.bukkit.entity.SpawnCategory;
-+import org.bukkit.event.block.BlockPhysicsEvent;
-+import org.bukkit.generator.BiomeProvider;
-+import org.bukkit.generator.ChunkGenerator;
-+import org.spigotmc.AsyncCatcher;
-+import org.spigotmc.SpigotWorldConfig;
  
--public abstract class Level implements LevelAccessor, AutoCloseable, net.neoforged.neoforge.common.extensions.ILevelExtension {
-+public abstract class Level extends AttachmentHolder implements LevelAccessor, AutoCloseable, ILevelExtension {
+-public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCloseable, net.neoforged.neoforge.common.extensions.ILevelExtension {
++public abstract class Level extends net.neoforged.neoforge.attachment.AttachmentHolder implements LevelAccessor, UUIDLookup<Entity>, AutoCloseable, net.neoforged.neoforge.common.extensions.ILevelExtension {
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,121 @@
+@@ -120,6 +_,11 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
 +    public boolean restoringBlockSnapshots = false;
 +    public boolean captureBlockSnapshots = false;
-+    public ArrayList<BlockSnapshot> capturedBlockSnapshots = new ArrayList<>();
-+    private final ArrayList<BlockEntity> freshBlockEntities = new ArrayList<>();
-+    private final ArrayList<BlockEntity> pendingFreshBlockEntities = new ArrayList<>();
-+
-+    // CraftBukkit start Added the following
-+    public CraftWorld world;
-+    public boolean pvpMode;
-+    @Nullable
-+    public static ChunkGenerator generator;
-+    @Nullable
-+    public static World.Environment environment;
-+    @Nullable
-+    public static BiomeProvider biomeProvider;
-+
-+    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
-+    public boolean captureBlockStates = false;
-+    public boolean captureTreeGeneration = false;
-+    public boolean captureTreeGeneration$Youer = false;
-+    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
-+    public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
-+    public List<ItemEntity> captureDrops;
-+    public final Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new Object2LongOpenHashMap<>();
-+    public boolean populating;
-+    public SpigotWorldConfig spigotConfig; // Spigot
-+    public String name;
-+    public static BlockPos lastPhysicsProblem; // Spigot
-+    // Paper start
-+    public int wakeupInactiveRemainingAnimals;
-+    public int wakeupInactiveRemainingFlying;
-+    public int wakeupInactiveRemainingMonsters;
-+    public int wakeupInactiveRemainingVillagers;
-+    // Paper end
-+    // Paper start - add paper world config
-+    public io.papermc.paper.configuration.WorldConfiguration paperConfig;
-+    public io.papermc.paper.configuration.WorldConfiguration paperConfig() {
-+        return this.paperConfig;
-+    }
-+    public java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator;
-+    // Paper end - add paper world config
-+    public org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur
-+
-+    // Purpur start
-+    private com.google.common.cache.Cache<BreedingCooldownPair, Object> playerBreedingCooldowns;
-+
-+    private com.google.common.cache.Cache<BreedingCooldownPair, Object> getNewBreedingCooldownCache() {
-+        return com.google.common.cache.CacheBuilder.newBuilder().expireAfterWrite(this.purpurConfig.animalBreedingCooldownSeconds, java.util.concurrent.TimeUnit.SECONDS).build();
-+    }
-+
-+    public void resetBreedingCooldowns() {
-+        this.playerBreedingCooldowns = this.getNewBreedingCooldownCache();
-+    }
-+
-+    public boolean hasBreedingCooldown(java.util.UUID player, Class<? extends net.minecraft.world.entity.animal.Animal> animalType) { // Purpur
-+        return this.playerBreedingCooldowns.getIfPresent(new BreedingCooldownPair(player, animalType)) != null;
-+    }
-+
-+    public void addBreedingCooldown(java.util.UUID player, Class<? extends net.minecraft.world.entity.animal.Animal> animalType) {
-+        this.playerBreedingCooldowns.put(new BreedingCooldownPair(player, animalType), new Object());
-+    }
-+
-+    private static final class BreedingCooldownPair {
-+        private final java.util.UUID playerUUID;
-+        private final Class<? extends net.minecraft.world.entity.animal.Animal> animalType;
-+
-+        public BreedingCooldownPair(java.util.UUID playerUUID, Class<? extends net.minecraft.world.entity.animal.Animal> animalType) {
-+            this.playerUUID = playerUUID;
-+            this.animalType = animalType;
-+        }
-+
-+        @Override
-+        public boolean equals(Object o) {
-+            if (this == o) return true;
-+            if (o == null || getClass() != o.getClass()) return false;
-+            BreedingCooldownPair that = (BreedingCooldownPair) o;
-+            return playerUUID.equals(that.playerUUID) && animalType.equals(that.animalType);
-+        }
-+
-+        @Override
-+        public int hashCode() {
-+            return java.util.Objects.hash(playerUUID, animalType);
-+        }
-+    }
-+    // Purpur end
-+
-+    public CraftWorld getWorld() {
-+        return this.world;
-+    }
-+
-+    public CraftServer getCraftServer() {
-+        return (CraftServer) Bukkit.getServer();
-+    }
-+
-+    // Paper start - per world ticks per spawn
-+    protected int getTicksPerSpawn(SpawnCategory spawnCategory) {
-+        if (this.paperConfig() != null) {
-+            final int perWorld = this.paperConfig().entities.spawning.ticksPerSpawn.getInt(CraftSpawnCategory.toNMS(spawnCategory));
-+            if (perWorld >= 0) {
-+                return perWorld;
-+            }
-+        }
-+        return this.getCraftServer().getTicksPerSpawns(spawnCategory);
-+    }
-+    // Paper end
-+
-+    public ResourceKey<LevelStem> getTypeKey() {
-+        return Registries.levelToLevelStem(dimension);
-+    }
-+
-+    public static void craftWorldData(World.Environment env, @Nullable ChunkGenerator cg, @Nullable BiomeProvider bp) {
-+        environment = env;
-+        biomeProvider = bp;
-+        generator = cg;
-+    }
++    public java.util.ArrayList<net.neoforged.neoforge.common.util.BlockSnapshot> capturedBlockSnapshots = new java.util.ArrayList<>();
++    private final java.util.ArrayList<BlockEntity> freshBlockEntities = new java.util.ArrayList<>();
++    private final java.util.ArrayList<BlockEntity> pendingFreshBlockEntities = new java.util.ArrayList<>();
  
      protected Level(
          WritableLevelData p_270739_,
-@@ -136,12 +_,12 @@
-             this.worldBorder = new WorldBorder() {
-                 @Override
-                 public double getCenterX() {
--                    return super.getCenterX() / dimensiontype.coordinateScale();
-+                    return super.getCenterX(); // CraftBukkit
-                 }
- 
-                 @Override
-                 public double getCenterZ() {
--                    return super.getCenterZ() / dimensiontype.coordinateScale();
-+                    return super.getCenterZ(); // CraftBukkit
-                 }
-             };
-         } else {
-@@ -156,6 +_,46 @@
-         this.damageSources = new DamageSources(p_270200_);
-     }
- 
-+    // Paper start - Cancel hit for vanished players
-+    // ret true if no collision
-+    public final boolean checkEntityCollision(BlockState data, Entity source, net.minecraft.world.phys.shapes.CollisionContext voxelshapedcollision,
-+                                              BlockPos position, boolean checkCanSee) {
-+        // Copied from IWorldReader#a(IBlockData, BlockPosition, VoxelShapeCollision) & EntityAccess#a(Entity, VoxelShape)
-+        net.minecraft.world.phys.shapes.VoxelShape voxelshape = data.getCollisionShape(this, position, voxelshapedcollision);
-+        if (voxelshape.isEmpty()) {
-+            return true;
-+        }
-+
-+        voxelshape = voxelshape.move((double) position.getX(), (double) position.getY(), (double) position.getZ());
-+        if (voxelshape.isEmpty()) {
-+            return true;
-+        }
-+
-+        List<Entity> entities = this.getEntities(null, voxelshape.bounds());
-+        for (int i = 0, len = entities.size(); i < len; ++i) {
-+            Entity entity = entities.get(i);
-+
-+            if (checkCanSee && source instanceof net.minecraft.server.level.ServerPlayer && entity instanceof net.minecraft.server.level.ServerPlayer
-+                    && !((net.minecraft.server.level.ServerPlayer) source).getBukkitEntity().canSee(((net.minecraft.server.level.ServerPlayer) entity).getBukkitEntity())) {
-+                continue;
-+            }
-+
-+            // !entity1.dead && entity1.i && (entity == null || !entity1.x(entity));
-+            // elide the last check since vanilla calls with entity = null
-+            // only we care about the source for the canSee check
-+            if (entity.isRemoved() || !entity.blocksBuilding) {
-+                continue;
-+            }
-+
-+            if (net.minecraft.world.phys.shapes.Shapes.joinIsNotEmpty(voxelshape, net.minecraft.world.phys.shapes.Shapes.create(entity.getBoundingBox()), net.minecraft.world.phys.shapes.BooleanOp.AND)) {
-+                return false;
-+            }
-+        }
-+
-+        return true;
-+    }
-+    // Paper end - Cancel hit for vanished players
-+
-     @Override
-     public boolean isClientSide() {
-         return this.isClientSide;
-@@ -167,6 +_,13 @@
-         return null;
-     }
- 
-+    // Paper start
-+    public net.minecraft.world.phys.BlockHitResult.Type clipDirect(Vec3 start, Vec3 end, net.minecraft.world.phys.shapes.CollisionContext context) {
-+        // To be patched over
-+        return this.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, context)).getType();
-+    }
-+    // Paper end
-+
-     public boolean isInWorldBounds(BlockPos p_46740_) {
-         return !this.isOutsideBuildHeight(p_46740_) && isInWorldBoundsHorizontal(p_46740_);
-     }
-@@ -193,6 +_,57 @@
- 
-     @Nullable
-     @Override
-+    public final ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
-+        if (this instanceof ServerLevel serverLevel) {
-+            return serverLevel.chunkSource.getChunkAtIfLoadedImmediately(x, z);
-+        }
-+        return null;
-+    }
-+
-+    @Override
-+    @Nullable
-+    public final BlockState getBlockStateIfLoaded(BlockPos pos) {
-+        // CraftBukkit start - tree generation
-+        if (this.captureTreeGeneration) {
-+            CraftBlockState previous = this.capturedBlockStates.get(pos);
-+            if (previous != null) {
-+                return previous.getHandle();
-+            }
-+        }
-+        // CraftBukkit end
-+        if (this.isOutsideBuildHeight(pos)) {
-+            return Blocks.VOID_AIR.defaultBlockState();
-+        } else {
-+            ChunkAccess chunk = this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4);
-+
-+            return chunk == null ? null : chunk.getBlockState(pos);
-+        }
-+    }
-+
-+    public final boolean isLoadedAndInBounds(BlockPos blockposition) { // Paper - final for inline
-+        return getWorldBorder().isWithinBounds(blockposition) && getChunkIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4) != null;
-+    }
-+
-+    public @Nullable LevelChunk getChunkIfLoaded(int x, int z) { // Overridden in WorldServer for ABI compat which has final
-+        if (this instanceof ServerLevel serverLevel) {
-+            return serverLevel.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
-+        }
-+        return null;
-+    }
-+    public final @Nullable LevelChunk getChunkIfLoaded(BlockPos blockposition) {
-+        if (this instanceof ServerLevel serverLevel) {
-+            return serverLevel.getChunkSource().getChunkAtIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4);
-+        }
-+        return null;
-+    }
-+
-+    //  reduces need to do isLoaded before getType
-+    public final @Nullable BlockState getBlockStateIfLoadedAndInBounds(BlockPos blockposition) {
-+        return getWorldBorder().isWithinBounds(blockposition) ? getBlockStateIfLoaded(blockposition) : null;
-+    }
-+
-+    @Nullable
-+    @Override
-     public ChunkAccess getChunk(int p_46502_, int p_46503_, ChunkStatus p_331611_, boolean p_46505_) {
-         ChunkAccess chunkaccess = this.getChunkSource().getChunk(p_46502_, p_46503_, p_331611_, p_46505_);
-         if (chunkaccess == null && p_46505_) {
-@@ -202,13 +_,50 @@
-         }
-     }
- 
-+    public boolean fake$setBlock = false;
-+    public BlockState fake$setBlockBlockState = null;
-     @Override
-     public boolean setBlock(BlockPos p_46601_, BlockState p_46602_, int p_46603_) {
-+        if (fake$setBlock) {
-+            fake$setBlock = false;
-+            fake$setBlockBlockState = p_46602_;
-+            return false;
-+        }
-         return this.setBlock(p_46601_, p_46602_, p_46603_, 512);
-     }
- 
-+    AtomicBoolean captured = new AtomicBoolean(false);
-     @Override
-     public boolean setBlock(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {
-+        if (BanBlock.check(p_46606_)) {
-+           return false;
-+        }
-+        this.captured.set(false);
-+        {
-+            if (YouerConfig.custom_disabled_spawner && p_46606_.getBlock() == Blocks.SPAWNER) {
-+                p_46606_ = Blocks.AIR.defaultBlockState();
-+            }
-+            if (SetBlockEvent.getHandlerList().getRegisteredListeners().length > 0 && this.getWorld() != null) {
-+                SetBlockEvent event = new SetBlockEvent(new Location(this.getWorld(), p_46605_.getX(), p_46605_.getY(), p_46605_.getZ()));
-+                Bukkit.getPluginManager().callEvent(event);
-+                if (event.isCancelled()) {
-+                    return false;
-+                }
-+            }
-+        }
-+        // CraftBukkit start - tree generation
-+        if (this.captureTreeGeneration) {
-+            CraftBlockState blockstate = capturedBlockStates.get(p_46605_);
-+            if (blockstate == null) {
-+                blockstate = CapturedBlockState.getTreeBlockState(this, p_46605_, p_46607_);
-+                this.capturedBlockStates.put(p_46605_.immutable(), blockstate);
-+            }
-+            blockstate.setData(p_46606_);
-+            blockstate.setFlag(p_46607_);
-+            return true;
-+        }
-+        // CraftBukkit end
-+
-         if (this.isOutsideBuildHeight(p_46605_)) {
-             return false;
-         } else if (!this.isClientSide && this.isDebug()) {
-@@ -216,11 +_,59 @@
+@@ -220,11 +_,36 @@
          } else {
              LevelChunk levelchunk = this.getChunkAt(p_46605_);
              Block block = p_46606_.getBlock();
 +
 +            p_46605_ = p_46605_.immutable(); // Forge - prevent mutable BlockPos leaks
-+            BlockSnapshot blockSnapshot = null;
++            net.neoforged.neoforge.common.util.BlockSnapshot blockSnapshot = null;
 +            if (this.captureBlockSnapshots && !this.isClientSide) {
-+                 blockSnapshot = BlockSnapshot.create(this.dimension, this, p_46605_, p_46607_);
++                 blockSnapshot = net.neoforged.neoforge.common.util.BlockSnapshot.create(this.dimension, this, p_46605_, p_46607_);
 +                 this.capturedBlockSnapshots.add(blockSnapshot);
 +            }
 +
-+            // CraftBukkit start - capture blockstates
-+            if (this.captureBlockStates && !this.capturedBlockStates.containsKey(p_46605_)) {
-+                CraftBlockState blockstate = (CraftBlockState) world.getBlockAt(p_46605_.getX(), p_46605_.getY(), p_46605_.getZ()).getState(); // Paper - use CB getState to get a suitable snapshot
-+                blockstate.setFlag(p_46607_); // Paper - set flag
-+                this.capturedBlockStates.put(p_46605_.immutable(), blockstate);
-+                this.captured.set(true);
-+            }
-+            // CraftBukkit end
-+
-+            BlockState old = getBlockState(p_46605_);
-+            int oldLight = old.getLightEmission(this, p_46605_);
-+            int oldOpacity = old.getLightBlock(this, p_46605_);
-+            levelchunk.setBlockState$doPlace.set((p_46607_ & 1024) == 0); // CraftBukkit custom NO_PLACE flag
-             BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, (p_46607_ & 64) != 0);
+             BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, p_46607_);
              if (blockstate == null) {
 +                if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);
-+                // CraftBukkit start - remove blockstate if failed (or the same)
-+                if (this.captureBlockStates && this.captured.getAndSet(false)) {
-+                    this.capturedBlockStates.remove(p_46605_);
-+                }
-+                // CraftBukkit end
                  return false;
              } else {
                  BlockState blockstate1 = this.getBlockState(p_46605_);
 +
-+                if (blockSnapshot == null && !this.captureBlockStates) { // Don't notify clients or update physics while capturing blockstates
-+                    // Spigot start
-+                    try {
-+                        this.markAndNotifyBlock(p_46605_, levelchunk, blockstate, p_46606_, p_46607_, p_46608_);
-+                    } catch (StackOverflowError ex) {
-+                        lastPhysicsProblem = new BlockPos(p_46605_);
-+                    }
-+                    // Spigot end
++                if (blockSnapshot == null) { // Don't notify clients or update physics while capturing blockstates
++                    this.markAndNotifyBlock(p_46605_, levelchunk, blockstate, p_46606_, p_46607_, p_46608_);
 +                }
++
 +                return true;
 +            }
 +        }
@@ -450,188 +58,30 @@
                  if (blockstate1 == p_46606_) {
                      if (blockstate != blockstate1) {
                          this.setBlocksDirty(p_46605_, blockstate, blockstate1);
-@@ -242,17 +_,85 @@
-                     if ((p_46607_ & 16) == 0 && p_46608_ > 0) {
-                         int i = p_46607_ & -34;
-                         blockstate.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);
-+                        // CraftBukkit start
-+                        if (!AsyncCatcher.catchAsync() && this instanceof ServerLevel serverLevel) {
-+                            CraftWorld world = serverLevel.getWorld();
-+                            if (world != null && serverLevel.hasPhysicsEvent) { // Paper - BlockPhysicsEvent
-+                                BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(p_46605_.getX(), p_46605_.getY(), p_46605_.getZ()), CraftBlockData.fromData(blockstate1));
-+                                this.getCraftServer().getPluginManager().callEvent(event);
-+
-+                                if (event.isCancelled()) {
-+                                    return;
-+                                }
-+                            }
-+                        }
-+                        // CraftBukkit end
-                         p_46606_.updateNeighbourShapes(this, p_46605_, i, p_46608_ - 1);
-                         p_46606_.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);
+@@ -251,9 +_,8 @@
                      }
  
--                    this.onBlockStateChange(p_46605_, blockstate, blockstate1);
--                }
+                     this.updatePOIOnBlockStateChange(p_46605_, blockstate, blockstate1);
++                    p_46606_.onBlockStateChange(this, p_46605_, blockstate);
+                 }
 -
 -                return true;
--            }
--        }
--    }
-+                    // CraftBukkit start - SPIGOT-5710
-+                    if (!preventPoiUpdated) {
-+                        this.onBlockStateChange(p_46605_, blockstate, blockstate1);
-+                    }
-+                    // CraftBukkit end
-+                    p_46606_.onBlockStateChange(this, p_46605_, blockstate);
-+                }
-+            }
-+        }
-+    }
-+
-+    // CraftBukkit start - Split off from above in order to directly send client and physic updates
-+    public void notifyAndUpdatePhysics(BlockPos blockposition, LevelChunk chunk, BlockState oldBlock, BlockState newBlock, BlockState actualBlock, int i, int j) {
-+        BlockState iblockdata = newBlock;
-+        BlockState iblockdata1 = oldBlock;
-+        BlockState iblockdata2 = actualBlock;
-+        if (iblockdata2 == iblockdata) {
-+            if (iblockdata1 != iblockdata2) {
-+                this.setBlocksDirty(blockposition, iblockdata1, iblockdata2);
-+            }
-+
-+            if ((i & 2) != 0 && (!this.isClientSide || (i & 4) == 0) && (this.isClientSide || chunk == null || (chunk.getFullStatus() != null && chunk.getFullStatus().isOrAfter(FullChunkStatus.FULL)))) { // allow chunk to be null here as chunk.isReady() is false when we send our notification during block placement // Paper - rewrite chunk system - change from ticking to full
-+                this.sendBlockUpdated(blockposition, iblockdata1, iblockdata, i);
-+            }
-+
-+            if ((i & 1) != 0) {
-+                this.blockUpdated(blockposition, iblockdata1.getBlock());
-+                if (!this.isClientSide && iblockdata.hasAnalogOutputSignal()) {
-+                    this.updateNeighbourForOutputSignal(blockposition, newBlock.getBlock());
-+                }
-+            }
-+
-+            if ((i & 16) == 0 && j > 0) {
-+                int k = i & -34;
-+
-+                // CraftBukkit start
-+                iblockdata1.updateIndirectNeighbourShapes(this, blockposition, k, j - 1); // Don't call an event for the old block to limit event spam
-+                boolean cancelledUpdates = false; // Paper - Fix block place logic
-+                if (!AsyncCatcher.catchAsync() && this instanceof ServerLevel serverLevel) {
-+                    CraftWorld world = serverLevel.getWorld();
-+                    if (world != null && serverLevel.hasPhysicsEvent) { // Paper - BlockPhysicsEvent
-+                        BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()), CraftBlockData.fromData(iblockdata));
-+                        this.getCraftServer().getPluginManager().callEvent(event);
-+
-+                        cancelledUpdates = event.isCancelled(); // Paper - Fix block place logic
-+                    }
-+                }
-+                // CraftBukkit end
-+                if (!cancelledUpdates) { // Paper - Fix block place logic
-+                    iblockdata.updateNeighbourShapes(this, blockposition, k, j - 1);
-+                    iblockdata.updateIndirectNeighbourShapes(this, blockposition, k, j - 1);
-+                } // Paper - Fix block place logic
-+            }
-+
-+            // CraftBukkit start - SPIGOT-5710
-+            if (!this.preventPoiUpdated) {
-+                this.onBlockStateChange(blockposition, iblockdata1, iblockdata2);
-+            }
-+            // CraftBukkit end
-+        }
-+    }
-+    // CraftBukkit end
- 
-     public void onBlockStateChange(BlockPos p_46609_, BlockState p_46610_, BlockState p_46611_) {
-     }
-@@ -270,13 +_,37 @@
-             return false;
-         } else {
-             FluidState fluidstate = this.getFluidState(p_46626_);
--            if (!(blockstate.getBlock() instanceof BaseFireBlock)) {
--                this.levelEvent(2001, p_46626_, Block.getId(blockstate));
-+            if (this instanceof ServerLevel serverLevel) {
-+                // Paper start - BlockDestroyEvent; while the above setAir method is named same and looks very similar
-+                // they are NOT used with same intent and the above should not fire this event. The above method is more of a BlockSetToAirEvent,
-+                // it doesn't imply destruction of a block that plays a sound effect / drops an item.
-+                boolean playEffect = true;
-+                BlockState effectType = blockstate;
-+                int xp = blockstate.getBlock().getExpDrop(blockstate, serverLevel, p_46626_, ItemStack.EMPTY, true);
-+                if (com.destroystokyo.paper.event.block.BlockDestroyEvent.getHandlerList().getRegisteredListeners().length > 0) {
-+                    com.destroystokyo.paper.event.block.BlockDestroyEvent event = new com.destroystokyo.paper.event.block.BlockDestroyEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this, p_46626_), fluidstate.createLegacyBlock().createCraftBlockData(), effectType.createCraftBlockData(), xp, p_46627_);
-+                    if (!event.callEvent()) {
-+                        return false;
-+                    }
-+                    effectType = ((CraftBlockData) event.getEffectBlock()).getState();
-+                    playEffect = event.playEffect();
-+                    p_46627_ = event.willDrop();
-+                    xp = event.getExpToDrop();
-+                }
-+                // Paper end - BlockDestroyEvent
-+                if (playEffect && !(effectType.getBlock() instanceof BaseFireBlock)) { // Paper - BlockDestroyEvent
-+                    this.levelEvent(2001, p_46626_, Block.getId(effectType)); // Paper - BlockDestroyEvent
-+                }
-+            } else {
-+                if (!(blockstate.getBlock() instanceof BaseFireBlock)) {
-+                    this.levelEvent(2001, p_46626_, Block.getId(blockstate));
-+                }
              }
- 
-             if (p_46627_) {
-                 BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(p_46626_) : null;
-                 Block.dropResources(blockstate, this, p_46626_, blockentity, p_46628_, ItemStack.EMPTY);
-+                // blockstate.getBlock().popExperience((ServerLevel) this, p_46626_, xp); // Paper - Properly handle xp dropping; custom amount // Youer TODO
-             }
- 
-             boolean flag = this.setBlock(p_46626_, fluidstate.createLegacyBlock(), 3, p_46629_);
-@@ -291,9 +_,20 @@
-     public void addDestroyBlockEffect(BlockPos p_151531_, BlockState p_151532_) {
+         }
+     }
+@@ -305,6 +_,7 @@
      }
  
-+    // Mohist start
-+    private AtomicBoolean callEvent = new AtomicBoolean(false);
-+
-+    public void callEvent(boolean call) {
-+        callEvent.set(call);
-+    }
-+    public BlockState youer$defaultBlockState;
-+
-     public boolean setBlockAndUpdate(BlockPos p_46598_, BlockState p_46599_) {
-+        youer$defaultBlockState = p_46599_;
-+        if (callEvent.getAndSet(false)) return false;
-         return this.setBlock(p_46598_, p_46599_, 3);
-     }
-+    // Mohist end
- 
-     public abstract void sendBlockUpdated(BlockPos p_46612_, BlockState p_46613_, BlockState p_46614_, int p_46615_);
- 
-@@ -301,6 +_,7 @@
+     public void updateNeighborsAt(BlockPos p_365514_, Block p_364886_, @Nullable Orientation p_363337_) {
++        net.neoforged.neoforge.event.EventHooks.onNeighborNotify(this, p_365514_, this.getBlockState(p_365514_), java.util.EnumSet.allOf(Direction.class), false).isCanceled();
      }
  
-     public void updateNeighborsAt(BlockPos p_46673_, Block p_46674_) {
-+        EventHooks.onNeighborNotify(this, p_46673_, this.getBlockState(p_46673_), EnumSet.allOf(Direction.class), false).isCanceled();
-     }
- 
-     public void updateNeighborsAtExceptFromFacing(BlockPos p_46591_, Block p_46592_, Direction p_46593_) {
-@@ -342,6 +_,14 @@
- 
-     @Override
-     public BlockState getBlockState(BlockPos p_46732_) {
-+        // CraftBukkit start - tree generation
-+        if (captureTreeGeneration) {
-+            CraftBlockState previous = capturedBlockStates.get(p_46732_);
-+            if (previous != null) {
-+                return previous.getHandle();
-+            }
-+        }
-+        // CraftBukkit end
-         if (this.isOutsideBuildHeight(p_46732_)) {
-             return Blocks.VOID_AIR.defaultBlockState();
-         } else {
-@@ -489,10 +_,32 @@
+     public void updateNeighborsAtExceptFromFacing(BlockPos p_46591_, Block p_46592_, Direction p_46593_, @Nullable Orientation p_362952_) {
+@@ -505,10 +_,32 @@
          (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(p_151526_);
      }
  
-+    public void addFreshBlockEntities(Collection<BlockEntity> beList) {
++    public void addFreshBlockEntities(java.util.Collection<BlockEntity> beList) {
 +        if (this.tickingBlockEntities) {
 +            this.pendingFreshBlockEntities.addAll(beList);
 +        } else {
@@ -640,7 +90,7 @@
 +    }
 +
      protected void tickBlockEntities() {
-         ProfilerFiller profilerfiller = this.getProfiler();
+         ProfilerFiller profilerfiller = Profiler.get();
          profilerfiller.push("blockEntities");
 +        if (!this.pendingFreshBlockEntities.isEmpty()) {
 +            this.freshBlockEntities.addAll(this.pendingFreshBlockEntities);
@@ -660,81 +110,27 @@
          if (!this.pendingBlockEntityTickers.isEmpty()) {
              this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
              this.pendingBlockEntityTickers.clear();
-@@ -516,12 +_,18 @@
+@@ -532,12 +_,19 @@
  
      public <T extends Entity> void guardEntityTick(Consumer<T> p_46654_, T p_46655_) {
          try {
-+            TimeTracker.ENTITY_UPDATE.trackStart(p_46655_);
++            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackStart(p_46655_);
              p_46654_.accept(p_46655_);
          } catch (Throwable throwable) {
--            CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking entity");
--            CrashReportCategory crashreportcategory = crashreport.addCategory("Entity being ticked");
--            p_46655_.fillCrashReportCategory(crashreportcategory);
--            throw new ReportedException(crashreport);
-+            if (throwable instanceof ThreadDeath) throw throwable; // Paper
-+            // Paper start - Prevent block entity and entity crashes
-+            final String msg = String.format("Entity threw exception at %s:%s,%s,%s", p_46655_.level().getWorld().getName(), p_46655_.getX(), p_46655_.getY(), p_46655_.getZ());
-+            MinecraftServer.LOGGER.error(msg, throwable);
-+            getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
-+            p_46655_.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
-+            p_46655_.discard();
-+		} finally {
+             CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking entity");
+             CrashReportCategory crashreportcategory = crashreport.addCategory("Entity being ticked");
+             p_46655_.fillCrashReportCategory(crashreportcategory);
++            if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.removeErroringEntities.get()) {
++                com.mojang.logging.LogUtils.getLogger().error("{}", crashreport.getFriendlyReport(net.minecraft.ReportType.CRASH));
++                p_46655_.discard();
++            } else
+             throw new ReportedException(crashreport);
++        } finally {
 +            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackEnd(p_46655_);
          }
      }
  
-@@ -670,11 +_,12 @@
-         Explosion.BlockInteraction explosion$blockinteraction = switch (p_312265_) {
-             case NONE -> Explosion.BlockInteraction.KEEP;
-             case BLOCK -> this.getDestroyType(GameRules.RULE_BLOCK_EXPLOSION_DROP_DECAY);
--            case MOB -> this.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
-+            case MOB -> net.neoforged.neoforge.event.EventHooks.canEntityGrief(this, p_311934_)
-             ? this.getDestroyType(GameRules.RULE_MOB_EXPLOSION_DROP_DECAY)
-             : Explosion.BlockInteraction.KEEP;
-             case TNT -> this.getDestroyType(GameRules.RULE_TNT_EXPLOSION_DROP_DECAY);
-             case TRIGGER -> Explosion.BlockInteraction.TRIGGER_BLOCK;
-+            case STANDARD -> Explosion.BlockInteraction.DESTROY;
-         };
-         Explosion explosion = new Explosion(
-             this,
-@@ -691,6 +_,7 @@
-             p_312060_,
-             p_320283_
-         );
-+        if (net.neoforged.neoforge.event.EventHooks.onExplosionStart(this, explosion)) return explosion;
-         explosion.explode();
-         explosion.finalizeExplosion(p_312145_);
-         return explosion;
-@@ -708,15 +_,27 @@
-         if (this.isOutsideBuildHeight(p_46716_)) {
-             return null;
-         } else {
--            return !this.isClientSide && Thread.currentThread() != this.thread
-+            return !this.isClientSide && !(Thread.currentThread() instanceof TickThread)
-                 ? null
-                 : this.getChunkAt(p_46716_).getBlockEntity(p_46716_, LevelChunk.EntityCreationType.IMMEDIATE);
-         }
-     }
- 
-+    @Nullable
-+    public BlockEntity getBlockEntity(BlockPos p_46716_, boolean validate) {
-+      return getBlockEntity(p_46716_);
-+    }
-+
-     public void setBlockEntity(BlockEntity p_151524_) {
-         BlockPos blockpos = p_151524_.getBlockPos();
-+
-         if (!this.isOutsideBuildHeight(blockpos)) {
-+            // CraftBukkit start
-+            if (captureBlockStates) {
-+                capturedTileEntities.put(blockpos.immutable(), p_151524_);
-+                // return; // Youer
-+            }
-+            // CraftBukkit end
-             this.getChunkAt(blockpos).addAndRegisterBlockEntity(p_151524_);
-         }
-     }
-@@ -725,6 +_,7 @@
+@@ -687,6 +_,7 @@
          if (!this.isOutsideBuildHeight(p_46748_)) {
              this.getChunkAt(p_46748_).removeBlockEntity(p_46748_);
          }
@@ -742,34 +138,19 @@
      }
  
      public boolean isLoaded(BlockPos p_46750_) {
-@@ -799,18 +_,24 @@
-         this.getProfiler().incrementCounter("getEntities");
-         List<Entity> list = Lists.newArrayList();
-         this.getEntities().get(p_46537_, p_151522_ -> {
--            if (p_151522_ != p_46536_ && p_46538_.test(p_151522_)) {
-+            if (p_151522_ != p_46536_ && p_46538_ != null && p_46538_.test(p_151522_)) {
-                 list.add(p_151522_);
-             }
- 
-+            if (false)
-             if (p_151522_ instanceof EnderDragon) {
-                 for (EnderDragonPart enderdragonpart : ((EnderDragon)p_151522_).getSubEntities()) {
--                    if (p_151522_ != p_46536_ && p_46538_.test(enderdragonpart)) {
-+                    if (p_151522_ != p_46536_ && p_46538_ != null && p_46538_.test(enderdragonpart)) {
-                         list.add(enderdragonpart);
-                     }
-                 }
+@@ -766,9 +_,9 @@
              }
          });
-+        for (PartEntity<?> p : this.getPartEntities()) {
-+            if (p != p_46536_ && p.getBoundingBox().intersects(p_46537_) && p_46538_ != null && p_46538_.test(p)) {
-+                list.add(p);
-+            }
-+        }
-         return list;
-     }
  
-@@ -837,6 +_,8 @@
+-        for (EnderDragonPart enderdragonpart : this.dragonParts()) {
++        for (net.neoforged.neoforge.entity.PartEntity<?> enderdragonpart : this.dragonParts()) {
+             if (enderdragonpart != p_46536_
+-                && enderdragonpart.parentMob != p_46536_
++                && enderdragonpart.getParent() != p_46536_
+                 && p_46538_.test(enderdragonpart)
+                 && p_46537_.intersects(enderdragonpart.getBoundingBox())) {
+                 list.add(enderdragonpart);
+@@ -801,6 +_,8 @@
                  }
              }
  
@@ -778,11 +159,11 @@
              if (p_261454_ instanceof EnderDragon enderdragon) {
                  for (EnderDragonPart enderdragonpart : enderdragon.getSubEntities()) {
                      T t = p_261885_.tryCast(enderdragonpart);
-@@ -851,6 +_,15 @@
+@@ -815,6 +_,15 @@
  
              return AbortableIterationConsumer.Continuation.CONTINUE;
          });
-+        for (net.neoforged.neoforge.entity.PartEntity<?> p : this.getPartEntities()) {
++        for (net.neoforged.neoforge.entity.PartEntity<?> p : this.dragonParts()) {
 +            T t = p_261885_.tryCast(p);
 +            if (t != null && t.getBoundingBox().intersects(p_262086_) && p_261688_.test(t)) {
 +                p_262071_.add(t);
@@ -793,37 +174,43 @@
 +        }
      }
  
-     @Nullable
-@@ -979,16 +_,15 @@
+     public List<Entity> getPushableEntities(Entity p_394578_, AABB p_394614_) {
+@@ -829,7 +_,7 @@
+         return this.getEntities().get(p_394067_);
+     }
+ 
+-    public abstract Collection<EnderDragonPart> dragonParts();
++    public abstract Collection<net.neoforged.neoforge.entity.PartEntity<?>> dragonParts();
+ 
+     public void blockEntityChanged(BlockPos p_151544_) {
+         if (this.hasChunkAt(p_151544_)) {
+@@ -951,17 +_,20 @@
+ 
      public abstract Scoreboard getScoreboard();
  
++    private static final Direction[] NEIGHBOR_UPDATE_LIST = java.util.stream.Stream.concat(Direction.Plane.HORIZONTAL.stream(), Direction.Plane.VERTICAL.stream()).toArray(Direction[]::new);
++
      public void updateNeighbourForOutputSignal(BlockPos p_46718_, Block p_46719_) {
 -        for (Direction direction : Direction.Plane.HORIZONTAL) {
-+        for(Direction direction : Direction.values()) {
++        // Neo: send update to vertical directions as well, after horizontal ones
++        for (Direction direction : NEIGHBOR_UPDATE_LIST) {
              BlockPos blockpos = p_46718_.relative(direction);
              if (this.hasChunkAt(blockpos)) {
                  BlockState blockstate = this.getBlockState(blockpos);
 -                if (blockstate.is(Blocks.COMPARATOR)) {
--                    this.neighborChanged(blockstate, blockpos, p_46719_, p_46718_, false);
+-                    this.neighborChanged(blockstate, blockpos, p_46719_, null, false);
 -                } else if (blockstate.isRedstoneConductor(this, blockpos)) {
 +                blockstate.onNeighborChange(this, blockpos, p_46718_);
 +                if (blockstate.isRedstoneConductor(this, blockpos)) {
                      blockpos = blockpos.relative(direction);
                      blockstate = this.getBlockState(blockpos);
 -                    if (blockstate.is(Blocks.COMPARATOR)) {
-+                    if (blockstate.getWeakChanges(this, blockpos)) {
-                         this.neighborChanged(blockstate, blockpos, p_46719_, p_46718_, false);
++                    // Neo: send to any blockstate that wants weak changes, but exclude vanilla comparators from vertical updates
++                    if (blockstate.getWeakChanges(this, blockpos) && (direction.getAxis().isHorizontal() || !blockstate.is(Blocks.COMPARATOR))) {
+                         this.neighborChanged(blockstate, blockpos, p_46719_, null, false);
                      }
                  }
-@@ -1066,6 +_,7 @@
-     }
- 
-     public ProfilerFiller getProfiler() {
-+        if (gg.pufferfish.pufferfish.PufferfishConfig.disableMethodProfiler) return net.minecraft.util.profiling.InactiveProfiler.INSTANCE; // Pufferfish
-         return this.profiler.get();
-     }
- 
-@@ -1078,6 +_,18 @@
+@@ -1043,6 +_,18 @@
          return this.biomeManager;
      }
  
@@ -842,17 +229,7 @@
      public final boolean isDebug() {
          return this.isDebug;
      }
-@@ -1105,7 +_,8 @@
-         BLOCK("block"),
-         MOB("mob"),
-         TNT("tnt"),
--        TRIGGER("trigger");
-+        TRIGGER("trigger"),
-+        STANDARD("standard"); // CraftBukkit - Add STANDARD which will always use Explosion.Effect.DESTROY;
- 
-         public static final Codec<Level.ExplosionInteraction> CODEC = StringRepresentable.fromEnum(Level.ExplosionInteraction::values);
-         private final String id;
-@@ -1118,5 +_,38 @@
+@@ -1089,5 +_,38 @@
          public String getSerializedName() {
              return this.id;
          }

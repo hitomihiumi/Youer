@@ -1,7 +1,7 @@
 package io.papermc.paper.command.brigadier.argument.resolvers;
 
-import io.papermc.paper.command.brigadier.CommandSourceStack;
 import com.destroystokyo.paper.profile.PlayerProfile;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.util.Collection;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -11,7 +11,6 @@ import org.jetbrains.annotations.ApiStatus;
  *
  * @see io.papermc.paper.command.brigadier.argument.ArgumentTypes#playerProfiles()
  */
-@ApiStatus.Experimental
 @ApiStatus.NonExtendable
 public interface PlayerProfileListResolver extends ArgumentResolver<Collection<PlayerProfile>> {
 }

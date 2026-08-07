@@ -3,6 +3,7 @@ package io.papermc.paper;
 import java.util.List;
 import joptsimple.OptionSet;
 import net.minecraft.SharedConstants;
+import net.minecraft.server.Main;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +17,8 @@ public final class PaperBootstrap {
         SharedConstants.tryDetectVersion();
 
         getStartupVersionMessages().forEach(LOGGER::info);
+
+        Main.main(options);
     }
 
     private static List<String> getStartupVersionMessages() {

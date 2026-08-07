@@ -2,12 +2,12 @@ package org.bukkit.craftbukkit.potion;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.alchemy.Potion;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -29,11 +29,8 @@ public class CraftPotionType implements PotionType.InternalPotionData {
         Preconditions.checkArgument(minecraft != null);
 
         net.minecraft.core.Registry<Potion> registry = CraftRegistry.getMinecraftRegistry(Registries.POTION);
-        ResourceLocation key = registry.getResourceKey(minecraft).orElseThrow().location();
-        PotionType bukkit = Registry.POTION.get(CraftNamespacedKey.fromMinecraft(key));
-        if (bukkit == null) {
-            bukkit = CraftPotionUtil.mods.get(key);
-        }
+        PotionType bukkit = Registry.POTION.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
+
         Preconditions.checkArgument(bukkit != null);
 
         return bukkit;
@@ -76,7 +73,7 @@ public class CraftPotionType implements PotionType.InternalPotionData {
         if (key == null) return null; // Paper - Fixup NamespacedKey handling
 
         // Now also convert from when keys where saved
-        return CraftRegistry.get(Registry.POTION, key, ApiVersion.CURRENT);
+        return CraftRegistry.get(RegistryKey.POTION, key, ApiVersion.CURRENT);
     }
 
     private final NamespacedKey key;

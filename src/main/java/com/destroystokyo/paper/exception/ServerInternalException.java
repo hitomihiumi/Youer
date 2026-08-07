@@ -1,8 +1,8 @@
 package com.destroystokyo.paper.exception;
 
-import com.destroystokyo.paper.event.server.ServerExceptionEvent;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
+import com.destroystokyo.paper.event.server.ServerExceptionEvent;
 
 /**
  * Thrown when the internal server throws a recoverable exception.

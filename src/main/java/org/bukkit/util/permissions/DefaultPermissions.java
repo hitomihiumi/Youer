@@ -31,7 +31,7 @@ public final class DefaultPermissions {
 
         if (withLegacy) {
             Permission legacy = new Permission(LEGACY_PREFIX + result.getName(), result.getDescription(), PermissionDefault.FALSE);
-            legacy.getChildren().put(result.getName(), null); // Purpur
+            legacy.getChildren().put(result.getName(), true);
             registerPermission(perm, false);
         }
 
@@ -40,7 +40,7 @@ public final class DefaultPermissions {
 
     @NotNull
     public static Permission registerPermission(@NotNull Permission perm, @NotNull Permission parent) {
-        parent.getChildren().put(perm.getName(), null); // Purpur
+        parent.getChildren().put(perm.getName(), true);
         return registerPermission(perm);
     }
 
@@ -53,7 +53,7 @@ public final class DefaultPermissions {
     @NotNull
     public static Permission registerPermission(@NotNull String name, @Nullable String desc, @NotNull Permission parent) {
         Permission perm = registerPermission(name, desc);
-        parent.getChildren().put(perm.getName(), null); // Purpur
+        parent.getChildren().put(perm.getName(), true);
         return perm;
     }
 
@@ -66,7 +66,7 @@ public final class DefaultPermissions {
     @NotNull
     public static Permission registerPermission(@NotNull String name, @Nullable String desc, @Nullable PermissionDefault def, @NotNull Permission parent) {
         Permission perm = registerPermission(name, desc, def);
-        parent.getChildren().put(perm.getName(), null); // Purpur
+        parent.getChildren().put(perm.getName(), true);
         return perm;
     }
 
@@ -79,7 +79,7 @@ public final class DefaultPermissions {
     @NotNull
     public static Permission registerPermission(@NotNull String name, @Nullable String desc, @Nullable PermissionDefault def, @Nullable Map<String, Boolean> children, @NotNull Permission parent) {
         Permission perm = registerPermission(name, desc, def, children);
-        parent.getChildren().put(perm.getName(), null); // Purpur
+        parent.getChildren().put(perm.getName(), true);
         return perm;
     }
 
@@ -88,8 +88,6 @@ public final class DefaultPermissions {
 
         CommandPermissions.registerPermissions(parent);
         BroadcastPermissions.registerPermissions(parent);
-
-        PurpurPermissions.registerPermissions(); // Purpur
 
         parent.recalculatePermissibles();
     }

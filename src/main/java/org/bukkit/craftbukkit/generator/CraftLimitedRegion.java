@@ -7,15 +7,19 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.storage.TagValueInput;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -29,8 +33,11 @@ import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.LimitedRegion;
 import org.bukkit.util.BoundingBox;
+import org.slf4j.Logger;
 
 public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRegion {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private final WeakReference<WorldGenLevel> weakAccess;
     private final int centerChunkX;
@@ -40,7 +47,7 @@ public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRe
     private final int buffer = 16;
     private final BoundingBox region;
     boolean entitiesLoaded = false;
-    // Minecraft saves the entities as NBTTagCompound during chunk generation. This causes that
+    // Minecraft saves the entities as CompoundTag during chunk generation. This causes that
     // changes made to the returned bukkit entity are not saved. To combat this we keep them and
     // save them when the population is finished.
     private final List<net.minecraft.world.entity.Entity> entities = new ArrayList<>();
@@ -83,7 +90,7 @@ public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRe
             for (int z = -(this.buffer >> 4); z <= (this.buffer >> 4); z++) {
                 ProtoChunk chunk = (ProtoChunk) access.getChunk(this.centerChunkX + x, this.centerChunkZ + z);
                 for (CompoundTag compound : chunk.getEntities()) {
-                    EntityType.loadEntityRecursive(compound, access.getMinecraftWorld(), (entity) -> {
+                    EntityType.loadEntityRecursive(compound, access.getMinecraftWorld(), EntitySpawnReason.LOAD, (entity) -> {
                         if (this.region.contains(entity.getX(), entity.getY(), entity.getZ())) {
                             entity.generation = true;
                             this.entities.add(entity);
@@ -270,7 +277,16 @@ public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRe
         if (!state.getBlockData().matches(getHandle().getBlockState(pos).createCraftBlockData())) {
             throw new IllegalArgumentException("BlockData does not match! Expected " + state.getBlockData().getAsString(false) + ", got " + getHandle().getBlockState(pos).createCraftBlockData().getAsString(false));
         }
-        getHandle().getBlockEntity(pos).loadWithComponents(((org.bukkit.craftbukkit.block.CraftBlockEntityState<?>) state).getSnapshotNBT(), this.getHandle().registryAccess());
+
+        try (final ProblemReporter.ScopedCollector problemReporter = new ProblemReporter.ScopedCollector(
+            () -> "CraftLimitedRegion@" + pos.toShortString(), LOGGER
+        )) {
+            getHandle().getBlockEntity(pos).loadWithComponents(TagValueInput.create(
+                problemReporter,
+                this.getHandle().registryAccess(),
+                ((org.bukkit.craftbukkit.block.CraftBlockEntityState<?>) state).getSnapshotNBT()
+            ));
+        }
     }
 
     @Override

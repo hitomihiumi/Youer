@@ -1,13 +1,12 @@
 package org.bukkit.entity;
 
-import com.destroystokyo.paper.entity.RangedEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a Wither boss
  */
-public interface Wither extends Monster, Boss, RangedEntity {
+public interface Wither extends Monster, Boss, com.destroystokyo.paper.entity.RangedEntity { // Paper
 
     /**
      * {@inheritDoc}
@@ -44,7 +43,9 @@ public interface Wither extends Monster, Boss, RangedEntity {
      * Returns the wither's current invulnerability ticks.
      *
      * @return amount of invulnerability ticks
+     * @deprecated Duplicate api, use {@link #getInvulnerableTicks()}
      */
+    @Deprecated(forRemoval = true) // Paper
     int getInvulnerabilityTicks();
 
     /**
@@ -53,7 +54,9 @@ public interface Wither extends Monster, Boss, RangedEntity {
      * When invulnerability ticks reach 0, the wither will trigger an explosion.
      *
      * @param ticks amount of invulnerability ticks
+     * @deprecated Duplicate api, use {@link #setInvulnerableTicks(int)}
      */
+    @Deprecated(forRemoval = true) // Paper
     void setInvulnerabilityTicks(int ticks);
 
     /**
@@ -66,7 +69,6 @@ public interface Wither extends Monster, Boss, RangedEntity {
         RIGHT
     }
 
-    // Paper start
     /**
      * @return whether the wither is charged
      */
@@ -103,21 +105,4 @@ public interface Wither extends Monster, Boss, RangedEntity {
      * This is called in vanilla directly after spawning the wither.
      */
     void enterInvulnerabilityPhase();
-    // Paper end
-
-    // Purpur start
-    /**
-     * Get the player that summoned this wither
-     *
-     * @return UUID of summoner
-     */
-    @org.jetbrains.annotations.Nullable java.util.UUID getSummoner();
-
-    /**
-     * Set the player that summoned this wither
-     *
-     * @param summoner UUID of summoner
-     */
-    void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner);
-    // Purpur end
 }

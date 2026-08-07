@@ -13,6 +13,11 @@ public class CraftCreeper extends CraftMonster implements Creeper {
     }
 
     @Override
+    public net.minecraft.world.entity.monster.Creeper getHandle() {
+        return (net.minecraft.world.entity.monster.Creeper) this.entity;
+    }
+
+    @Override
     public boolean isPowered() {
         return this.getHandle().isPowered();
     }
@@ -78,8 +83,8 @@ public class CraftCreeper extends CraftMonster implements Creeper {
     @Override
     public void ignite(Entity entity) {
         Preconditions.checkNotNull(entity, "entity cannot be null");
-        getHandle().entityIgniter = ((CraftEntity) entity).getHandle();
-        getHandle().ignite();
+        this.getHandle().entityIgniter = ((CraftEntity) entity).getHandle();
+        this.getHandle().ignite();
     }
 
     @Override
@@ -89,17 +94,7 @@ public class CraftCreeper extends CraftMonster implements Creeper {
 
     @Override
     public Entity getIgniter() {
-        return (getHandle().entityIgniter != null) ? getHandle().entityIgniter.getBukkitEntity() : null;
-    }
-
-    @Override
-    public net.minecraft.world.entity.monster.Creeper getHandle() {
-        return (net.minecraft.world.entity.monster.Creeper) this.entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftCreeper";
+        return (this.getHandle().entityIgniter != null) ? this.getHandle().entityIgniter.getBukkitEntity() : null;
     }
 
     // Paper start

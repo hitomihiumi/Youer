@@ -139,14 +139,14 @@ public class CraftStructureManager implements StructureManager {
         Preconditions.checkArgument(file != null, "File cannot be null");
 
         FileInputStream fileinputstream = new FileInputStream(file);
-        return loadStructure(fileinputstream);
+        return this.loadStructure(fileinputstream);
     }
 
     @Override
     public Structure loadStructure(InputStream inputStream) throws IOException {
         Preconditions.checkArgument(inputStream != null, "inputStream cannot be null");
 
-        return new CraftStructure(structureManager.readStructure(inputStream), registry);
+        return new CraftStructure(this.structureManager.readStructure(inputStream), this.registry);
     }
 
     @Override
@@ -163,8 +163,8 @@ public class CraftStructureManager implements StructureManager {
         Preconditions.checkArgument(outputStream != null, "outputStream cannot be null");
         Preconditions.checkArgument(structure != null, "structure cannot be null");
 
-        CompoundTag nbttagcompound = ((CraftStructure) structure).getHandle().save(new CompoundTag());
-        NbtIo.writeCompressed(nbttagcompound, outputStream);
+        CompoundTag tag = ((CraftStructure) structure).getHandle().save(new CompoundTag());
+        NbtIo.writeCompressed(tag, outputStream);
     }
 
     @Override
@@ -175,9 +175,9 @@ public class CraftStructureManager implements StructureManager {
     private ResourceLocation createAndValidateMinecraftStructureKey(NamespacedKey structureKey) {
         Preconditions.checkArgument(structureKey != null, "NamespacedKey structureKey cannot be null");
 
-        ResourceLocation minecraftkey = CraftNamespacedKey.toMinecraft(structureKey);
-        Preconditions.checkArgument(!minecraftkey.getPath().contains("//"), "Resource key for Structures can not contain \"//\"");
-        return minecraftkey;
+        ResourceLocation key = CraftNamespacedKey.toMinecraft(structureKey);
+        Preconditions.checkArgument(!key.getPath().contains("//"), "Resource key for Structures can not contain \"//\"");
+        return key;
     }
 
     @Override

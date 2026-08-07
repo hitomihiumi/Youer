@@ -2,16 +2,13 @@ package io.papermc.paper.configuration;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Comment;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.PostProcess;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Setting;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mojang.logging.LogUtils;
+import io.papermc.paper.FeatureHooks;
 import io.papermc.paper.configuration.legacy.MaxEntityCollisionsInitializer;
 import io.papermc.paper.configuration.legacy.RequiresSpigotInitialization;
 import io.papermc.paper.configuration.mapping.MergeMap;
 import io.papermc.paper.configuration.serializer.NbtPathSerializer;
+import io.papermc.paper.configuration.serializer.collection.map.ThrowExceptions;
 import io.papermc.paper.configuration.transformation.world.FeatureSeedsGeneration;
 import io.papermc.paper.configuration.type.BooleanOrDefault;
 import io.papermc.paper.configuration.type.DespawnRange;
@@ -27,11 +24,14 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalDouble;
+import java.util.OptionalInt;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.minecraft.Util;
@@ -54,16 +54,22 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.NaturalSpawner;
+import net.minecraft.world.level.block.BambooStalkBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
 import org.spigotmc.SpigotWorldConfig;
+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import org.spongepowered.configurate.objectmapping.meta.Comment;
+import org.spongepowered.configurate.objectmapping.meta.PostProcess;
+import org.spongepowered.configurate.objectmapping.meta.Required;
+import org.spongepowered.configurate.objectmapping.meta.Setting;
+import org.spongepowered.configurate.serialize.SerializationException;
 
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic"})
 public class WorldConfiguration extends ConfigurationPart {
-    private static final Logger LOGGER = LogManager.getLogger();
+    private static final Logger LOGGER = LogUtils.getClassLogger();
     static final int CURRENT_VERSION = 31; // (when you change the version, change the comment, so it conflicts on rebases): migrate spawn loaded configs to gamerule
 
     private final transient SpigotWorldConfig spigotConfig;
@@ -84,17 +90,6 @@ public class WorldConfiguration extends ConfigurationPart {
     public Anticheat anticheat;
 
     public class Anticheat extends ConfigurationPart {
-
-        public Obfuscation obfuscation;
-
-        public class Obfuscation extends ConfigurationPart {
-            public Items items = new Items();
-            public class Items extends ConfigurationPart {
-                public boolean hideItemmeta = false;
-                public boolean hideDurability = false;
-                public boolean hideItemmetaWithVisualEffects = false;
-            }
-        }
 
         public AntiXray antiXray;
 
@@ -139,7 +134,6 @@ public class WorldConfiguration extends ConfigurationPart {
     public Entities entities;
 
     public class Entities extends ConfigurationPart {
-        public boolean entitiesTargetWithFollowRange = false;
         public MobEffects mobEffects;
 
         public class MobEffects extends ConfigurationPart {
@@ -178,7 +172,7 @@ public class WorldConfiguration extends ConfigurationPart {
             public ArrowDespawnRate nonPlayerArrowDespawnRate = ArrowDespawnRate.def(WorldConfiguration.this.spigotConfig);
             public ArrowDespawnRate creativeArrowDespawnRate = ArrowDespawnRate.def(WorldConfiguration.this.spigotConfig);
             public boolean filterBadTileEntityNbtFromFallingBlocks = true;
-            public List<NbtPathArgument.NbtPath> filteredEntityTagNbtPaths = NbtPathSerializer.fromString(List.of("Pos", "Motion", "SleepingX", "SleepingY", "SleepingZ"));
+            public List<NbtPathArgument.NbtPath> filteredEntityTagNbtPaths = NbtPathSerializer.fromString(List.of("Pos", "Motion", "sleeping_pos"));
             public boolean disableMobSpawnerSpawnEggTransformation = false;
             public boolean perPlayerMobSpawns = true;
             public boolean scanForLegacyEnderDragon = true;
@@ -200,9 +194,14 @@ public class WorldConfiguration extends ConfigurationPart {
                 }
             }
 
+            public @ThrowExceptions Reference2ObjectMap<EntityType<?>, IntOr.Disabled> despawnTime = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
+                map.put(EntityType.SNOWBALL, IntOr.Disabled.DISABLED);
+                map.put(EntityType.LLAMA_SPIT, IntOr.Disabled.DISABLED);
+            });
+
             @PostProcess
             public void precomputeDespawnDistances() throws SerializationException {
-                for (Map.Entry<MobCategory, DespawnRangePair> entry : this.despawnRanges.entrySet()) {
+                for (final Map.Entry<MobCategory, DespawnRangePair> entry : this.despawnRanges.entrySet()) {
                     final MobCategory category = entry.getKey();
                     final DespawnRangePair range = entry.getValue();
                     range.hard().preComputed(category.getDespawnDistance(), category.getSerializedName());
@@ -239,7 +238,7 @@ public class WorldConfiguration extends ConfigurationPart {
 
             public class WanderingTrader extends ConfigurationPart {
                 public int spawnMinuteLength = 1200;
-                public int spawnDayLength = 24000;
+                public int spawnDayLength = net.minecraft.world.entity.npc.WanderingTraderSpawner.DEFAULT_SPAWN_DELAY;
                 public int spawnChanceFailureIncrement = 25;
                 public int spawnChanceMin = 25;
                 public int spawnChanceMax = 75;
@@ -330,6 +329,11 @@ public class WorldConfiguration extends ConfigurationPart {
                     public int day = 5;
                 }
             }
+
+            @Comment("Adds a cooldown to bees being released after a failed release, which can occur if the hive is blocked or it being night.")
+            public boolean cooldownFailedBeehiveReleases = true;
+            @Comment("The delay before retrying POI acquisition when entity navigation is stuck. This will reduce pathfinding performance impact. Measured in ticks.")
+            public IntOr.Disabled stuckEntityPoiRetryDelay = new IntOr.Disabled(OptionalInt.of(200));
         }
 
         public TrackingRangeY trackingRangeY;
@@ -389,7 +393,7 @@ public class WorldConfiguration extends ConfigurationPart {
         public Bamboo bamboo;
 
         public class Bamboo extends ConfigurationPart {
-            public int max = 16;
+            public int max = BambooStalkBlock.MAX_HEIGHT;
             public int min = 11;
         }
     }
@@ -437,7 +441,6 @@ public class WorldConfiguration extends ConfigurationPart {
         public int portalSearchRadius = 128;
         public int portalCreateRadius = 16;
         public boolean portalSearchVanillaDimensionScaling = true;
-        public boolean disableTeleportationSuffocationCheck = false;
         public IntOr.Disabled netherCeilingVoidDamageHeight = IntOr.Disabled.DISABLED;
         public int maxFluidTicks = 65536;
         public int maxBlockTicks = 65536;
@@ -461,7 +464,7 @@ public class WorldConfiguration extends ConfigurationPart {
 
     public class Fixes extends ConfigurationPart {
         public boolean fixItemsMergingThroughWalls = false;
-        public boolean disableUnloadedChunkEnderpearlExploit = true;
+        public boolean disableUnloadedChunkEnderpearlExploit = false;
         public boolean preventTntFromMovingInWater = false;
         public boolean splitOverstackedLoot = true;
         public IntOr.Disabled fallingBlockHeightNerf = IntOr.Disabled.DISABLED;
@@ -512,6 +515,11 @@ public class WorldConfiguration extends ConfigurationPart {
             map.put(EntityType.SMALL_FIREBALL, -1);
         });
         public boolean flushRegionsOnSave = false;
+
+        @PostProcess
+        private void postProcess() {
+            FeatureHooks.setPlayerChunkUnloadDelay(this.delayChunkUnloadsBy.ticks());
+        }
     }
 
     public FishingTimeRange fishingTimeRange;
@@ -559,7 +567,6 @@ public class WorldConfiguration extends ConfigurationPart {
     public Misc misc;
 
     public class Misc extends ConfigurationPart {
-        public int lightQueueSize = 20;
         public boolean updatePathfindingOnBlockUpdate = true;
         public boolean showSignClickCommandFailureMsgsToPlayer = false;
         public RedstoneImplementation redstoneImplementation = RedstoneImplementation.VANILLA;
@@ -569,6 +576,8 @@ public class WorldConfiguration extends ConfigurationPart {
         public boolean disableSprintInterruptionOnAttack = false;
         public int shieldBlockingDelay = 5;
         public boolean disableRelativeProjectileVelocity = false;
+        public boolean legacyEnderPearlBehavior = false;
+        public boolean allowRemoteEnderDragonRespawning = false;
 
         public enum RedstoneImplementation {
             VANILLA, EIGENCRAFT, ALTERNATE_CURRENT

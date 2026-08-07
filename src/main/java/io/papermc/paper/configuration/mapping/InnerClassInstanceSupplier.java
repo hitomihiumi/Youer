@@ -1,8 +1,5 @@
 package io.papermc.paper.configuration.mapping;
 
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.util.CheckedFunction;
-import com.mohistmc.org.spongepowered.configurate.util.CheckedSupplier;
 import io.papermc.paper.configuration.ConfigurationPart;
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Constructor;
@@ -10,9 +7,12 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
+import org.spongepowered.configurate.serialize.SerializationException;
+import org.spongepowered.configurate.util.CheckedFunction;
+import org.spongepowered.configurate.util.CheckedSupplier;
 
-import static com.mohistmc.io.leangen.geantyref.GenericTypeReflector.erase;
+import static io.leangen.geantyref.GenericTypeReflector.erase;
 
 /**
  * This instance factory handles creating non-static inner classes by tracking all instances of objects that extend
@@ -43,7 +43,7 @@ final class InnerClassInstanceSupplier implements CheckedFunction<AnnotatedType,
                 final Constructor<?> constructor;
                 final CheckedSupplier<Object, ReflectiveOperationException> instanceSupplier;
                 if (type.getEnclosingClass() != null && !Modifier.isStatic(type.getModifiers())) {
-                    final @Nullable Object instance = this.instanceMap.get(type.getEnclosingClass());
+                    final Object instance = this.instanceMap.get(type.getEnclosingClass());
                     if (instance == null) {
                         throw new SerializationException("Cannot create a new instance of an inner class " + type.getName() + " without an instance of its enclosing class " + type.getEnclosingClass().getName());
                     }
@@ -57,7 +57,7 @@ final class InnerClassInstanceSupplier implements CheckedFunction<AnnotatedType,
                 final Object instance = instanceSupplier.get();
                 this.instanceMap.put(type, instance);
                 return () -> instance;
-            } catch (ReflectiveOperationException e) {
+            } catch (final ReflectiveOperationException e) {
                 throw new SerializationException(ConfigurationPart.class, target + " must be a valid ConfigurationPart", e);
             }
         } else {

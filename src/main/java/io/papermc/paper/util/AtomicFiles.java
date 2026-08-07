@@ -1,6 +1,5 @@
 package io.papermc.paper.util;
 
-import com.mohistmc.org.spongepowered.configurate.util.CheckedConsumer;
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -10,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import org.spongepowered.configurate.util.CheckedConsumer;
 
 // Stripped down version of https://github.com/jpenilla/squaremap/blob/7d7994b4096e5fc61364ea2d87e9aa4e14edf5c6/common/src/main/java/xyz/jpenilla/squaremap/common/util/FileUtil.java
 public final class AtomicFiles {

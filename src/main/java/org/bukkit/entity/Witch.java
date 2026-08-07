@@ -1,8 +1,8 @@
 package org.bukkit.entity;
 
+import com.destroystokyo.paper.entity.RangedEntity;
 
 // Paper start
-import com.destroystokyo.paper.entity.RangedEntity;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 // Paper end

@@ -5,6 +5,8 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import org.bukkit.command.CommandSender;
 
+import java.util.UUID;
+
 public class DelegatingCommandSource implements CommandSource {
 
     private final CommandSource delegate;

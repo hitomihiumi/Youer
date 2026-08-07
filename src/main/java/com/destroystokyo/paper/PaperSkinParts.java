@@ -1,6 +1,7 @@
 package com.destroystokyo.paper;
 
 import com.google.common.base.Objects;
+
 import java.util.StringJoiner;
 
 public class PaperSkinParts implements SkinParts {

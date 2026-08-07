@@ -1,40 +1,11 @@
 --- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 +++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
-@@ -139,7 +_,9 @@
-         this.level().getProfiler().pop();
-         if (this.isAlive() && !this.isBaby() && --this.scuteTime <= 0) {
-             this.playSound(SoundEvents.ARMADILLO_SCUTE_DROP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);
-+            this.forceDrops = true; // CraftBukkit
-             this.spawnAtLocation(Items.ARMADILLO_SCUTE);
-+            this.forceDrops = false; // CraftBukkit
-             this.gameEvent(GameEvent.ENTITY_PLACE);
-             this.scuteTime = this.pickNextScuteDropTime();
-         }
-@@ -300,7 +_,7 @@
+@@ -305,7 +_,7 @@
      @Override
      public InteractionResult mobInteract(Player p_316559_, InteractionHand p_316119_) {
          ItemStack itemstack = p_316559_.getItemInHand(p_316119_);
 -        if (itemstack.is(Items.BRUSH) && this.brushOffScute()) {
 +        if (itemstack.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.BRUSH_BRUSH) && this.brushOffScute()) {
              itemstack.hurtAndBreak(16, p_316559_, getSlotForHand(p_316119_));
-             return InteractionResult.sidedSuccess(this.level().isClientSide);
+             return InteractionResult.SUCCESS;
          } else {
-@@ -321,7 +_,9 @@
-         if (this.isBaby()) {
-             return false;
-         } else {
-+            this.forceDrops = true; // CraftBukkit
-             this.spawnAtLocation(new ItemStack(Items.ARMADILLO_SCUTE));
-+            this.forceDrops = false; // CraftBukkit
-             this.gameEvent(GameEvent.ENTITY_INTERACT);
-             this.playSound(SoundEvents.ARMADILLO_BRUSH);
-             return true;
-@@ -354,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.ARMADILLO_DEATH;
-     }
- 

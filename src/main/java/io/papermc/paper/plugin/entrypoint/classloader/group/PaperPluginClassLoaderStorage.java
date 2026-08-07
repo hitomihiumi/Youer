@@ -4,11 +4,12 @@ import io.papermc.paper.plugin.provider.classloader.ClassLoaderAccess;
 import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
 import io.papermc.paper.plugin.provider.classloader.PaperClassLoaderStorage;
 import io.papermc.paper.plugin.provider.classloader.PluginClassLoaderGroup;
+import org.bukkit.plugin.java.PluginClassLoader;
+import org.jetbrains.annotations.ApiStatus;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.bukkit.plugin.java.PluginClassLoader;
-import org.jetbrains.annotations.ApiStatus;
 
 /**
  * This is used for connecting multiple classloaders.

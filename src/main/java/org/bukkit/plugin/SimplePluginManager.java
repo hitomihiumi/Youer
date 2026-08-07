@@ -5,9 +5,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.Graphs;
 import com.google.common.graph.MutableGraph;
-import com.destroystokyo.paper.event.server.ServerExceptionEvent;
-import com.destroystokyo.paper.exception.ServerEventException;
-import com.destroystokyo.paper.exception.ServerPluginEnableDisableException;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -397,7 +394,6 @@ public final class SimplePluginManager implements PluginManager {
             }
         }
 
-        org.bukkit.command.defaults.TimingsCommand.timingStart = System.nanoTime(); // Spigot
         return result.toArray(new Plugin[result.size()]);
     }
 
@@ -468,7 +464,7 @@ public final class SimplePluginManager implements PluginManager {
     /**
      * Checks if the given plugin is loaded and returns it when applicable
      * <p>
-     * Please note that the name of the plugin is case-sensitive
+     * Please note that the name of the plugin is case-insensitive
      *
      * @param name Name of the plugin to check
      * @return Plugin if it exists, otherwise null
@@ -490,7 +486,7 @@ public final class SimplePluginManager implements PluginManager {
     /**
      * Checks if the given plugin is enabled or not
      * <p>
-     * Please note that the name of the plugin is case-sensitive.
+     * Please note that the name of the plugin is case-insensitive.
      *
      * @param name Name of the plugin to check
      * @return true if the plugin is enabled, otherwise false
@@ -601,10 +597,8 @@ public final class SimplePluginManager implements PluginManager {
 
     // Paper start
     private void handlePluginException(String msg, Throwable ex, Plugin plugin) {
-        gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
         server.getLogger().log(Level.SEVERE, msg, ex);
-        gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
-        callEvent(new ServerExceptionEvent(new ServerPluginEnableDisableException(msg, ex, plugin)));
+        callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerPluginEnableDisableException(msg, ex, plugin)));
     }
     // Paper end
 
@@ -673,13 +667,11 @@ public final class SimplePluginManager implements PluginManager {
                             ));
                 }
             } catch (Throwable ex) {
-                gg.pufferfish.pufferfish.sentry.SentryContext.setEventContext(event, registration); // Pufferfish
                 // Paper start - error reporting
                 String msg = "Could not pass event " + event.getEventName() + " to " + registration.getPlugin().getDescription().getFullName();
                 server.getLogger().log(Level.SEVERE, msg, ex);
-                gg.pufferfish.pufferfish.sentry.SentryContext.removeEventContext(); // Pufferfish
-                if (!(event instanceof ServerExceptionEvent)) { // We don't want to cause an endless event loop
-                    callEvent(new ServerExceptionEvent(new ServerEventException(msg, ex, registration.getPlugin(), registration.getListener(), event)));
+                if (!(event instanceof com.destroystokyo.paper.event.server.ServerExceptionEvent)) { // We don't want to cause an endless event loop
+                    callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerEventException(msg, ex, registration.getPlugin(), registration.getListener(), event)));
                 }
                 // Paper end
             }
@@ -728,6 +720,7 @@ public final class SimplePluginManager implements PluginManager {
             throw new IllegalPluginAccessException("Plugin attempted to register " + event + " while not enabled");
         }
 
+        executor = new co.aikar.timings.TimedEventExecutor(executor, plugin, null, event); // Paper
         if (false) { // Spigot - RL handles useTimings check now // Paper
             getEventListeners(event).register(new TimedRegisteredListener(listener, executor, priority, plugin, ignoreCancelled));
         } else {
@@ -780,7 +773,7 @@ public final class SimplePluginManager implements PluginManager {
         addPermission(perm, true);
     }
 
-    @Deprecated
+    @Deprecated(since = "1.12")
     public void addPermission(@NotNull Permission perm, boolean dirty) {
         if (true) {this.paperPluginManager.addPermission(perm); return;} // Paper - This just has a performance implication, use the better api to avoid this.
         String name = perm.getName().toLowerCase(Locale.ROOT);
@@ -838,7 +831,7 @@ public final class SimplePluginManager implements PluginManager {
         }
     }
 
-    @Deprecated
+    @Deprecated(since = "1.12")
     public void dirtyPermissibles() {
         dirtyPermissibles(true);
         dirtyPermissibles(false);
@@ -962,7 +955,8 @@ public final class SimplePluginManager implements PluginManager {
 
     @Override
     public boolean useTimings() {
-        return false;
+        if (true) {return this.paperPluginManager.useTimings();} // Paper
+        return co.aikar.timings.Timings.isTimingsEnabled(); // Spigot
     }
 
     /**
@@ -970,7 +964,9 @@ public final class SimplePluginManager implements PluginManager {
      *
      * @param use True if per event timing code should be used
      */
+    @Deprecated(forRemoval = true)
     public void useTimings(boolean use) {
+        co.aikar.timings.Timings.setTimingsEnabled(use); // Paper
     }
 
     // Paper start

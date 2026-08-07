@@ -1,81 +1,12 @@
 --- a/net/minecraft/world/item/TridentItem.java
 +++ b/net/minecraft/world/item/TridentItem.java
-@@ -12,6 +_,7 @@
- import net.minecraft.util.Mth;
- import net.minecraft.world.InteractionHand;
- import net.minecraft.world.InteractionResultHolder;
-+import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.EquipmentSlot;
- import net.minecraft.world.entity.EquipmentSlotGroup;
- import net.minecraft.world.entity.LivingEntity;
-@@ -29,6 +_,7 @@
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- 
- public class TridentItem extends Item implements ProjectileItem {
-     public static final int THROW_THRESHOLD_TIME = 10;
-@@ -80,7 +_,7 @@
-                         Holder<SoundEvent> holder = EnchantmentHelper.pickHighestLevel(p_43394_, EnchantmentEffectComponents.TRIDENT_SOUND)
-                             .orElse(SoundEvents.TRIDENT_THROW);
-                         if (!p_43395_.isClientSide) {
--                            p_43394_.hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_43396_.getUsedItemHand()));
-+
-                             if (f == 0.0F) {
-                                 ThrownTrident throwntrident = new ThrownTrident(p_43395_, player, p_43394_);
-                                 throwntrident.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 2.5F, 1.0F);
-@@ -88,11 +_,31 @@
-                                     throwntrident.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
-                                 }
- 
--                                p_43395_.addFreshEntity(throwntrident);
--                                p_43395_.playSound(null, throwntrident, holder.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
--                                if (!player.hasInfiniteMaterials()) {
-+                                // CraftBukkit start
-+                                // Paper start - PlayerLaunchProjectileEvent
-+                                com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent event = new com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(p_43394_), (org.bukkit.entity.Projectile) throwntrident.getBukkitEntity());
-+                                if (!event.callEvent() || !p_43395_.addFreshEntity(throwntrident)) {
-+                                    // Paper end - PlayerLaunchProjectileEvent
-+                                    if (player instanceof net.minecraft.server.level.ServerPlayer) {
-+                                        ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity().updateInventory();
-+                                    }
-+                                    return;
-+                                }
-+
-+                                if (event.shouldConsume()) { // Paper - PlayerLaunchProjectileEvent
-+                                    p_43394_.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
-+                                } // Paper - PlayerLaunchProjectileEvent
-+                                throwntrident.pickupItemStack = p_43394_.copy(); // SPIGOT-4511 update since damage call moved
-+                                // CraftBukkit end
-+
-+                                p_43395_.playSound((Player) null, (Entity) throwntrident, (SoundEvent) holder.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
-+                                if (event.shouldConsume() && !player.hasInfiniteMaterials()) { // Paper - PlayerLaunchProjectileEvent
-                                     player.getInventory().removeItem(p_43394_);
-                                 }
-+                                // CraftBukkit start - SPIGOT-5458 also need in this branch :(
-+                            } else {
-+                                p_43394_.hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_43396_.getUsedItemHand()));
-+                                // CraftBukkkit end
-                             }
-                         }
- 
-@@ -107,6 +_,7 @@
-                             f2 *= f / f5;
-                             f3 *= f / f5;
-                             f4 *= f / f5;
-+                            CraftEventFactory.callPlayerRiptideEvent(player, p_43394_, f2, f3, f4); // CraftBukkit
-                             player.push((double)f2, (double)f3, (double)f4);
-                             player.startAutoSpinAttack(20, 8.0F, p_43394_);
-                             if (player.onGround()) {
-@@ -159,5 +_,10 @@
-         ThrownTrident throwntrident = new ThrownTrident(p_338505_, p_338277_.x(), p_338277_.y(), p_338277_.z(), p_338353_.copyWithCount(1));
+@@ -142,4 +_,9 @@
          throwntrident.pickup = AbstractArrow.Pickup.ALLOWED;
          return throwntrident;
-+    }
+     }
 +
 +    @Override
 +    public boolean canPerformAction(ItemStack stack, net.neoforged.neoforge.common.ItemAbility itemAbility) {
 +        return net.neoforged.neoforge.common.ItemAbilities.DEFAULT_TRIDENT_ACTIONS.contains(itemAbility);
-     }
++    }
  }

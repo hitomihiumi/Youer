@@ -1,74 +1,22 @@
 --- a/net/minecraft/world/entity/EntityType.java
 +++ b/net/minecraft/world/entity/EntityType.java
-@@ -5,6 +_,7 @@
- import java.util.List;
- import java.util.Optional;
- import java.util.Spliterator;
-+import java.util.concurrent.atomic.AtomicReference;
- import java.util.function.Consumer;
- import java.util.function.Function;
- import java.util.stream.Stream;
-@@ -168,6 +_,7 @@
- import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.phys.shapes.Shapes;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.event.entity.CreatureSpawnEvent;
- import org.slf4j.Logger;
- 
- public class EntityType<T extends Entity> implements FeatureElement, EntityTypeTest<Entity, T> {
-@@ -190,7 +_,7 @@
-             .fireImmune()
-             .sized(6.0F, 0.5F)
-             .clientTrackingRange(10)
--            .updateInterval(Integer.MAX_VALUE)
-+            .updateInterval(10) // CraftBukkit - SPIGOT-3729: track area effect clouds
-     );
-     public static final EntityType<Armadillo> ARMADILLO = register(
-         "armadillo", EntityType.Builder.of(Armadillo::new, MobCategory.CREATURE).sized(0.7F, 0.65F).eyeHeight(0.26F).clientTrackingRange(10)
-@@ -824,20 +_,37 @@
-     private final boolean canSpawnFarFromPlayer;
-     private final int clientTrackingRange;
-     private final int updateInterval;
-+    public boolean dabEnabled = false; // Pufferfish
-+    public int ttl = -1; // Pufferfish
-     @Nullable
-     private String descriptionId;
-     @Nullable
-     private Component description;
-     @Nullable
-     private ResourceKey<LootTable> lootTable;
--    private final EntityDimensions dimensions;
-+    private EntityDimensions dimensions; // Purpur - remove final
-+    public void setDimensions(EntityDimensions dimensions) { this.dimensions = dimensions; } // Purpur
+@@ -1093,6 +_,11 @@
      private final float spawnDimensionsScale;
      private final FeatureFlagSet requiredFeatures;
  
 +    private final java.util.function.Predicate<EntityType<?>> trackDeltasSupplier;
 +    private final java.util.function.ToIntFunction<EntityType<?>> trackingRangeSupplier;
 +    private final java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier;
++    private final boolean onlyOpCanSetNbt;
 +
-     private static <T extends Entity> EntityType<T> register(String p_20635_, EntityType.Builder<T> p_20636_) {
-         return Registry.register(BuiltInRegistries.ENTITY_TYPE, p_20635_, p_20636_.build(p_20635_));
+     private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> p_368669_, EntityType.Builder<T> p_368714_) {
+         return Registry.register(BuiltInRegistries.ENTITY_TYPE, p_368669_, p_368714_.build(p_368669_));
      }
- 
-+    // Purpur start
-+    public static EntityType<?> getFromBukkitType(org.bukkit.entity.EntityType bukkitType) {
-+        return getFromKey(ResourceLocation.parse(bukkitType.getKey().toString()));
-+    }
-+
-+    public static EntityType<?> getFromKey(ResourceLocation location) {
-+        return BuiltInRegistries.ENTITY_TYPE.get(location);
-+    }
-+    // Purpur end
-+
-     public static ResourceLocation getKey(EntityType<?> p_20614_) {
-         return BuiltInRegistries.ENTITY_TYPE.getKey(p_20614_);
-     }
-@@ -860,6 +_,26 @@
-         int p_273451_,
+@@ -1129,6 +_,29 @@
+         Optional<ResourceKey<LootTable>> p_368696_,
          FeatureFlagSet p_273518_
      ) {
-+        this(p_273268_, p_272918_, p_273417_, p_273389_, p_273556_, p_272654_, p_273631_, p_272946_, p_338404_, p_272895_, p_273451_, p_273518_, EntityType::defaultTrackDeltasSupplier, EntityType::defaultTrackingRangeSupplier, EntityType::defaultUpdateIntervalSupplier);
++        this(p_273268_, p_272918_, p_273417_, p_273389_, p_273556_, p_272654_, p_273631_, p_272946_, p_338404_, p_272895_, p_273451_, p_368582_, p_368696_, p_273518_, EntityType::defaultTrackDeltasSupplier, EntityType::defaultTrackingRangeSupplier, EntityType::defaultUpdateIntervalSupplier, false);
 +    }
 +
 +    public EntityType(
@@ -83,120 +31,32 @@
 +        float p_338404_,
 +        int p_272895_,
 +        int p_273451_,
++        String p_368582_,
++        Optional<ResourceKey<LootTable>> p_368696_,
 +        FeatureFlagSet p_273518_,
 +        final java.util.function.Predicate<EntityType<?>> trackDeltasSupplier,
 +        final java.util.function.ToIntFunction<EntityType<?>> trackingRangeSupplier,
-+        final java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier
++        final java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier,
++        boolean onlyOpCanSetNbt
 +    ) {
          this.factory = p_273268_;
          this.category = p_272918_;
          this.canSpawnFarFromPlayer = p_272654_;
-@@ -872,6 +_,9 @@
-         this.clientTrackingRange = p_272895_;
-         this.updateInterval = p_273451_;
+@@ -1143,6 +_,10 @@
+         this.descriptionId = p_368582_;
+         this.lootTable = p_368696_;
          this.requiredFeatures = p_273518_;
 +        this.trackDeltasSupplier = trackDeltasSupplier;
 +        this.trackingRangeSupplier = trackingRangeSupplier;
 +        this.updateIntervalSupplier = updateIntervalSupplier;
++        this.onlyOpCanSetNbt = onlyOpCanSetNbt;
      }
  
      @Nullable
-@@ -884,6 +_,21 @@
-         boolean p_20598_,
-         boolean p_20599_
-     ) {
-+        // CraftBukkit start
-+        return this.spawn(p_20593_, p_20594_, p_20595_, p_20596_, p_20597_, p_20598_, p_20599_, p_20597_ == MobSpawnType.DISPENSER ? org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DISPENSE_EGG : org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG); // Paper - use correct spawn reason for dispenser spawn eggs
-+    }
-+
-+    @Nullable
-+    public T spawn(
-+            ServerLevel p_20593_,
-+            @Nullable ItemStack p_20594_,
-+            @Nullable Player p_20595_,
-+            BlockPos p_20596_,
-+            MobSpawnType p_20597_,
-+            boolean p_20598_,
-+            boolean p_20599_,
-+            org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason
-+    ) {
-         Consumer<T> consumer;
-         if (p_20594_ != null) {
-             consumer = createDefaultStackConfig(p_20593_, p_20594_, p_20595_);
-@@ -892,7 +_,7 @@
-             };
-         }
- 
--        return this.spawn(p_20593_, consumer, p_20596_, p_20597_, p_20598_, p_20599_);
-+        return this.spawn(p_20593_, consumer, p_20596_, p_20597_, p_20598_, p_20599_, spawnReason); // CraftBukkit
-     }
- 
-     public static <T extends Entity> Consumer<T> createDefaultStackConfig(ServerLevel p_263583_, ItemStack p_263568_, @Nullable Player p_263575_) {
-@@ -915,25 +_,57 @@
-         Consumer<T> p_263579_, ServerLevel p_263571_, ItemStack p_263582_, @Nullable Player p_263574_
-     ) {
-         CustomData customdata = p_263582_.getOrDefault(DataComponents.ENTITY_DATA, CustomData.EMPTY);
--        return !customdata.isEmpty() ? p_263579_.andThen(p_329995_ -> updateCustomEntityTag(p_263571_, p_263574_, p_329995_, customdata)) : p_263579_;
-+        return !customdata.isEmpty() ? p_263579_.andThen(p_329995_ -> {
-+            try { updateCustomEntityTag(p_263571_, p_263574_, p_329995_, customdata); } catch (Throwable t) { LOGGER.warn("Error loading spawn egg NBT", t); } // CraftBukkit - SPIGOT-5665
-+        }) : p_263579_;
-     }
- 
-+    // Youer start
-+    public AtomicReference<CreatureSpawnEvent.SpawnReason> spawnReasonAtomicReference = new AtomicReference<>(CreatureSpawnEvent.SpawnReason.DEFAULT);
-     @Nullable
-     public T spawn(ServerLevel p_262634_, BlockPos p_262707_, MobSpawnType p_262597_) {
-+        spawnReasonAtomicReference.set(CreatureSpawnEvent.SpawnReason.DEFAULT);
-         return this.spawn(p_262634_, null, p_262707_, p_262597_, false, false);
-     }
- 
-     @Nullable
-+    public T spawn(ServerLevel worldserver, BlockPos blockposition, MobSpawnType enummobspawn, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
-+        return this.spawn(worldserver, null, blockposition, enummobspawn, false, false, spawnReason); // CraftBukkit - decompile error
-+        // CraftBukkit end
-+    }
-+
-+    @Nullable
-     public T spawn(ServerLevel p_262704_, @Nullable Consumer<T> p_262621_, BlockPos p_262672_, MobSpawnType p_262644_, boolean p_262690_, boolean p_262590_) {
-+        // CraftBukkit start
-+        // Paper start - PreCreatureSpawnEvent
-+        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason = spawnReasonAtomicReference.getAndSet(CreatureSpawnEvent.SpawnReason.DEFAULT);
-+        com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
-+                io.papermc.paper.util.MCUtil.toLocation(p_262704_, p_262672_),
-+                org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(this),
-+                spawnReason
-+        );
-+        if (!event.callEvent()) {
-+            return null;
-+        }
-+        // Paper end - PreCreatureSpawnEvent
-         T t = this.create(p_262704_, p_262621_, p_262672_, p_262644_, p_262690_, p_262590_);
-         if (t != null) {
--            p_262704_.addFreshEntityWithPassengers(t);
-+            p_262704_.addFreshEntityWithPassengers(t, spawnReason);
-+            return !t.isRemoved() ? t : null; // Don't return an entity when CreatureSpawnEvent is canceled
-+            // CraftBukkit end
-         }
- 
-         return t;
-     }
- 
-     @Nullable
-+    public T spawn(ServerLevel pLevel, @Nullable Consumer<T> pConsumer, BlockPos pPos, MobSpawnType pSpawnType, boolean pShouldOffsetY, boolean pShouldOffsetYMore, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
-+        spawnReasonAtomicReference.set(spawnReason);
-+        return spawn(pLevel, pConsumer, pPos, pSpawnType, pShouldOffsetY, pShouldOffsetYMore);
-+    }
-+    // Mohist end
-+
-+    @Nullable
-     public T create(ServerLevel p_262637_, @Nullable Consumer<T> p_262629_, BlockPos p_262595_, MobSpawnType p_262666_, boolean p_262685_, boolean p_262588_) {
-         T t = this.create(p_262637_);
-         if (t == null) {
-@@ -958,6 +_,15 @@
+@@ -1227,6 +_,13 @@
                  mob.yHeadRot = mob.getYRot();
                  mob.yBodyRot = mob.getYRot();
-                 mob.finalizeSpawn(p_262637_, p_262637_.getCurrentDifficultyAt(mob.blockPosition()), p_262666_, null);
-+
+                 mob.finalizeSpawn(p_262637_, p_262637_.getCurrentDifficultyAt(mob.blockPosition()), p_360546_, null);
 +                if (mob.isSpawnCancelled()) {
 +                    // Neo: Discard mob, spawn was cancelled
 +                    mob.discard();
@@ -204,91 +64,10 @@
 +                    // fixes llamas for wandering trader spawning if wandering trader was cancelled
 +                    return null;
 +                }
-+
-                 mob.playAmbientSound();
              }
  
-@@ -983,6 +_,18 @@
-         MinecraftServer minecraftserver = p_20621_.getServer();
-         if (minecraftserver != null && p_20623_ != null) {
-             if (p_20621_.isClientSide || !p_20623_.onlyOpCanSetNbt() || p_20622_ != null && minecraftserver.getPlayerList().isOp(p_20622_.getGameProfile())) {
-+                // Paper start - filter out protected tags
-+                if (p_20622_ == null || !p_20622_.getBukkitEntity().hasPermission("minecraft.nbt.place")) {
-+                    p_331752_ = p_331752_.update(new Consumer<>() {
-+                        @Override
-+                        public void accept(CompoundTag compound) {
-+                            for (net.minecraft.commands.arguments.NbtPathArgument.NbtPath tag : p_20621_.paperConfig().entities.spawning.filteredEntityTagNbtPaths) {
-+                                tag.remove(compound);
-+                            }
-+                        }
-+                    });
-+                }
-+                // Paper end - filter out protected tags
-                 p_331752_.loadInto(p_20623_);
-             }
-         }
-@@ -1008,6 +_,16 @@
-         return this.category;
-     }
- 
-+    // Purpur start
-+    public String getName() {
-+        return BuiltInRegistries.ENTITY_TYPE.getKey(this).getPath();
-+    }
-+
-+    public String getTranslatedName() {
-+        return getDescription().getString();
-+    }
-+    // Purpur end
-+
-     public String getDescriptionId() {
-         if (this.descriptionId == null) {
-             this.descriptionId = Util.makeDescriptionId("entity", BuiltInRegistries.ENTITY_TYPE.getKey(this));
-@@ -1062,10 +_,18 @@
-     }
- 
-     public static Optional<Entity> create(CompoundTag p_20643_, Level p_20644_) {
-+        // Paper start - Don't fire sync event during generation
-+        return create(p_20643_, p_20644_, false);
-+    }
-+    public static Optional<Entity> create(CompoundTag p_20643_, Level p_20644_, boolean generation) {
-+        // Paper end - Don't fire sync event during generation
-         return Util.ifElse(
-             by(p_20643_).map(p_185998_ -> p_185998_.create(p_20644_)),
--            p_185990_ -> p_185990_.load(p_20643_),
--            () -> LOGGER.warn("Skipping Entity with id {}", p_20643_.getString("id"))
-+                (p_185990_) -> {
-+                    if (generation) p_185990_.generation = true; // Paper - Don't fire sync event during generation
-+                    p_185990_.load(p_20643_);
-+                },
-+                () -> LOGGER.debug("Skipping Entity with id {}", p_20643_.getString("id"))
-         );
-     }
- 
-@@ -1114,10 +_,21 @@
-     public static Stream<Entity> loadEntitiesRecursive(final List<? extends Tag> p_147046_, final Level p_147047_) {
-         final Spliterator<? extends Tag> spliterator = p_147046_.spliterator();
-         return StreamSupport.stream(new Spliterator<Entity>() {
-+            final java.util.Map<EntityType<?>, Integer> loadedEntityCounts = new java.util.HashMap<>(); // Paper - Entity load/save limit per chunk
-             @Override
-             public boolean tryAdvance(Consumer<? super Entity> p_147066_) {
-                 return spliterator.tryAdvance(p_147059_ -> EntityType.loadEntityRecursive((CompoundTag)p_147059_, p_147047_, p_147062_ -> {
--                        p_147066_.accept(p_147062_);
-+                    // Paper start - Entity load/save limit per chunk
-+                    final EntityType<?> entityType = p_147062_.getType();
-+                    final int saveLimit = p_147047_.paperConfig().chunks.entityPerChunkSaveLimit.getOrDefault(entityType, -1);
-+                    if (saveLimit > -1) {
-+                        if (this.loadedEntityCounts.getOrDefault(entityType, 0) >= saveLimit) {
-+                            return null;
-+                        }
-+                        this.loadedEntityCounts.merge(entityType, 1, Integer::sum);
-+                    }
-+                    // Paper end - Entity load/save limit per chunk
-+                    p_147066_.accept(p_147062_);
-                         return p_147062_;
-                     }));
-             }
-@@ -1149,14 +_,23 @@
+             if (p_262629_ != null) {
+@@ -1400,14 +_,23 @@
      }
  
      public int clientTrackingRange() {
@@ -312,8 +91,12 @@
          return this != PLAYER
              && this != LLAMA_SPIT
              && this != WITHER
-@@ -1192,6 +_,8 @@
-         return this.builtInRegistryHolder;
+@@ -1460,9 +_,12 @@
+     }
+ 
+     public boolean onlyOpCanSetNbt() {
++        if (onlyOpCanSetNbt) return true;
+         return OP_ONLY_CUSTOM_DATA.contains(this);
      }
  
 +    public Stream<TagKey<EntityType<?>>> getTags() {return this.builtInRegistryHolder().tags();}
@@ -321,48 +104,54 @@
      public static class Builder<T extends Entity> {
          private final EntityType.EntityFactory<T> factory;
          private final MobCategory category;
-@@ -1207,6 +_,10 @@
-         private EntityAttachments.Builder attachments = EntityAttachments.builder();
-         private FeatureFlagSet requiredFeatures = FeatureFlags.VANILLA_SET;
- 
+@@ -1481,6 +_,10 @@
+             ResourceKey.create(Registries.LOOT_TABLE, p_367917_.location().withPrefix("entities/"))
+         );
+         private final DependantName<EntityType<?>, String> descriptionId = p_367918_ -> Util.makeDescriptionId("entity", p_367918_.location());
 +        private java.util.function.Predicate<EntityType<?>> velocityUpdateSupplier = EntityType::defaultTrackDeltasSupplier;
 +        private java.util.function.ToIntFunction<EntityType<?>> trackingRangeSupplier = EntityType::defaultTrackingRangeSupplier;
 +        private java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier = EntityType::defaultUpdateIntervalSupplier;
-+
++        private boolean onlyOpCanSetNbt = false;
+ 
          private Builder(EntityType.EntityFactory<T> p_20696_, MobCategory p_20697_) {
              this.factory = p_20696_;
-             this.category = p_20697_;
-@@ -1314,6 +_,21 @@
+@@ -1594,6 +_,26 @@
              return this;
          }
  
 +        public EntityType.Builder<T> setUpdateInterval(int interval) {
-+             this.updateIntervalSupplier = t->interval;
-+             return this;
++            this.updateIntervalSupplier = t->interval;
++            return this;
 +        }
 +
 +        public EntityType.Builder<T> setTrackingRange(int range) {
-+             this.trackingRangeSupplier = t->range;
-+             return this;
++            this.trackingRangeSupplier = t->range;
++            return this;
 +        }
 +
 +        public EntityType.Builder<T> setShouldReceiveVelocityUpdates(boolean value) {
-+             this.velocityUpdateSupplier = t->value;
-+             return this;
++            this.velocityUpdateSupplier = t->value;
++            return this;
 +        }
 +
-         public EntityType<T> build(String p_20713_) {
++        public EntityType.Builder<T> setOnlyOpCanSetNbt(boolean onlyOpCanSetNbt) {
++            this.onlyOpCanSetNbt = onlyOpCanSetNbt;
++            return this;
++        }
++
+         public EntityType<T> build(ResourceKey<EntityType<?>> p_368626_) {
              if (this.serialize) {
-                 Util.fetchChoiceType(References.ENTITY_TREE, p_20713_);
-@@ -1331,7 +_,10 @@
-                 this.spawnDimensionsScale,
-                 this.clientTrackingRange,
+                 Util.fetchChoiceType(References.ENTITY_TREE, p_368626_.location().toString());
+@@ -1613,7 +_,11 @@
                  this.updateInterval,
+                 this.descriptionId.get(p_368626_),
+                 this.lootTable.get(p_368626_),
 -                this.requiredFeatures
 +                this.requiredFeatures,
-+                velocityUpdateSupplier,
-+                trackingRangeSupplier,
-+                updateIntervalSupplier
++                this.velocityUpdateSupplier,
++                this.trackingRangeSupplier,
++                this.updateIntervalSupplier,
++                this.onlyOpCanSetNbt
              );
          }
      }

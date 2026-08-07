@@ -3,16 +3,19 @@ package org.bukkit.event.entity;
 import org.bukkit.Chunk;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Called when a creature is spawned into a world.
  * <p>
- * If a Creature Spawn event is cancelled, the creature will not spawn.
+ * If this event is cancelled, the creature will not spawn.
  */
 public class CreatureSpawnEvent extends EntitySpawnEvent {
+
     private final SpawnReason spawnReason;
 
+    @ApiStatus.Internal
     public CreatureSpawnEvent(@NotNull final LivingEntity spawnee, @NotNull final SpawnReason spawnReason) {
         super(spawnee);
         this.spawnReason = spawnReason;
@@ -21,7 +24,7 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
     @NotNull
     @Override
     public LivingEntity getEntity() {
-        return (LivingEntity) entity;
+        return (LivingEntity) this.entity;
     }
 
     /**
@@ -32,7 +35,7 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
      */
     @NotNull
     public SpawnReason getSpawnReason() {
-        return spawnReason;
+        return this.spawnReason;
     }
 
     /**
@@ -57,7 +60,7 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
          * {@link ChunkLoadEvent#isNewChunk()} and {@link Chunk#getEntities()}
          * for similar effect.
          */
-        @Deprecated
+        @Deprecated(since = "1.14", forRemoval = true)
         CHUNK_GEN,
         /**
          * When a creature spawns from a spawner
@@ -158,11 +161,12 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
          */
         DROWNED,
         /**
-         * When an cow is spawned by shearing a mushroom cow
+         * When a cow is spawned by shearing a mushroom cow
          */
         SHEARED,
         /**
-         * When eg an effect cloud is spawned as a result of a creeper exploding
+         * When an entity is spawned as a result of an explosion. Like an area effect cloud from
+         * a creeper or a dragon fireball.
          */
         EXPLOSION,
         /**
@@ -205,17 +209,23 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
          * When a creature is spawned by an enchantment
          */
         ENCHANTMENT,
-        // Paper start - Fixes and additions to the SpawnReason API
         /**
          * When an entity spawns from an ominous item spawner
          */
         OMINOUS_ITEM_SPAWNER,
-        // Paper end - Fixes and additions to the SpawnReason API
+        /**
+         * When an entity spawns from a bucket
+         */
+        BUCKET,
         /**
          * When a creature is spawned by a potion effect, for example:
          * {@link org.bukkit.potion.PotionType#OOZING}, {@link org.bukkit.potion.PotionType#INFESTED}
          */
         POTION_EFFECT,
+        /**
+         * When a creature is spawned by being rehydrated
+         */
+        REHYDRATION,
         /**
          * When a creature is spawned by plugins
          */
