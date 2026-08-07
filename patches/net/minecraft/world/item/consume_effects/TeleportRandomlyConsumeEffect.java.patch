@@ -1,13 +1,74 @@
 --- a/net/minecraft/world/item/consume_effects/TeleportRandomlyConsumeEffect.java
 +++ b/net/minecraft/world/item/consume_effects/TeleportRandomlyConsumeEffect.java
-@@ -56,7 +_,9 @@
+@@ -40,42 +_,50 @@
+     }
+ 
+     @Override
+-    public boolean apply(Level p_366648_, ItemStack p_366476_, LivingEntity p_366884_) {
++    public boolean apply(Level level, ItemStack stack, LivingEntity entity) {
+         boolean flag = false;
+ 
+         for (int i = 0; i < 16; i++) {
+-            double d0 = p_366884_.getX() + (p_366884_.getRandom().nextDouble() - 0.5) * this.diameter;
++            double d = entity.getX() + (entity.getRandom().nextDouble() - 0.5) * this.diameter;
+             double d1 = Mth.clamp(
+-                p_366884_.getY() + (p_366884_.getRandom().nextDouble() - 0.5) * this.diameter,
+-                (double)p_366648_.getMinY(),
+-                (double)(p_366648_.getMinY() + ((ServerLevel)p_366648_).getLogicalHeight() - 1)
++                entity.getY() + (entity.getRandom().nextDouble() - 0.5) * this.diameter,
++                (double)level.getMinY(),
++                (double)(level.getMinY() + ((ServerLevel)level).getLogicalHeight() - 1)
+             );
+-            double d2 = p_366884_.getZ() + (p_366884_.getRandom().nextDouble() - 0.5) * this.diameter;
+-            if (p_366884_.isPassenger()) {
+-                p_366884_.stopRiding();
++            double d2 = entity.getZ() + (entity.getRandom().nextDouble() - 0.5) * this.diameter;
++            if (entity.isPassenger()) {
++                entity.stopRiding();
              }
  
-             Vec3 vec3 = p_366884_.position();
+-            Vec3 vec3 = p_366884_.position();
 -            if (p_366884_.randomTeleport(d0, d1, d2, true)) {
-+            var event = net.neoforged.neoforge.event.EventHooks.onItemConsumptionTeleport(p_366884_, p_366476_, d0, d1, d2);
+-                p_366648_.gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(p_366884_));
+-                SoundSource soundsource;
+-                SoundEvent soundevent;
+-                if (p_366884_ instanceof Fox) {
+-                    soundevent = SoundEvents.FOX_TELEPORT;
+-                    soundsource = SoundSource.NEUTRAL;
++            Vec3 vec3 = entity.position();
++            var event = net.neoforged.neoforge.event.EventHooks.onItemConsumptionTeleport(entity, stack, d, d1, d2);
 +            if (event.isCanceled()) return false;
-+            if (p_366884_.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {
-                 p_366648_.gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(p_366884_));
-                 SoundSource soundsource;
-                 SoundEvent soundevent;
++            // CraftBukkit start - handle canceled status of teleport event
++            java.util.Optional<Boolean> status = entity.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.CONSUMABLE_EFFECT);
++
++            // teleport event was canceled, no more tries
++            if (status.isEmpty()) break;
++            if (status.get()) {
++                // CraftBukkit end
++                level.gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(entity));
++                SoundSource soundSource;
++                SoundEvent soundEvent;
++                if (entity instanceof Fox) {
++                    soundEvent = SoundEvents.FOX_TELEPORT;
++                    soundSource = SoundSource.NEUTRAL;
+                 } else {
+-                    soundevent = SoundEvents.CHORUS_FRUIT_TELEPORT;
+-                    soundsource = SoundSource.PLAYERS;
++                    soundEvent = SoundEvents.CHORUS_FRUIT_TELEPORT;
++                    soundSource = SoundSource.PLAYERS;
+                 }
+ 
+-                p_366648_.playSound(null, p_366884_.getX(), p_366884_.getY(), p_366884_.getZ(), soundevent, soundsource);
+-                p_366884_.resetFallDistance();
++                level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), soundEvent, soundSource);
++                entity.resetFallDistance();
+                 flag = true;
+                 break;
+             }
+         }
+ 
+-        if (flag && p_366884_ instanceof Player player) {
++        if (flag && entity instanceof Player player) {
+             player.resetCurrentImpulseContext();
+         }
+ 

@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/entity/ai/behavior/BehaviorUtils.java
++++ b/net/minecraft/world/entity/ai/behavior/BehaviorUtils.java
+@@ -83,15 +_,23 @@
+         throwItem(p_22614_, p_22615_, p_22616_, vec3, 0.3F);
+     }
+ 
+-    public static void throwItem(LivingEntity p_217134_, ItemStack p_217135_, Vec3 p_217136_, Vec3 p_217137_, float p_217138_) {
+-        double d0 = p_217134_.getEyeY() - p_217138_;
+-        ItemEntity itementity = new ItemEntity(p_217134_.level(), p_217134_.getX(), d0, p_217134_.getZ(), p_217135_);
+-        itementity.setThrower(p_217134_);
+-        Vec3 vec3 = p_217136_.subtract(p_217134_.position());
+-        vec3 = vec3.normalize().multiply(p_217137_.x, p_217137_.y, p_217137_.z);
+-        itementity.setDeltaMovement(vec3);
+-        itementity.setDefaultPickUpDelay();
+-        p_217134_.level().addFreshEntity(itementity);
++    public static void throwItem(LivingEntity entity, ItemStack stack, Vec3 offset, Vec3 speedMultiplier, float yOffset) {
++        if (stack.isEmpty()) return; // CraftBukkit - SPIGOT-4940: no empty loot
++        double d = entity.getEyeY() - yOffset;
++        ItemEntity itemEntity = new ItemEntity(entity.level(), entity.getX(), d, entity.getZ(), stack);
++        itemEntity.setThrower(entity);
++        Vec3 vec3 = offset.subtract(entity.position());
++        vec3 = vec3.normalize().multiply(speedMultiplier.x, speedMultiplier.y, speedMultiplier.z);
++        itemEntity.setDeltaMovement(vec3);
++        itemEntity.setDefaultPickUpDelay();
++        // CraftBukkit start
++        org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(entity.getBukkitEntity(), (org.bukkit.entity.Item) itemEntity.getBukkitEntity());
++        itemEntity.level().getCraftServer().getPluginManager().callEvent(event);
++        if (event.isCancelled()) {
++            return;
++        }
++        // CraftBukkit end
++        entity.level().addFreshEntity(itemEntity);
+     }
+ 
+     public static SectionPos findSectionClosestToVillage(ServerLevel p_22582_, SectionPos p_22583_, int p_22584_) {

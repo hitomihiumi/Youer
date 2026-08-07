@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/entity/boss/enderdragon/phases/DragonStrafePlayerPhase.java
++++ b/net/minecraft/world/entity/boss/enderdragon/phases/DragonStrafePlayerPhase.java
+@@ -72,13 +_,17 @@
+                         double d10 = this.attackTarget.getY(0.5) - d7;
+                         double d11 = this.attackTarget.getZ() - d8;
+                         Vec3 vec31 = new Vec3(d9, d10, d11);
+-                        if (!this.dragon.isSilent()) {
++                        if (false && !this.dragon.isSilent()) { // Paper - EnderDragon Events; Fire after shoot fireball event
+                             p_376857_.levelEvent(null, 1017, this.dragon.blockPosition(), 0);
+                         }
+ 
+                         DragonFireball dragonfireball = new DragonFireball(p_376857_, this.dragon, vec31.normalize());
++                        dragonfireball.preserveMotion = true; // Paper - Fix Entity Teleportation and cancel velocity if teleported
+                         dragonfireball.snapTo(d6, d7, d8, 0.0F, 0.0F);
++                        if (new com.destroystokyo.paper.event.entity.EnderDragonShootFireballEvent((org.bukkit.entity.EnderDragon) this.dragon.getBukkitEntity(), (org.bukkit.entity.DragonFireball) dragonfireball.getBukkitEntity()).callEvent()) { // Paper - EnderDragon Events
++                            if (!this.dragon.isSilent()) p_376857_.levelEvent(null, net.minecraft.world.p_376857_.block.LevelEvent.SOUND_DRAGON_FIREBALL, this.dragon.blockPosition(), 0); // Paper - EnderDragon Events; Fire after shoot fireball event
+                         p_376857_.addFreshEntity(dragonfireball);
++                        } else dragonfireball.discard(null); // Paper - EnderDragon Events
+                         this.fireballCharge = 0;
+                         if (this.currentPath != null) {
+                             while (!this.currentPath.isDone()) {

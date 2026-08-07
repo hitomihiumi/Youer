@@ -1,0 +1,62 @@
+--- a/net/minecraft/world/level/block/DragonEggBlock.java
++++ b/net/minecraft/world/level/block/DragonEggBlock.java
+@@ -45,30 +_,40 @@
+         this.teleport(p_52918_, p_52919_, p_52920_);
+     }
+ 
+-    private void teleport(BlockState p_52936_, Level p_52937_, BlockPos p_52938_) {
+-        WorldBorder worldborder = p_52937_.getWorldBorder();
++    private void teleport(BlockState state, Level level, BlockPos pos) {
++        WorldBorder worldBorder = level.getWorldBorder();
+ 
+         for (int i = 0; i < 1000; i++) {
+-            BlockPos blockpos = p_52938_.offset(
+-                p_52937_.random.nextInt(16) - p_52937_.random.nextInt(16),
+-                p_52937_.random.nextInt(8) - p_52937_.random.nextInt(8),
+-                p_52937_.random.nextInt(16) - p_52937_.random.nextInt(16)
++            BlockPos blockPos = pos.offset(
++                level.random.nextInt(16) - level.random.nextInt(16),
++                level.random.nextInt(8) - level.random.nextInt(8),
++                level.random.nextInt(16) - level.random.nextInt(16)
+             );
+-            if (p_52937_.getBlockState(blockpos).isAir() && worldborder.isWithinBounds(blockpos)) {
+-                if (p_52937_.isClientSide) {
+-                    for (int j = 0; j < 128; j++) {
+-                        double d0 = p_52937_.random.nextDouble();
+-                        float f = (p_52937_.random.nextFloat() - 0.5F) * 0.2F;
+-                        float f1 = (p_52937_.random.nextFloat() - 0.5F) * 0.2F;
+-                        float f2 = (p_52937_.random.nextFloat() - 0.5F) * 0.2F;
+-                        double d1 = Mth.lerp(d0, (double)blockpos.getX(), (double)p_52938_.getX()) + (p_52937_.random.nextDouble() - 0.5) + 0.5;
+-                        double d2 = Mth.lerp(d0, (double)blockpos.getY(), (double)p_52938_.getY()) + p_52937_.random.nextDouble() - 0.5;
+-                        double d3 = Mth.lerp(d0, (double)blockpos.getZ(), (double)p_52938_.getZ()) + (p_52937_.random.nextDouble() - 0.5) + 0.5;
+-                        p_52937_.addParticle(ParticleTypes.PORTAL, d1, d2, d3, f, f1, f2);
++            if (level.getBlockState(blockPos).isAir() && worldBorder.isWithinBounds(blockPos)) {
++                // CraftBukkit start
++                org.bukkit.block.Block from = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++                org.bukkit.block.Block to = org.bukkit.craftbukkit.block.CraftBlock.at(level, blockPos);
++                org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(from, to);
++                if (!event.callEvent()) {
++                    return;
++                }
++
++                blockPos = new BlockPos(event.getToBlock().getX(), event.getToBlock().getY(), event.getToBlock().getZ());
++                // CraftBukkit end
++                if (level.isClientSide) {
++                    for (int i1 = 0; i1 < 128; i1++) {
++                        double randomDouble = level.random.nextDouble();
++                        float f = (level.random.nextFloat() - 0.5F) * 0.2F;
++                        float f1 = (level.random.nextFloat() - 0.5F) * 0.2F;
++                        float f2 = (level.random.nextFloat() - 0.5F) * 0.2F;
++                        double d = Mth.lerp(randomDouble, (double)blockPos.getX(), (double)pos.getX()) + (level.random.nextDouble() - 0.5) + 0.5;
++                        double d1 = Mth.lerp(randomDouble, (double)blockPos.getY(), (double)pos.getY()) + level.random.nextDouble() - 0.5;
++                        double d2 = Mth.lerp(randomDouble, (double)blockPos.getZ(), (double)pos.getZ()) + (level.random.nextDouble() - 0.5) + 0.5;
++                        level.addParticle(ParticleTypes.PORTAL, d, d1, d2, f, f1, f2);
+                     }
+                 } else {
+-                    p_52937_.setBlock(blockpos, p_52936_, 2);
+-                    p_52937_.removeBlock(p_52938_, false);
++                    level.setBlock(blockPos, state, 2);
++                    level.removeBlock(pos, false);
+                 }
+ 
+                 return;

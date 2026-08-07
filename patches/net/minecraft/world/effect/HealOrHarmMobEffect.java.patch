@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/effect/HealOrHarmMobEffect.java
++++ b/net/minecraft/world/effect/HealOrHarmMobEffect.java
+@@ -16,7 +_,7 @@
+     @Override
+     public boolean applyEffectTick(ServerLevel p_376486_, LivingEntity p_295255_, int p_295147_) {
+         if (this.isHarm == p_295255_.isInvertedHealAndHarm()) {
+-            p_295255_.heal(Math.max(4 << p_295147_, 0));
++            p_295255_.heal(Math.max(4 << p_295147_, 0), org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit
+         } else {
+             p_295255_.hurtServer(p_376486_, p_295255_.damageSources().magic(), 6 << p_295147_);
+         }
+@@ -28,9 +_,10 @@
+     public void applyInstantenousEffect(
+         ServerLevel p_376760_, @Nullable Entity p_294574_, @Nullable Entity p_295692_, LivingEntity p_296483_, int p_296095_, double p_295178_
+     ) {
++        if (!new io.papermc.paper.event.entity.EntityEffectTickEvent(p_296483_.getBukkitLivingEntity(), org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftToBukkit(this), p_296095_).callEvent()) { return; } // Paper - Add EntityEffectTickEvent
+         if (this.isHarm == p_296483_.isInvertedHealAndHarm()) {
+-            int i = (int)(p_295178_ * (4 << p_296095_) + 0.5);
+-            p_296483_.heal(i);
++            int j = (int)(p_295178_ * (4 << p_296095_) + 0.5);
++            p_296483_.heal(j, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit
+         } else {
+             int j = (int)(p_295178_ * (6 << p_296095_) + 0.5);
+             if (p_294574_ == null) {

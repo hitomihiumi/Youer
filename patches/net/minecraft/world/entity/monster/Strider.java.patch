@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/entity/monster/Strider.java
++++ b/net/minecraft/world/entity/monster/Strider.java
+@@ -289,13 +_,20 @@
+         }
+ 
+         if (!this.isNoAi()) {
+-            BlockState blockstate = this.level().getBlockState(this.blockPosition());
+-            BlockState blockstate1 = this.getBlockStateOnLegacy();
+-            boolean flag = blockstate.is(BlockTags.STRIDER_WARM_BLOCKS)
+-                || blockstate1.is(BlockTags.STRIDER_WARM_BLOCKS)
++            BlockState blockState = this.level().getBlockState(this.blockPosition());
++            BlockState blockStateOnLegacy = this.getBlockStateOnLegacy();
++            boolean flag = blockState.is(BlockTags.STRIDER_WARM_BLOCKS)
++                || blockStateOnLegacy.is(BlockTags.STRIDER_WARM_BLOCKS)
+                 || this.getFluidHeight(FluidTags.LAVA) > 0.0;
+             boolean flag1 = this.getVehicle() instanceof Strider strider && strider.isSuffocating();
+-            this.setSuffocating(!flag || flag1);
++            // CraftBukkit start
++            boolean suffocating = !flag || flag1;
++            if (suffocating ^ this.isSuffocating()) {
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callStriderTemperatureChangeEvent(this, suffocating)) {
++                    this.setSuffocating(suffocating);
++                }
++            }
++            // CraftBukkit end
+         }
+ 
+         super.tick();

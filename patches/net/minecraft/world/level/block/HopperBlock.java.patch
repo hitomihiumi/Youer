@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/block/HopperBlock.java
++++ b/net/minecraft/world/level/block/HopperBlock.java
+@@ -106,8 +_,7 @@
+ 
+     @Override
+     protected InteractionResult useWithoutItem(BlockState p_54071_, Level p_54072_, BlockPos p_54073_, Player p_54074_, BlockHitResult p_54076_) {
+-        if (!p_54072_.isClientSide && p_54072_.getBlockEntity(p_54073_) instanceof HopperBlockEntity hopperblockentity) {
+-            p_54074_.openMenu(hopperblockentity);
++        if (!p_54072_.isClientSide && p_54072_.getBlockEntity(p_54073_) instanceof HopperBlockEntity hopperblockentity && p_54074_.openMenu(hopperblockentity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_54074_.awardStat(Stats.INSPECT_HOPPER);
+         }
+ 
+@@ -158,6 +_,7 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_54066_, Level p_54067_, BlockPos p_54068_, Entity p_54069_, InsideBlockEffectApplier p_405580_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_54069_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_54067_, p_54068_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         BlockEntity blockentity = p_54067_.getBlockEntity(p_54068_);
+         if (blockentity instanceof HopperBlockEntity) {
+             HopperBlockEntity.entityInside(p_54067_, p_54068_, p_54066_, p_54069_, (HopperBlockEntity)blockentity);

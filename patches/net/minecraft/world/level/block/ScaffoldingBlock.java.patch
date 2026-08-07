@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/block/ScaffoldingBlock.java
++++ b/net/minecraft/world/level/block/ScaffoldingBlock.java
+@@ -117,7 +_,7 @@
+     protected void tick(BlockState p_222019_, ServerLevel p_222020_, BlockPos p_222021_, RandomSource p_222022_) {
+         int i = getDistance(p_222020_, p_222021_);
+         BlockState blockstate = p_222019_.setValue(DISTANCE, i).setValue(BOTTOM, this.isBottom(p_222020_, p_222021_, i));
+-        if (blockstate.getValue(DISTANCE) == 7) {
++        if (blockstate.getValue(DISTANCE) == 7 && !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_222020_, p_222021_, blockstate.getFluidState().createLegacyBlock()).isCancelled()) { // CraftBukkit - BlockFadeEvent // Paper - fix wrong block p_222019_
+             if (p_222019_.getValue(DISTANCE) == 7) {
+                 FallingBlockEntity.fall(p_222020_, p_222021_, blockstate);
+             } else {

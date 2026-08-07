@@ -1,0 +1,49 @@
+--- a/net/minecraft/world/entity/npc/InventoryCarrier.java
++++ b/net/minecraft/world/entity/npc/InventoryCarrier.java
+@@ -13,23 +_,30 @@
+ 
+     SimpleContainer getInventory();
+ 
+-    static void pickUpItem(ServerLevel p_376901_, Mob p_219612_, InventoryCarrier p_219613_, ItemEntity p_219614_) {
+-        ItemStack itemstack = p_219614_.getItem();
+-        if (p_219612_.wantsToPickUp(p_376901_, itemstack)) {
+-            SimpleContainer simplecontainer = p_219613_.getInventory();
+-            boolean flag = simplecontainer.canAddItem(itemstack);
+-            if (!flag) {
+-                return;
+-            }
+-
+-            p_219612_.onItemPickup(p_219614_);
+-            int i = itemstack.getCount();
+-            ItemStack itemstack1 = simplecontainer.addItem(itemstack);
+-            p_219612_.take(p_219614_, i - itemstack1.getCount());
+-            if (itemstack1.isEmpty()) {
+-                p_219614_.discard();
++    static void pickUpItem(ServerLevel level, Mob mob, InventoryCarrier carrier, ItemEntity itemEntity) {
++        ItemStack item = itemEntity.getItem();
++        if (mob.wantsToPickUp(level, item)) {
++            SimpleContainer inventory = carrier.getInventory();
++            boolean canAddItem = inventory.canAddItem(item);
++            if (!canAddItem) {
++                return;
++            }
++
++            // CraftBukkit start
++            ItemStack remaining = new SimpleContainer(inventory).addItem(item);
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(mob, itemEntity, remaining.getCount(), false).isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
++
++            mob.onItemPickup(itemEntity);
++            int count = item.getCount();
++            ItemStack itemStack = inventory.addItem(item);
++            mob.take(itemEntity, count - itemStack.getCount());
++            if (itemStack.isEmpty()) {
++                itemEntity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             } else {
+-                itemstack.setCount(itemstack1.getCount());
++                item.setCount(itemStack.getCount());
+             }
+         }
+     }
