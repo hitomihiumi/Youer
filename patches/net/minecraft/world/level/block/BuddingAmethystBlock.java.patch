@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/level/block/BuddingAmethystBlock.java
++++ b/net/minecraft/world/level/block/BuddingAmethystBlock.java
+@@ -44,7 +_,13 @@
+                 BlockState blockstate1 = block.defaultBlockState()
+                     .setValue(AmethystClusterBlock.FACING, direction)
+                     .setValue(AmethystClusterBlock.WATERLOGGED, blockstate.getFluidState().getType() == Fluids.WATER);
+-                p_220899_.setBlockAndUpdate(blockpos, blockstate1);
++                // Paper start - Have Amethyst throw both spread and grow events
++                if (block == Blocks.SMALL_AMETHYST_BUD) {
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_220899_, p_220900_, blockpos, blockstate1, 3); // CraftBukkit
++                } else {
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_220899_, blockpos, blockstate1, 3);
++                }
++                // Paper end - Have Amethyst throw both spread and grow events
+             }
+         }
+     }

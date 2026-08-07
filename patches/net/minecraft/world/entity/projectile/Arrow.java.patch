@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/entity/projectile/Arrow.java
++++ b/net/minecraft/world/entity/projectile/Arrow.java
+@@ -70,6 +_,16 @@
+         p_326324_.define(ID_EFFECT_COLOR, -1);
+     }
+ 
++    // Paper start - EAR 2
++    @Override
++    public void inactiveTick() {
++        if (this.isInGround()) {
++            this.life++;
++        }
++        super.inactiveTick();
++    }
++    // Paper end
++
+     @Override
+     public void tick() {
+         super.tick();
+@@ -115,7 +_,7 @@
+         Entity entity = this.getEffectSource();
+         PotionContents potioncontents = this.getPotionContents();
+         float f = this.getPotionDurationScale();
+-        potioncontents.forEachEffect(p_393227_ -> p_36873_.addEffect(p_393227_, entity), f);
++        potioncontents.forEachEffect(p_393227_ -> p_36873_.addEffect(p_393227_, entity, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ARROW), f); // CraftBukkit
+     }
+ 
+     @Override

@@ -1,0 +1,27 @@
+--- a/net/minecraft/server/commands/ListPlayersCommand.java
++++ b/net/minecraft/server/commands/ListPlayersCommand.java
+@@ -32,11 +_,18 @@
+         );
+     }
+ 
+-    private static int format(CommandSourceStack p_137827_, Function<ServerPlayer, Component> p_137828_) {
+-        PlayerList playerlist = p_137827_.getServer().getPlayerList();
+-        List<ServerPlayer> list = playerlist.getPlayers();
+-        Component component = ComponentUtils.formatList(list, p_137828_);
+-        p_137827_.sendSuccess(() -> Component.translatable("commands.list.players", list.size(), playerlist.getMaxPlayers(), component), false);
+-        return list.size();
++    private static int format(CommandSourceStack source, Function<ServerPlayer, Component> nameExtractor) {
++        PlayerList playerList = source.getServer().getPlayerList();
++        // CraftBukkit start
++        List<ServerPlayer> playersTemp = playerList.getPlayers();
++        if (source.getBukkitSender() instanceof org.bukkit.entity.Player) {
++            org.bukkit.entity.Player sender = (org.bukkit.entity.Player) source.getBukkitSender();
++            playersTemp = playersTemp.stream().filter((ep) -> sender.canSee(ep.getBukkitEntity())).collect(java.util.stream.Collectors.toList());
++        }
++        final List<ServerPlayer> players = playersTemp;
++        // CraftBukkit end
++        Component component = ComponentUtils.formatList(players, nameExtractor);
++        source.sendSuccess(() -> Component.translatable("commands.list.players", players.size(), playerList.getMaxPlayers(), component), false);
++        return players.size();
+     }
+ }

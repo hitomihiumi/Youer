@@ -8,6 +8,15 @@
          }
  
          if (this.container instanceof RecipeCraftingHolder recipecraftingholder) {
+@@ -73,7 +_,7 @@
+     private NonNullList<ItemStack> getRemainingItems(CraftingInput p_379501_, Level p_380183_) {
+         return p_380183_ instanceof ServerLevel serverlevel
+             ? serverlevel.recipeAccess()
+-                .getRecipeFor(RecipeType.CRAFTING, p_379501_, serverlevel)
++                .getRecipeFor(RecipeType.CRAFTING, p_379501_, serverlevel, this.craftSlots.getCurrentRecipe()) // Paper - Perf: Improve mass crafting; check last recipe used first
+                 .map(p_380214_ -> p_380214_.value().getRemainingItems(p_379501_))
+                 .orElseGet(() -> copyAllInputItems(p_379501_))
+             : CraftingRecipe.defaultCraftingReminder(p_379501_);
 @@ -86,7 +_,9 @@
          CraftingInput craftinginput = craftinginput$positioned.input();
          int i = craftinginput$positioned.left();

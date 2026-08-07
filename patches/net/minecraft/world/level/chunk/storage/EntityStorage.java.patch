@@ -1,16 +1,70 @@
 --- a/net/minecraft/world/level/chunk/storage/EntityStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/EntityStorage.java
-@@ -108,9 +_,13 @@
-                             TagValueOutput tagvalueoutput = TagValueOutput.createWithContext(
-                                 problemreporter$scopedcollector.forChild(p_421446_.problemPath()), p_421446_.registryAccess()
-                             );
-+                            try {
-                             if (p_421446_.save(tagvalueoutput)) {
-                                 CompoundTag compoundtag1 = tagvalueoutput.buildResult();
-                                 listtag.add(compoundtag1);
-+                            }
-+                            } catch (Exception e) {
-+                                LOGGER.error("An Entity type {} has thrown an exception trying to write state. It will not persist. Report this to the mod author", p_421446_.getType(), e);
-                             }
+@@ -91,34 +_,42 @@
+     }
+ 
+     @Override
+-    public void storeEntities(ChunkEntities<Entity> p_156559_) {
+-        ChunkPos chunkpos = p_156559_.getPos();
+-        if (p_156559_.isEmpty()) {
+-            if (this.emptyChunks.add(chunkpos.toLong())) {
+-                this.reportSaveFailureIfPresent(this.simpleRegionStorage.write(chunkpos, null), chunkpos);
++    public void storeEntities(ChunkEntities<Entity> entities) {
++        ChunkPos pos = entities.getPos();
++        if (entities.isEmpty()) {
++            if (this.emptyChunks.add(pos.toLong())) {
++                this.reportSaveFailureIfPresent(this.simpleRegionStorage.write(pos, null), pos);
+             }
+         } else {
+-            try (ProblemReporter.ScopedCollector problemreporter$scopedcollector = new ProblemReporter.ScopedCollector(
+-                    ChunkAccess.problemPath(chunkpos), LOGGER
+-                )) {
+-                ListTag listtag = new ListTag();
+-                p_156559_.getEntities()
+-                    .forEach(
+-                        p_421446_ -> {
+-                            TagValueOutput tagvalueoutput = TagValueOutput.createWithContext(
+-                                problemreporter$scopedcollector.forChild(p_421446_.problemPath()), p_421446_.registryAccess()
+-                            );
+-                            if (p_421446_.save(tagvalueoutput)) {
+-                                CompoundTag compoundtag1 = tagvalueoutput.buildResult();
+-                                listtag.add(compoundtag1);
+-                            }
++            try (ProblemReporter.ScopedCollector scopedCollector = new ProblemReporter.ScopedCollector(ChunkAccess.problemPath(pos), LOGGER)) {
++                ListTag listTag = new ListTag();
++                final java.util.Map<net.minecraft.world.entity.EntityType<?>, Integer> savedEntityCounts = new java.util.HashMap<>(); // Paper - Entity load/save limit per chunk
++                entities.getEntities().forEach(entity -> {
++                    // Paper start - Entity load/save limit per chunk
++                    final EntityType<?> entityType = entity.getType();
++                    final int saveLimit = this.level.paperConfig().chunks.entityPerChunkSaveLimit.getOrDefault(entityType, -1);
++                    if (saveLimit > -1) {
++                        if (savedEntityCounts.getOrDefault(entityType, 0) >= saveLimit) {
++                            return;
                          }
-                     );
+-                    );
+-                CompoundTag compoundtag = NbtUtils.addCurrentDataVersion(new CompoundTag());
+-                compoundtag.put("Entities", listtag);
+-                compoundtag.store("Position", ChunkPos.CODEC, chunkpos);
+-                this.reportSaveFailureIfPresent(this.simpleRegionStorage.write(chunkpos, compoundtag), chunkpos);
+-                this.emptyChunks.remove(chunkpos.toLong());
++                        savedEntityCounts.merge(entityType, 1, Integer::sum);
++                    }
++                    // Paper end - Entity load/save limit per chunk
++                    TagValueOutput tagValueOutput = TagValueOutput.createWithContext(scopedCollector.forChild(entity.problemPath()), entity.registryAccess());
++                    try {
++                    if (entity.save(tagValueOutput)) {
++                        CompoundTag compoundTag1 = tagValueOutput.buildResult();
++                        listTag.add(compoundTag1);
++                    }
++                    } catch (Exception e) {
++                        LOGGER.error("An Entity type {} has thrown an exception trying to write state. It will not persist. Report this to the mod author", entity.getType(), e);
++                    }
++                });
++                CompoundTag compoundTag = NbtUtils.addCurrentDataVersion(new CompoundTag());
++                compoundTag.put("Entities", listTag);
++                compoundTag.store("Position", ChunkPos.CODEC, pos);
++                this.reportSaveFailureIfPresent(this.simpleRegionStorage.write(pos, compoundTag), pos);
++                this.emptyChunks.remove(pos.toLong());
+             }
+         }
+     }

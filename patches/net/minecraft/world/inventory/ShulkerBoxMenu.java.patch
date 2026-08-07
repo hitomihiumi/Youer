@@ -1,0 +1,46 @@
+--- a/net/minecraft/world/inventory/ShulkerBoxMenu.java
++++ b/net/minecraft/world/inventory/ShulkerBoxMenu.java
+@@ -9,6 +_,25 @@
+ public class ShulkerBoxMenu extends AbstractContainerMenu {
+     private static final int CONTAINER_SIZE = 27;
+     private final Container container;
++    // CraftBukkit start
++    private @javax.annotation.Nullable org.bukkit.craftbukkit.inventory.CraftInventoryView view;
++    private final Inventory inventory;
++
++    @Override
++    public org.bukkit.craftbukkit.inventory.CraftInventoryView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
++        }
++
++        this.view = new org.bukkit.craftbukkit.inventory.CraftInventoryView(this.inventory.player.getBukkitEntity(), new org.bukkit.craftbukkit.inventory.CraftInventory(this.container), this);
++        return this.view;
++    }
++
++    @Override
++    public void startOpen() {
++        this.container.startOpen(this.inventory.player);
++    }
++    // CraftBukkit end
+ 
+     public ShulkerBoxMenu(int p_40188_, Inventory p_40189_) {
+         this(p_40188_, p_40189_, new SimpleContainer(27));
+@@ -18,7 +_,8 @@
+         super(MenuType.SHULKER_BOX, p_40191_);
+         checkContainerSize(p_40193_, 27);
+         this.container = p_40193_;
+-        p_40193_.startOpen(p_40192_.player);
++        this.inventory = p_40192_; // CraftBukkit
++        // p_40193_.startOpen(p_40192_.player); // Paper - don't startOpen until menu actually opens
+         int i = 3;
+         int j = 9;
+ 
+@@ -33,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(Player p_40195_) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.container.stillValid(p_40195_);
+     }
+ 

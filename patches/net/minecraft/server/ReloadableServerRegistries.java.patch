@@ -1,20 +1,70 @@
 --- a/net/minecraft/server/ReloadableServerRegistries.java
 +++ b/net/minecraft/server/ReloadableServerRegistries.java
-@@ -59,7 +_,16 @@
+@@ -38,37 +_,51 @@
+     private static final RegistrationInfo DEFAULT_REGISTRATION_INFO = new RegistrationInfo(Optional.empty(), Lifecycle.experimental());
+ 
+     public static CompletableFuture<ReloadableServerRegistries.LoadResult> reload(
+-        LayeredRegistryAccess<RegistryLayer> p_335950_, List<Registry.PendingTags<?>> p_363295_, ResourceManager p_335786_, Executor p_335516_
++        LayeredRegistryAccess<RegistryLayer> registryAccess,
++        List<Registry.PendingTags<?>> postponedTags,
++        ResourceManager resourceManager,
++        Executor backgroundExecutor
+     ) {
+-        List<HolderLookup.RegistryLookup<?>> list = TagLoader.buildUpdatedLookups(p_335950_.getAccessForLoading(RegistryLayer.RELOADABLE), p_363295_);
+-        HolderLookup.Provider holderlookup$provider = HolderLookup.Provider.create(list.stream());
+-        RegistryOps<JsonElement> registryops = holderlookup$provider.createSerializationContext(JsonOps.INSTANCE);
++        List<HolderLookup.RegistryLookup<?>> list = TagLoader.buildUpdatedLookups(registryAccess.getAccessForLoading(RegistryLayer.RELOADABLE), postponedTags);
++        HolderLookup.Provider provider = HolderLookup.Provider.create(list.stream());
++        RegistryOps<JsonElement> registryOps = provider.createSerializationContext(JsonOps.INSTANCE);
++        final io.papermc.paper.registry.data.util.Conversions conversions = new io.papermc.paper.registry.data.util.Conversions(registryOps.lookupProvider); // Paper
+         List<CompletableFuture<WritableRegistry<?>>> list1 = LootDataType.values()
+-            .map(p_359506_ -> scheduleRegistryLoad((LootDataType<?>)p_359506_, registryops, p_335786_, p_335516_))
++            .map(lootDataType -> scheduleRegistryLoad((LootDataType<?>)lootDataType, registryOps, resourceManager, backgroundExecutor, conversions)) // Paper
+             .toList();
+-        CompletableFuture<List<WritableRegistry<?>>> completablefuture = Util.sequence(list1);
+-        return completablefuture.thenApplyAsync(
+-            p_359496_ -> createAndValidateFullContext(p_335950_, holderlookup$provider, (List<WritableRegistry<?>>)p_359496_), p_335516_
++        CompletableFuture<List<WritableRegistry<?>>> completableFuture = Util.sequence(list1);
++        return completableFuture.thenApplyAsync(
++            list2 -> createAndValidateFullContext(registryAccess, provider, (List<WritableRegistry<?>>)list2), backgroundExecutor
+         );
+     }
+ 
+     private static <T> CompletableFuture<WritableRegistry<?>> scheduleRegistryLoad(
+-        LootDataType<T> p_335741_, RegistryOps<JsonElement> p_336173_, ResourceManager p_335893_, Executor p_336104_
++        LootDataType<T> lootDataType, RegistryOps<JsonElement> ops, ResourceManager resourceManager, Executor backgroundExecutor, io.papermc.paper.registry.data.util.Conversions conversions // Paper
+     ) {
+         return CompletableFuture.supplyAsync(
              () -> {
-                 WritableRegistry<T> writableregistry = new MappedRegistry<>(p_335741_.registryKey(), Lifecycle.experimental());
+-                WritableRegistry<T> writableregistry = new MappedRegistry<>(p_335741_.registryKey(), Lifecycle.experimental());
++                WritableRegistry<T> writableRegistry = new MappedRegistry<>(lootDataType.registryKey(), Lifecycle.experimental());
++                io.papermc.paper.registry.PaperRegistryAccess.instance().registerReloadableRegistry(writableRegistry); // Paper - register reloadable registry
                  Map<ResourceLocation, T> map = new HashMap<>();
 -                SimpleJsonResourceReloadListener.scanDirectory(p_335893_, p_335741_.registryKey(), p_336173_, p_335741_.codec(), map);
-+                var provider = net.neoforged.neoforge.common.CommonHooks.extractLookupProvider(p_336173_);
++                var provider = net.neoforged.neoforge.common.CommonHooks.extractLookupProvider(ops);
 +                Map<ResourceLocation, Optional<T>> optionalMap = new HashMap<>();
-+                SimpleJsonResourceReloadListener.scanDirectoryWithOptionalValues(p_335893_, p_335741_.registryKey(), p_336173_, p_335741_.conditionalCodec(), optionalMap);
++                SimpleJsonResourceReloadListener.scanDirectoryWithOptionalValues(resourceManager, lootDataType.registryKey(), ops, lootDataType.conditionalCodec(), optionalMap);
 +                optionalMap.forEach((rl, optionalEntry) -> {
-+                    optionalEntry.ifPresent(entry -> p_335741_.idSetter().accept(entry, rl));
-+                    T value = optionalEntry.orElse(p_335741_.defaultValue());
++                    optionalEntry.ifPresent(entry -> lootDataType.idSetter().accept(entry, rl));
++                    T value = optionalEntry.orElse(lootDataType.defaultValue());
 +                    if (value instanceof LootTable lootTable) value = (T) net.neoforged.neoforge.event.EventHooks.loadLootTable(provider, rl, lootTable);
 +                    if (value != null)
 +                        map.put(rl, value);
 +                });
                  map.forEach(
-                     (p_335721_, p_335683_) -> writableregistry.register(
-                         ResourceKey.create(p_335741_.registryKey(), p_335721_), (T)p_335683_, DEFAULT_REGISTRATION_INFO
+-                    (p_335721_, p_335683_) -> writableregistry.register(
+-                        ResourceKey.create(p_335741_.registryKey(), p_335721_), (T)p_335683_, DEFAULT_REGISTRATION_INFO
++                    (resourceLocation, object) -> io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.registerWithListeners(writableRegistry, // Paper - register with listeners
++                        ResourceKey.create(lootDataType.registryKey(), resourceLocation), (T)object, DEFAULT_REGISTRATION_INFO, conversions // Paper - register with listeners
+                     )
+                 );
+-                TagLoader.loadTagsForRegistry(p_335893_, writableregistry);
+-                return writableregistry;
++                TagLoader.loadTagsForRegistry(resourceManager, writableRegistry, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // Paper - tag life cycle - reload
++                return writableRegistry;
+             },
+-            p_336104_
++            backgroundExecutor
+         );
+     }
+ 

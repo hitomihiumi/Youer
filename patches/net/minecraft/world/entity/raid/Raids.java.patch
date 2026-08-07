@@ -1,0 +1,39 @@
+--- a/net/minecraft/world/entity/raid/Raids.java
++++ b/net/minecraft/world/entity/raid/Raids.java
+@@ -58,6 +_,7 @@
+     private Raids(List<Raids.RaidWithId> p_401252_, int p_401028_, int p_401314_) {
+         for (Raids.RaidWithId raids$raidwithid : p_401252_) {
+             this.raidMap.put(raids$raidwithid.id, raids$raidwithid.raid);
++            raids$raidwithid.raid.idOrNegativeOne = raids$raidwithid.id; // Paper - expose id of p_401252_ while method is kept around as deprecated for removal
+         }
+ 
+         this.nextId = p_401028_;
+@@ -142,11 +_,23 @@
+                     }
+ 
+                     Raid raid = this.getOrCreateRaid(serverlevel, blockpos1);
+-                    if (!raid.isStarted() && !this.raidMap.containsValue(raid)) {
+-                        this.raidMap.put(this.getUniqueId(), raid);
+-                    }
+-
+-                    if (!raid.isStarted() || raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel()) {
++                    // CraftBukkit - moved down
++                    // if (!raid.isStarted() && !this.raidMap.containsValue(raid)) {
++                    //     this.raidMap.put(this.getUniqueId(), raid);
++                    // }
++
++                    if (!raid.isStarted() || (raid.isInProgress() && raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel())) { // CraftBukkit - fixed a bug with raid: players could add up Bad Omen level even when the raid had finished
++                        // CraftBukkit start
++                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callRaidTriggerEvent(serverlevel, raid, p_37964_)) {
++                            p_37964_.removeEffect(net.minecraft.world.effect.MobEffects.RAID_OMEN);
++                            return null;
++                        }
++
++                        if (!raid.isStarted() && !this.raidMap.containsValue(raid)) {
++                            this.raidMap.put(this.getUniqueId(), raid);
++                            raid.idOrNegativeOne = this.nextId; // Paper - expose id of raids while method is kept around as deprecated for removal
++                        }
++                        // CraftBukkit end
+                         raid.absorbRaidOmen(p_37964_);
+                     }
+ 

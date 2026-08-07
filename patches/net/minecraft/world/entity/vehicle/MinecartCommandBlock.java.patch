@@ -9,3 +9,25 @@
          return this.commandBlock.usedBy(p_38522_);
      }
  
+@@ -127,7 +_,7 @@
+                 MinecartCommandBlock.this.position(),
+                 MinecartCommandBlock.this.getRotationVector(),
+                 this.getLevel(),
+-                2,
++                this.getLevel().paperConfig().commandBlocks.permissionsLevel, // Paper - configurable command block perm level
+                 this.getName().getString(),
+                 MinecartCommandBlock.this.getDisplayName(),
+                 this.getLevel().getServer(),
+@@ -139,5 +_,12 @@
+         public boolean isValid() {
+             return !MinecartCommandBlock.this.isRemoved();
+         }
++
++        // CraftBukkit start
++        @Override
++        public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
++            return net.minecraft.world.entity.vehicle.MinecartCommandBlock.this.getBukkitEntity();
++        }
++        // CraftBukkit end
+     }
+ }

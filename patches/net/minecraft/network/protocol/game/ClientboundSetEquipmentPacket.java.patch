@@ -1,0 +1,47 @@
+--- a/net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.java
+@@ -19,6 +_,13 @@
+     private final List<Pair<EquipmentSlot, ItemStack>> slots;
+ 
+     public ClientboundSetEquipmentPacket(int p_133202_, List<Pair<EquipmentSlot, ItemStack>> p_133203_) {
++    // Paper start - data sanitization
++        this(p_133202_, p_133203_, false);
++    }
++    private boolean sanitize;
++    public ClientboundSetEquipmentPacket(int p_133202_, List<Pair<EquipmentSlot, ItemStack>> p_133203_, boolean sanitize) {
++        this.sanitize = sanitize;
++    // Paper end - data sanitization
+         this.entity = p_133202_;
+         this.slots = p_133203_;
+     }
+@@ -36,18 +_,20 @@
+         } while ((i & -128) != 0);
+     }
+ 
+-    private void write(RegistryFriendlyByteBuf p_320609_) {
+-        p_320609_.writeVarInt(this.entity);
+-        int i = this.slots.size();
++    private void write(RegistryFriendlyByteBuf buffer) {
++        buffer.writeVarInt(this.entity);
++        int size = this.slots.size();
+ 
+-        for (int j = 0; j < i; j++) {
+-            Pair<EquipmentSlot, ItemStack> pair = this.slots.get(j);
+-            EquipmentSlot equipmentslot = pair.getFirst();
+-            boolean flag = j != i - 1;
+-            int k = equipmentslot.ordinal();
+-            p_320609_.writeByte(flag ? k | -128 : k);
+-            ItemStack.OPTIONAL_STREAM_CODEC.encode(p_320609_, pair.getSecond());
++        try (final io.papermc.paper.util.sanitizer.ItemObfuscationSession ignored = io.papermc.paper.util.sanitizer.ItemObfuscationSession.start(this.sanitize ? io.papermc.paper.configuration.GlobalConfiguration.get().anticheat.obfuscation.items.binding.level : io.papermc.paper.util.sanitizer.ItemObfuscationSession.ObfuscationLevel.NONE)) { // Paper - data sanitization
++        for (int i = 0; i < size; i++) {
++            Pair<EquipmentSlot, ItemStack> pair = this.slots.get(i);
++            EquipmentSlot equipmentSlot = pair.getFirst();
++            boolean flag = i != size - 1;
++            int ordinal = equipmentSlot.ordinal();
++            buffer.writeByte(flag ? ordinal | -128 : ordinal);
++            ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, pair.getSecond());
+         }
++        } // Paper - data sanitization
+     }
+ 
+     @Override

@@ -1,29 +1,181 @@
 --- a/net/minecraft/world/level/block/CrafterBlock.java
 +++ b/net/minecraft/world/level/block/CrafterBlock.java
-@@ -187,7 +_,8 @@
-         ServerLevel p_335887_, BlockPos p_307620_, CrafterBlockEntity p_307387_, ItemStack p_307296_, BlockState p_307501_, RecipeHolder<?> p_335494_
-     ) {
-         Direction direction = p_307501_.getValue(ORIENTATION).front();
--        Container container = HopperBlockEntity.getContainerAt(p_335887_, p_307620_.relative(direction));
-+        var containerOrHandler = HopperBlockEntity.getContainerOrHandlerAt(p_335887_, p_307620_.relative(direction), direction.getOpposite());
-+        Container container = containerOrHandler.container();
-         ItemStack itemstack = p_307296_.copy();
-         if (container != null && (container instanceof CrafterBlockEntity || p_307296_.getCount() > container.getMaxStackSize(p_307296_))) {
-             while (!itemstack.isEmpty()) {
-@@ -199,10 +_,14 @@
+@@ -145,35 +_,42 @@
+         return InteractionResult.SUCCESS;
+     }
  
-                 itemstack.shrink(1);
-             }
--        } else if (container != null) {
-+        } else if (!containerOrHandler.isEmpty()) {
-             while (!itemstack.isEmpty()) {
-                 int i = itemstack.getCount();
--                itemstack = HopperBlockEntity.addItem(p_307387_, container, itemstack, direction.getOpposite());
-+                if (container != null) {
-+                    itemstack = HopperBlockEntity.addItem(p_307387_, container, itemstack, direction.getOpposite());
-+                } else {
-+                    itemstack = net.neoforged.neoforge.items.ItemHandlerHelper.insertItem(containerOrHandler.itemHandler(), itemstack, false);
+-    protected void dispenseFrom(BlockState p_307495_, ServerLevel p_307310_, BlockPos p_307672_) {
+-        if (p_307310_.getBlockEntity(p_307672_) instanceof CrafterBlockEntity crafterblockentity) {
+-            CraftingInput craftinginput = crafterblockentity.asCraftInput();
+-            Optional<RecipeHolder<CraftingRecipe>> optional = getPotentialResults(p_307310_, craftinginput);
+-            if (optional.isEmpty()) {
+-                p_307310_.levelEvent(1050, p_307672_, 0);
++    protected void dispenseFrom(BlockState state, ServerLevel level, BlockPos pos) {
++        if (level.getBlockEntity(pos) instanceof CrafterBlockEntity crafterBlockEntity) {
++            CraftingInput var11 = crafterBlockEntity.asCraftInput();
++            Optional<RecipeHolder<CraftingRecipe>> potentialResults = getPotentialResults(level, var11);
++            if (potentialResults.isEmpty()) {
++                level.levelEvent(1050, pos, 0);
+             } else {
+-                RecipeHolder<CraftingRecipe> recipeholder = optional.get();
+-                ItemStack itemstack = recipeholder.value().assemble(craftinginput, p_307310_.registryAccess());
+-                if (itemstack.isEmpty()) {
+-                    p_307310_.levelEvent(1050, p_307672_, 0);
++                RecipeHolder<CraftingRecipe> recipeHolder = potentialResults.get();
++                ItemStack itemStack = recipeHolder.value().assemble(var11, level.registryAccess());
++                // CraftBukkit start
++                org.bukkit.event.block.CrafterCraftEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callCrafterCraftEvent(pos, level, itemStack, recipeHolder);
++                if (event.isCancelled()) {
++                    return;
 +                }
-                 if (i == itemstack.getCount()) {
++                itemStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getResult());
++                // CraftBukkit end
++                if (itemStack.isEmpty()) {
++                    level.levelEvent(1050, pos, 0);
+                 } else {
+-                    crafterblockentity.setCraftingTicksRemaining(6);
+-                    p_307310_.setBlock(p_307672_, p_307495_.setValue(CRAFTING, true), 2);
+-                    itemstack.onCraftedBySystem(p_307310_);
+-                    this.dispenseItem(p_307310_, p_307672_, crafterblockentity, itemstack, p_307495_, recipeholder);
++                    crafterBlockEntity.setCraftingTicksRemaining(6);
++                    level.setBlock(pos, state.setValue(CRAFTING, true), 2);
++                    itemStack.onCraftedBySystem(level);
++                    this.dispenseItem(level, pos, crafterBlockEntity, itemStack, state, recipeHolder);
+ 
+-                    for (ItemStack itemstack1 : recipeholder.value().getRemainingItems(craftinginput)) {
+-                        if (!itemstack1.isEmpty()) {
+-                            this.dispenseItem(p_307310_, p_307672_, crafterblockentity, itemstack1, p_307495_, recipeholder);
++                    for (ItemStack itemStack1 : recipeHolder.value().getRemainingItems(var11)) {
++                        if (!itemStack1.isEmpty()) {
++                            this.dispenseItem(level, pos, crafterBlockEntity, itemStack1, state, recipeHolder);
+                         }
+                     }
+ 
+-                    crafterblockentity.getItems().forEach(p_307295_ -> {
+-                        if (!p_307295_.isEmpty()) {
+-                            p_307295_.shrink(1);
++                    crafterBlockEntity.getItems().forEach(stack -> {
++                        if (!stack.isEmpty()) {
++                            stack.shrink(1);
+                         }
+                     });
+-                    crafterblockentity.setChanged();
++                    crafterBlockEntity.setChanged();
+                 }
+             }
+         }
+@@ -183,43 +_,86 @@
+         return RECIPE_CACHE.get(p_380126_, p_345096_);
+     }
+ 
+-    private void dispenseItem(
+-        ServerLevel p_335887_, BlockPos p_307620_, CrafterBlockEntity p_307387_, ItemStack p_307296_, BlockState p_307501_, RecipeHolder<?> p_335494_
+-    ) {
+-        Direction direction = p_307501_.getValue(ORIENTATION).front();
+-        Container container = HopperBlockEntity.getContainerAt(p_335887_, p_307620_.relative(direction));
+-        ItemStack itemstack = p_307296_.copy();
+-        if (container != null && (container instanceof CrafterBlockEntity || p_307296_.getCount() > container.getMaxStackSize(p_307296_))) {
+-            while (!itemstack.isEmpty()) {
+-                ItemStack itemstack2 = itemstack.copyWithCount(1);
+-                ItemStack itemstack1 = HopperBlockEntity.addItem(p_307387_, container, itemstack2, direction.getOpposite());
+-                if (!itemstack1.isEmpty()) {
+-                    break;
+-                }
+-
+-                itemstack.shrink(1);
+-            }
+-        } else if (container != null) {
+-            while (!itemstack.isEmpty()) {
+-                int i = itemstack.getCount();
+-                itemstack = HopperBlockEntity.addItem(p_307387_, container, itemstack, direction.getOpposite());
+-                if (i == itemstack.getCount()) {
++    private void dispenseItem(ServerLevel level, BlockPos pos, CrafterBlockEntity crafter, ItemStack stack, BlockState state, RecipeHolder<?> recipe) {
++        Direction direction = state.getValue(ORIENTATION).front();
++        var containerOrHandler = HopperBlockEntity.getContainerOrHandlerAt(level, pos.relative(direction), direction.getOpposite());
++        Container containerAt = containerOrHandler.container();
++        ItemStack itemStack = stack.copy();
++        if (containerAt != null && (containerAt instanceof CrafterBlockEntity || stack.getCount() > containerAt.getMaxStackSize(stack))) {
++            // CraftBukkit start - InventoryMoveItemEvent
++            org.bukkit.craftbukkit.inventory.CraftItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemStack);
++
++            org.bukkit.inventory.Inventory destinationInventory;
++            // Have to special case large chests as they work oddly
++            if (containerAt instanceof net.minecraft.world.CompoundContainer compoundContainer) {
++                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest(compoundContainer);
++            } else {
++                destinationInventory = containerAt.getOwner().getInventory();
++            }
++
++            org.bukkit.event.inventory.InventoryMoveItemEvent event = new org.bukkit.event.inventory.InventoryMoveItemEvent(crafter.getOwner().getInventory(), oitemstack, destinationInventory, true);
++            level.getCraftServer().getPluginManager().callEvent(event);
++            itemStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem());
++            while (!itemStack.isEmpty()) {
++                if (event.isCancelled()) {
++                    break;
++                }
++                // CraftBukkit end
++                ItemStack itemStack1 = itemStack.copyWithCount(1);
++                ItemStack itemStack2 = HopperBlockEntity.addItem(crafter, containerAt, itemStack1, direction.getOpposite());
++                if (!itemStack2.isEmpty()) {
++                    break;
++                }
++
++                itemStack.shrink(1);
++            }
++        } else if (containerAt != null) {
++            // CraftBukkit start - InventoryMoveItemEvent
++            org.bukkit.craftbukkit.inventory.CraftItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemStack);
++
++            org.bukkit.inventory.Inventory destinationInventory;
++            // Have to special case large chests as they work oddly
++            if (containerAt instanceof net.minecraft.world.CompoundContainer compoundContainer) {
++                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest(compoundContainer);
++            } else {
++                destinationInventory = containerAt.getOwner().getInventory();
++            }
++
++            org.bukkit.event.inventory.InventoryMoveItemEvent event = new org.bukkit.event.inventory.InventoryMoveItemEvent(crafter.getOwner().getInventory(), oitemstack, destinationInventory, true);
++            level.getCraftServer().getPluginManager().callEvent(event);
++            itemStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem());
++            while (!itemStack.isEmpty()) {
++                if (event.isCancelled()) {
++                    break;
++                }
++                // CraftBukkit end
++                int count = itemStack.getCount();
++                itemStack = HopperBlockEntity.addItem(crafter, containerAt, itemStack, direction.getOpposite());
++                if (count == itemStack.getCount()) {
++                    break;
++                }
++            }
++        } else if (!containerOrHandler.isEmpty()) {
++            while (!itemStack.isEmpty()) {
++                int i = itemStack.getCount();
++                itemStack = net.neoforged.neoforge.items.ItemHandlerHelper.insertItem(containerOrHandler.itemHandler(), itemStack, false);
++                if (i == itemStack.getCount()) {
                      break;
                  }
+             }
+         }
+ 
+-        if (!itemstack.isEmpty()) {
+-            Vec3 vec3 = Vec3.atCenterOf(p_307620_);
++        if (!itemStack.isEmpty()) {
++            Vec3 vec3 = Vec3.atCenterOf(pos);
+             Vec3 vec31 = vec3.relative(direction, 0.7);
+-            DefaultDispenseItemBehavior.spawnItem(p_335887_, itemstack, 6, direction, vec31);
++            DefaultDispenseItemBehavior.spawnItem(level, itemStack, 6, direction, vec31);
+ 
+-            for (ServerPlayer serverplayer : p_335887_.getEntitiesOfClass(ServerPlayer.class, AABB.ofSize(vec3, 17.0, 17.0, 17.0))) {
+-                CriteriaTriggers.CRAFTER_RECIPE_CRAFTED.trigger(serverplayer, p_335494_.id(), p_307387_.getItems());
++            for (ServerPlayer serverPlayer : level.getEntitiesOfClass(ServerPlayer.class, AABB.ofSize(vec3, 17.0, 17.0, 17.0))) {
++                CriteriaTriggers.CRAFTER_RECIPE_CRAFTED.trigger(serverPlayer, recipe.id(), crafter.getItems());
+             }
+ 
+-            p_335887_.levelEvent(1049, p_307620_, 0);
+-            p_335887_.levelEvent(2010, p_307620_, direction.get3DDataValue());
++            level.levelEvent(1049, pos, 0);
++            level.levelEvent(2010, pos, direction.get3DDataValue());
+         }
+     }
+ 

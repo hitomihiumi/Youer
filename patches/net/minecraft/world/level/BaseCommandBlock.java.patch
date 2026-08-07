@@ -1,0 +1,88 @@
+--- a/net/minecraft/world/level/BaseCommandBlock.java
++++ b/net/minecraft/world/level/BaseCommandBlock.java
+@@ -34,6 +_,11 @@
+     private String command = "";
+     @Nullable
+     private Component customName;
++    // CraftBukkit start
++    @Override
++    public abstract org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper);
++    // CraftBukkit end
++
+ 
+     public int getSuccessCount() {
+         return this.successCount;
+@@ -90,8 +_,8 @@
+         return this.command;
+     }
+ 
+-    public boolean performCommand(Level p_45415_) {
+-        if (p_45415_.isClientSide || p_45415_.getGameTime() == this.lastExecution) {
++    public boolean performCommand(Level level) {
++        if (level.isClientSide || level.getGameTime() == this.lastExecution) {
+             return false;
+         } else if ("Searge".equalsIgnoreCase(this.command)) {
+             this.lastOutput = Component.literal("#itzlipofutzli");
+@@ -99,27 +_,33 @@
+             return true;
+         } else {
+             this.successCount = 0;
+-            MinecraftServer minecraftserver = this.getLevel().getServer();
+-            if (minecraftserver.isCommandBlockEnabled() && !StringUtil.isNullOrEmpty(this.command)) {
++            MinecraftServer server = this.getLevel().getServer();
++            if (server.isCommandBlockEnabled() && !StringUtil.isNullOrEmpty(this.command)) {
+                 try {
+                     this.lastOutput = null;
+-                    CommandSourceStack commandsourcestack = this.createCommandSourceStack().withCallback((p_45418_, p_45419_) -> {
+-                        if (p_45418_) {
++                    CommandSourceStack commandSourceStack = this.createCommandSourceStack().withCallback((success, result) -> {
++                        if (success) {
+                             this.successCount++;
+                         }
+                     });
+-                    minecraftserver.getCommands().performPrefixedCommand(commandsourcestack, this.command);
+-                } catch (Throwable throwable) {
+-                    CrashReport crashreport = CrashReport.forThrowable(throwable, "Executing command block");
+-                    CrashReportCategory crashreportcategory = crashreport.addCategory("Command to be executed");
+-                    crashreportcategory.setDetail("Command", this::getCommand);
+-                    crashreportcategory.setDetail("Name", () -> this.getName().getString());
+-                    throw new ReportedException(crashreport);
++                    // Paper start - ServerCommandEvent
++                    org.bukkit.event.server.ServerCommandEvent event = new org.bukkit.event.server.ServerCommandEvent(commandSourceStack.getBukkitSender(), net.minecraft.commands.Commands.trimOptionalPrefix(this.command));
++                    if (!event.callEvent()) {
++                        return true;
++                    }
++                    server.getCommands().performPrefixedCommand(commandSourceStack, event.getCommand());
++                    // Paper end - ServerCommandEvent
++                } catch (Throwable var6) {
++                    CrashReport crashReport = CrashReport.forThrowable(var6, "Executing command block");
++                    CrashReportCategory crashReportCategory = crashReport.addCategory("Command to be executed");
++                    crashReportCategory.setDetail("Command", this::getCommand);
++                    crashReportCategory.setDetail("Name", () -> this.getName().getString());
++                    throw new ReportedException(crashReport);
+                 }
+             }
+ 
+             if (this.updateLastExecution) {
+-                this.lastExecution = p_45415_.getGameTime();
++                this.lastExecution = level.getGameTime();
+             } else {
+                 this.lastExecution = -1L;
+             }
+@@ -144,6 +_,7 @@
+     @Override
+     public void sendSystemMessage(Component p_220330_) {
+         if (this.trackOutput) {
++            org.spigotmc.AsyncCatcher.catchOp("sendSystemMessage to a command block"); // Paper - Don't broadcast messages to command blocks
+             this.lastOutput = Component.literal("[" + TIME_FORMAT.format(new Date()) + "] ").append(p_220330_);
+             this.onUpdated();
+         }
+@@ -166,7 +_,7 @@
+     }
+ 
+     public InteractionResult usedBy(Player p_45413_) {
+-        if (!p_45413_.canUseGameMasterBlocks()) {
++        if (!p_45413_.canUseGameMasterBlocks() && (!p_45413_.isCreative() || !p_45413_.getBukkitEntity().hasPermission("minecraft.commandblock"))) { // Paper - command block permission
+             return InteractionResult.PASS;
+         } else {
+             if (p_45413_.level().isClientSide) {

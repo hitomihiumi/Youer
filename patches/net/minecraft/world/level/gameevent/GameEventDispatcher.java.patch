@@ -1,0 +1,72 @@
+--- a/net/minecraft/world/level/gameevent/GameEventDispatcher.java
++++ b/net/minecraft/world/level/gameevent/GameEventDispatcher.java
+@@ -18,32 +_,40 @@
+         this.level = p_251921_;
+     }
+ 
+-    public void post(Holder<GameEvent> p_316151_, Vec3 p_250613_, GameEvent.Context p_251777_) {
+-        int i = p_316151_.value().notificationRadius();
+-        BlockPos blockpos = BlockPos.containing(p_250613_);
+-        int j = SectionPos.blockToSectionCoord(blockpos.getX() - i);
+-        int k = SectionPos.blockToSectionCoord(blockpos.getY() - i);
+-        int l = SectionPos.blockToSectionCoord(blockpos.getZ() - i);
+-        int i1 = SectionPos.blockToSectionCoord(blockpos.getX() + i);
+-        int j1 = SectionPos.blockToSectionCoord(blockpos.getY() + i);
+-        int k1 = SectionPos.blockToSectionCoord(blockpos.getZ() + i);
++    public void post(Holder<GameEvent> gameEvent, Vec3 pos, GameEvent.Context context) {
++        int notificationRadius = gameEvent.value().notificationRadius();
++        BlockPos blockPos = BlockPos.containing(pos);
++        // CraftBukkit start
++        org.bukkit.event.world.GenericGameEvent apiEvent = new org.bukkit.event.world.GenericGameEvent(
++            org.bukkit.craftbukkit.CraftGameEvent.minecraftToBukkit(gameEvent.value()), org.bukkit.craftbukkit.util.CraftLocation.toBukkit(blockPos, this.level.getWorld()),
++            (context.sourceEntity() == null) ? null : context.sourceEntity().getBukkitEntity(), notificationRadius, !org.bukkit.Bukkit.isPrimaryThread());
++        if (!apiEvent.callEvent()) {
++            return;
++        }
++        notificationRadius = apiEvent.getRadius();
++        // CraftBukkit end
++        int sectionPosCoord = SectionPos.blockToSectionCoord(blockPos.getX() - notificationRadius);
++        int sectionPosCoord1 = SectionPos.blockToSectionCoord(blockPos.getY() - notificationRadius);
++        int sectionPosCoord2 = SectionPos.blockToSectionCoord(blockPos.getZ() - notificationRadius);
++        int sectionPosCoord3 = SectionPos.blockToSectionCoord(blockPos.getX() + notificationRadius);
++        int sectionPosCoord4 = SectionPos.blockToSectionCoord(blockPos.getY() + notificationRadius);
++        int sectionPosCoord5 = SectionPos.blockToSectionCoord(blockPos.getZ() + notificationRadius);
+         List<GameEvent.ListenerInfo> list = new ArrayList<>();
+-        GameEventListenerRegistry.ListenerVisitor gameeventlistenerregistry$listenervisitor = (p_316091_, p_316092_) -> {
+-            if (p_316091_.getDeliveryMode() == GameEventListener.DeliveryMode.BY_DISTANCE) {
+-                list.add(new GameEvent.ListenerInfo(p_316151_, p_250613_, p_251777_, p_316091_, p_316092_));
++        GameEventListenerRegistry.ListenerVisitor listenerVisitor = (listener, pos1) -> {
++            if (listener.getDeliveryMode() == GameEventListener.DeliveryMode.BY_DISTANCE) {
++                list.add(new GameEvent.ListenerInfo(gameEvent, pos, context, listener, pos1));
+             } else {
+-                p_316091_.handleGameEvent(this.level, p_316151_, p_251777_, p_250613_);
++                listener.handleGameEvent(this.level, gameEvent, context, pos);
+             }
+         };
+         boolean flag = false;
+ 
+-        for (int l1 = j; l1 <= i1; l1++) {
+-            for (int i2 = l; i2 <= k1; i2++) {
+-                ChunkAccess chunkaccess = this.level.getChunkSource().getChunkNow(l1, i2);
+-                if (chunkaccess != null) {
+-                    for (int j2 = k; j2 <= j1; j2++) {
+-                        flag |= chunkaccess.getListenerRegistry(j2)
+-                            .visitInRangeListeners(p_316151_, p_250613_, p_251777_, gameeventlistenerregistry$listenervisitor);
++        for (int i = sectionPosCoord; i <= sectionPosCoord3; i++) {
++            for (int i1 = sectionPosCoord2; i1 <= sectionPosCoord5; i1++) {
++                ChunkAccess chunkNow = this.level.getChunkIfLoadedImmediately(i, i1); // Paper - Use getChunkIfLoadedImmediately
++                if (chunkNow != null) {
++                    for (int i2 = sectionPosCoord1; i2 <= sectionPosCoord4; i2++) {
++                        flag |= chunkNow.getListenerRegistry(i2).visitInRangeListeners(gameEvent, pos, context, listenerVisitor);
+                     }
+                 }
+             }
+@@ -54,7 +_,7 @@
+         }
+ 
+         if (flag) {
+-            DebugPackets.sendGameEventInfo(this.level, p_316151_, p_250613_);
++            DebugPackets.sendGameEventInfo(this.level, gameEvent, pos);
+         }
+     }
+ 

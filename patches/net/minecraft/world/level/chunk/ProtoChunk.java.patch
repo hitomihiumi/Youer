@@ -1,5 +1,37 @@
 --- a/net/minecraft/world/level/chunk/ProtoChunk.java
 +++ b/net/minecraft/world/level/chunk/ProtoChunk.java
+@@ -88,10 +_,27 @@
+         return new ChunkAccess.PackedTicks(this.blockTicks.pack(p_360967_), this.fluidTicks.pack(p_360967_));
+     }
+ 
+-    @Override
+-    public BlockState getBlockState(BlockPos p_63264_) {
+-        int i = p_63264_.getY();
+-        if (this.isOutsideBuildHeight(i)) {
++    // Paper start - If loaded util
++    @Override
++    public final FluidState getFluidIfLoaded(BlockPos pos) {
++        return this.getFluidState(pos);
++    }
++
++    @Override
++    public final BlockState getBlockStateIfLoaded(BlockPos pos) {
++        return this.getBlockState(pos);
++    }
++    // Paper end
++
++    @Override
++    public BlockState getBlockState(BlockPos pos) {
++        // Paper start
++        return this.getBlockState(pos.getX(), pos.getY(), pos.getZ());
++    }
++
++    public BlockState getBlockState(final int x, final int y, final int z) {
++        // Paper end
++        if (this.isOutsideBuildHeight(y)) {
+             return Blocks.VOID_AIR.defaultBlockState();
+         } else {
+             LevelChunkSection levelchunksection = this.getSection(this.getSectionIndex(i));
 @@ -139,7 +_,7 @@
                          this.lightEngine.updateSectionStatus(p_63217_, flag1);
                      }

@@ -8,3 +8,22 @@
              return blockstate.is(this) && blockstate.getValue(HALF) == DoubleBlockHalf.LOWER;
          }
      }
+@@ -110,11 +_,16 @@
+     }
+ 
+     @Override
+-    public void playerDestroy(Level p_52865_, Player p_52866_, BlockPos p_52867_, BlockState p_52868_, @Nullable BlockEntity p_52869_, ItemStack p_52870_) {
+-        super.playerDestroy(p_52865_, p_52866_, p_52867_, Blocks.AIR.defaultBlockState(), p_52869_, p_52870_);
++    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity te, ItemStack stack, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
++        super.playerDestroy(level, player, pos, Blocks.AIR.defaultBlockState(), te, stack, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion;
+     }
+ 
+     protected static void preventDropFromBottomPart(Level p_52904_, BlockPos p_52905_, BlockState p_52906_, Player p_52907_) {
++        // CraftBukkit start
++        if (((net.minecraft.server.p_52904_.ServerLevel)p_52904_).hasPhysicsEvent && org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(p_52904_, p_52905_).isCancelled()) { // Paper
++            return;
++        }
++        // CraftBukkit end
+         DoubleBlockHalf doubleblockhalf = p_52906_.getValue(HALF);
+         if (doubleblockhalf == DoubleBlockHalf.UPPER) {
+             BlockPos blockpos = p_52905_.below();
