@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/entity/monster/Spider.java
++++ b/net/minecraft/world/entity/monster/Spider.java
+@@ -79,7 +_,7 @@
+     public void tick() {
+         super.tick();
+         if (!this.level().isClientSide) {
+-            this.setClimbing(this.horizontalCollision);
++            this.setClimbing(this.horizontalCollision && (this.level().paperConfig().entities.behavior.allowSpiderWorldBorderClimbing || !(io.papermc.paper.FeatureHooks.isSpiderCollidingWithWorldBorder(this) && this.level().getWorldBorder().isInsideCloseToBorder(this, this.getBoundingBox())))); // Paper - Add config option for spider worldborder climbing (Inflate by +EPSILON as collision will just barely place us outside border)
+         }
+     }
+ 
+@@ -121,7 +_,7 @@
+ 
+     @Override
+     public boolean canBeAffected(MobEffectInstance p_33809_) {
+-        return p_33809_.is(MobEffects.POISON) ? false : super.canBeAffected(p_33809_);
++        return (!p_33809_.is(MobEffects.POISON) || !this.level().paperConfig().entities.mobEffects.spidersImmuneToPoisonEffect) && super.canBeAffected(p_33809_); // Paper - Add config for mobs immune to default effects
+     }
+ 
+     public boolean isClimbing() {
+@@ -165,7 +_,7 @@
+         if (p_33793_ instanceof Spider.SpiderEffectsGroupData spider$spidereffectsgroupdata) {
+             Holder<MobEffect> holder = spider$spidereffectsgroupdata.effect;
+             if (holder != null) {
+-                this.addEffect(new MobEffectInstance(holder, -1));
++                this.addEffect(new MobEffectInstance(holder, -1), null, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.SPIDER_SPAWN, p_33790_ instanceof net.minecraft.server.p_33790_.ServerLevel); // CraftBukkit
+             }
+         }
+ 

@@ -1,11 +1,63 @@
 --- a/net/minecraft/server/commands/SetSpawnCommand.java
 +++ b/net/minecraft/server/commands/SetSpawnCommand.java
-@@ -80,7 +_,7 @@
-                     p_138652_.getY(),
-                     p_138652_.getZ(),
-                     p_138653_,
+@@ -64,36 +_,37 @@
+         );
+     }
+ 
+-    private static int setSpawn(CommandSourceStack p_138650_, Collection<ServerPlayer> p_138651_, BlockPos p_138652_, float p_138653_) {
+-        ResourceKey<Level> resourcekey = p_138650_.getLevel().dimension();
+-
+-        for (ServerPlayer serverplayer : p_138651_) {
+-            serverplayer.setRespawnPosition(new ServerPlayer.RespawnConfig(resourcekey, p_138652_, p_138653_, true), false);
+-        }
+-
+-        String s = resourcekey.location().toString();
+-        if (p_138651_.size() == 1) {
+-            p_138650_.sendSuccess(
++    private static int setSpawn(CommandSourceStack source, Collection<ServerPlayer> targets, BlockPos pos, float angle) {
++        ResourceKey<Level> resourceKey = source.getLevel().dimension();
++
++        final Collection<ServerPlayer> actualTargets = new java.util.ArrayList<>(); // Paper - Add PlayerSetSpawnEvent
++        for (ServerPlayer serverPlayer : targets) {
++            // Paper start - Add PlayerSetSpawnEvent
++            if (serverPlayer.setRespawnPosition(new ServerPlayer.RespawnConfig(resourceKey, pos, angle, true), false, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.COMMAND)) {
++                actualTargets.add(serverPlayer);
++            }
++            // Paper end - Add PlayerSetSpawnEvent
++        }
++        // Paper start - Add PlayerSetSpawnEvent
++        if (actualTargets.isEmpty()) {
++            return 0;
++        }
++        // Paper end - Add PlayerSetSpawnEvent
++
++        String string = resourceKey.location().toString();
++        if (actualTargets.size() == 1) { // Paper - Add PlayerSetSpawnEvent
++            source.sendSuccess(
+                 () -> Component.translatable(
+-                    "commands.spawnpoint.success.single",
+-                    p_138652_.getX(),
+-                    p_138652_.getY(),
+-                    p_138652_.getZ(),
+-                    p_138653_,
 -                    s,
-+                    p_138650_.getLevel().getDescription(), // Neo: Use dimension translation, if one exists
-                     p_138651_.iterator().next().getDisplayName()
+-                    p_138651_.iterator().next().getDisplayName()
++                    "commands.spawnpoint.success.single", pos.getX(), pos.getY(), pos.getZ(), angle, source.getLevel().getDescription(), actualTargets.iterator().next().getDisplayName() // Paper - Add PlayerSetSpawnEvent; Neo: Use dimension translation, if one exists
                  ),
                  true
+             );
+         } else {
+-            p_138650_.sendSuccess(
+-                () -> Component.translatable(
+-                    "commands.spawnpoint.success.multiple", p_138652_.getX(), p_138652_.getY(), p_138652_.getZ(), p_138653_, s, p_138651_.size()
+-                ),
+-                true
++            source.sendSuccess(
++                () -> Component.translatable("commands.spawnpoint.success.multiple", pos.getX(), pos.getY(), pos.getZ(), angle, string, actualTargets.size()), true // Paper - Add PlayerSetSpawnEvent
+             );
+         }
+ 
+-        return p_138651_.size();
++        return actualTargets.size(); // Paper - Add PlayerSetSpawnEvent
+     }
+ }

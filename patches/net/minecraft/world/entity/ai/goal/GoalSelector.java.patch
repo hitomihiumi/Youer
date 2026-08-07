@@ -1,0 +1,139 @@
+--- a/net/minecraft/world/entity/ai/goal/GoalSelector.java
++++ b/net/minecraft/world/entity/ai/goal/GoalSelector.java
+@@ -24,7 +_,9 @@
+     };
+     private final Map<Goal.Flag, WrappedGoal> lockedFlags = new EnumMap<>(Goal.Flag.class);
+     private final Set<WrappedGoal> availableGoals = new ObjectLinkedOpenHashSet<>();
+-    private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);
++    private static final Goal.Flag[] GOAL_FLAG_VALUES = Goal.Flag.values(); // Paper - remove streams from GoalSelector
++    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from GoalSelector
++    private int curRate; // Paper - EAR 2
+ 
+     public void addGoal(int p_25353_, Goal p_25354_) {
+         this.availableGoals.add(new WrappedGoal(p_25353_, p_25354_));
+@@ -34,6 +_,22 @@
+         this.availableGoals.removeIf(p_262564_ -> p_262575_.test(p_262564_.getGoal()));
+     }
+ 
++    // Paper start - EAR 2
++    public boolean inactiveTick() {
++        this.curRate++;
++        return this.curRate % 3 == 0; // TODO newGoalRate was already unused in 1.20.4, check if this is correct
++    }
++
++    public boolean hasTasks() {
++        for (WrappedGoal task : this.availableGoals) {
++            if (task.isRunning()) {
++                return true;
++            }
++        }
++        return false;
++    }
++    // Paper end - EAR 2
++
+     public void removeGoal(Goal p_25364_) {
+         for (WrappedGoal wrappedgoal : this.availableGoals) {
+             if (wrappedgoal.getGoal() == p_25364_ && wrappedgoal.isRunning()) {
+@@ -44,19 +_,19 @@
+         this.availableGoals.removeIf(p_25378_ -> p_25378_.getGoal() == p_25364_);
+     }
+ 
+-    private static boolean goalContainsAnyFlags(WrappedGoal p_186076_, EnumSet<Goal.Flag> p_186077_) {
+-        for (Goal.Flag goal$flag : p_186076_.getFlags()) {
+-            if (p_186077_.contains(goal$flag)) {
+-                return true;
+-            }
+-        }
+-
+-        return false;
++    // Paper start - Perf: optimize goal types
++    private static boolean goalContainsAnyFlags(WrappedGoal goal, ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> flags) {
++        return goal.getFlags().hasCommonElements(flags);
+     }
+ 
+-    private static boolean goalCanBeReplacedForAllFlags(WrappedGoal p_186079_, Map<Goal.Flag, WrappedGoal> p_186080_) {
+-        for (Goal.Flag goal$flag : p_186079_.getFlags()) {
+-            if (!p_186080_.getOrDefault(goal$flag, NO_GOAL).canBeReplacedBy(p_186079_)) {
++    private static boolean goalCanBeReplacedForAllFlags(WrappedGoal goal, Map<Goal.Flag, WrappedGoal> flag) {
++        long flagIterator = goal.getFlags().getBackingSet();
++        int wrappedGoalSize = goal.getFlags().size();
++        for (int i = 0; i < wrappedGoalSize; ++i) {
++            final Goal.Flag flag1 = GOAL_FLAG_VALUES[Long.numberOfTrailingZeros(flagIterator)];
++            flagIterator ^= ca.spottedleaf.concurrentutil.util.IntegerUtil.getTrailingBit(flagIterator);
++            // Paper end - Perf: optimize goal types
++            if (!flag.getOrDefault(flag1, NO_GOAL).canBeReplacedBy(goal)) {
+                 return false;
+             }
+         }
+@@ -65,35 +_,38 @@
+     }
+ 
+     public void tick() {
+-        ProfilerFiller profilerfiller = Profiler.get();
+-        profilerfiller.push("goalCleanup");
++        ProfilerFiller profilerFiller = Profiler.get();
++        profilerFiller.push("goalCleanup");
+ 
+-        for (WrappedGoal wrappedgoal : this.availableGoals) {
+-            if (wrappedgoal.isRunning() && (goalContainsAnyFlags(wrappedgoal, this.disabledFlags) || !wrappedgoal.canContinueToUse())) {
+-                wrappedgoal.stop();
++        for (WrappedGoal wrappedGoal : this.availableGoals) {
++            if (wrappedGoal.isRunning() && (goalContainsAnyFlags(wrappedGoal, this.goalTypes) || !wrappedGoal.canContinueToUse())) { // Paper - Perf: optimize goal types by removing streams
++                wrappedGoal.stop();
+             }
+         }
+ 
+-        this.lockedFlags.entrySet().removeIf(p_316007_ -> !p_316007_.getValue().isRunning());
+-        profilerfiller.pop();
+-        profilerfiller.push("goalUpdate");
++        this.lockedFlags.entrySet().removeIf(entry -> !entry.getValue().isRunning());
++        profilerFiller.pop();
++        profilerFiller.push("goalUpdate");
+ 
+-        for (WrappedGoal wrappedgoal2 : this.availableGoals) {
+-            if (!wrappedgoal2.isRunning()
+-                && !goalContainsAnyFlags(wrappedgoal2, this.disabledFlags)
+-                && goalCanBeReplacedForAllFlags(wrappedgoal2, this.lockedFlags)
+-                && wrappedgoal2.canUse()) {
+-                for (Goal.Flag goal$flag : wrappedgoal2.getFlags()) {
+-                    WrappedGoal wrappedgoal1 = this.lockedFlags.getOrDefault(goal$flag, NO_GOAL);
+-                    wrappedgoal1.stop();
+-                    this.lockedFlags.put(goal$flag, wrappedgoal2);
++        for (WrappedGoal wrappedGoalx : this.availableGoals) {
++            // Paper start
++            if (!wrappedGoalx.isRunning() && !goalContainsAnyFlags(wrappedGoalx, this.goalTypes) && goalCanBeReplacedForAllFlags(wrappedGoalx, this.lockedFlags) && wrappedGoalx.canUse()) {
++                long flagIterator = wrappedGoalx.getFlags().getBackingSet();
++                int wrappedGoalSize = wrappedGoalx.getFlags().size();
++                for (int i = 0; i < wrappedGoalSize; ++i) {
++                    final Goal.Flag flag = GOAL_FLAG_VALUES[Long.numberOfTrailingZeros(flagIterator)];
++                    flagIterator ^= ca.spottedleaf.concurrentutil.util.IntegerUtil.getTrailingBit(flagIterator);
++                    // Paper end
++                    WrappedGoal wrappedGoal1 = this.lockedFlags.getOrDefault(flag, NO_GOAL);
++                    wrappedGoal1.stop();
++                    this.lockedFlags.put(flag, wrappedGoalx);
+                 }
+ 
+-                wrappedgoal2.start();
++                wrappedGoalx.start();
+             }
+         }
+ 
+-        profilerfiller.pop();
++        profilerFiller.pop();
+         this.tickRunningGoals(true);
+     }
+ 
+@@ -115,11 +_,11 @@
+     }
+ 
+     public void disableControlFlag(Goal.Flag p_25356_) {
+-        this.disabledFlags.add(p_25356_);
++        this.goalTypes.addUnchecked(p_25356_); // Paper - remove streams from GoalSelector
+     }
+ 
+     public void enableControlFlag(Goal.Flag p_25375_) {
+-        this.disabledFlags.remove(p_25375_);
++        this.goalTypes.removeUnchecked(p_25375_); // Paper - remove streams from GoalSelector
+     }
+ 
+     public void setControlFlag(Goal.Flag p_25361_, boolean p_25362_) {

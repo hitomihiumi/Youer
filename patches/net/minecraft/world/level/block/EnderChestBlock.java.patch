@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/level/block/EnderChestBlock.java
++++ b/net/minecraft/world/level/block/EnderChestBlock.java
+@@ -81,16 +_,17 @@
+         PlayerEnderChestContainer playerenderchestcontainer = p_53140_.getEnderChestInventory();
+         if (playerenderchestcontainer != null && p_53138_.getBlockEntity(p_53139_) instanceof EnderChestBlockEntity enderchestblockentity) {
+             BlockPos $$9 = p_53139_.above();
+-            if (p_53138_.getBlockState($$9).isRedstoneConductor(p_53138_, $$9)) {
++            if (p_53138_.getBlockState($$9).isRedstoneConductor(p_53138_, $$9)) { // Paper - diff on change; make sure that EnderChest#isBlocked uses the same logic
+                 return InteractionResult.SUCCESS;
+             } else {
+-                if (p_53138_ instanceof ServerLevel serverlevel) {
+-                    playerenderchestcontainer.setActiveChest(enderchestblockentity);
+-                    p_53140_.openMenu(
+-                        new SimpleMenuProvider(
+-                            (p_53124_, p_53125_, p_53126_) -> ChestMenu.threeRows(p_53124_, p_53125_, playerenderchestcontainer), CONTAINER_TITLE
+-                        )
+-                    );
++                // Paper start - Fix InventoryOpenEvent cancellation - moved up;
++                playerenderchestcontainer.setActiveChest(enderchestblockentity); // Needs to happen before ChestMenu.threeRows as it is required for opening animations
++                if (p_53138_ instanceof ServerLevel serverlevel && p_53140_.openMenu(
++                    new SimpleMenuProvider(
++                        (p_53124_, p_53125_, p_53126_) -> ChestMenu.threeRows(p_53124_, p_53125_, playerenderchestcontainer), CONTAINER_TITLE
++                    )
++                ).isPresent()) {
++                // Paper end - Fix InventoryOpenEvent cancellation - moved up;
+                     p_53140_.awardStat(Stats.OPEN_ENDERCHEST);
+                     PiglinAi.angerNearbyPiglins(serverlevel, p_53140_, true);
+                 }

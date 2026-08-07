@@ -1,0 +1,139 @@
+--- a/net/minecraft/world/level/levelgen/structure/structures/MineshaftPieces.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/MineshaftPieces.java
+@@ -377,81 +_,84 @@
+ 
+         @Override
+         public void postProcess(
+-            WorldGenLevel p_227743_,
+-            StructureManager p_227744_,
+-            ChunkGenerator p_227745_,
+-            RandomSource p_227746_,
+-            BoundingBox p_227747_,
+-            ChunkPos p_227748_,
+-            BlockPos p_227749_
++            WorldGenLevel level,
++            StructureManager structureManager,
++            ChunkGenerator generator,
++            RandomSource random,
++            BoundingBox box,
++            ChunkPos chunkPos,
++            BlockPos pos
+         ) {
+-            if (!this.isInInvalidLocation(p_227743_, p_227747_)) {
++            if (!this.isInInvalidLocation(level, box)) {
+                 int i = 0;
+-                int j = 2;
+-                int k = 0;
+-                int l = 2;
+-                int i1 = this.numSections * 5 - 1;
+-                BlockState blockstate = this.type.getPlanksState();
+-                this.generateBox(p_227743_, p_227747_, 0, 0, 0, 2, 1, i1, CAVE_AIR, CAVE_AIR, false);
+-                this.generateMaybeBox(p_227743_, p_227747_, p_227746_, 0.8F, 0, 2, 0, 2, 2, i1, CAVE_AIR, CAVE_AIR, false, false);
++                int i1 = 2;
++                int i2 = 0;
++                int i3 = 2;
++                int i4 = this.numSections * 5 - 1;
++                BlockState planksState = this.type.getPlanksState();
++                this.generateBox(level, box, 0, 0, 0, 2, 1, i4, CAVE_AIR, CAVE_AIR, false);
++                this.generateMaybeBox(level, box, random, 0.8F, 0, 2, 0, 2, 2, i4, CAVE_AIR, CAVE_AIR, false, false);
+                 if (this.spiderCorridor) {
+-                    this.generateMaybeBox(p_227743_, p_227747_, p_227746_, 0.6F, 0, 0, 0, 2, 1, i1, Blocks.COBWEB.defaultBlockState(), CAVE_AIR, false, true);
++                    this.generateMaybeBox(level, box, random, 0.6F, 0, 0, 0, 2, 1, i4, Blocks.COBWEB.defaultBlockState(), CAVE_AIR, false, true);
+                 }
+ 
+-                for (int j1 = 0; j1 < this.numSections; j1++) {
+-                    int k1 = 2 + j1 * 5;
+-                    this.placeSupport(p_227743_, p_227747_, 0, 0, k1, 2, 2, p_227746_);
+-                    this.maybePlaceCobWeb(p_227743_, p_227747_, p_227746_, 0.1F, 0, 2, k1 - 1);
+-                    this.maybePlaceCobWeb(p_227743_, p_227747_, p_227746_, 0.1F, 2, 2, k1 - 1);
+-                    this.maybePlaceCobWeb(p_227743_, p_227747_, p_227746_, 0.1F, 0, 2, k1 + 1);
+-                    this.maybePlaceCobWeb(p_227743_, p_227747_, p_227746_, 0.1F, 2, 2, k1 + 1);
+-                    this.maybePlaceCobWeb(p_227743_, p_227747_, p_227746_, 0.05F, 0, 2, k1 - 2);
+-                    this.maybePlaceCobWeb(p_227743_, p_227747_, p_227746_, 0.05F, 2, 2, k1 - 2);
+-                    this.maybePlaceCobWeb(p_227743_, p_227747_, p_227746_, 0.05F, 0, 2, k1 + 2);
+-                    this.maybePlaceCobWeb(p_227743_, p_227747_, p_227746_, 0.05F, 2, 2, k1 + 2);
+-                    if (p_227746_.nextInt(100) == 0) {
+-                        this.createChest(p_227743_, p_227747_, p_227746_, 2, 0, k1 - 1, BuiltInLootTables.ABANDONED_MINESHAFT);
++                for (int i5 = 0; i5 < this.numSections; i5++) {
++                    int i6 = 2 + i5 * 5;
++                    this.placeSupport(level, box, 0, 0, i6, 2, 2, random);
++                    this.maybePlaceCobWeb(level, box, random, 0.1F, 0, 2, i6 - 1);
++                    this.maybePlaceCobWeb(level, box, random, 0.1F, 2, 2, i6 - 1);
++                    this.maybePlaceCobWeb(level, box, random, 0.1F, 0, 2, i6 + 1);
++                    this.maybePlaceCobWeb(level, box, random, 0.1F, 2, 2, i6 + 1);
++                    this.maybePlaceCobWeb(level, box, random, 0.05F, 0, 2, i6 - 2);
++                    this.maybePlaceCobWeb(level, box, random, 0.05F, 2, 2, i6 - 2);
++                    this.maybePlaceCobWeb(level, box, random, 0.05F, 0, 2, i6 + 2);
++                    this.maybePlaceCobWeb(level, box, random, 0.05F, 2, 2, i6 + 2);
++                    if (random.nextInt(100) == 0) {
++                        this.createChest(level, box, random, 2, 0, i6 - 1, BuiltInLootTables.ABANDONED_MINESHAFT);
+                     }
+ 
+-                    if (p_227746_.nextInt(100) == 0) {
+-                        this.createChest(p_227743_, p_227747_, p_227746_, 0, 0, k1 + 1, BuiltInLootTables.ABANDONED_MINESHAFT);
++                    if (random.nextInt(100) == 0) {
++                        this.createChest(level, box, random, 0, 0, i6 + 1, BuiltInLootTables.ABANDONED_MINESHAFT);
+                     }
+ 
+                     if (this.spiderCorridor && !this.hasPlacedSpider) {
+-                        int l1 = 1;
+-                        int i2 = k1 - 1 + p_227746_.nextInt(3);
+-                        BlockPos blockpos = this.getWorldPos(1, 0, i2);
+-                        if (p_227747_.isInside(blockpos) && this.isInterior(p_227743_, 1, 0, i2, p_227747_)) {
++                        int i7 = 1;
++                        int i8 = i6 - 1 + random.nextInt(3);
++                        BlockPos worldPos = this.getWorldPos(1, 0, i8);
++                        if (box.isInside(worldPos) && this.isInterior(level, 1, 0, i8, box)) {
+                             this.hasPlacedSpider = true;
+-                            p_227743_.setBlock(blockpos, Blocks.SPAWNER.defaultBlockState(), 2);
+-                            if (p_227743_.getBlockEntity(blockpos) instanceof SpawnerBlockEntity spawnerblockentity) {
+-                                spawnerblockentity.setEntityId(EntityType.CAVE_SPIDER, p_227746_);
+-                            }
++                            // CraftBukkit start
++                            // level.setBlock(worldPos, Blocks.SPAWNER.defaultBlockState(), 2);
++                            // if (level.getBlockEntity(worldPos) instanceof SpawnerBlockEntity spawnerBlockEntity) {
++                            //     spawnerBlockEntity.setEntityId(EntityType.CAVE_SPIDER, random);
++                            // }
++                            this.placeCraftSpawner(level, worldPos, org.bukkit.entity.EntityType.CAVE_SPIDER, 2);
++                            // CraftBukkit end
+                         }
+                     }
+                 }
+ 
+-                for (int j2 = 0; j2 <= 2; j2++) {
+-                    for (int l2 = 0; l2 <= i1; l2++) {
+-                        this.setPlanksBlock(p_227743_, p_227747_, blockstate, j2, -1, l2);
++                for (int i5 = 0; i5 <= 2; i5++) {
++                    for (int i6x = 0; i6x <= i4; i6x++) {
++                        this.setPlanksBlock(level, box, planksState, i5, -1, i6x);
+                     }
+                 }
+ 
+-                int k2 = 2;
+-                this.placeDoubleLowerOrUpperSupport(p_227743_, p_227747_, 0, -1, 2);
++                int i5 = 2;
++                this.placeDoubleLowerOrUpperSupport(level, box, 0, -1, 2);
+                 if (this.numSections > 1) {
+-                    int i3 = i1 - 2;
+-                    this.placeDoubleLowerOrUpperSupport(p_227743_, p_227747_, 0, -1, i3);
++                    int i6x = i4 - 2;
++                    this.placeDoubleLowerOrUpperSupport(level, box, 0, -1, i6x);
+                 }
+ 
+                 if (this.hasRails) {
+-                    BlockState blockstate1 = Blocks.RAIL.defaultBlockState().setValue(RailBlock.SHAPE, RailShape.NORTH_SOUTH);
++                    BlockState blockState = Blocks.RAIL.defaultBlockState().setValue(RailBlock.SHAPE, RailShape.NORTH_SOUTH);
+ 
+-                    for (int j3 = 0; j3 <= i1; j3++) {
+-                        BlockState blockstate2 = this.getBlock(p_227743_, 1, -1, j3, p_227747_);
+-                        if (!blockstate2.isAir() && blockstate2.isSolidRender()) {
+-                            float f = this.isInterior(p_227743_, 1, 0, j3, p_227747_) ? 0.7F : 0.9F;
+-                            this.maybeGenerateBlock(p_227743_, p_227747_, p_227746_, f, 1, 0, j3, blockstate1);
++                    for (int i7 = 0; i7 <= i4; i7++) {
++                        BlockState block = this.getBlock(level, 1, -1, i7, box);
++                        if (!block.isAir() && block.isSolidRender()) {
++                            float f = this.isInterior(level, 1, 0, i7, box) ? 0.7F : 0.9F;
++                            this.maybeGenerateBlock(level, box, random, f, 1, 0, i7, blockState);
+                         }
+                     }
+                 }

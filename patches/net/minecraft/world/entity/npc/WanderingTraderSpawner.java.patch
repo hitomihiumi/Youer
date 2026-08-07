@@ -1,0 +1,94 @@
+--- a/net/minecraft/world/entity/npc/WanderingTraderSpawner.java
++++ b/net/minecraft/world/entity/npc/WanderingTraderSpawner.java
+@@ -39,38 +_,47 @@
+ 
+     public WanderingTraderSpawner(ServerLevelData p_35914_) {
+         this.serverLevelData = p_35914_;
+-        this.tickDelay = 1200;
+-        this.spawnDelay = p_35914_.getWanderingTraderSpawnDelay();
+-        this.spawnChance = p_35914_.getWanderingTraderSpawnChance();
+-        if (this.spawnDelay == 0 && this.spawnChance == 0) {
+-            this.spawnDelay = 24000;
+-            p_35914_.setWanderingTraderSpawnDelay(this.spawnDelay);
+-            this.spawnChance = 25;
+-            p_35914_.setWanderingTraderSpawnChance(this.spawnChance);
+-        }
++        // Paper start - Add Wandering Trader spawn rate config options
++        this.tickDelay = Integer.MIN_VALUE;
++        // this.spawnDelay = p_35914_.getWanderingTraderSpawnDelay();
++        // this.spawnChance = p_35914_.getWanderingTraderSpawnChance();
++        // if (this.spawnDelay == 0 && this.spawnChance == 0) {
++        //     this.spawnDelay = 24000;
++        //     p_35914_.setWanderingTraderSpawnDelay(this.spawnDelay);
++        //     this.spawnChance = 25;
++        //     p_35914_.setWanderingTraderSpawnChance(this.spawnChance);
++        // }
++        // Paper end - Add Wandering Trader spawn rate config options
+     }
+ 
+     @Override
+     public void tick(ServerLevel p_35922_, boolean p_35923_, boolean p_35924_) {
++        // Paper start - Add Wandering Trader spawn rate config options
++        if (this.tickDelay == Integer.MIN_VALUE) {
++            this.tickDelay = p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnMinuteLength;
++            this.spawnDelay = p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnDayLength;
++            this.spawnChance = p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnChanceMin;
++        }
+         if (p_35922_.getGameRules().getBoolean(GameRules.RULE_DO_TRADER_SPAWNING)) {
+-            if (--this.tickDelay <= 0) {
+-                this.tickDelay = 1200;
+-                this.spawnDelay -= 1200;
+-                this.serverLevelData.setWanderingTraderSpawnDelay(this.spawnDelay);
++            if (this.tickDelay - 1 <= 0) { // Paper - Prevent tickDelay going below 0
++                this.tickDelay = p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnMinuteLength;
++                this.spawnDelay = this.spawnDelay - p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnMinuteLength;
++                //this.serverLevelData.setWanderingTraderSpawnDelay(this.spawnDelay); // Paper - We don't need to save this value to disk if it gets set back to a hardcoded value anyways
+                 if (this.spawnDelay <= 0) {
+-                    this.spawnDelay = 24000;
++                    this.spawnDelay = p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnDayLength;
+                     if (p_35922_.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+                         int i = this.spawnChance;
+-                        this.spawnChance = Mth.clamp(this.spawnChance + 25, 25, 75);
+-                        this.serverLevelData.setWanderingTraderSpawnChance(this.spawnChance);
++                        this.spawnChance = Mth.clamp(this.spawnChance + p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnChanceFailureIncrement, p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnChanceMin, p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnChanceMax);
++                        //this.serverLevelData.setWanderingTraderSpawnChance(this.spawnChance); // Paper - We don't need to save this value to disk if it gets set back to a hardcoded value anyways
+                         if (this.random.nextInt(100) <= i) {
+                             if (this.spawn(p_35922_)) {
+-                                this.spawnChance = 25;
++                                this.spawnChance = p_35922_.paperConfig().entities.spawning.wanderingTrader.spawnChanceMin;
++                                // Paper end - Add Wandering Trader spawn rate config options
+                             }
+                         }
+                     }
+                 }
+-            }
++            } else { this.tickDelay--; } // Paper - Prevent tickDelay going below 0
+         }
+     }
+ 
+@@ -94,14 +_,14 @@
+                     return false;
+                 }
+ 
+-                WanderingTrader wanderingtrader = EntityType.WANDERING_TRADER.spawn(p_35916_, blockpos2, EntitySpawnReason.EVENT);
++                WanderingTrader wanderingtrader = EntityType.WANDERING_TRADER.spawn(p_35916_, trader -> trader.setDespawnDelay(48000), blockpos2, EntitySpawnReason.EVENT, false, false, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit // Paper - set despawnTimer before spawn events called
+                 if (wanderingtrader != null) {
+                     for (int j = 0; j < 2; j++) {
+                         this.tryToSpawnLlamaFor(p_35916_, wanderingtrader, 4);
+                     }
+ 
+                     this.serverLevelData.setWanderingTraderId(wanderingtrader.getUUID());
+-                    wanderingtrader.setDespawnDelay(48000);
++                    // wanderingtrader.setDespawnDelay(48000); // Paper - moved above, modifiable by plugins on CreatureSpawnEvent
+                     wanderingtrader.setWanderTarget(blockpos1);
+                     wanderingtrader.setHomeTo(blockpos1, 16);
+                     return true;
+@@ -115,7 +_,7 @@
+     private void tryToSpawnLlamaFor(ServerLevel p_35918_, WanderingTrader p_35919_, int p_35920_) {
+         BlockPos blockpos = this.findSpawnPositionNear(p_35918_, p_35919_.blockPosition(), p_35920_);
+         if (blockpos != null) {
+-            TraderLlama traderllama = EntityType.TRADER_LLAMA.spawn(p_35918_, blockpos, EntitySpawnReason.EVENT);
++            TraderLlama traderllama = EntityType.TRADER_LLAMA.spawn(p_35918_, blockpos, EntitySpawnReason.EVENT, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit
+             if (traderllama != null) {
+                 traderllama.setLeashedTo(p_35919_, true);
+             }
