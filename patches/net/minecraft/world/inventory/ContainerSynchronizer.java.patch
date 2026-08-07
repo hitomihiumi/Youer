@@ -1,0 +1,9 @@
+--- a/net/minecraft/world/inventory/ContainerSynchronizer.java
++++ b/net/minecraft/world/inventory/ContainerSynchronizer.java
+@@ -13,4 +_,6 @@
+     void sendDataChange(AbstractContainerMenu p_150527_, int p_150528_, int p_150529_);
+ 
+     RemoteSlot createSlot();
++
++    default void sendOffHandSlotChange() {} // Paper - Sync offhand slot in menus
+ }

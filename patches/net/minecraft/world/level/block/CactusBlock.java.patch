@@ -8,14 +8,37 @@
          if (!p_220908_.canSurvive(p_220909_, p_220910_)) {
              p_220909_.destroyBlock(p_220910_, true);
          }
-@@ -57,6 +_,7 @@
+@@ -57,19 +_,24 @@
              int i = 1;
              int j = p_220913_.getValue(AGE);
  
 +            if(net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_220914_, blockpos, p_220913_, true)) {
              while (p_220914_.getBlockState(p_220915_.below(i)).is(this)) {
-                 if (++i == 3 && j == 15) {
+-                if (++i == 3 && j == 15) {
++                if (++i == p_220914_.paperConfig().maxGrowthHeight.cactus && j == 15) { // Paper - Configurable cactus/bamboo/reed growth height
                      return;
+                 }
+             }
+ 
+             if (j == 8 && this.canSurvive(this.defaultBlockState(), p_220914_, p_220915_.above())) {
+-                double d0 = i >= 3 ? 0.25 : 0.1;
++                double d0 = i >= p_220914_.paperConfig().maxGrowthHeight.cactus ? 0.25 : 0.1; // Paper - Configurable cactus/bamboo/reed growth height
+                 if (p_220916_.nextDouble() <= d0) {
+-                    p_220914_.setBlockAndUpdate(blockpos, Blocks.CACTUS_FLOWER.defaultBlockState());
+-                }
+-            } else if (j == 15 && i < 3) {
+-                p_220914_.setBlockAndUpdate(blockpos, this.defaultBlockState());
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_220914_, blockpos, Blocks.CACTUS_FLOWER.defaultBlockState(), 3);
++                }
++            } else if (j == 15 && i < p_220914_.paperConfig().maxGrowthHeight.cactus) { // Paper - Configurable cactus/bamboo/reed growth height
++                // Paper start
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_220914_, blockpos, this.defaultBlockState(), 3)) {
++                    return;
++                }
++                // Paper end
+                 BlockState blockstate = p_220913_.setValue(AGE, 0);
+                 p_220914_.setBlock(p_220915_, blockstate, 260);
+                 p_220914_.neighborChanged(blockstate, blockpos, this, null, false);
 @@ -78,6 +_,8 @@
              if (j < 15) {
                  p_220914_.setBlock(p_220915_, p_220913_.setValue(AGE, j + 1), 260);
@@ -25,7 +48,7 @@
          }
      }
  
-@@ -119,6 +_,8 @@
+@@ -119,12 +_,15 @@
          }
  
          BlockState blockstate1 = p_51154_.getBlockState(p_51155_.below());
@@ -34,3 +57,11 @@
          return (blockstate1.is(Blocks.CACTUS) || blockstate1.is(BlockTags.SAND)) && !p_51154_.getBlockState(p_51155_.above()).liquid();
      }
  
+     @Override
+     protected void entityInside(BlockState p_51148_, Level p_51149_, BlockPos p_51150_, Entity p_51151_, InsideBlockEffectApplier p_405001_) {
+-        p_51151_.hurt(p_51149_.damageSources().cactus(), 1.0F);
++        if (!new io.papermc.paper.event.p_51151_.EntityInsideBlockEvent(p_51151_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_51149_, p_51150_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        p_51151_.hurt(p_51149_.damageSources().cactus().eventBlockDamager(p_51149_, p_51150_), 1.0F); // CraftBukkit
+     }
+ 
+     @Override

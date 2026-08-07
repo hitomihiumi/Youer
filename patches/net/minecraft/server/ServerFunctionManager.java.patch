@@ -1,0 +1,40 @@
+--- a/net/minecraft/server/ServerFunctionManager.java
++++ b/net/minecraft/server/ServerFunctionManager.java
+@@ -59,7 +_,7 @@
+         Profiler.get().pop();
+     }
+ 
+-    public void execute(CommandFunction<CommandSourceStack> p_305881_, CommandSourceStack p_136114_) {
++    public void execute(CommandFunction<CommandSourceStack> function, CommandSourceStack p_136114_) {
+         ProfilerFiller profilerfiller = Profiler.get();
+         profilerfiller.push(() -> "function " + p_305881_.id());
+ 
+@@ -76,12 +_,12 @@
+         }
+     }
+ 
+-    public void replaceLibrary(ServerFunctionLibrary p_136121_) {
++    public void replaceLibrary(ServerFunctionLibrary reloader) {
+         this.library = p_136121_;
+         this.postReload(p_136121_);
+     }
+ 
+-    private void postReload(ServerFunctionLibrary p_136126_) {
++    private void postReload(ServerFunctionLibrary p_136121_) {
+         this.ticking = List.copyOf(p_136126_.getTag(TICK_FUNCTION_TAG));
+         this.postReload = true;
+     }
+@@ -90,11 +_,11 @@
+         return this.server.createCommandSourceStack().withPermission(2).withSuppressedOutput();
+     }
+ 
+-    public Optional<CommandFunction<CommandSourceStack>> get(ResourceLocation p_136119_) {
++    public Optional<CommandFunction<CommandSourceStack>> get(ResourceLocation function) {
+         return this.library.getFunction(p_136119_);
+     }
+ 
+-    public List<CommandFunction<CommandSourceStack>> getTag(ResourceLocation p_214332_) {
++    public List<CommandFunction<CommandSourceStack>> getTag(ResourceLocation tag) {
+         return this.library.getTag(p_214332_);
+     }
+ 
