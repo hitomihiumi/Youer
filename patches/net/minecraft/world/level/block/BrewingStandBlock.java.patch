@@ -1,0 +1,12 @@
+--- a/net/minecraft/world/level/block/BrewingStandBlock.java
++++ b/net/minecraft/world/level/block/BrewingStandBlock.java
+@@ -63,8 +_,7 @@
+ 
+     @Override
+     protected InteractionResult useWithoutItem(BlockState p_50930_, Level p_50931_, BlockPos p_50932_, Player p_50933_, BlockHitResult p_50935_) {
+-        if (!p_50931_.isClientSide && p_50931_.getBlockEntity(p_50932_) instanceof BrewingStandBlockEntity brewingstandblockentity) {
+-            p_50933_.openMenu(brewingstandblockentity);
++        if (!p_50931_.isClientSide && p_50931_.getBlockEntity(p_50932_) instanceof BrewingStandBlockEntity brewingstandblockentity && p_50933_.openMenu(brewingstandblockentity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_50933_.awardStat(Stats.INTERACT_WITH_BREWINGSTAND);
+         }
+ 

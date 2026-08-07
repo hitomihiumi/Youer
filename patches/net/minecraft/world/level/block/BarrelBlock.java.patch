@@ -1,0 +1,12 @@
+--- a/net/minecraft/world/level/block/BarrelBlock.java
++++ b/net/minecraft/world/level/block/BarrelBlock.java
+@@ -41,8 +_,7 @@
+ 
+     @Override
+     protected InteractionResult useWithoutItem(BlockState p_49069_, Level p_49070_, BlockPos p_49071_, Player p_49072_, BlockHitResult p_49074_) {
+-        if (p_49070_ instanceof ServerLevel serverlevel && p_49070_.getBlockEntity(p_49071_) instanceof BarrelBlockEntity barrelblockentity) {
+-            p_49072_.openMenu(barrelblockentity);
++        if (p_49070_ instanceof ServerLevel serverlevel && p_49070_.getBlockEntity(p_49071_) instanceof BarrelBlockEntity barrelblockentity && p_49072_.openMenu(barrelblockentity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_49072_.awardStat(Stats.OPEN_BARREL);
+             PiglinAi.angerNearbyPiglins(serverlevel, p_49072_, true);
+         }

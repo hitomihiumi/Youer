@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/boss/enderdragon/phases/DragonLandingApproachPhase.java
++++ b/net/minecraft/world/entity/boss/enderdragon/phases/DragonLandingApproachPhase.java
+@@ -52,7 +_,7 @@
+     private void findNewTarget(ServerLevel p_376362_) {
+         if (this.currentPath == null || this.currentPath.isDone()) {
+             int i = this.dragon.findClosestNode();
+-            BlockPos blockpos = p_376362_.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.dragon.getFightOrigin()));
++            BlockPos blockpos = p_376362_.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, this.dragon.getPodium()); // Paper - Allow changing the EnderDragon podium
+             Player player = p_376362_.getNearestPlayer(NEAR_EGG_TARGETING, this.dragon, blockpos.getX(), blockpos.getY(), blockpos.getZ());
+             int j;
+             if (player != null) {

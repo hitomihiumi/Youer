@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/level/block/LavaCauldronBlock.java
++++ b/net/minecraft/world/level/block/LavaCauldronBlock.java
+@@ -43,9 +_,11 @@
+     }
+ 
+     @Override
+-    protected void entityInside(BlockState p_153506_, Level p_153507_, BlockPos p_153508_, Entity p_153509_, InsideBlockEffectApplier p_404841_) {
+-        p_404841_.apply(InsideBlockEffectType.LAVA_IGNITE);
+-        p_404841_.runAfter(InsideBlockEffectType.LAVA_IGNITE, Entity::lavaHurt);
++    protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        BlockPos savedPos = pos.immutable(); // Paper - track lava contact
++        effectApplier.apply(InsideBlockEffectType.LAVA_IGNITE);
++        effectApplier.runAfter(InsideBlockEffectType.LAVA_IGNITE, ignitedEntity -> ignitedEntity.lavaHurt(savedPos)); // Paper - track lava contact
+     }
+ 
+     @Override

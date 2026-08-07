@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/level/block/SmokerBlock.java
++++ b/net/minecraft/world/level/block/SmokerBlock.java
+@@ -42,11 +_,10 @@
+     }
+ 
+     @Override
+-    protected void openContainer(Level p_56443_, BlockPos p_56444_, Player p_56445_) {
+-        BlockEntity blockentity = p_56443_.getBlockEntity(p_56444_);
+-        if (blockentity instanceof SmokerBlockEntity) {
+-            p_56445_.openMenu((MenuProvider)blockentity);
+-            p_56445_.awardStat(Stats.INTERACT_WITH_SMOKER);
++    protected void openContainer(Level level, BlockPos pos, Player player) {
++        BlockEntity blockEntity = level.getBlockEntity(pos);
++        if (blockEntity instanceof SmokerBlockEntity smoker && player.openMenu(smoker).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
++            player.awardStat(Stats.INTERACT_WITH_SMOKER);
+         }
+     }
+ 

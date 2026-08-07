@@ -1,0 +1,21 @@
+--- a/net/minecraft/network/protocol/game/ClientboundSetEntityDataPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundSetEntityDataPacket.java
+@@ -18,12 +_,14 @@
+         this(p_319996_.readVarInt(), unpack(p_319996_));
+     }
+ 
+-    private static void pack(List<SynchedEntityData.DataValue<?>> p_253940_, RegistryFriendlyByteBuf p_320247_) {
+-        for (SynchedEntityData.DataValue<?> datavalue : p_253940_) {
+-            datavalue.write(p_320247_);
++    private static void pack(List<SynchedEntityData.DataValue<?>> dataValues, RegistryFriendlyByteBuf buffer) {
++        try (io.papermc.paper.util.sanitizer.ItemObfuscationSession ignored = io.papermc.paper.util.sanitizer.ItemObfuscationSession.start(io.papermc.paper.configuration.GlobalConfiguration.get().anticheat.obfuscation.items.binding.level)) { // Paper - data sanitization
++        for (SynchedEntityData.DataValue<?> dataValue : dataValues) {
++            dataValue.write(buffer);
+         }
++        } // Paper - data sanitization
+ 
+-        p_320247_.writeByte(255);
++        buffer.writeByte(255);
+     }
+ 
+     private static List<SynchedEntityData.DataValue<?>> unpack(RegistryFriendlyByteBuf p_320523_) {

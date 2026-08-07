@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/ai/behavior/VillagerPanicTrigger.java
++++ b/net/minecraft/world/entity/ai/behavior/VillagerPanicTrigger.java
+@@ -42,7 +_,7 @@
+         return p_24688_.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_HOSTILE);
+     }
+ 
+-    public static boolean isHurt(LivingEntity p_24698_) {
++    public static boolean isHurt(LivingEntity entity) {
+         return p_24698_.getBrain().hasMemoryValue(MemoryModuleType.HURT_BY);
+     }
+ }

@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/entity/OminousItemSpawner.java
++++ b/net/minecraft/world/entity/OminousItemSpawner.java
+@@ -77,7 +_,7 @@
+                     entity = this.spawnProjectile(serverlevel, projectileitem, itemstack);
+                 } else {
+                     entity = new ItemEntity(serverlevel, this.getX(), this.getY(), this.getZ(), itemstack);
+-                    serverlevel.addFreshEntity(entity);
++                    serverlevel.addFreshEntity(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.OMINOUS_ITEM_SPAWNER); // Paper - fixes and addition to spawn reason API
+                 }
+ 
+                 serverlevel.levelEvent(3021, this.blockPosition(), 1);
+@@ -91,7 +_,7 @@
+         ProjectileItem.DispenseConfig projectileitem$dispenseconfig = p_363839_.createDispenseConfig();
+         projectileitem$dispenseconfig.overrideDispenseEvent().ifPresent(p_426983_ -> p_362299_.levelEvent(p_426983_, this.blockPosition(), 0));
+         Direction direction = Direction.DOWN;
+-        Projectile projectile = Projectile.spawnProjectileUsingShoot(
++        Projectile projectile = Projectile.spawnProjectileUsingShootDelayed( // Paper - fixes and addition to spawn reason API
+             p_363839_.asProjectile(p_362299_, this.position(), p_361074_, direction),
+             p_362299_,
+             p_361074_,
+@@ -100,7 +_,7 @@
+             direction.getStepZ(),
+             projectileitem$dispenseconfig.power(),
+             projectileitem$dispenseconfig.uncertainty()
+-        );
++        ).spawn(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.OMINOUS_ITEM_SPAWNER); // Paper - fixes and addition to spawn reason API
+         projectile.setOwner(this);
+         return projectile;
+     }

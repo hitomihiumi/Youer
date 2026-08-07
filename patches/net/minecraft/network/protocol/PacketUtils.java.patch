@@ -1,0 +1,48 @@
+--- a/net/minecraft/network/protocol/PacketUtils.java
++++ b/net/minecraft/network/protocol/PacketUtils.java
+@@ -21,6 +_,9 @@
+     public static <T extends PacketListener> void ensureRunningOnSameThread(Packet<T> p_131364_, T p_131365_, BlockableEventLoop<?> p_131366_) throws RunningOnDifferentThreadException {
+         if (!p_131366_.isSameThread()) {
+             p_131366_.executeIfPossible(() -> {
++                packetProcessing.push(p_131365_); // Paper - detailed watchdog information
++                try { // Paper - detailed watchdog information
++                if (p_131365_ instanceof net.minecraft.server.network.ServerCommonPacketListenerImpl serverCommonPacketListener && serverCommonPacketListener.processedDisconnect) return; // Paper - Don't handle sync packets for kicked players
+                 if (p_131365_.shouldHandleMessage(p_131364_)) {
+                     try {
+                         p_131364_.handle(p_131365_);
+@@ -34,6 +_,12 @@
+                 } else {
+                     LOGGER.debug("Ignoring packet due to disconnection: {}", p_131364_);
+                 }
++                // Paper start - detailed watchdog information
++                } finally {
++                    totalMainThreadPacketsProcessed.getAndIncrement();
++                    packetProcessing.pop();
++                }
++                // Paper end - detailed watchdog information
+             });
+             throw RunningOnDifferentThreadException.RUNNING_ON_DIFFERENT_THREAD;
+         }
+@@ -60,4 +_,22 @@
+ 
+         p_340866_.fillCrashReport(p_340891_);
+     }
++
++    // Paper start - detailed watchdog information
++    public static final java.util.concurrent.ConcurrentLinkedDeque<PacketListener> packetProcessing = new java.util.concurrent.ConcurrentLinkedDeque<>();
++    static final java.util.concurrent.atomic.AtomicLong totalMainThreadPacketsProcessed = new java.util.concurrent.atomic.AtomicLong();
++
++    public static long getTotalProcessedPackets() {
++        return totalMainThreadPacketsProcessed.get();
++    }
++
++    public static java.util.List<PacketListener> getCurrentPacketProcessors() {
++        java.util.List<PacketListener> listeners = new java.util.ArrayList<>(4);
++        for (PacketListener listener : packetProcessing) {
++            listeners.add(listener);
++        }
++
++        return listeners;
++    }
++    // Paper end - detailed watchdog information
+ }

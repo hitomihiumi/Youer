@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/item/SignItem.java
++++ b/net/minecraft/world/item/SignItem.java
+@@ -11,6 +_,7 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ 
+ public class SignItem extends StandingAndWallBlockItem {
++    public static BlockPos openSign; // CraftBukkit
+     public SignItem(Block p_43127_, Block p_43128_, Item.Properties p_43126_) {
+         super(p_43127_, p_43128_, Direction.DOWN, p_43126_);
+     }
+@@ -27,7 +_,10 @@
+             && p_43132_ != null
+             && p_43131_.getBlockEntity(p_43130_) instanceof SignBlockEntity signblockentity
+             && p_43131_.getBlockState(p_43130_).getBlock() instanceof SignBlock signblock) {
+-            signblock.openTextEdit(p_43132_, signblockentity, true);
++            // CraftBukkit start - SPIGOT-4678
++            // signblock.openTextEdit(p_43132_, signblockentity, true);
++            SignItem.openSign = p_43130_;
++            // CraftBukkit end
+         }
+ 
+         return flag;
