@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
 +++ b/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
-@@ -62,20 +_,20 @@
+@@ -62,24 +_,24 @@
  
      @FunctionalInterface
      public interface Factory<T extends AbstractCookingRecipe> {
@@ -22,5 +22,20 @@
 -                        ItemStack.STRICT_SINGLE_ITEM_CODEC.fieldOf("result").forGetter(SingleItemRecipe::result),
 +                        ItemStack.CODEC.fieldOf("result").forGetter(SingleItemRecipe::result),
                          Codec.FLOAT.fieldOf("experience").orElse(0.0F).forGetter(AbstractCookingRecipe::experience),
-                         Codec.INT.fieldOf("cookingtime").orElse(p_379669_).forGetter(AbstractCookingRecipe::cookingTime)
+-                        Codec.INT.fieldOf("cookingtime").orElse(p_379669_).forGetter(AbstractCookingRecipe::cookingTime)
++                        Codec.INT.fieldOf("cookingtime").orElse(defaultCookingTime).forGetter(AbstractCookingRecipe::cookingTime)
                      )
+-                    .apply(p_379881_, p_379394_::create)
++                    .apply(p_379881_, factory::create)
+             );
+             this.streamCodec = StreamCodec.composite(
+                 ByteBufCodecs.STRING_UTF8,
+@@ -94,7 +_,7 @@
+                 AbstractCookingRecipe::experience,
+                 ByteBufCodecs.INT,
+                 AbstractCookingRecipe::cookingTime,
+-                p_379394_::create
++                factory::create
+             );
+         }
+ 

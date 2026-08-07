@@ -4,13 +4,13 @@
  
      @Override
      protected void entityInside(BlockState p_58238_, Level p_58239_, BlockPos p_58240_, Entity p_58241_, InsideBlockEffectApplier p_405727_) {
-+        if (!new io.papermc.paper.event.p_58241_.EntityInsideBlockEvent(p_58241_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_58239_, p_58240_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_58241_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_58239_, p_58240_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          if (p_58239_ instanceof ServerLevel serverlevel
              && p_58239_.getDifficulty() != Difficulty.PEACEFUL
              && p_58241_ instanceof LivingEntity livingentity
              && !livingentity.isInvulnerableTo(serverlevel, p_58239_.damageSources().wither())) {
 -            livingentity.addEffect(this.getBeeInteractionEffect());
-+            livingentity.addEffect(this.getBeeInteractionEffect(), org.bukkit.event.p_58241_.EntityPotionEffectEvent.Cause.WITHER_ROSE); // CraftBukkit
++            livingentity.addEffect(this.getBeeInteractionEffect(), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.WITHER_ROSE); // CraftBukkit
          }
      }
  

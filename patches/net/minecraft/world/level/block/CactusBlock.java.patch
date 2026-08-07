@@ -60,7 +60,7 @@
      @Override
      protected void entityInside(BlockState p_51148_, Level p_51149_, BlockPos p_51150_, Entity p_51151_, InsideBlockEffectApplier p_405001_) {
 -        p_51151_.hurt(p_51149_.damageSources().cactus(), 1.0F);
-+        if (!new io.papermc.paper.event.p_51151_.EntityInsideBlockEvent(p_51151_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_51149_, p_51150_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_51151_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_51149_, p_51150_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
 +        p_51151_.hurt(p_51149_.damageSources().cactus().eventBlockDamager(p_51149_, p_51150_), 1.0F); // CraftBukkit
      }
  

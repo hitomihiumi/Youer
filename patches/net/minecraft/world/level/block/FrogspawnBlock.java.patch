@@ -4,7 +4,7 @@
  
      @Override
      protected void entityInside(BlockState p_221204_, Level p_221205_, BlockPos p_221206_, Entity p_221207_, InsideBlockEffectApplier p_405189_) {
-+        if (!new io.papermc.paper.event.p_221207_.EntityInsideBlockEvent(p_221207_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_221205_, p_221206_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_221207_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_221205_, p_221206_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          if (p_221207_.getType().equals(EntityType.FALLING_BLOCK)) {
              this.destroyBlock(p_221205_, p_221206_);
          }

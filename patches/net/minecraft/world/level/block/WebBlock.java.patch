@@ -4,7 +4,7 @@
  
      @Override
      protected void entityInside(BlockState p_58180_, Level p_58181_, BlockPos p_58182_, Entity p_58183_, InsideBlockEffectApplier p_405438_) {
-+        if (!new io.papermc.paper.event.p_58183_.EntityInsideBlockEvent(p_58183_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_58181_, p_58182_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_58183_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_58181_, p_58182_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          Vec3 vec3 = new Vec3(0.25, 0.05F, 0.25);
          if (p_58183_ instanceof LivingEntity livingentity && livingentity.hasEffect(MobEffects.WEAVING)) {
              vec3 = new Vec3(0.5, 0.25, 0.5);

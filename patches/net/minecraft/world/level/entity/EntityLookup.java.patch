@@ -9,12 +9,13 @@
 +    public void add(T entity) {
 +        UUID uuid = entity.getUUID();
          if (this.byUuid.containsKey(uuid)) {
-             LOGGER.warn("Duplicate entity UUID {}: {}", uuid, p_156815_);
+-            LOGGER.warn("Duplicate entity UUID {}: {}", uuid, p_156815_);
++            LOGGER.warn("Duplicate entity UUID {}: {}", uuid, entity);
 +            // Paper start - extra debug info
-+            if (p_156815_ instanceof net.minecraft.world.entity.Entity) {
-+                final T old = this.byUuid.get(p_156815_.getUUID());
-+                if (old instanceof net.minecraft.world.entity.Entity oldCast && oldCast.getId() != p_156815_.getId() && oldCast.valid) {
-+                    LOGGER.error("Overwrote an existing entity {} with {}", oldCast, p_156815_);
++            if (entity instanceof net.minecraft.world.entity.Entity) {
++                final T old = this.byUuid.get(entity.getUUID());
++                if (old instanceof net.minecraft.world.entity.Entity oldCast && oldCast.getId() != entity.getId() && oldCast.valid) {
++                    LOGGER.error("Overwrote an existing entity {} with {}", oldCast, entity);
 +                }
 +            }
 +            // Paper end - extra debug info
