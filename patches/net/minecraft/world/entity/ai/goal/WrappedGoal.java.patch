@@ -1,21 +1,6 @@
 --- a/net/minecraft/world/entity/ai/goal/WrappedGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/WrappedGoal.java
-@@ -54,7 +_,7 @@
-     }
- 
-     @Override
--    protected int adjustedTickDelay(int p_186092_) {
-+    protected int adjustedTickDelay(int adjustment) {
-         return this.goal.adjustedTickDelay(p_186092_);
-     }
- 
-@@ -64,12 +_,12 @@
-     }
- 
-     @Override
--    public void setFlags(EnumSet<Goal.Flag> p_26005_) {
-+    public void setFlags(EnumSet<Goal.Flag> flagSet) {
-         this.goal.setFlags(p_26005_);
+@@ -69,7 +_,7 @@
      }
  
      @Override

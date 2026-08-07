@@ -9,12 +9,3 @@
      public float getWalkTargetValue(BlockPos p_21693_) {
          return this.getWalkTargetValue(p_21693_, this.level());
      }
-@@ -67,7 +_,7 @@
-     }
- 
-     @Override
--    public void whenLeashedTo(Entity p_418459_) {
-+    public void whenLeashedTo(Entity p_352153_) {
-         this.setHomeTo(p_418459_.blockPosition(), (int)this.leashElasticDistance() - 1);
-         super.whenLeashedTo(p_418459_);
-     }
