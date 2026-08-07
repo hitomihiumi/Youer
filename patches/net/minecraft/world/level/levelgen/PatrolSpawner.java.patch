@@ -1,0 +1,125 @@
+--- a/net/minecraft/world/level/levelgen/PatrolSpawner.java
++++ b/net/minecraft/world/level/levelgen/PatrolSpawner.java
+@@ -19,53 +_,75 @@
+     private int nextTick;
+ 
+     @Override
+-    public void tick(ServerLevel p_64570_, boolean p_64571_, boolean p_64572_) {
+-        if (p_64571_) {
+-            if (p_64570_.getGameRules().getBoolean(GameRules.RULE_DO_PATROL_SPAWNING)) {
+-                RandomSource randomsource = p_64570_.random;
+-                this.nextTick--;
+-                if (this.nextTick <= 0) {
+-                    this.nextTick = this.nextTick + 12000 + randomsource.nextInt(1200);
+-                    long i = p_64570_.getDayTime() / 24000L;
+-                    if (i >= 5L && p_64570_.isBrightOutside()) {
+-                        if (randomsource.nextInt(5) == 0) {
+-                            int j = p_64570_.players().size();
+-                            if (j >= 1) {
+-                                Player player = p_64570_.players().get(randomsource.nextInt(j));
++    public void tick(ServerLevel level, boolean spawnEnemies, boolean spawnFriendlies) {
++        if (level.paperConfig().entities.behavior.pillagerPatrols.disable || level.paperConfig().entities.behavior.pillagerPatrols.spawnChance == 0) return; // Paper - Add option to disable pillager patrols & Pillager patrol spawn settings and per player options
++        if (spawnEnemies) {
++            if (level.getGameRules().getBoolean(GameRules.RULE_DO_PATROL_SPAWNING)) {
++                RandomSource randomSource = level.random;
++                // this.nextTick--;
++                // Paper start - Pillager patrol spawn settings and per player options
++                int size = level.players().size();
++                if (size < 1) {
++                    return;
++                }
++
++                net.minecraft.server.level.ServerPlayer player = level.players().get(randomSource.nextInt(size));
++                if (player.isSpectator()) {
++                    return;
++                }
++
++                int patrolSpawnDelay;
++                if (level.paperConfig().entities.behavior.pillagerPatrols.spawnDelay.perPlayer) {
++                    --player.patrolSpawnDelay;
++                    patrolSpawnDelay = player.patrolSpawnDelay;
++                } else {
++                    this.nextTick--;
++                    patrolSpawnDelay = this.nextTick;
++                }
++                if (patrolSpawnDelay <= 0) {
++                    long days;
++                    if (level.paperConfig().entities.behavior.pillagerPatrols.start.perPlayer) {
++                        days = player.getStats().getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.PLAY_TIME)) / 24000L; // PLAY_TIME is counting in ticks
++                    } else {
++                        days = level.getDayTime() / 24000L;
++                    }
++                    if (level.paperConfig().entities.behavior.pillagerPatrols.spawnDelay.perPlayer) {
++                        player.patrolSpawnDelay += level.paperConfig().entities.behavior.pillagerPatrols.spawnDelay.ticks + randomSource.nextInt(1200);
++                    } else {
++                        this.nextTick += level.paperConfig().entities.behavior.pillagerPatrols.spawnDelay.ticks + randomSource.nextInt(1200);
++                    }
++
++                    if (days >= level.paperConfig().entities.behavior.pillagerPatrols.start.day && level.isBrightOutside()) {
++                        if (randomSource.nextDouble() < level.paperConfig().entities.behavior.pillagerPatrols.spawnChance) {
++                            // Paper end - Pillager patrol spawn settings and per player options
++                            if (size >= 1) {
+                                 if (!player.isSpectator()) {
+-                                    if (!p_64570_.isCloseToVillage(player.blockPosition(), 2)) {
+-                                        int k = (24 + randomsource.nextInt(24)) * (randomsource.nextBoolean() ? -1 : 1);
+-                                        int l = (24 + randomsource.nextInt(24)) * (randomsource.nextBoolean() ? -1 : 1);
+-                                        BlockPos.MutableBlockPos blockpos$mutableblockpos = player.blockPosition().mutable().move(k, 0, l);
+-                                        int i1 = 10;
+-                                        if (p_64570_.hasChunksAt(
+-                                            blockpos$mutableblockpos.getX() - 10,
+-                                            blockpos$mutableblockpos.getZ() - 10,
+-                                            blockpos$mutableblockpos.getX() + 10,
+-                                            blockpos$mutableblockpos.getZ() + 10
++                                    if (!level.isCloseToVillage(player.blockPosition(), 2)) {
++                                        int i = (24 + randomSource.nextInt(24)) * (randomSource.nextBoolean() ? -1 : 1);
++                                        int i1 = (24 + randomSource.nextInt(24)) * (randomSource.nextBoolean() ? -1 : 1);
++                                        BlockPos.MutableBlockPos mutableBlockPos = player.blockPosition().mutable().move(i, 0, i1);
++                                        int i2 = 10;
++                                        if (level.hasChunksAt(
++                                            mutableBlockPos.getX() - 10, mutableBlockPos.getZ() - 10, mutableBlockPos.getX() + 10, mutableBlockPos.getZ() + 10
+                                         )) {
+-                                            Holder<Biome> holder = p_64570_.getBiome(blockpos$mutableblockpos);
+-                                            if (!holder.is(BiomeTags.WITHOUT_PATROL_SPAWNS)) {
+-                                                int j1 = (int)Math.ceil(p_64570_.getCurrentDifficultyAt(blockpos$mutableblockpos).getEffectiveDifficulty()) + 1;
++                                            Holder<Biome> biome = level.getBiome(mutableBlockPos);
++                                            if (!biome.is(BiomeTags.WITHOUT_PATROL_SPAWNS)) {
++                                                int i3 = (int)Math.ceil(level.getCurrentDifficultyAt(mutableBlockPos).getEffectiveDifficulty()) + 1;
+ 
+-                                                for (int k1 = 0; k1 < j1; k1++) {
+-                                                    blockpos$mutableblockpos.setY(
+-                                                        p_64570_.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, blockpos$mutableblockpos).getY()
++                                                for (int i4 = 0; i4 < i3; i4++) {
++                                                    mutableBlockPos.setY(
++                                                        level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, mutableBlockPos).getY()
+                                                     );
+-                                                    if (k1 == 0) {
+-                                                        if (!this.spawnPatrolMember(p_64570_, blockpos$mutableblockpos, randomsource, true)) {
++                                                    if (i4 == 0) {
++                                                        if (!this.spawnPatrolMember(level, mutableBlockPos, randomSource, true)) {
+                                                             break;
+                                                         }
+                                                     } else {
+-                                                        this.spawnPatrolMember(p_64570_, blockpos$mutableblockpos, randomsource, false);
++                                                        this.spawnPatrolMember(level, mutableBlockPos, randomSource, false);
+                                                     }
+ 
+-                                                    blockpos$mutableblockpos.setX(
+-                                                        blockpos$mutableblockpos.getX() + randomsource.nextInt(5) - randomsource.nextInt(5)
+-                                                    );
+-                                                    blockpos$mutableblockpos.setZ(
+-                                                        blockpos$mutableblockpos.getZ() + randomsource.nextInt(5) - randomsource.nextInt(5)
+-                                                    );
++                                                    mutableBlockPos.setX(mutableBlockPos.getX() + randomSource.nextInt(5) - randomSource.nextInt(5));
++                                                    mutableBlockPos.setZ(mutableBlockPos.getZ() + randomSource.nextInt(5) - randomSource.nextInt(5));
+                                                 }
+                                             }
+                                         }
+@@ -95,7 +_,7 @@
+ 
+                 patrollingmonster.setPos(p_224534_.getX(), p_224534_.getY(), p_224534_.getZ());
+                 patrollingmonster.finalizeSpawn(p_224533_, p_224533_.getCurrentDifficultyAt(p_224534_), EntitySpawnReason.PATROL, null);
+-                p_224533_.addFreshEntityWithPassengers(patrollingmonster);
++                p_224533_.addFreshEntityWithPassengers(patrollingmonster, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.PATROL); // CraftBukkit
+                 return true;
+             } else {
+                 return false;

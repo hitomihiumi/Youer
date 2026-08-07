@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/block/LeavesBlock.java
++++ b/net/minecraft/world/level/block/LeavesBlock.java
+@@ -54,10 +_,18 @@
+     }
+ 
+     @Override
+-    protected void randomTick(BlockState p_221379_, ServerLevel p_221380_, BlockPos p_221381_, RandomSource p_221382_) {
+-        if (this.decaying(p_221379_)) {
+-            dropResources(p_221379_, p_221380_, p_221381_);
+-            p_221380_.removeBlock(p_221381_, false);
++    protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
++        if (this.decaying(state)) {
++            // CraftBukkit start
++            org.bukkit.event.block.LeavesDecayEvent event = new org.bukkit.event.block.LeavesDecayEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos));
++            level.getCraftServer().getPluginManager().callEvent(event);
++
++            if (event.isCancelled() || !level.getBlockState(pos).is(this)) {
++                return;
++            }
++            // CraftBukkit end
++            dropResources(state, level, pos);
++            level.removeBlock(pos, false);
+         }
+     }
+ 

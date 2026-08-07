@@ -1,0 +1,81 @@
+--- a/net/minecraft/world/entity/ai/goal/Goal.java
++++ b/net/minecraft/world/entity/ai/goal/Goal.java
+@@ -7,7 +_,15 @@
+ import net.minecraft.world.level.Level;
+ 
+ public abstract class Goal {
+-    private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);
++    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from GoalSelector
++
++    // Paper start - remove streams from GoalSelector; make sure types are not empty
++    protected Goal() {
++        if (this.goalTypes.size() == 0) {
++            this.goalTypes.addUnchecked(Flag.UNKNOWN_BEHAVIOR);
++        }
++    }
++    // Paper end - remove streams from GoalSelector
+ 
+     public abstract boolean canUse();
+ 
+@@ -33,8 +_,13 @@
+     }
+ 
+     public void setFlags(EnumSet<Goal.Flag> p_25328_) {
+-        this.flags.clear();
+-        this.flags.addAll(p_25328_);
++        // Paper start - remove streams from GoalSelector
++        this.goalTypes.clear();
++        this.goalTypes.addAllUnchecked(p_25328_);
++        if (this.goalTypes.size() == 0) {
++            this.goalTypes.addUnchecked(Flag.UNKNOWN_BEHAVIOR);
++        }
++        // Paper end - remove streams from GoalSelector
+     }
+ 
+     @Override
+@@ -42,9 +_,22 @@
+         return this.getClass().getSimpleName();
+     }
+ 
+-    public EnumSet<Goal.Flag> getFlags() {
+-        return this.flags;
+-    }
++    // Paper start - remove streams from GoalSelector
++    public ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> getFlags() {
++        return this.goalTypes;
++        // Paper end - remove streams from GoalSelector
++    }
++
++
++    // Paper start - Mob Goal API
++    public boolean hasFlag(final Goal.Flag flag) {
++        return this.goalTypes.hasElement(flag);
++    }
++
++    public void addFlag(final Goal.Flag flag) {
++        this.goalTypes.addUnchecked(flag);
++    }
++    // Paper end - Mob Goal API
+ 
+     protected int adjustedTickDelay(int p_186072_) {
+         return this.requiresUpdateEveryTick() ? p_186072_ : reducedTickDelay(p_186072_);
+@@ -62,7 +_,19 @@
+         return (ServerLevel)p_376231_;
+     }
+ 
++    // Paper start - Mob goal api
++    private com.destroystokyo.paper.entity.ai.PaperGoal<?> paperGoal;
++    public <T extends org.bukkit.entity.Mob> com.destroystokyo.paper.entity.ai.Goal<T> asPaperGoal() {
++        if (this.paperGoal == null) {
++            this.paperGoal = new com.destroystokyo.paper.entity.ai.PaperGoal<>(this);
++        }
++        //noinspection unchecked
++        return (com.destroystokyo.paper.entity.ai.Goal<T>) this.paperGoal;
++    }
++    // Paper end - Mob goal api
++
+     public static enum Flag {
++        UNKNOWN_BEHAVIOR, // Paper - add UNKNOWN_BEHAVIOR
+         MOVE,
+         LOOK,
+         JUMP,

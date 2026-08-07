@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/block/entity/RandomizableContainerBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/RandomizableContainerBlockEntity.java
+@@ -54,7 +_,7 @@
+ 
+     @Override
+     public ItemStack getItem(int p_59611_) {
+-        this.unpackLootTable(null);
++        if (p_59611_ == 0) this.unpackLootTable(null); // Paper - Perf: Optimize Hoppers
+         return super.getItem(p_59611_);
+     }
+ 
+@@ -116,4 +_,13 @@
+         p_422368_.discard("LootTable");
+         p_422368_.discard("LootTableSeed");
+     }
++
++    // Paper start - LootTable API
++    final com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData = new com.destroystokyo.paper.loottable.PaperLootableInventoryData(); // Paper
++
++    @Override
++    public com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData() {
++        return this.lootableData;
++    }
++    // Paper end - LootTable API
+ }

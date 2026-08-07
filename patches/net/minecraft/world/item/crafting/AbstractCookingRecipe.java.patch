@@ -1,6 +1,21 @@
 --- a/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
 +++ b/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
-@@ -75,7 +_,7 @@
+@@ -62,20 +_,20 @@
+ 
+     @FunctionalInterface
+     public interface Factory<T extends AbstractCookingRecipe> {
+-        T create(String p_312581_, CookingBookCategory p_312220_, Ingredient p_312282_, ItemStack p_311868_, float p_312803_, int p_312165_);
++        T create(String group, CookingBookCategory category, Ingredient p_312282_, ItemStack p_311868_, float p_312803_, int p_312165_);
+     }
+ 
+     public static class Serializer<T extends AbstractCookingRecipe> implements RecipeSerializer<T> {
+         private final MapCodec<T> codec;
+         private final StreamCodec<RegistryFriendlyByteBuf, T> streamCodec;
+ 
+-        public Serializer(AbstractCookingRecipe.Factory<T> p_379394_, int p_379669_) {
++        public Serializer(AbstractCookingRecipe.Factory<T> factory, int defaultCookingTime) {
+             this.codec = RecordCodecBuilder.mapCodec(
+                 p_379881_ -> p_379881_.group(
                          Codec.STRING.optionalFieldOf("group", "").forGetter(SingleItemRecipe::group),
                          CookingBookCategory.CODEC.fieldOf("category").orElse(CookingBookCategory.MISC).forGetter(AbstractCookingRecipe::category),
                          Ingredient.CODEC.fieldOf("ingredient").forGetter(SingleItemRecipe::input),

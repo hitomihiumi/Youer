@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/inventory/ItemCombinerMenu.java
++++ b/net/minecraft/world/inventory/ItemCombinerMenu.java
+@@ -17,12 +_,7 @@
+     protected final ContainerLevelAccess access;
+     protected final Player player;
+     protected final Container inputSlots;
+-    protected final ResultContainer resultSlots = new ResultContainer() {
+-        @Override
+-        public void setChanged() {
+-            ItemCombinerMenu.this.slotsChanged(this);
+-        }
+-    };
++    protected final ResultContainer resultSlots; // Paper - Add missing InventoryHolders; delay field init
+     private final int resultSlotIndex;
+ 
+     protected boolean mayPickup(Player p_39798_, boolean p_39799_) {
+@@ -38,6 +_,14 @@
+     ) {
+         super(p_39773_, p_39774_);
+         this.access = p_39776_;
++        // Paper start - Add missing InventoryHolders; delay field init
++        this.resultSlots = new ResultContainer(this.createBlockHolder(this.access)) {
++            @Override
++            public void setChanged() {
++                ItemCombinerMenu.this.slotsChanged(this);
++            }
++        };
++        // Paper end - Add missing InventoryHolders; delay field init
+         this.player = p_39775_.player;
+         this.inputSlots = this.createContainer(p_379677_.getNumOfInputSlots());
+         this.resultSlotIndex = p_379677_.getResultSlotIndex();
+@@ -86,7 +_,7 @@
+     public abstract void createResult();
+ 
+     private SimpleContainer createContainer(int p_267204_) {
+-        return new SimpleContainer(p_267204_) {
++        return new SimpleContainer(this.createBlockHolder(this.access), p_267204_) {
+             @Override
+             public void setChanged() {
+                 super.setChanged();
+@@ -100,6 +_,7 @@
+         super.slotsChanged(p_39778_);
+         if (p_39778_ == this.inputSlots) {
+             this.createResult();
++            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, this instanceof SmithingMenu ? 3 : 2); // Paper - Add PrepareResultEvent
+         }
+     }
+ 
+@@ -111,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(Player p_39780_) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.access
+             .evaluate(
+                 (p_339525_, p_339526_) -> !this.isValidBlock(p_339525_.getBlockState(p_339526_)) ? false : p_39780_.canInteractWithBlock(p_339526_, 4.0), true

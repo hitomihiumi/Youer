@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/level/block/FrogspawnBlock.java
++++ b/net/minecraft/world/level/block/FrogspawnBlock.java
+@@ -90,6 +_,7 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_221204_, Level p_221205_, BlockPos p_221206_, Entity p_221207_, InsideBlockEffectApplier p_405189_) {
++        if (!new io.papermc.paper.event.p_221207_.EntityInsideBlockEvent(p_221207_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_221205_, p_221206_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (p_221207_.getType().equals(EntityType.FALLING_BLOCK)) {
+             this.destroyBlock(p_221205_, p_221206_);
+         }
+@@ -102,6 +_,11 @@
+     }
+ 
+     private void hatchFrogspawn(ServerLevel p_221182_, BlockPos p_221183_, RandomSource p_221184_) {
++        // Paper start - Call BlockFadeEvent
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_221182_, p_221183_, Blocks.AIR.defaultBlockState()).isCancelled()) {
++            return;
++        }
++        // Paper end - Call BlockFadeEven
+         this.destroyBlock(p_221182_, p_221183_);
+         p_221182_.playSound(null, p_221183_, SoundEvents.FROGSPAWN_HATCH, SoundSource.BLOCKS, 1.0F, 1.0F);
+         this.spawnTadpoles(p_221182_, p_221183_, p_221184_);
+@@ -122,7 +_,7 @@
+                 int k = p_221223_.nextInt(1, 361);
+                 tadpole.snapTo(d0, p_221222_.getY() - 0.5, d1, k, 0.0F);
+                 tadpole.setPersistenceRequired();
+-                p_221221_.addFreshEntity(tadpole);
++                p_221221_.addFreshEntity(tadpole, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EGG); // Paper - use correct spawn reason
+             }
+         }
+     }

@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/block/entity/trialspawner/TrialSpawnerStateData.java
++++ b/net/minecraft/world/level/block/entity/trialspawner/TrialSpawnerStateData.java
+@@ -112,7 +_,7 @@
+     }
+ 
+     public int countAdditionalPlayers(BlockPos p_422699_) {
+-        if (this.detectedPlayers.isEmpty()) {
++        if (false && this.detectedPlayers.isEmpty()) { // Youer - suppress spurious "no detected players" log spam
+             Util.logAndPauseIfInIde("Trial Spawner at " + p_422699_ + " has no detected players");
+         }
+ 
+@@ -187,7 +_,7 @@
+                     mob.dropPreservedEquipment(p_422006_);
+                 }
+ 
+-                p_421890_.remove(Entity.RemovalReason.DISCARDED);
++                p_421890_.remove(Entity.RemovalReason.DISCARDED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - Add bukkit remove cause;
+             }
+         });
+         if (!p_421806_.ominousConfig().spawnPotentialsDefinition().isEmpty()) {

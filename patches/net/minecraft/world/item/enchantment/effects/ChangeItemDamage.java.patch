@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/item/enchantment/effects/ChangeItemDamage.java
++++ b/net/minecraft/world/item/enchantment/effects/ChangeItemDamage.java
+@@ -18,12 +_,12 @@
+     );
+ 
+     @Override
+-    public void apply(ServerLevel p_379674_, int p_379927_, EnchantedItemInUse p_380376_, Entity p_379570_, Vec3 p_380002_) {
+-        ItemStack itemstack = p_380376_.itemStack();
+-        if (itemstack.has(DataComponents.MAX_DAMAGE) && itemstack.has(DataComponents.DAMAGE)) {
+-            ServerPlayer serverplayer = p_380376_.owner() instanceof ServerPlayer serverplayer1 ? serverplayer1 : null;
+-            int i = (int)this.amount.calculate(p_379927_);
+-            itemstack.hurtAndBreak(i, p_379674_, serverplayer, p_380376_.onBreak());
++    public void apply(ServerLevel level, int enchantmentLevel, EnchantedItemInUse item, Entity entity, Vec3 origin) {
++        ItemStack itemStack = item.itemStack();
++        if (itemStack.has(DataComponents.MAX_DAMAGE) && itemStack.has(DataComponents.DAMAGE)) {
++            //ServerPlayer serverPlayer1 = item.owner() instanceof ServerPlayer serverPlayer ? serverPlayer : null; // Paper - EntityDamageItemEvent - always pass in entity
++            int i = (int)this.amount.calculate(enchantmentLevel);
++            itemStack.hurtAndBreak(i, level, item.owner(), item.onBreak()); // Paper - EntityDamageItemEvent - always pass in entity
+         }
+     }
+ 
