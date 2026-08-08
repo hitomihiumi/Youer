@@ -1,10 +1,40 @@
 --- a/net/minecraft/server/commands/ReloadCommand.java
 +++ b/net/minecraft/server/commands/ReloadCommand.java
-@@ -35,6 +_,7 @@
+@@ -17,7 +_,7 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+ 
+     public static void reloadPacks(Collection<String> p_138236_, CommandSourceStack p_138237_) {
+-        p_138237_.getServer().reloadResources(p_138236_).exceptionally(p_138234_ -> {
++        p_138237_.getServer().reloadResources(p_138236_, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.COMMAND).exceptionally(p_138234_ -> { // Paper - Add ServerResourcesReloadedEvent
+             LOGGER.warn("Failed to execute reload", p_138234_);
+             p_138237_.sendFailure(Component.translatable("commands.reload.failure"));
+             return null;
+@@ -25,7 +_,7 @@
+     }
+ 
+     private static Collection<String> discoverNewPacks(PackRepository p_138223_, WorldData p_138224_, Collection<String> p_138225_) {
+-        p_138223_.reload();
++        p_138223_.reload(true); // Paper - will perform a full reload
+         Collection<String> collection = Lists.newArrayList(p_138225_);
+         Collection<String> collection1 = p_138224_.getDataConfiguration().dataPacks().getDisabled();
+ 
+@@ -35,8 +_,19 @@
              }
          }
  
 +        net.neoforged.neoforge.resource.ResourcePackLoader.reorderNewlyDiscoveredPacks(collection, p_138225_, p_138223_);
          return collection;
      }
++
++    // CraftBukkit start
++    public static void reload(MinecraftServer server) {
++        PackRepository packRepository = server.getPackRepository();
++        WorldData worldData = server.getWorldData();
++        Collection<String> selectedIds = packRepository.getSelectedIds();
++        Collection<String> collection = discoverNewPacks(packRepository, worldData, selectedIds);
++        server.reloadResources(collection, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.PLUGIN); // Paper - Add ServerResourcesReloadedEvent
++    }
++    // CraftBukkit end
  
+     public static void register(CommandDispatcher<CommandSourceStack> p_138227_) {
+         p_138227_.register(Commands.literal("reload").requires(Commands.hasPermission(2)).executes(p_288528_ -> {

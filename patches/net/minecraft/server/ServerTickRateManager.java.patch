@@ -1,0 +1,44 @@
+--- a/net/minecraft/server/ServerTickRateManager.java
++++ b/net/minecraft/server/ServerTickRateManager.java
+@@ -14,6 +_,7 @@
+     private long scheduledCurrentSprintTicks = 0L;
+     private boolean previousIsFrozen = false;
+     private final MinecraftServer server;
++    private boolean silent; // Paper - silence feedback when API requests sprint
+ 
+     public ServerTickRateManager(MinecraftServer p_309004_) {
+         this.server = p_309004_;
+@@ -66,11 +_,18 @@
+         }
+     }
+ 
+-    public boolean requestGameToSprint(int p_308951_) {
++    public boolean requestGameToSprint(int sprintTime) {
++        // Paper start - silence feedback when API requests sprint
++        return requestGameToSprint(sprintTime, false);
++    }
++
++    public boolean requestGameToSprint(int sprintTime, boolean silent) {
++        if (!isSprinting()) this.silent = silent;
++        // Paper end - silence feedback when API requests sprint
+         boolean flag = this.remainingSprintTicks > 0L;
+         this.sprintTimeSpend = 0L;
+-        this.scheduledCurrentSprintTicks = p_308951_;
+-        this.remainingSprintTicks = p_308951_;
++        this.scheduledCurrentSprintTicks = sprintTime;
++        this.remainingSprintTicks = sprintTime;
+         this.previousIsFrozen = this.isFrozen();
+         this.setFrozen(false);
+         return flag;
+@@ -83,7 +_,10 @@
+         String s = String.format("%.2f", i == 0L ? this.millisecondsPerTick() : d0 / i);
+         this.scheduledCurrentSprintTicks = 0L;
+         this.sprintTimeSpend = 0L;
+-        this.server.createCommandSourceStack().sendSuccess(() -> Component.translatable("commands.tick.sprint.report", j, s), true);
++        // Paper start - silence feedback when API requests sprint
++        if (!this.silent) this.server.createCommandSourceStack().sendSuccess(() -> Component.translatable("commands.tick.sprint.report", j, s), true);
++        this.silent = false;
++        // Paper end - silence feedback when API requests sprint
+         this.remainingSprintTicks = 0L;
+         this.setFrozen(this.previousIsFrozen);
+         this.server.onTickRateChanged();

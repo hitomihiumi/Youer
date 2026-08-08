@@ -1,9 +1,72 @@
 --- a/net/minecraft/world/level/block/TrapDoorBlock.java
 +++ b/net/minecraft/world/level/block/TrapDoorBlock.java
-@@ -197,6 +_,17 @@
-         return super.updateShape(p_57554_, p_374386_, p_374038_, p_57558_, p_57555_, p_57559_, p_57556_, p_374093_);
+@@ -132,18 +_,48 @@
      }
  
+     @Override
+-    protected void neighborChanged(BlockState p_57547_, Level p_57548_, BlockPos p_57549_, Block p_57550_, @Nullable Orientation p_364404_, boolean p_57552_) {
+-        if (!p_57548_.isClientSide) {
+-            boolean flag = p_57548_.hasNeighborSignal(p_57549_);
+-            if (flag != p_57547_.getValue(POWERED)) {
+-                if (p_57547_.getValue(OPEN) != flag) {
+-                    p_57547_ = p_57547_.setValue(OPEN, flag);
+-                    this.playSound(null, p_57548_, p_57549_, flag);
+-                }
+-
+-                p_57548_.setBlock(p_57549_, p_57547_.setValue(POWERED, flag), 2);
+-                if (p_57547_.getValue(WATERLOGGED)) {
+-                    p_57548_.scheduleTick(p_57549_, Fluids.WATER, Fluids.WATER.getTickDelay(p_57548_));
++    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston) {
++        if (!level.isClientSide) {
++            boolean hasNeighborSignal = level.hasNeighborSignal(pos);
++            if (hasNeighborSignal != state.getValue(POWERED)) {
++                // CraftBukkit start
++                org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++                int power = bblock.getBlockPower();
++                int oldPower = state.getValue(TrapDoorBlock.OPEN) ? 15 : 0;
++
++                if (oldPower == 0 ^ power == 0 || neighborBlock.defaultBlockState().isSignalSource()) {
++                    org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(bblock, oldPower, power);
++                    level.getCraftServer().getPluginManager().callEvent(eventRedstone);
++                    hasNeighborSignal = eventRedstone.getNewCurrent() > 0;
++                }
++                // CraftBukkit end
++                // Paper start - break redstone on trapdoors early
++                boolean open = state.getValue(TrapDoorBlock.OPEN) != hasNeighborSignal;
++                // note: this must run before any state for this block/its neighbours are written to the world
++                // we allow the redstone event to fire so that plugins can block
++                if (hasNeighborSignal && open) { // if we are now powered and it caused the trap door to open
++                    // in this case, first check for the redstone on top first
++                    BlockPos abovePos = pos.above();
++                    BlockState above = level.getBlockState(abovePos);
++                    if (above.getBlock() instanceof RedStoneWireBlock) {
++                        level.setBlock(abovePos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_NEIGHBORS);
++                        Block.popResource(level, abovePos, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE));
++                        // now check that this didn't change our state
++                        if (level.getBlockState(pos) != state) {
++                            // our state was changed, so we cannot propagate this update
++                            return;
++                        }
++                    }
++                }
++                if (open) {
++                    // Paper end - break redstone on trapdoors early
++                    state = state.setValue(OPEN, hasNeighborSignal);
++                    this.playSound(null, level, pos, hasNeighborSignal);
++                }
++
++                level.setBlock(pos, state.setValue(POWERED, hasNeighborSignal), 2);
++                if (state.getValue(WATERLOGGED)) {
++                    level.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
+                 }
+             }
+         }
+@@ -195,6 +_,17 @@
+         }
+ 
+         return super.updateShape(p_57554_, p_374386_, p_374038_, p_57558_, p_57555_, p_57559_, p_57556_, p_374093_);
++    }
++
 +    // Neo: Allows Trapdoors to be climbable if any ladder, even modded ladders, is below Trapdoor
 +    @Override
 +    public boolean isLadder(BlockState state, net.minecraft.world.level.LevelReader world, BlockPos pos, net.minecraft.world.entity.LivingEntity entity) {
@@ -13,8 +76,6 @@
 +            return down.getBlock().makesOpenTrapdoorAboveClimbable(down, world, downPos, state);
 +        }
 +        return false;
-+    }
-+
-     protected BlockSetType getType() {
-         return this.type;
      }
+ 
+     protected BlockSetType getType() {

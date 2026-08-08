@@ -9,13 +9,63 @@
              return false;
          } else if (this.nextStartTick > 0) {
              this.nextStartTick--;
-@@ -148,7 +_,8 @@
-         );
-         return chunkaccess == null
-             ? false
--            : chunkaccess.getBlockState(p_25851_).is(this.blockToRemove)
-+            : chunkaccess.getBlockState(p_25851_).canEntityDestroy(p_25850_, p_25851_, this.removerMob)
-+                && chunkaccess.getBlockState(p_25851_).is(this.blockToRemove)
-                 && chunkaccess.getBlockState(p_25851_.above()).isAir()
-                 && chunkaccess.getBlockState(p_25851_.above(2)).isAir();
+@@ -104,6 +_,11 @@
+             }
+ 
+             if (this.ticksSinceReachedGoal > 60) {
++                // CraftBukkit start - Step on eggs
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityInteractEvent(this.removerMob, org.bukkit.craftbukkit.block.CraftBlock.at(level, blockpos1))) {
++                    return;
++                }
++                // CraftBukkit end
+                 level.removeBlock(blockpos1, false);
+                 if (!level.isClientSide) {
+                     for (int i = 0; i < 20; i++) {
+@@ -123,17 +_,18 @@
      }
+ 
+     @Nullable
+-    private BlockPos getPosWithBlock(BlockPos p_25853_, BlockGetter p_25854_) {
+-        if (p_25854_.getBlockState(p_25853_).is(this.blockToRemove)) {
+-            return p_25853_;
++    private BlockPos getPosWithBlock(BlockPos pos, BlockGetter level) {
++        net.minecraft.world.level.block.state.BlockState block = level.getBlockStateIfLoaded(pos); // Paper - Prevent AI rules from loading chunks
++        if (block == null) return null; // Paper - Prevent AI rules from loading chunks
++        if (block.is(this.blockToRemove)) { // Paper - Prevent AI rules from loading chunks
++            return pos;
+         } else {
+-            BlockPos[] ablockpos = new BlockPos[]{
+-                p_25853_.below(), p_25853_.west(), p_25853_.east(), p_25853_.north(), p_25853_.south(), p_25853_.below().below()
+-            };
++            BlockPos[] blockPoss = new BlockPos[]{pos.below(), pos.west(), pos.east(), pos.north(), pos.south(), pos.below().below()};
+ 
+-            for (BlockPos blockpos : ablockpos) {
+-                if (p_25854_.getBlockState(blockpos).is(this.blockToRemove)) {
+-                    return blockpos;
++            for (BlockPos blockPos : blockPoss) {
++                net.minecraft.world.level.block.state.BlockState block2 = level.getBlockStateIfLoaded(blockPos); // Paper - Prevent AI rules from loading chunks
++                if (block2 != null && block2.is(this.blockToRemove)) { // Paper - Prevent AI rules from loading chunks
++                    return blockPos;
+                 }
+             }
+ 
+@@ -143,13 +_,11 @@
+ 
+     @Override
+     protected boolean isValidTarget(LevelReader p_25850_, BlockPos p_25851_) {
+-        ChunkAccess chunkaccess = p_25850_.getChunk(
+-            SectionPos.blockToSectionCoord(p_25851_.getX()), SectionPos.blockToSectionCoord(p_25851_.getZ()), ChunkStatus.FULL, false
+-        );
+-        return chunkaccess == null
+-            ? false
+-            : chunkaccess.getBlockState(p_25851_).is(this.blockToRemove)
+-                && chunkaccess.getBlockState(p_25851_.above()).isAir()
+-                && chunkaccess.getBlockState(p_25851_.above(2)).isAir();
++        ChunkAccess chunkaccess = p_25850_.getChunkIfLoadedImmediately(p_25851_.getX() >> 4, p_25851_.getZ() >> 4); // Paper - Prevent AI rules from loading chunks
++        return chunkaccess != null
++            && chunkaccess.getBlockState(p_25851_).canEntityDestroy(p_25850_, p_25851_, this.removerMob)
++            && chunkaccess.getBlockState(p_25851_).is(this.blockToRemove)
++            && chunkaccess.getBlockState(p_25851_.above()).isAir()
++            && chunkaccess.getBlockState(p_25851_.above(2)).isAir();
+     }
+ }

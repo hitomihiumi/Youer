@@ -1,0 +1,20 @@
+--- a/net/minecraft/network/chat/contents/NbtContents.java
++++ b/net/minecraft/network/chat/contents/NbtContents.java
+@@ -120,7 +_,7 @@
+             if (this.interpreting) {
+                 RegistryOps<Tag> registryops = p_237401_.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+                 Component component = DataFixUtils.orElse(
+-                    ComponentUtils.updateForEntity(p_237401_, this.separator, p_237402_, p_237403_), ComponentUtils.DEFAULT_NO_STYLE_SEPARATOR
++                    ComponentUtils.updateSeparatorForEntity(p_237401_, this.separator, p_237402_, p_237403_), ComponentUtils.DEFAULT_NO_STYLE_SEPARATOR // Paper - validate separator
+                 );
+                 return stream.flatMap(p_392622_ -> {
+                     try {
+@@ -133,7 +_,7 @@
+                 }).reduce((p_237420_, p_237421_) -> p_237420_.append(component).append(p_237421_)).orElseGet(Component::empty);
+             } else {
+                 Stream<String> stream1 = stream.map(NbtContents::asString);
+-                return ComponentUtils.updateForEntity(p_237401_, this.separator, p_237402_, p_237403_)
++                return ComponentUtils.updateSeparatorForEntity(p_237401_, this.separator, p_237402_, p_237403_) // Paper - validate separator
+                     .map(
+                         p_237415_ -> stream1.map(Component::literal)
+                             .reduce((p_237424_, p_237425_) -> p_237424_.append(p_237415_).append(p_237425_))

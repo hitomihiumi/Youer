@@ -1,5 +1,33 @@
 --- a/net/minecraft/resources/ResourceLocation.java
 +++ b/net/minecraft/resources/ResourceLocation.java
+@@ -23,14 +_,22 @@
+     public static final char NAMESPACE_SEPARATOR = ':';
+     public static final String DEFAULT_NAMESPACE = "minecraft";
+     public static final String REALMS_NAMESPACE = "realms";
++    public static final String PAPER_NAMESPACE = "paper"; // Paper
+     private final String namespace;
+     private final String path;
+ 
+-    private ResourceLocation(String p_135811_, String p_135812_) {
+-        assert isValidNamespace(p_135811_);
+-
+-        assert isValidPath(p_135812_);
+-
++    private ResourceLocation(String namespace, String path) {
++        assert isValidNamespace(namespace);
++
++        assert isValidPath(path);
++
++        // Paper start - Validate ResourceLocation
++        // Check for the max network string length (capped at Short.MAX_VALUE) as well as the max bytes of a StringTag (length written as an unsigned short)
++        final String resourceLocation = p_135811_ + ":" + p_135812_;
++        if (resourceLocation.length() > Short.MAX_VALUE || io.netty.buffer.ByteBufUtil.utf8MaxBytes(resourceLocation) > 2 * Short.MAX_VALUE + 1) {
++            throw new ResourceLocationException("Resource location too long: " + resourceLocation);
++        }
++        // Paper end - Validate ResourceLocation
+         this.namespace = p_135811_;
+         this.path = p_135812_;
+     }
 @@ -156,6 +_,12 @@
          return i;
      }
@@ -13,3 +41,21 @@
      public String toDebugFileName() {
          return this.toString().replace('/', '_').replace(':', '_');
      }
+@@ -245,7 +_,7 @@
+ 
+     private static String assertValidNamespace(String p_250769_, String p_249616_) {
+         if (!isValidNamespace(p_250769_)) {
+-            throw new ResourceLocationException("Non [a-z0-9_.-] character in namespace of location: " + p_250769_ + ":" + p_249616_);
++            throw new ResourceLocationException("Non [a-z0-9_.-] character in namespace of location: " + org.apache.commons.lang3.StringUtils.normalizeSpace(p_250769_) + ":" + org.apache.commons.lang3.StringUtils.normalizeSpace(p_249616_)); // Paper - Sanitize ResourceLocation error logging
+         } else {
+             return p_250769_;
+         }
+@@ -266,7 +_,7 @@
+ 
+     private static String assertValidPath(String p_251418_, String p_248828_) {
+         if (!isValidPath(p_248828_)) {
+-            throw new ResourceLocationException("Non [a-z0-9/._-] character in path of location: " + p_251418_ + ":" + p_248828_);
++            throw new ResourceLocationException("Non [a-z0-9/._-] character in path of location: " + p_251418_ + ":" + org.apache.commons.lang3.StringUtils.normalizeSpace(p_248828_)); // Paper - Sanitize ResourceLocation error logging
+         } else {
+             return p_248828_;
+         }

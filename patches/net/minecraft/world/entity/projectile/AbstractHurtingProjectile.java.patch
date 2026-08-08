@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/projectile/AbstractHurtingProjectile.java
 +++ b/net/minecraft/world/entity/projectile/AbstractHurtingProjectile.java
+@@ -20,6 +_,8 @@
+     public static final double INITAL_ACCELERATION_POWER = 0.1;
+     public static final double DEFLECTION_SCALE = 0.5;
+     public double accelerationPower = 0.1;
++    public float bukkitYield = 1; // CraftBukkit
++    public boolean isIncendiary = true; // CraftBukkit
+ 
+     protected AbstractHurtingProjectile(EntityType<? extends AbstractHurtingProjectile> p_36833_, Level p_36834_) {
+         super(p_36833_, p_36834_);
 @@ -73,7 +_,8 @@
          if (this.level().isClientSide || (entity == null || !entity.isRemoved()) && this.level().hasChunkAt(this.blockPosition())) {
              HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, this.getClipType());
@@ -10,12 +19,20 @@
                  vec3 = hitresult.getLocation();
              } else {
                  vec3 = this.position().add(this.getDeltaMovement());
-@@ -87,7 +_,7 @@
+@@ -87,13 +_,13 @@
                  this.igniteForSeconds(1.0F);
              }
  
 -            if (hitresult.getType() != HitResult.Type.MISS && this.isAlive()) {
+-                this.hitTargetOrDeflectSelf(hitresult);
 +            if (hitresult.getType() != HitResult.Type.MISS && this.isAlive() && impacted) {
-                 this.hitTargetOrDeflectSelf(hitresult);
++                this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
              }
+ 
+             this.createParticleTrail();
+         } else {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
  

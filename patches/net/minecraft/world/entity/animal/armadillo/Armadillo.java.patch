@@ -1,6 +1,44 @@
 --- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 +++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
-@@ -305,7 +_,7 @@
+@@ -143,10 +_,12 @@
+         ArmadilloAi.updateActivity(this);
+         profilerfiller.pop();
+         if (this.isAlive() && !this.isBaby() && --this.scuteTime <= 0) {
++            this.forceDrops = true; // CraftBukkit
+             if (this.dropFromGiftLootTable(p_376915_, BuiltInLootTables.ARMADILLO_SHED, this::spawnAtLocation)) {
+                 this.playSound(SoundEvents.ARMADILLO_SCUTE_DROP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);
+                 this.gameEvent(GameEvent.ENTITY_PLACE);
+             }
++            this.forceDrops = false; // CraftBukkit
+ 
+             this.scuteTime = this.pickNextScuteDropTime();
+         }
+@@ -288,24 +_,28 @@
+     }
+ 
+     @Override
+-    protected void actuallyHurt(ServerLevel p_376922_, DamageSource p_316204_, float p_316801_) {
+-        super.actuallyHurt(p_376922_, p_316204_, p_316801_);
++    // CraftBukkit start - void -> boolean
++    public boolean actuallyHurt(ServerLevel level, DamageSource damageSource, float amount, org.bukkit.event.entity.EntityDamageEvent event) {
++        boolean damageResult = super.actuallyHurt(level, damageSource, amount, event);
++        if (!damageResult) return false;
++        // CraftBukkit end
+         if (!this.isNoAi() && !this.isDeadOrDying()) {
+-            if (p_316204_.getEntity() instanceof LivingEntity) {
++            if (damageSource.getEntity() instanceof LivingEntity) {
+                 this.getBrain().setMemoryWithExpiry(MemoryModuleType.DANGER_DETECTED_RECENTLY, true, 80L);
+                 if (this.canStayRolledUp()) {
+                     this.rollUp();
+                 }
+-            } else if (p_316204_.is(DamageTypeTags.PANIC_ENVIRONMENTAL_CAUSES)) {
++            } else if (damageSource.is(DamageTypeTags.PANIC_ENVIRONMENTAL_CAUSES)) {
+                 this.rollOut();
+             }
+         }
++        return true; // CraftBukkit
+     }
+ 
      @Override
      public InteractionResult mobInteract(Player p_316559_, InteractionHand p_316119_) {
          ItemStack itemstack = p_316559_.getItemInHand(p_316119_);
@@ -9,3 +47,13 @@
              itemstack.hurtAndBreak(16, p_316559_, getSlotForHand(p_316119_));
              return InteractionResult.SUCCESS;
          } else {
+@@ -318,7 +_,9 @@
+             return false;
+         } else {
+             if (this.level() instanceof ServerLevel serverlevel) {
++                this.forceDrops = true; // CraftBukkit
+                 this.spawnAtLocation(serverlevel, new ItemStack(Items.ARMADILLO_SCUTE));
++                this.forceDrops = false; // CraftBukkit
+                 this.gameEvent(GameEvent.ENTITY_INTERACT);
+                 this.playSound(SoundEvents.ARMADILLO_BRUSH);
+             }

@@ -1,0 +1,19 @@
+--- a/net/minecraft/server/commands/SummonCommand.java
++++ b/net/minecraft/server/commands/SummonCommand.java
+@@ -85,6 +_,7 @@
+             ServerLevel serverlevel = p_270582_.getLevel();
+             Entity entity = EntityType.loadEntityRecursive(compoundtag, serverlevel, EntitySpawnReason.COMMAND, p_396566_ -> {
+                 p_396566_.snapTo(p_270366_.x, p_270366_.y, p_270366_.z, p_396566_.getYRot(), p_396566_.getXRot());
++                p_396566_.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.COMMAND; // Paper - Entity#getEntitySpawnReason
+                 return p_396566_;
+             });
+             if (entity == null) {
+@@ -97,7 +_,7 @@
+                         );
+                 }
+ 
+-                if (!serverlevel.tryAddFreshEntityWithPassengers(entity)) {
++                if (!serverlevel.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.COMMAND)) { // CraftBukkit - pass a spawn reason of "COMMAND"
+                     throw ERROR_DUPLICATE_UUID.create();
+                 } else {
+                     return entity;

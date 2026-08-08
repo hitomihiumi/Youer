@@ -1,0 +1,96 @@
+--- a/net/minecraft/world/level/block/RedstoneTorchBlock.java
++++ b/net/minecraft/world/level/block/RedstoneTorchBlock.java
+@@ -24,7 +_,7 @@
+ public class RedstoneTorchBlock extends BaseTorchBlock {
+     public static final MapCodec<RedstoneTorchBlock> CODEC = simpleCodec(RedstoneTorchBlock::new);
+     public static final BooleanProperty LIT = BlockStateProperties.LIT;
+-    private static final Map<BlockGetter, List<RedstoneTorchBlock.Toggle>> RECENT_TOGGLES = new WeakHashMap<>();
++    // Paper - Faster redstone torch rapid clock removal; Move the mapped list to World
+     public static final int RECENT_TOGGLE_TIMER = 60;
+     public static final int MAX_RECENT_TOGGLES = 8;
+     public static final int RESTART_DELAY = 160;
+@@ -70,24 +_,53 @@
+     }
+ 
+     @Override
+-    protected void tick(BlockState p_221949_, ServerLevel p_221950_, BlockPos p_221951_, RandomSource p_221952_) {
+-        boolean flag = this.hasNeighborSignal(p_221950_, p_221951_, p_221949_);
+-        List<RedstoneTorchBlock.Toggle> list = RECENT_TOGGLES.get(p_221950_);
+-
+-        while (list != null && !list.isEmpty() && p_221950_.getGameTime() - list.get(0).when > 60L) {
+-            list.remove(0);
++    protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
++        boolean hasNeighborSignal = this.hasNeighborSignal(level, pos, state);
++        // Paper start - Faster redstone torch rapid clock removal
++        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos = level.redstoneUpdateInfos;
++        if (redstoneUpdateInfos != null) {
++            RedstoneTorchBlock.Toggle curr;
++            while ((curr = redstoneUpdateInfos.peek()) != null && level.getGameTime() - curr.when > 60L) {
++                redstoneUpdateInfos.poll();
++            }
+         }
+-
+-        if (p_221949_.getValue(LIT)) {
+-            if (flag) {
+-                p_221950_.setBlock(p_221951_, p_221949_.setValue(LIT, false), 3);
+-                if (isToggledTooFrequently(p_221950_, p_221951_, true)) {
+-                    p_221950_.levelEvent(1502, p_221951_, 0);
+-                    p_221950_.scheduleTick(p_221951_, p_221950_.getBlockState(p_221951_).getBlock(), 160);
+-                }
+-            }
+-        } else if (!flag && !isToggledTooFrequently(p_221950_, p_221951_, false)) {
+-            p_221950_.setBlock(p_221951_, p_221949_.setValue(LIT, true), 3);
++        // Paper end - Faster redstone torch rapid clock removal
++
++        // CraftBukkit start
++        org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++        int oldCurrent = state.getValue(LIT) ? 15 : 0;
++
++        org.bukkit.event.block.BlockRedstoneEvent event = new org.bukkit.event.block.BlockRedstoneEvent(block, oldCurrent, oldCurrent);
++        // CraftBukkit end
++        if (state.getValue(LIT)) {
++            if (hasNeighborSignal) {
++                // CraftBukkit start
++                if (oldCurrent != 0) {
++                    event.setNewCurrent(0);
++                    manager.callEvent(event);
++                    if (event.getNewCurrent() != 0) {
++                        return;
++                    }
++                }
++                // CraftBukkit end
++                level.setBlock(pos, state.setValue(LIT, false), 3);
++                if (isToggledTooFrequently(level, pos, true)) {
++                    level.levelEvent(1502, pos, 0);
++                    level.scheduleTick(pos, level.getBlockState(pos).getBlock(), 160);
++                }
++            }
++        } else if (!hasNeighborSignal && !isToggledTooFrequently(level, pos, false)) {
++            // CraftBukkit start
++            if (oldCurrent != 15) {
++                event.setNewCurrent(15);
++                manager.callEvent(event);
++                if (event.getNewCurrent() != 15) {
++                    return;
++                }
++            }
++            // CraftBukkit end
++            level.setBlock(pos, state.setValue(LIT, true), 3);
+         }
+     }
+ 
+@@ -124,7 +_,12 @@
+     }
+ 
+     private static boolean isToggledTooFrequently(Level p_55685_, BlockPos p_55686_, boolean p_55687_) {
+-        List<RedstoneTorchBlock.Toggle> list = RECENT_TOGGLES.computeIfAbsent(p_55685_, p_55680_ -> Lists.newArrayList());
++        // Paper start - Faster redstone torch rapid clock removal
++        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> list = p_55685_.redstoneUpdateInfos;
++        if (list == null) {
++            list = p_55685_.redstoneUpdateInfos = new java.util.ArrayDeque<>();
++        }
++        // Paper end - Faster redstone torch rapid clock removal
+         if (p_55687_) {
+             list.add(new RedstoneTorchBlock.Toggle(p_55686_.immutable(), p_55685_.getGameTime()));
+         }

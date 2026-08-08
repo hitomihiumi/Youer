@@ -1,0 +1,54 @@
+--- a/net/minecraft/world/entity/raid/Raider.java
++++ b/net/minecraft/world/entity/raid/Raider.java
+@@ -217,17 +_,24 @@
+         if (this.hasActiveRaid()
+             && !flag
+             && ItemStack.matches(itemstack, Raid.getOminousBannerInstance(this.registryAccess().lookupOrThrow(Registries.BANNER_PATTERN)))) {
++            // Paper start - EntityPickupItemEvent fixes
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, p_37866_, 0, false).isCancelled()) {
++                return;
++            }
++            // Paper end - EntityPickupItemEvent fixes
+             EquipmentSlot equipmentslot = EquipmentSlot.HEAD;
+             ItemStack itemstack1 = this.getItemBySlot(equipmentslot);
+             double d0 = this.getDropChances().byEquipment(equipmentslot);
+             if (!itemstack1.isEmpty() && Math.max(this.random.nextFloat() - 0.1F, 0.0F) < d0) {
++                this.forceDrops = true; // Paper - Add missing forceDrop toggles
+                 this.spawnAtLocation(p_376160_, itemstack1);
++                this.forceDrops = false; // Paper - Add missing forceDrop toggles
+             }
+ 
+             this.onItemPickup(p_37866_);
+             this.setItemSlot(equipmentslot, itemstack);
+             this.take(p_37866_, itemstack.getCount());
+-            p_37866_.discard();
++            p_37866_.discard(org.bukkit.event.p_37866_.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             this.getCurrentRaid().setLeader(this.getWave(), this);
+             this.setPatrolLeader(true);
+         } else {
+@@ -301,7 +_,7 @@
+ 
+             for (Raider raider : getServerLevel(this.mob)
+                 .getNearbyEntities(Raider.class, this.shoutTargeting, this.mob, this.mob.getBoundingBox().inflate(8.0, 8.0, 8.0))) {
+-                raider.setTarget(this.mob.getTarget());
++                raider.setTarget(this.mob.getTarget(), org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER); // CraftBukkit
+             }
+         }
+ 
+@@ -312,7 +_,7 @@
+             if (livingentity != null) {
+                 for (Raider raider : getServerLevel(this.mob)
+                     .getNearbyEntities(Raider.class, this.shoutTargeting, this.mob, this.mob.getBoundingBox().inflate(8.0, 8.0, 8.0))) {
+-                    raider.setTarget(livingentity);
++                    raider.setTarget(livingentity, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER); // CraftBukkit
+                     raider.setAggressive(true);
+                 }
+ 
+@@ -399,6 +_,7 @@
+         }
+ 
+         private boolean cannotPickUpBanner() {
++            if (!getServerLevel(this.mob).getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_MOBGRIEFING)) return true; // Paper - respect game and entity rules for picking up items
+             if (!this.mob.hasActiveRaid()) {
+                 return true;
+             } else if (this.mob.getCurrentRaid().isOver()) {

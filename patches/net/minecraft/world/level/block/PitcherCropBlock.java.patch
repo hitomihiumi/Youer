@@ -16,12 +16,31 @@
      }
  
      @Override
-@@ -139,7 +_,7 @@
+@@ -118,6 +_,7 @@
+ 
+     @Override
+     public void entityInside(BlockState p_279266_, Level p_279469_, BlockPos p_279119_, Entity p_279372_, InsideBlockEffectApplier p_404719_) {
++        if (!new io.papermc.paper.event.p_279372_.EntityInsideBlockEvent(p_279372_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_279469_, p_279119_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (p_279469_ instanceof ServerLevel serverlevel && p_279372_ instanceof Ravager && serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
+             serverlevel.destroyBlock(p_279119_, true, p_279372_);
+         }
+@@ -139,8 +_,8 @@
  
      @Override
      public void randomTick(BlockState p_277950_, ServerLevel p_277589_, BlockPos p_277937_, RandomSource p_277887_) {
 -        float f = CropBlock.getGrowthSpeed(this, p_277589_, p_277937_);
+-        boolean flag = p_277887_.nextInt((int)(25.0F / f) + 1) == 0;
 +        float f = CropBlock.getGrowthSpeed(p_277950_, p_277589_, p_277937_);
-         boolean flag = p_277887_.nextInt((int)(25.0F / f) + 1) == 0;
++        boolean flag = p_277887_.nextFloat() < (p_277589_.spigotConfig.pitcherPlantModifier / (100.0F * (Math.floor(25.0F / f) + 1))); // Paper - Fix Spigot growth modifiers
          if (flag) {
              this.grow(p_277589_, p_277950_, p_277937_, 1);
+         }
+@@ -150,7 +_,7 @@
+         int i = Math.min(p_277349_.getValue(AGE) + p_277498_, 4);
+         if (this.canGrow(p_277975_, p_277585_, p_277349_, i)) {
+             BlockState blockstate = p_277349_.setValue(AGE, i);
+-            p_277975_.setBlock(p_277585_, blockstate, 2);
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_277975_, p_277585_, blockstate, 2)) return; // Paper
+             if (isDouble(i)) {
+                 p_277975_.setBlock(p_277585_.above(), blockstate.setValue(HALF, DoubleBlockHalf.UPPER), 3);
+             }

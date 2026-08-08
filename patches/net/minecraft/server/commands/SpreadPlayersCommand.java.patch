@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/commands/SpreadPlayersCommand.java
 +++ b/net/minecraft/server/commands/SpreadPlayersCommand.java
-@@ -259,16 +_,23 @@
+@@ -259,16 +_,24 @@
                  spreadplayerscommand$position = p_138732_[i++];
              }
  
@@ -28,6 +28,7 @@
 +                          entity.getYRot(),
 +                          entity.getXRot(),
 +                          true
++                          , org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND // CraftBukkit - handle teleport reason
 +                );
 +            }
              double d2 = Double.MAX_VALUE;

@@ -1,0 +1,46 @@
+--- a/net/minecraft/world/level/block/CommandBlock.java
++++ b/net/minecraft/world/level/block/CommandBlock.java
+@@ -69,17 +_,26 @@
+         }
+     }
+ 
+-    private void setPoweredAndUpdate(Level p_361576_, BlockPos p_364447_, CommandBlockEntity p_365383_, boolean p_361062_) {
+-        boolean flag = p_365383_.isPowered();
+-        if (p_361062_ != flag) {
+-            p_365383_.setPowered(p_361062_);
+-            if (p_361062_) {
+-                if (p_365383_.isAutomatic() || p_365383_.getMode() == CommandBlockEntity.Mode.SEQUENCE) {
++    private void setPoweredAndUpdate(Level level, BlockPos pos, CommandBlockEntity blockEntity, boolean powered) {
++        boolean isPowered = blockEntity.isPowered();
++        // CraftBukkit start
++        org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++        int old = isPowered ? 15 : 0;
++        int current = powered ? 15 : 0;
++
++        org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(bukkitBlock, old, current);
++        level.getCraftServer().getPluginManager().callEvent(eventRedstone);
++        powered = eventRedstone.getNewCurrent() > 0;
++        // CraftBukkit end
++        if (powered != isPowered) {
++            blockEntity.setPowered(powered);
++            if (powered) {
++                if (blockEntity.isAutomatic() || blockEntity.getMode() == CommandBlockEntity.Mode.SEQUENCE) {
+                     return;
+                 }
+ 
+-                p_365383_.markConditionMet();
+-                p_361576_.scheduleTick(p_364447_, this, 1);
++                blockEntity.markConditionMet();
++                level.scheduleTick(pos, this, 1);
+             }
+         }
+     }
+@@ -127,7 +_,7 @@
+     @Override
+     protected InteractionResult useWithoutItem(BlockState p_51825_, Level p_51826_, BlockPos p_51827_, Player p_51828_, BlockHitResult p_51830_) {
+         BlockEntity blockentity = p_51826_.getBlockEntity(p_51827_);
+-        if (blockentity instanceof CommandBlockEntity && p_51828_.canUseGameMasterBlocks()) {
++        if (blockentity instanceof CommandBlockEntity && (p_51828_.canUseGameMasterBlocks() || (p_51828_.isCreative() && p_51828_.getBukkitEntity().hasPermission("minecraft.commandblock")))) { // Paper - command block permission
+             p_51828_.openCommandBlock((CommandBlockEntity)blockentity);
+             return InteractionResult.SUCCESS;
+         } else {

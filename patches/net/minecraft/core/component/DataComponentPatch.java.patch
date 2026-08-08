@@ -1,8 +1,133 @@
 --- a/net/minecraft/core/component/DataComponentPatch.java
 +++ b/net/minecraft/core/component/DataComponentPatch.java
-@@ -250,6 +_,7 @@
+@@ -100,51 +_,64 @@
+                 }
+             }
+ 
+-            public void encode(RegistryFriendlyByteBuf p_412402_, DataComponentPatch p_412784_) {
+-                if (p_412784_.isEmpty()) {
+-                    p_412402_.writeVarInt(0);
+-                    p_412402_.writeVarInt(0);
++            @Override
++            public void encode(RegistryFriendlyByteBuf buffer, DataComponentPatch value) {
++                if (value.isEmpty()) {
++                    buffer.writeVarInt(0);
++                    buffer.writeVarInt(0);
+                 } else {
++                    // Paper start - data sanitization for items
++                    final io.papermc.paper.util.sanitizer.ItemObfuscationSession itemObfuscationSession = value.map.isEmpty()
++                        ? null // Avoid thread local lookup of current session if it won't be needed anyway.
++                        : io.papermc.paper.util.sanitizer.ItemObfuscationSession.currentSession();
++                    // Paper end - data sanitization for items
+                     int i = 0;
+-                    int j = 0;
++                    int i1 = 0;
+ 
+                     for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Optional<?>> entry : Reference2ObjectMaps.fastIterable(
+-                        p_412784_.map
++                        value.map
+                     )) {
+                         if (entry.getValue().isPresent()) {
+-                            i++;
++                            if (!io.papermc.paper.util.sanitizer.ItemComponentSanitizer.shouldDrop(itemObfuscationSession, entry.getKey())) i++; // Paper - data sanitization for items
+                         } else {
+-                            j++;
++                            i1++;
+                         }
+                     }
+ 
+-                    p_412402_.writeVarInt(i);
+-                    p_412402_.writeVarInt(j);
++                    buffer.writeVarInt(i);
++                    buffer.writeVarInt(i1);
+ 
+-                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Optional<?>> entry1 : Reference2ObjectMaps.fastIterable(
+-                        p_412784_.map
++                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Optional<?>> entryx : Reference2ObjectMaps.fastIterable(
++                        value.map
+                     )) {
+-                        Optional<?> optional = entry1.getValue();
++                        Optional<?> optional = entryx.getValue();
++                        optional = io.papermc.paper.util.sanitizer.ItemComponentSanitizer.override(itemObfuscationSession, entryx.getKey(), entryx.getValue()); // Paper - data sanitization for items
+                         if (optional.isPresent()) {
+-                            DataComponentType<?> datacomponenttype = entry1.getKey();
+-                            DataComponentType.STREAM_CODEC.encode(p_412402_, datacomponenttype);
+-                            this.encodeComponent(p_412402_, datacomponenttype, optional.get());
++                            DataComponentType<?> dataComponentType = entryx.getKey();
++                            DataComponentType.STREAM_CODEC.encode(buffer, dataComponentType);
++                            this.encodeComponent(buffer, dataComponentType, optional.get());
+                         }
+                     }
+ 
+-                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Optional<?>> entry2 : Reference2ObjectMaps.fastIterable(
+-                        p_412784_.map
++                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Optional<?>> entryxx : Reference2ObjectMaps.fastIterable(
++                        value.map
+                     )) {
+-                        if (entry2.getValue().isEmpty()) {
+-                            DataComponentType<?> datacomponenttype1 = entry2.getKey();
+-                            DataComponentType.STREAM_CODEC.encode(p_412402_, datacomponenttype1);
++                        if (entryxx.getValue().isEmpty()) {
++                            DataComponentType<?> dataComponentType1 = entryxx.getKey();
++                            DataComponentType.STREAM_CODEC.encode(buffer, dataComponentType1);
+                         }
+                     }
+                 }
+             }
+ 
+-            private <T> void encodeComponent(RegistryFriendlyByteBuf p_412610_, DataComponentType<T> p_412314_, Object p_412095_) {
+-                p_412279_.apply(p_412314_).encode(p_412610_, (T)p_412095_);
++            private <T> void encodeComponent(RegistryFriendlyByteBuf buffer, DataComponentType<T> component, Object value) {
++                // Paper start - codec errors of random anonymous classes are useless
++                try {
++                    p_412279_.apply(component).encode(buffer, (T)value);
++                } catch (final Exception e) {
++                    throw new RuntimeException("Error encoding component " + component, e);
++                }
++                // Paper end - codec errors of random anonymous classes are useless
+             }
+         };
+     }
+@@ -249,7 +_,44 @@
+         Builder() {
          }
  
++        // CraftBukkit start
++        public void copy(DataComponentPatch orig) {
++            this.map.putAll(orig.map);
++        }
++
++        public void clear(DataComponentType<?> type) {
++            this.map.remove(type);
++        }
++
++        public boolean isSet(DataComponentType<?> type) {
++            return this.map.containsKey(type);
++        }
++
++        public boolean isEmpty() {
++            return this.map.isEmpty();
++        }
++
++        @Override
++        public boolean equals(Object object) {
++            if (this == object) {
++                return true;
++            }
++
++            if (object instanceof DataComponentPatch.Builder patch) {
++                return this.map.equals(patch.map);
++            }
++
++            return false;
++        }
++
++        @Override
++        public int hashCode() {
++            return this.map.hashCode();
++        }
++        // CraftBukkit end
++
          public <T> DataComponentPatch.Builder set(DataComponentType<T> p_332004_, T p_331566_) {
 +            net.neoforged.neoforge.common.CommonHooks.validateComponent(p_331566_);
              this.map.put(p_332004_, Optional.of(p_331566_));

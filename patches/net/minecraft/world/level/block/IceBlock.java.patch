@@ -1,0 +1,45 @@
+--- a/net/minecraft/world/level/block/IceBlock.java
++++ b/net/minecraft/world/level/block/IceBlock.java
+@@ -32,17 +_,22 @@
+     }
+ 
+     @Override
+-    public void playerDestroy(Level p_54157_, Player p_54158_, BlockPos p_54159_, BlockState p_54160_, @Nullable BlockEntity p_54161_, ItemStack p_54162_) {
+-        super.playerDestroy(p_54157_, p_54158_, p_54159_, p_54160_, p_54161_, p_54162_);
+-        if (!EnchantmentHelper.hasTag(p_54162_, EnchantmentTags.PREVENTS_ICE_MELTING)) {
+-            if (p_54157_.dimensionType().ultraWarm()) {
+-                p_54157_.removeBlock(p_54159_, false);
++    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity te, ItemStack stack, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
++        super.playerDestroy(level, player, pos, state, te, stack, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion
++        // Paper start - Improve Block#breakNaturally API
++        this.afterDestroy(level, pos, stack);
++    }
++    public void afterDestroy(Level level, BlockPos pos, ItemStack stack) {
++        // Paper end - Improve Block#breakNaturally API
++        if (!EnchantmentHelper.hasTag(stack, EnchantmentTags.PREVENTS_ICE_MELTING)) {
++            if (level.dimensionType().ultraWarm()) {
++                level.removeBlock(pos, false);
+                 return;
+             }
+ 
+-            BlockState blockstate = p_54157_.getBlockState(p_54159_.below());
+-            if (blockstate.blocksMotion() || blockstate.liquid()) {
+-                p_54157_.setBlockAndUpdate(p_54159_, meltsInto());
++            BlockState blockState = level.getBlockState(pos.below());
++            if (blockState.blocksMotion() || blockState.liquid()) {
++                level.setBlockAndUpdate(pos, meltsInto());
+             }
+         }
+     }
+@@ -55,6 +_,11 @@
+     }
+ 
+     protected void melt(BlockState p_54169_, Level p_54170_, BlockPos p_54171_) {
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_54170_, p_54171_, p_54170_.dimensionType().ultraWarm() ? Blocks.AIR.defaultBlockState() : Blocks.WATER.defaultBlockState()).isCancelled()) {
++            return;
++        }
++        // CraftBukkit end
+         if (p_54170_.dimensionType().ultraWarm()) {
+             p_54170_.removeBlock(p_54171_, false);
+         } else {

@@ -1,0 +1,44 @@
+--- a/net/minecraft/network/CipherEncoder.java
++++ b/net/minecraft/network/CipherEncoder.java
+@@ -5,14 +_,31 @@
+ import io.netty.handler.codec.MessageToByteEncoder;
+ import javax.crypto.Cipher;
+ 
+-public class CipherEncoder extends MessageToByteEncoder<ByteBuf> {
+-    private final CipherBase cipher;
+-
+-    public CipherEncoder(Cipher p_129425_) {
+-        this.cipher = new CipherBase(p_129425_);
+-    }
+-
+-    protected void encode(ChannelHandlerContext p_129427_, ByteBuf p_129428_, ByteBuf p_129429_) throws Exception {
+-        this.cipher.encipher(p_129428_, p_129429_);
+-    }
++public class CipherEncoder extends io.netty.handler.codec.MessageToMessageEncoder<ByteBuf> { // Paper - Use Velocity cipher; change superclass
++    private final com.velocitypowered.natives.encryption.VelocityCipher cipher; // Paper - Use Velocity cipher
++
++    public CipherEncoder(com.velocitypowered.natives.encryption.VelocityCipher cipher) { // Paper - Use Velocity cipher
++        this.cipher = cipher; // Paper - Use Velocity cipher
++    }
++
++    // Paper start - Use Velocity cipher
++    @Override
++    protected void encode(ChannelHandlerContext context, ByteBuf message, java.util.List<Object> list) throws Exception {
++        ByteBuf compatible = com.velocitypowered.natives.util.MoreByteBufUtils.ensureCompatible(context.alloc(), this.cipher, message);
++        try {
++            this.cipher.process(compatible);
++            list.add(compatible);
++        } catch (Exception e) {
++            compatible.release(); // compatible will never be used if we throw an exception
++            throw e;
++        }
++        // Paper end - Use Velocity cipher
++    }
++
++    // Paper start - Use Velocity cipher
++    @Override
++    public void handlerRemoved(ChannelHandlerContext ctx) {
++        this.cipher.close();
++    }
++    // Paper end - Use Velocity cipher
+ }
