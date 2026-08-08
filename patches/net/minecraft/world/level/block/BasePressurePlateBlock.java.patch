@@ -1,0 +1,77 @@
+--- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
++++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
+@@ -82,6 +_,7 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_49314_, Level p_49315_, BlockPos p_49316_, Entity p_49317_, InsideBlockEffectApplier p_405011_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_49317_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_49315_, p_49316_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (!p_49315_.isClientSide) {
+             int i = this.getSignalForState(p_49314_);
+             if (i == 0) {
+@@ -90,27 +_,37 @@
+         }
+     }
+ 
+-    private void checkPressed(@Nullable Entity p_152144_, Level p_152145_, BlockPos p_152146_, BlockState p_152147_, int p_152148_) {
+-        int i = this.getSignalStrength(p_152145_, p_152146_);
+-        boolean flag = p_152148_ > 0;
+-        boolean flag1 = i > 0;
+-        if (p_152148_ != i) {
+-            BlockState blockstate = this.setSignalForState(p_152147_, i);
+-            p_152145_.setBlock(p_152146_, blockstate, 2);
+-            this.updateNeighbours(p_152145_, p_152146_);
+-            p_152145_.setBlocksDirty(p_152146_, p_152147_, blockstate);
++    private void checkPressed(@Nullable Entity entity, Level level, BlockPos pos, BlockState state, int currentSignal) {
++        int signalStrength = this.getSignalStrength(level, pos);
++        boolean flag = currentSignal > 0;
++        boolean flag1 = signalStrength > 0;
++
++        // CraftBukkit start - Interact Pressure Plate
++        if (flag != flag1) {
++            org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), currentSignal, signalStrength);
++            eventRedstone.callEvent();
++
++            flag1 = eventRedstone.getNewCurrent() > 0;
++            signalStrength = eventRedstone.getNewCurrent();
++        }
++        // CraftBukkit end
++        if (currentSignal != signalStrength) {
++            BlockState blockState = this.setSignalForState(state, signalStrength);
++            level.setBlock(pos, blockState, 2);
++            this.updateNeighbours(level, pos);
++            level.setBlocksDirty(pos, state, blockState);
+         }
+ 
+         if (!flag1 && flag) {
+-            p_152145_.playSound(null, p_152146_, this.type.pressurePlateClickOff(), SoundSource.BLOCKS);
+-            p_152145_.gameEvent(p_152144_, GameEvent.BLOCK_DEACTIVATE, p_152146_);
++            level.playSound(null, pos, this.type.pressurePlateClickOff(), SoundSource.BLOCKS);
++            level.gameEvent(entity, GameEvent.BLOCK_DEACTIVATE, pos);
+         } else if (flag1 && !flag) {
+-            p_152145_.playSound(null, p_152146_, this.type.pressurePlateClickOn(), SoundSource.BLOCKS);
+-            p_152145_.gameEvent(p_152144_, GameEvent.BLOCK_ACTIVATE, p_152146_);
++            level.playSound(null, pos, this.type.pressurePlateClickOn(), SoundSource.BLOCKS);
++            level.gameEvent(entity, GameEvent.BLOCK_ACTIVATE, pos);
+         }
+ 
+         if (flag1) {
+-            p_152145_.scheduleTick(new BlockPos(p_152146_), this, this.getPressedTime());
++            level.scheduleTick(new BlockPos(pos), this, this.getPressedTime());
+         }
+     }
+ 
+@@ -142,7 +_,13 @@
+     }
+ 
+     protected static int getEntityCount(Level p_289656_, AABB p_289647_, Class<? extends Entity> p_289686_) {
+-        return p_289656_.getEntitiesOfClass(p_289686_, p_289647_, EntitySelector.NO_SPECTATORS.and(p_289691_ -> !p_289691_.isIgnoringBlockTriggers())).size();
++        // CraftBukkit start
++        return BasePressurePlateBlock.getEntities(p_289656_, p_289647_, p_289686_).size();
++    }
++
++    protected static <T extends Entity> java.util.List<T> getEntities(Level level, AABB box, Class<T> entityClass) {
++        return level.getEntitiesOfClass(entityClass, box, EntitySelector.NO_SPECTATORS.and(entity -> !entity.isIgnoringBlockTriggers()));
++        // CraftBukkit end
+     }
+ 
+     protected abstract int getSignalStrength(Level p_49336_, BlockPos p_49337_);

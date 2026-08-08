@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+@@ -38,7 +_,7 @@
+     private static final boolean DEFAULT_EXTENDING = false;
+     private static final boolean DEFAULT_SOURCE = false;
+     private BlockState movedState = DEFAULT_BLOCK_STATE;
+-    private Direction direction;
++    private Direction direction = Direction.DOWN; // Paper - default to first value to avoid NPE
+     private boolean extending = false;
+     private boolean isSourcePiston = false;
+     private static final ThreadLocal<Direction> NOCLIP = ThreadLocal.withInitial(() -> null);
 @@ -119,7 +_,7 @@
              List<Entity> list = p_155911_.getEntities(null, PistonMath.getMovementArea(aabb, direction, d0).minmax(aabb));
              if (!list.isEmpty()) {
@@ -9,3 +18,23 @@
                  Iterator iterator = list.iterator();
  
                  while (true) {
+@@ -152,6 +_,10 @@
+                                 }
+ 
+                                 entity.setDeltaMovement(d1, d2, d3);
++                                // Paper - EAR items stuck in slime pushed by a p_155914_
++                                entity.activatedTick = Math.max(entity.activatedTick, net.minecraft.server.MinecraftServer.currentTick + 10);
++                                entity.activatedImmunityTick = Math.max(entity.activatedImmunityTick, net.minecraft.server.MinecraftServer.currentTick + 10);
++                                // Paper end
+                                 break;
+                             }
+                         }
+@@ -315,7 +_,7 @@
+                 if (p_155916_.getBlockState(p_155917_).is(Blocks.MOVING_PISTON)) {
+                     BlockState blockstate = Block.updateFromNeighbourShapes(p_155919_.movedState, p_155916_, p_155917_);
+                     if (blockstate.isAir()) {
+-                        p_155916_.setBlock(p_155917_, p_155919_.movedState, 340);
++                        p_155916_.setBlock(p_155917_, p_155919_.movedState, io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPistonDuplication ? 340 : (340 | Block.UPDATE_CLIENTS)); // Paper - fix a variety of piston desync dupes; force notify (flag 2), it's possible the set type by the piston block (which doesn't notify) set this block to air
+                         Block.updateOrDestroy(p_155919_.movedState, blockstate, p_155916_, p_155917_, 3);
+                     } else {
+                         if (blockstate.hasProperty(BlockStateProperties.WATERLOGGED) && blockstate.getValue(BlockStateProperties.WATERLOGGED)) {

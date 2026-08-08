@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/Pig.java
 +++ b/net/minecraft/world/entity/animal/Pig.java
-@@ -208,13 +_,14 @@
+@@ -208,14 +_,22 @@
  
      @Override
      public void thunderHit(ServerLevel p_29473_, LightningBolt p_29474_) {
@@ -12,7 +12,16 @@
                  }
  
                  p_427079_.setPersistenceRequired();
+-            });
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, p_427079_);
-             });
++                // CraftBukkit start
++            }, null, null);
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callPigZapEvent(this, p_29474_, zombifiedpiglin).isCancelled()) {
++                return;
++            }
++            p_29473_.addFreshEntity(zombifiedpiglin, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING);
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
++            // CraftBukkit end
              if (zombifiedpiglin == null) {
                  super.thunderHit(p_29473_, p_29474_);
+             }

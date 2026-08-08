@@ -1,15 +1,38 @@
 --- a/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
 +++ b/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
-@@ -42,10 +_,11 @@
+@@ -42,13 +_,33 @@
  
      @Override
      protected void randomTick(BlockState p_221350_, ServerLevel p_221351_, BlockPos p_221352_, RandomSource p_221353_) {
 -        if (p_221350_.getValue(AGE) < 25 && p_221353_.nextDouble() < this.growPerTickProbability) {
-+        if (p_221350_.getValue(AGE) < 25 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221351_, p_221352_.relative(this.growthDirection), p_221350_, p_221353_.nextDouble() < this.growPerTickProbability)) {
++        // Spigot start
++        int modifier = 100;
++        if (this == Blocks.KELP) {
++            modifier = p_221351_.spigotConfig.kelpModifier;
++        } else if (this == Blocks.TWISTING_VINES) {
++            modifier = p_221351_.spigotConfig.twistingVinesModifier;
++        } else if (this == Blocks.WEEPING_VINES) {
++            modifier = p_221351_.spigotConfig.weepingVinesModifier;
++        } else if (this == Blocks.CAVE_VINES) {
++            modifier = p_221351_.spigotConfig.caveVinesModifier;
++        }
++        if (p_221350_.getValue(AGE) < 25 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221351_, p_221352_.relative(this.growthDirection), p_221350_, p_221353_.nextDouble() < ((modifier / 100.0D) * this.growPerTickProbability))) { // Spigot - SPIGOT-7159: Better modifier resolution
++            // Spigot end
              BlockPos blockpos = p_221352_.relative(this.growthDirection);
              if (this.canGrowInto(p_221351_.getBlockState(blockpos))) {
-                 p_221351_.setBlockAndUpdate(blockpos, this.getGrowIntoState(p_221350_, p_221351_.random));
-+                net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_221351_, blockpos, p_221351_.getBlockState(blockpos));
+-                p_221351_.setBlockAndUpdate(blockpos, this.getGrowIntoState(p_221350_, p_221351_.random));
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_221351_, p_221352_, blockpos, this.getGrowIntoState(p_221350_, p_221351_.random, p_221351_), 3)) { // CraftBukkit // Paper - Fix Spigot growth modifiers
++                    net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_221351_, blockpos, p_221351_.getBlockState(blockpos));
++                }
              }
          }
      }
++
++    // Paper start - Fix Spigot growth modifiers
++    protected BlockState getGrowIntoState(BlockState state, RandomSource random, @javax.annotation.Nullable Level level) {
++        return this.getGrowIntoState(state, random);
++    }
++    // Paper end - Fix Spigot growth modifiers
+ 
+     protected BlockState getGrowIntoState(BlockState p_221347_, RandomSource p_221348_) {
+         return p_221347_.cycle(AGE);

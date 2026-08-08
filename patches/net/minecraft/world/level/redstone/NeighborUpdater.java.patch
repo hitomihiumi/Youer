@@ -1,0 +1,64 @@
+--- a/net/minecraft/world/level/redstone/NeighborUpdater.java
++++ b/net/minecraft/world/level/redstone/NeighborUpdater.java
+@@ -41,30 +_,48 @@
+         }
+     }
+ 
+-    static void executeUpdate(Level p_230764_, BlockState p_230765_, BlockPos p_230766_, Block p_230767_, @Nullable Orientation p_362612_, boolean p_230769_) {
++    static void executeUpdate(Level level, BlockState state, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston) {
++        // Paper start - Add source block to BlockPhysicsEvent
++        executeUpdate(level, state, pos, neighborBlock, orientation, movedByPiston, pos);
++    }
++
++    static void executeUpdate(Level level, BlockState state, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston, BlockPos sourcePos) {
++        // Paper end - Add source block to BlockPhysicsEvent
+         try {
+-            p_230765_.handleNeighborChanged(p_230764_, p_230766_, p_230767_, p_362612_, p_230769_);
+-        } catch (Throwable throwable) {
+-            CrashReport crashreport = CrashReport.forThrowable(throwable, "Exception while updating neighbours");
+-            CrashReportCategory crashreportcategory = crashreport.addCategory("Block being updated");
+-            crashreportcategory.setDetail(
++            // CraftBukkit start
++            org.bukkit.event.block.BlockPhysicsEvent event = new org.bukkit.event.block.BlockPhysicsEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), org.bukkit.craftbukkit.block.data.CraftBlockData.fromData(state), org.bukkit.craftbukkit.block.CraftBlock.at(level, sourcePos)); // Paper - Add source block to BlockPhysicsEvent
++            level.getCraftServer().getPluginManager().callEvent(event);
++
++            if (event.isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
++            state.handleNeighborChanged(level, pos, neighborBlock, orientation, movedByPiston);
++            // Spigot start
++        } catch (StackOverflowError ex) {
++            level.lastPhysicsProblem = pos.immutable();
++            // Spigot end
++        } catch (Throwable var9) {
++            CrashReport crashReport = CrashReport.forThrowable(var9, "Exception while updating neighbours");
++            CrashReportCategory crashReportCategory = crashReport.addCategory("Block being updated");
++            crashReportCategory.setDetail(
+                 "Source block type",
+                 () -> {
+                     try {
+                         return String.format(
+                             Locale.ROOT,
+                             "ID #%s (%s // %s)",
+-                            BuiltInRegistries.BLOCK.getKey(p_230767_),
+-                            p_230767_.getDescriptionId(),
+-                            p_230767_.getClass().getCanonicalName()
++                            BuiltInRegistries.BLOCK.getKey(neighborBlock),
++                            neighborBlock.getDescriptionId(),
++                            neighborBlock.getClass().getCanonicalName()
+                         );
+-                    } catch (Throwable throwable1) {
+-                        return "ID #" + BuiltInRegistries.BLOCK.getKey(p_230767_);
++                    } catch (Throwable var2x) {
++                        return "ID #" + BuiltInRegistries.BLOCK.getKey(neighborBlock);
+                     }
+                 }
+             );
+-            CrashReportCategory.populateBlockDetails(crashreportcategory, p_230764_, p_230766_, p_230765_);
+-            throw new ReportedException(crashreport);
++            CrashReportCategory.populateBlockDetails(crashReportCategory, level, pos, state);
++            throw new ReportedException(crashReport);
+         }
+     }
+ }

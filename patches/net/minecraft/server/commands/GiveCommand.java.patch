@@ -1,0 +1,100 @@
+--- a/net/minecraft/server/commands/GiveCommand.java
++++ b/net/minecraft/server/commands/GiveCommand.java
+@@ -50,64 +_,61 @@
+         );
+     }
+ 
+-    private static int giveItem(CommandSourceStack p_137779_, ItemInput p_137780_, Collection<ServerPlayer> p_137781_, int p_137782_) throws CommandSyntaxException {
+-        ItemStack itemstack = p_137780_.createItemStack(1, false);
+-        int i = itemstack.getMaxStackSize();
+-        int j = i * 100;
+-        if (p_137782_ > j) {
+-            p_137779_.sendFailure(Component.translatable("commands.give.failed.toomanyitems", j, itemstack.getDisplayName()));
++    private static int giveItem(CommandSourceStack source, ItemInput item, Collection<ServerPlayer> targets, int count) throws CommandSyntaxException {
++        ItemStack itemStack = item.createItemStack(1, false);
++        final Component displayName = itemStack.getDisplayName(); // Paper - get display name early
++        int maxStackSize = itemStack.getMaxStackSize();
++        int i = maxStackSize * 100;
++        if (count > i) {
++            source.sendFailure(Component.translatable("commands.give.failed.toomanyitems", i, itemStack.getDisplayName()));
+             return 0;
+         } else {
+-            for (ServerPlayer serverplayer : p_137781_) {
+-                int k = p_137782_;
++            for (ServerPlayer serverPlayer : targets) {
++                int i1 = count;
+ 
+-                while (k > 0) {
+-                    int l = Math.min(i, k);
+-                    k -= l;
+-                    ItemStack itemstack1 = p_137780_.createItemStack(l, false);
+-                    boolean flag = serverplayer.getInventory().add(itemstack1);
+-                    if (flag && itemstack1.isEmpty()) {
+-                        ItemEntity itementity1 = serverplayer.drop(itemstack, false);
+-                        if (itementity1 != null) {
+-                            itementity1.makeFakeItem();
++                while (i1 > 0) {
++                    int min = Math.min(maxStackSize, i1);
++                    i1 -= min;
++                    ItemStack itemStack1 = item.createItemStack(min, false);
++                    boolean flag = serverPlayer.getInventory().add(itemStack1);
++                    if (flag && itemStack1.isEmpty()) {
++                        ItemEntity itemEntity = serverPlayer.drop(itemStack, false, false, false, null); // Paper - do not fire PlayerDropItemEvent for /give command
++                        if (itemEntity != null) {
++                            itemEntity.makeFakeItem();
+                         }
+ 
+-                        serverplayer.level()
++                        serverPlayer.level()
+                             .playSound(
+                                 null,
+-                                serverplayer.getX(),
+-                                serverplayer.getY(),
+-                                serverplayer.getZ(),
++                                serverPlayer.getX(),
++                                serverPlayer.getY(),
++                                serverPlayer.getZ(),
+                                 SoundEvents.ITEM_PICKUP,
+                                 SoundSource.PLAYERS,
+                                 0.2F,
+-                                ((serverplayer.getRandom().nextFloat() - serverplayer.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F
++                                ((serverPlayer.getRandom().nextFloat() - serverPlayer.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F
+                             );
+-                        serverplayer.containerMenu.broadcastChanges();
++                        serverPlayer.containerMenu.broadcastChanges();
+                     } else {
+-                        ItemEntity itementity = serverplayer.drop(itemstack1, false);
+-                        if (itementity != null) {
+-                            itementity.setNoPickUpDelay();
+-                            itementity.setTarget(serverplayer.getUUID());
++                        ItemEntity itemEntity = serverPlayer.drop(itemStack1, false, false, false, null); // Paper - do not fire PlayerDropItemEvent for /give command
++                        if (itemEntity != null) {
++                            itemEntity.setNoPickUpDelay();
++                            itemEntity.setTarget(serverPlayer.getUUID());
+                         }
+                     }
+                 }
+             }
+ 
+-            if (p_137781_.size() == 1) {
+-                p_137779_.sendSuccess(
+-                    () -> Component.translatable(
+-                        "commands.give.success.single", p_137782_, itemstack.getDisplayName(), p_137781_.iterator().next().getDisplayName()
+-                    ),
++            if (targets.size() == 1) {
++                source.sendSuccess(
++                    () -> Component.translatable("commands.give.success.single", count, displayName, targets.iterator().next().getDisplayName()), // Paper - use cached display name
+                     true
+                 );
+             } else {
+-                p_137779_.sendSuccess(
+-                    () -> Component.translatable("commands.give.success.single", p_137782_, itemstack.getDisplayName(), p_137781_.size()), true
+-                );
++                source.sendSuccess(() -> Component.translatable("commands.give.success.single", count, displayName, targets.size()), true); // Paper - use cached display name
+             }
+ 
+-            return p_137781_.size();
++            return targets.size();
+         }
+     }
+ }

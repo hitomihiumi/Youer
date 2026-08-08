@@ -1,0 +1,65 @@
+--- a/net/minecraft/world/level/block/TargetBlock.java
++++ b/net/minecraft/world/level/block/TargetBlock.java
+@@ -40,22 +_,46 @@
+     }
+ 
+     @Override
+-    protected void onProjectileHit(Level p_57381_, BlockState p_57382_, BlockHitResult p_57383_, Projectile p_57384_) {
+-        int i = updateRedstoneOutput(p_57381_, p_57382_, p_57383_, p_57384_);
+-        if (p_57384_.getOwner() instanceof ServerPlayer serverplayer) {
+-            serverplayer.awardStat(Stats.TARGET_HIT);
+-            CriteriaTriggers.TARGET_BLOCK_HIT.trigger(serverplayer, p_57384_, p_57383_.getLocation(), i);
+-        }
+-    }
+-
+-    private static int updateRedstoneOutput(LevelAccessor p_57392_, BlockState p_57393_, BlockHitResult p_57394_, Entity p_57395_) {
+-        int i = getRedstoneStrength(p_57394_, p_57394_.getLocation());
+-        int j = p_57395_ instanceof AbstractArrow ? 20 : 8;
+-        if (!p_57392_.getBlockTicks().hasScheduledTick(p_57394_.getBlockPos(), p_57393_.getBlock())) {
+-            setOutputPower(p_57392_, p_57393_, i, p_57394_.getBlockPos(), j);
+-        }
+-
+-        return i;
++    protected void onProjectileHit(Level level, BlockState state, BlockHitResult hit, Projectile projectile) {
++        int i = updateRedstoneOutput(level, state, hit, projectile);
++        // Paper start - Add TargetHitEvent
++    }
++    private static void awardTargetHitCriteria(Projectile projectile, BlockHitResult hit, int i) {
++        // Paper end - Add TargetHitEvent
++        if (projectile.getOwner() instanceof ServerPlayer serverPlayer) {
++            serverPlayer.awardStat(Stats.TARGET_HIT);
++            CriteriaTriggers.TARGET_BLOCK_HIT.trigger(serverPlayer, projectile, hit.getLocation(), i);
++        }
++    }
++
++    private static int updateRedstoneOutput(LevelAccessor level, BlockState state, BlockHitResult hit, Entity projectile) {
++        int redstoneStrength = getRedstoneStrength(hit, hit.getLocation());
++        int i = projectile instanceof AbstractArrow ? 20 : 8;
++        // Paper start - Add TargetHitEvent
++        boolean shouldAward = false;
++        if (projectile instanceof Projectile) {
++            final org.bukkit.craftbukkit.block.CraftBlock craftBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, hit.getBlockPos());
++            final org.bukkit.block.BlockFace blockFace = org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(hit.getDirection());
++            final io.papermc.paper.event.block.TargetHitEvent targetHitEvent = new io.papermc.paper.event.block.TargetHitEvent((org.bukkit.entity.Projectile) projectile.getBukkitEntity(), craftBlock, blockFace, redstoneStrength);
++            if (targetHitEvent.callEvent()) {
++                redstoneStrength = targetHitEvent.getSignalStrength();
++                shouldAward = true;
++            } else {
++                return redstoneStrength;
++            }
++        }
++        // Paper end - Add TargetHitEvent
++        if (!level.getBlockTicks().hasScheduledTick(hit.getBlockPos(), state.getBlock())) {
++            setOutputPower(level, state, redstoneStrength, hit.getBlockPos(), i);
++        }
++
++        // Paper start - Award Hit Criteria after Block Update
++        if (shouldAward) {
++            awardTargetHitCriteria((Projectile) projectile, hit, redstoneStrength);
++        }
++        // Paper end - Award Hit Criteria after Block Update
++
++        return redstoneStrength;
+     }
+ 
+     private static int getRedstoneStrength(BlockHitResult p_57409_, Vec3 p_57410_) {

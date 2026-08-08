@@ -1,0 +1,114 @@
+--- a/net/minecraft/world/entity/animal/Panda.java
++++ b/net/minecraft/world/entity/animal/Panda.java
+@@ -129,6 +_,7 @@
+     }
+ 
+     public void sit(boolean p_29209_) {
++        if (!new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), p_29209_).callEvent()) return; // Paper - Add EntityToggleSitEvent
+         this.setFlag(8, p_29209_);
+     }
+ 
+@@ -518,24 +_,28 @@
+ 
+         for (Panda panda : level.getEntitiesOfClass(Panda.class, this.getBoundingBox().inflate(10.0))) {
+             if (!panda.isBaby() && panda.onGround() && !panda.isInWater() && panda.canPerformAction()) {
++                if (new com.destroystokyo.paper.event.entity.EntityJumpEvent(getBukkitLivingEntity()).callEvent()) { // Paper - Entity Jump API
+                 panda.jumpFromGround();
++                } else { this.setJumping(false); } // Paper - Entity Jump API; setJumping(false) stops a potential loop
+             }
+         }
+ 
+         if (this.level() instanceof ServerLevel serverlevel && serverlevel.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
++            this.forceDrops = true; // Paper - Add missing forceDrop toggles
+             this.dropFromGiftLootTable(serverlevel, BuiltInLootTables.PANDA_SNEEZE, this::spawnAtLocation);
++            this.forceDrops = false; // Paper - Add missing forceDrop toggles
+         }
+     }
+ 
+     @Override
+     protected void pickUpItem(ServerLevel p_376704_, ItemEntity p_29121_) {
+-        if (this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() && canPickUpAndEat(p_29121_)) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, p_29121_, 0, !(this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() && Panda.canPickUpAndEat(p_29121_))).isCancelled()) { // CraftBukkit
+             this.onItemPickup(p_29121_);
+             ItemStack itemstack = p_29121_.getItem();
+             this.setItemSlot(EquipmentSlot.MAINHAND, itemstack);
+             this.setGuaranteedDrop(EquipmentSlot.MAINHAND);
+             this.take(p_29121_, itemstack.getCount());
+-            p_29121_.discard();
++            p_29121_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -610,38 +_,41 @@
+     }
+ 
+     @Override
+-    public InteractionResult mobInteract(Player p_29123_, InteractionHand p_29124_) {
+-        ItemStack itemstack = p_29123_.getItemInHand(p_29124_);
++    public InteractionResult mobInteract(Player player, InteractionHand hand) {
++        ItemStack itemInHand = player.getItemInHand(hand);
+         if (this.isScared()) {
+             return InteractionResult.PASS;
+         } else if (this.isOnBack()) {
+             this.setOnBack(false);
+             return InteractionResult.SUCCESS;
+-        } else if (this.isFood(itemstack)) {
++        } else if (this.isFood(itemInHand)) {
+             if (this.getTarget() != null) {
+                 this.gotBamboo = true;
+             }
+ 
+             if (this.isBaby()) {
+-                this.usePlayerItem(p_29123_, p_29124_, itemstack);
++                this.usePlayerItem(player, hand, itemInHand);
+                 this.ageUp((int)(-this.getAge() / 20 * 0.1F), true);
+             } else if (!this.level().isClientSide && this.getAge() == 0 && this.canFallInLove()) {
+-                this.usePlayerItem(p_29123_, p_29124_, itemstack);
+-                this.setInLove(p_29123_);
++                final ItemStack breedCopy = itemInHand.copy(); // Paper - Fix EntityBreedEvent copying
++                this.usePlayerItem(player, hand, itemInHand);
++                this.setInLove(player, breedCopy); // Paper - Fix EntityBreedEvent copying
+             } else {
+-                if (!(this.level() instanceof ServerLevel serverlevel) || this.isSitting() || this.isInWater()) {
++                if (!(this.level() instanceof ServerLevel serverLevel) || this.isSitting() || this.isInWater()) {
+                     return InteractionResult.PASS;
+                 }
+ 
+                 this.tryToSit();
+                 this.eat(true);
+-                ItemStack itemstack1 = this.getItemBySlot(EquipmentSlot.MAINHAND);
+-                if (!itemstack1.isEmpty() && !p_29123_.hasInfiniteMaterials()) {
+-                    this.spawnAtLocation(serverlevel, itemstack1);
++                ItemStack itemBySlot = this.getItemBySlot(EquipmentSlot.MAINHAND);
++                if (!itemBySlot.isEmpty() && !player.hasInfiniteMaterials()) {
++                    this.forceDrops = true; // Paper - Add missing forceDrop toggles
++                    this.spawnAtLocation(serverLevel, itemBySlot);
++                    this.forceDrops = false; // Paper - Add missing forceDrop toggles
+                 }
+ 
+-                this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(itemstack.getItem(), 1));
+-                this.usePlayerItem(p_29123_, p_29124_, itemstack);
++                this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(itemInHand.getItem(), 1));
++                this.usePlayerItem(player, hand, itemInHand);
+             }
+ 
+             return InteractionResult.SUCCESS_SERVER;
+@@ -859,7 +_,7 @@
+         @Override
+         protected void alertOther(Mob p_29295_, LivingEntity p_29296_) {
+             if (p_29295_ instanceof Panda && p_29295_.isAggressive()) {
+-                p_29295_.setTarget(p_29296_);
++                p_29295_.setTarget(p_29296_, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY); // CraftBukkit
+             }
+         }
+     }
+@@ -1094,7 +_,9 @@
+         public void stop() {
+             ItemStack itemstack = Panda.this.getItemBySlot(EquipmentSlot.MAINHAND);
+             if (!itemstack.isEmpty()) {
++                Panda.this.forceDrops = true; // Paper - Add missing forceDrop toggles
+                 Panda.this.spawnAtLocation(getServerLevel(Panda.this.level()), itemstack);
++                Panda.this.forceDrops = false; // Paper - Add missing forceDrop toggles
+                 Panda.this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                 int i = Panda.this.isLazy() ? Panda.this.random.nextInt(50) + 10 : Panda.this.random.nextInt(150) + 10;
+                 this.cooldown = Panda.this.tickCount + i * 20;

@@ -1,0 +1,65 @@
+--- a/net/minecraft/world/level/block/SculkVeinBlock.java
++++ b/net/minecraft/world/level/block/SculkVeinBlock.java
+@@ -90,35 +_,39 @@
+     public int attemptUseCharge(
+         SculkSpreader.ChargeCursor p_222369_, LevelAccessor p_222370_, BlockPos p_222371_, RandomSource p_222372_, SculkSpreader p_222373_, boolean p_222374_
+     ) {
+-        if (p_222374_ && this.attemptPlaceSculk(p_222373_, p_222370_, p_222369_.getPos(), p_222372_)) {
++        if (p_222374_ && this.attemptPlaceSculk(p_222373_, p_222370_, p_222369_.getPos(), p_222372_, p_222371_)) { // CraftBukkit - add source block
+             return p_222369_.getCharge() - 1;
+         } else {
+             return p_222372_.nextInt(p_222373_.chargeDecayRate()) == 0 ? Mth.floor(p_222369_.getCharge() * 0.5F) : p_222369_.getCharge();
+         }
+     }
+ 
+-    private boolean attemptPlaceSculk(SculkSpreader p_222376_, LevelAccessor p_222377_, BlockPos p_222378_, RandomSource p_222379_) {
+-        BlockState blockstate = p_222377_.getBlockState(p_222378_);
+-        TagKey<Block> tagkey = p_222376_.replaceableBlocks();
+-
+-        for (Direction direction : Direction.allShuffled(p_222379_)) {
+-            if (hasFace(blockstate, direction)) {
+-                BlockPos blockpos = p_222378_.relative(direction);
+-                BlockState blockstate1 = p_222377_.getBlockState(blockpos);
+-                if (blockstate1.is(tagkey)) {
+-                    BlockState blockstate2 = Blocks.SCULK.defaultBlockState();
+-                    p_222377_.setBlock(blockpos, blockstate2, 3);
+-                    Block.pushEntitiesUp(blockstate1, blockstate2, p_222377_, blockpos);
+-                    p_222377_.playSound(null, blockpos, SoundEvents.SCULK_BLOCK_SPREAD, SoundSource.BLOCKS, 1.0F, 1.0F);
+-                    this.veinSpreader.spreadAll(blockstate2, p_222377_, blockpos, p_222376_.isWorldGeneration());
+-                    Direction direction1 = direction.getOpposite();
+-
+-                    for (Direction direction2 : DIRECTIONS) {
+-                        if (direction2 != direction1) {
+-                            BlockPos blockpos1 = blockpos.relative(direction2);
+-                            BlockState blockstate3 = p_222377_.getBlockState(blockpos1);
+-                            if (blockstate3.is(this)) {
+-                                this.onDischarged(p_222377_, blockstate3, blockpos1, p_222379_);
++    private boolean attemptPlaceSculk(SculkSpreader spreader, LevelAccessor level, BlockPos pos, RandomSource random, BlockPos sourceBlock) { // CraftBukkit
++        BlockState blockState = level.getBlockState(pos);
++        TagKey<Block> tagKey = spreader.replaceableBlocks();
++
++        for (Direction direction : Direction.allShuffled(random)) {
++            if (hasFace(blockState, direction)) {
++                BlockPos blockPos = pos.relative(direction);
++                BlockState blockState1 = level.getBlockState(blockPos);
++                if (blockState1.is(tagKey)) {
++                    BlockState blockState2 = Blocks.SCULK.defaultBlockState();
++                    // CraftBukkit start - Call BlockSpreadEvent
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, sourceBlock, blockPos, blockState2, 3)) {
++                        return false;
++                    }
++                    // CraftBukkit end
++                    Block.pushEntitiesUp(blockState1, blockState2, level, blockPos);
++                    level.playSound(null, blockPos, SoundEvents.SCULK_BLOCK_SPREAD, SoundSource.BLOCKS, 1.0F, 1.0F);
++                    this.veinSpreader.spreadAll(blockState2, level, blockPos, spreader.isWorldGeneration());
++                    Direction opposite = direction.getOpposite();
++
++                    for (Direction direction1 : DIRECTIONS) {
++                        if (direction1 != opposite) {
++                            BlockPos blockPos1 = blockPos.relative(direction1);
++                            BlockState blockState3 = level.getBlockState(blockPos1);
++                            if (blockState3.is(this)) {
++                                this.onDischarged(level, blockState3, blockPos1, random);
+                             }
+                         }
+                     }

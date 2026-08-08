@@ -1,0 +1,44 @@
+--- a/net/minecraft/world/entity/animal/Bucketable.java
++++ b/net/minecraft/world/entity/animal/Bucketable.java
+@@ -68,20 +_,30 @@
+         p_148827_.getFloat("Health").ifPresent(p_148826_::setHealth);
+     }
+ 
+-    static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player p_148829_, InteractionHand p_148830_, T p_148831_) {
+-        ItemStack itemstack = p_148829_.getItemInHand(p_148830_);
+-        if (itemstack.getItem() == Items.WATER_BUCKET && p_148831_.isAlive()) {
+-            p_148831_.playSound(p_148831_.getPickupSound(), 1.0F, 1.0F);
+-            ItemStack itemstack1 = p_148831_.getBucketItemStack();
+-            p_148831_.saveToBucketTag(itemstack1);
+-            ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, p_148829_, itemstack1, false);
+-            p_148829_.setItemInHand(p_148830_, itemstack2);
+-            Level level = p_148831_.level();
++    static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player player, InteractionHand hand, T entity) {
++        ItemStack itemInHand = player.getItemInHand(hand);
++        if (itemInHand.getItem() == Items.WATER_BUCKET && entity.isAlive()) {
++            // CraftBukkit start
++            // entity.playSound(entity.getPickupSound(), 1.0F, 1.0F); // CraftBukkit - moved down
++            ItemStack bucketItemStack = entity.getBucketItemStack();
++            entity.saveToBucketTag(bucketItemStack);
++            org.bukkit.event.player.PlayerBucketEntityEvent playerBucketFishEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerFishBucketEvent(entity, player, itemInHand, bucketItemStack, hand);
++            bucketItemStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
++            if (playerBucketFishEvent.isCancelled()) {
++                player.containerMenu.forceHeldSlot(hand); // We need to update inventory to resync client's bucket
++                entity.resendPossiblyDesyncedEntityData((ServerPlayer) player); // Paper
++                return Optional.of(InteractionResult.FAIL);
++            }
++            entity.playSound(entity.getPickupSound(), 1.0F, 1.0F);
++            // CraftBukkit end
++            ItemStack itemStack = ItemUtils.createFilledResult(itemInHand, player, bucketItemStack, false);
++            player.setItemInHand(hand, itemStack);
++            Level level = entity.level();
+             if (!level.isClientSide) {
+-                CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer)p_148829_, itemstack1);
++                CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer)player, bucketItemStack);
+             }
+ 
+-            p_148831_.discard();
++            entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             return Optional.of(InteractionResult.SUCCESS);
+         } else {
+             return Optional.empty();

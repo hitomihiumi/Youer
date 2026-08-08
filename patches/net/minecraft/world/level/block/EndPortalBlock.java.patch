@@ -1,0 +1,91 @@
+--- a/net/minecraft/world/level/block/EndPortalBlock.java
++++ b/net/minecraft/world/level/block/EndPortalBlock.java
+@@ -57,49 +_,64 @@
+     }
+ 
+     @Override
+-    protected void entityInside(BlockState p_53025_, Level p_53026_, BlockPos p_53027_, Entity p_53028_, InsideBlockEffectApplier p_405056_) {
+-        if (p_53028_.canUsePortal(false)) {
+-            if (!p_53026_.isClientSide && p_53026_.dimension() == Level.END && p_53028_ instanceof ServerPlayer serverplayer && !serverplayer.seenCredits) {
+-                serverplayer.showEndCredits();
++    protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        if (entity.canUsePortal(false)) {
++            // CraftBukkit start - Entity in portal
++            org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level), org.bukkit.PortalType.ENDER); // Paper - add portal type
++            level.getCraftServer().getPluginManager().callEvent(event);
++            if (event.isCancelled()) return; // Paper - make cancellable
++            // CraftBukkit end
++            if (!level.isClientSide && level.dimension() == Level.END && entity instanceof ServerPlayer serverPlayer && !serverPlayer.seenCredits) {
++                if (level.paperConfig().misc.disableEndCredits) {serverPlayer.seenCredits = true; return;} // Paper - Option to disable end credits
++                serverPlayer.showEndCredits();
+             } else {
+-                p_53028_.setAsInsidePortal(this, p_53027_);
++                entity.setAsInsidePortal(this, pos);
+             }
+         }
+     }
+ 
+     @Nullable
+     @Override
+-    public TeleportTransition getPortalDestination(ServerLevel p_351032_, Entity p_350274_, BlockPos p_350589_) {
+-        ResourceKey<Level> resourcekey = p_351032_.dimension() == Level.END ? Level.OVERWORLD : Level.END;
+-        ServerLevel serverlevel = p_351032_.getServer().getLevel(resourcekey);
+-        if (serverlevel == null) {
++    public TeleportTransition getPortalDestination(ServerLevel level, Entity entity, BlockPos pos) {
++        ResourceKey<Level> resourceKey = level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.END ? Level.OVERWORLD : Level.END; // CraftBukkit - SPIGOT-6152: send back to main overworld in custom ends
++        ServerLevel level1 = level.getServer().getLevel(resourceKey);
++        if (level1 == null) {
+             return null;
+         } else {
+-            boolean flag = resourcekey == Level.END;
+-            BlockPos blockpos = flag ? ServerLevel.END_SPAWN_POINT : serverlevel.getSharedSpawnPos();
+-            Vec3 vec3 = blockpos.getBottomCenter();
++            boolean flag = resourceKey == Level.END;
++            BlockPos blockPos = flag ? ServerLevel.END_SPAWN_POINT : level1.getSharedSpawnPos();
++            Vec3 bottomCenter = blockPos.getBottomCenter();
+             float f;
+             Set<Relative> set;
+             if (flag) {
+-                EndPlatformFeature.createEndPlatform(serverlevel, BlockPos.containing(vec3).below(), true);
++                EndPlatformFeature.createEndPlatform(level1, BlockPos.containing(bottomCenter).below(), true, entity); // CraftBukkit
+                 f = Direction.WEST.toYRot();
+                 set = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
+-                if (p_350274_ instanceof ServerPlayer) {
+-                    vec3 = vec3.subtract(0.0, 1.0, 0.0);
++                if (entity instanceof ServerPlayer) {
++                    bottomCenter = bottomCenter.subtract(0.0, 1.0, 0.0);
+                 }
+             } else {
+-                f = serverlevel.getSharedSpawnAngle();
++                f = level1.getSharedSpawnAngle();
+                 set = Relative.union(Relative.DELTA, Relative.ROTATION);
+-                if (p_350274_ instanceof ServerPlayer serverplayer) {
+-                    return serverplayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING);
++                if (entity instanceof ServerPlayer serverPlayer) {
++                    return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
+                 }
+ 
+-                vec3 = p_350274_.adjustSpawnLocation(serverlevel, blockpos).getBottomCenter();
+-            }
+-
+-            return new TeleportTransition(
+-                serverlevel, vec3, Vec3.ZERO, f, 0.0F, set, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET)
+-            );
++                bottomCenter = entity.adjustSpawnLocation(level1, blockPos).getBottomCenter();
++            }
++
++            // CraftBukkit start
++            set.removeAll(Relative.ROTATION); // remove relative rotation flags to simplify event mutation
++            float absoluteYaw = flag ? f : entity.getYRot() + f;
++            org.bukkit.craftbukkit.event.CraftPortalEvent event = entity.callPortalEvent(entity, org.bukkit.craftbukkit.util.CraftLocation.toBukkit(bottomCenter, level1.getWorld(), absoluteYaw, entity.getXRot()), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_PORTAL, 0, 0);
++            if (event == null) {
++                return null;
++            }
++            org.bukkit.Location to = event.getTo();
++
++            return new TeleportTransition(((org.bukkit.craftbukkit.CraftWorld) to.getWorld()).getHandle(), org.bukkit.craftbukkit.util.CraftLocation.toVec3(to), Vec3.ZERO, to.getYaw(), to.getPitch(), set, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_PORTAL);
++            // CraftBukkit end
+         }
+     }
+ 

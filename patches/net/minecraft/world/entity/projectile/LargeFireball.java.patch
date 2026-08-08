@@ -1,12 +1,49 @@
 --- a/net/minecraft/world/entity/projectile/LargeFireball.java
 +++ b/net/minecraft/world/entity/projectile/LargeFireball.java
-@@ -31,7 +_,8 @@
-     protected void onHit(HitResult p_37218_) {
-         super.onHit(p_37218_);
-         if (this.level() instanceof ServerLevel serverlevel) {
+@@ -18,22 +_,30 @@
+     private static final byte DEFAULT_EXPLOSION_POWER = 1;
+     public int explosionPower = 1;
+ 
+-    public LargeFireball(EntityType<? extends LargeFireball> p_37199_, Level p_37200_) {
+-        super(p_37199_, p_37200_);
++    public LargeFireball(EntityType<? extends LargeFireball> entityType, Level level) {
++        super(entityType, level);
++        this.isIncendiary = (level instanceof ServerLevel serverLevel) && serverLevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING); // CraftBukkit
+     }
+ 
+     public LargeFireball(Level p_181151_, LivingEntity p_181152_, Vec3 p_347580_, int p_181156_) {
+         super(EntityType.FIREBALL, p_181152_, p_347580_, p_181151_);
+         this.explosionPower = p_181156_;
++        this.isIncendiary = (p_181151_ instanceof ServerLevel serverLevel) && net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, p_181152_); // CraftBukkit
+     }
+ 
+     @Override
+-    protected void onHit(HitResult p_37218_) {
+-        super.onHit(p_37218_);
+-        if (this.level() instanceof ServerLevel serverlevel) {
 -            boolean flag = serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
+-            this.level().explode(this, this.getX(), this.getY(), this.getZ(), this.explosionPower, flag, Level.ExplosionInteraction.MOB);
+-            this.discard();
++    protected void onHit(HitResult result) {
++        super.onHit(result);
++        if (this.level() instanceof ServerLevel serverLevel) {
 +            // TODO 1.19.3: The creation of Level.ExplosionInteraction means this code path will fire EntityMobGriefingEvent twice. Should we try and fix it? -SS
-+            boolean flag = net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, this.getOwner());
-             this.level().explode(this, this.getX(), this.getY(), this.getZ(), this.explosionPower, flag, Level.ExplosionInteraction.MOB);
-             this.discard();
++            boolean _boolean = net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, this.getOwner());
++            // CraftBukkit start - fire ExplosionPrimeEvent
++            org.bukkit.event.entity.ExplosionPrimeEvent event = new org.bukkit.event.entity.ExplosionPrimeEvent((org.bukkit.entity.Explosive) this.getBukkitEntity());
++            if (event.callEvent()) {
++                this.level().explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB);
++            }
++            // CraftBukkit end - fire ExplosionPrimeEvent
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
          }
+     }
+ 
+@@ -58,6 +_,6 @@
+     @Override
+     protected void readAdditionalSaveData(ValueInput p_421567_) {
+         super.readAdditionalSaveData(p_421567_);
+-        this.explosionPower = p_421567_.getByteOr("ExplosionPower", (byte)1);
++        this.bukkitYield = this.explosionPower = p_421567_.getByteOr("ExplosionPower", (byte)1); // CraftBukkit - set bukkitYield when setting explosionPower
+     }
+ }

@@ -1,0 +1,63 @@
+--- a/net/minecraft/world/entity/AgeableMob.java
++++ b/net/minecraft/world/entity/AgeableMob.java
+@@ -23,6 +_,7 @@
+     protected int age = 0;
+     protected int forcedAge = 0;
+     protected int forcedAgeTimer;
++    public boolean ageLocked; // CraftBukkit
+ 
+     protected AgeableMob(EntityType<? extends AgeableMob> p_146738_, Level p_146739_) {
+         super(p_146738_, p_146739_);
+@@ -69,6 +_,7 @@
+     }
+ 
+     public void ageUp(int p_146741_, boolean p_146742_) {
++        if (this.ageLocked) return; // Paper - Honor ageLock
+         int i = this.getAge();
+         int k = i;
+         i += p_146741_ * 20;
+@@ -108,6 +_,7 @@
+         super.addAdditionalSaveData(p_421826_);
+         p_421826_.putInt("Age", this.getAge());
+         p_421826_.putInt("ForcedAge", this.forcedAge);
++        p_421826_.putBoolean("AgeLocked", this.ageLocked); // CraftBukkit
+     }
+ 
+     @Override
+@@ -115,6 +_,7 @@
+         super.readAdditionalSaveData(p_422327_);
+         this.setAge(p_422327_.getIntOr("Age", 0));
+         this.forcedAge = p_422327_.getIntOr("ForcedAge", 0);
++        this.ageLocked = p_422327_.getBooleanOr("AgeLocked", false); // CraftBukkit
+     }
+ 
+     @Override
+@@ -126,10 +_,27 @@
+         super.onSyncedDataUpdated(p_146754_);
+     }
+ 
++    // Paper start - EAR 2
++    @Override
++    public void inactiveTick() {
++        super.inactiveTick();
++        if (this.level().isClientSide || this.ageLocked) { // CraftBukkit
++            this.refreshDimensions();
++        } else {
++            int age = this.getAge();
++            if (age < 0) {
++                this.setAge(++age);
++            } else if (age > 0) {
++                this.setAge(--age);
++            }
++        }
++    }
++    // Paper end - EAR 2
++
+     @Override
+     public void aiStep() {
+         super.aiStep();
+-        if (this.level().isClientSide) {
++        if (this.level().isClientSide || this.ageLocked) { // CraftBukkit
+             if (this.forcedAgeTimer > 0) {
+                 if (this.forcedAgeTimer % 4 == 0) {
+                     this.level().addParticle(ParticleTypes.HAPPY_VILLAGER, this.getRandomX(1.0), this.getRandomY() + 0.5, this.getRandomZ(1.0), 0.0, 0.0, 0.0);

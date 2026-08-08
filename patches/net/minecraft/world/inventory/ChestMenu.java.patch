@@ -1,0 +1,57 @@
+--- a/net/minecraft/world/inventory/ChestMenu.java
++++ b/net/minecraft/world/inventory/ChestMenu.java
+@@ -9,6 +_,34 @@
+ public class ChestMenu extends AbstractContainerMenu {
+     private final Container container;
+     private final int containerRows;
++    // CraftBukkit start
++    private @javax.annotation.Nullable org.bukkit.craftbukkit.inventory.CraftInventoryView view = null;
++    private final Inventory inventory;
++
++    @Override
++    public org.bukkit.craftbukkit.inventory.CraftInventoryView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
++        }
++
++        org.bukkit.craftbukkit.inventory.CraftInventory inventory;
++        if (this.container instanceof Inventory) {
++            inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryPlayer((Inventory) this.container);
++        } else if (this.container instanceof net.minecraft.world.CompoundContainer) {
++            inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((net.minecraft.world.CompoundContainer) this.container);
++        } else {
++            inventory = new org.bukkit.craftbukkit.inventory.CraftInventory(this.container);
++        }
++
++        this.view = new org.bukkit.craftbukkit.inventory.CraftInventoryView(this.inventory.player.getBukkitEntity(), inventory, this);
++        return this.view;
++    }
++
++    @Override
++    public void startOpen() {
++        this.container.startOpen(this.inventory.player);
++    }
++    // CraftBukkit end
+ 
+     private ChestMenu(MenuType<?> p_39224_, int p_39225_, Inventory p_39226_, int p_39227_) {
+         this(p_39224_, p_39225_, p_39226_, new SimpleContainer(9 * p_39227_), p_39227_);
+@@ -51,7 +_,10 @@
+         checkContainerSize(p_39232_, p_39233_ * 9);
+         this.container = p_39232_;
+         this.containerRows = p_39233_;
+-        p_39232_.startOpen(p_39231_.player);
++        // p_39232_.startOpen(p_39231_.player); // Paper - don't startOpen until menu actually opens
++        // CraftBukkit start - Save player
++        this.inventory = p_39231_;
++        // CraftBukkit end
+         int i = 18;
+         this.addChestGrid(p_39232_, 8, 18);
+         int j = 18 + this.containerRows * 18 + 13;
+@@ -68,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(Player p_39242_) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.container.stillValid(p_39242_);
+     }
+ 
