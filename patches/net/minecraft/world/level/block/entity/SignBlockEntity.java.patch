@@ -1,0 +1,229 @@
+--- a/net/minecraft/world/level/block/entity/SignBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/SignBlockEntity.java
+@@ -56,14 +_,19 @@
+         return new SignText();
+     }
+ 
+-    public boolean isFacingFrontText(Player p_277382_) {
+-        if (this.getBlockState().getBlock() instanceof SignBlock signblock) {
+-            Vec3 vec3 = signblock.getSignHitboxCenterPosition(this.getBlockState());
+-            double d0 = p_277382_.getX() - (this.getBlockPos().getX() + vec3.x);
+-            double d1 = p_277382_.getZ() - (this.getBlockPos().getZ() + vec3.z);
+-            float f = signblock.getYRotationDegrees(this.getBlockState());
+-            float f1 = (float)(Mth.atan2(d1, d0) * 180.0F / (float)Math.PI) - 90.0F;
+-            return Mth.degreesDifferenceAbs(f, f1) <= 90.0F;
++    public boolean isFacingFrontText(Player player) {
++        // Paper start - More Sign Block API
++        return this.isFacingFrontText(player.getX(), player.getZ());
++    }
++    public boolean isFacingFrontText(double x, double z) {
++        // Paper end - More Sign Block API
++        if (this.getBlockState().getBlock() instanceof SignBlock signBlock) {
++            Vec3 signHitboxCenterPosition = signBlock.getSignHitboxCenterPosition(this.getBlockState());
++            double d = x - (this.getBlockPos().getX() + signHitboxCenterPosition.x); // Paper - More Sign Block API
++            double d1 = z - (this.getBlockPos().getZ() + signHitboxCenterPosition.z); // Paper - More Sign Block AP
++            float yRotationDegrees = signBlock.getYRotationDegrees(this.getBlockState());
++            float f = (float)(Mth.atan2(d1, d) * 180.0F / (float)Math.PI) - 90.0F;
++            return Mth.degreesDifferenceAbs(yRotationDegrees, f) <= 90.0F;
+         } else {
+             return false;
+         }
+@@ -128,11 +_,13 @@
+ 
+     public void updateSignText(Player p_278048_, boolean p_278103_, List<FilteredText> p_277990_) {
+         if (!this.isWaxed() && p_278048_.getUUID().equals(this.getPlayerWhoMayEdit()) && this.level != null) {
+-            this.updateText(p_277776_ -> this.setMessages(p_278048_, p_277990_, p_277776_), p_278103_);
++            this.updateText(signText -> this.setMessages(p_278048_, p_277990_, signText, p_278103_), p_278103_); // CraftBukkit
+             this.setAllowedPlayerEditor(null);
+             this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
+         } else {
+             LOGGER.warn("Player {} just tried to change non-editable sign", p_278048_.getName().getString());
++            if (p_278048_.distanceToSqr(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ()) < Mth.square(32)) // Paper - Don't send far away sign update
++            ((net.minecraft.server.level.ServerPlayer) p_278048_).connection.send(this.getUpdatePacket()); // CraftBukkit
+         }
+     }
+ 
+@@ -141,20 +_,42 @@
+         return this.setText(p_277877_.apply(signtext), p_277426_);
+     }
+ 
+-    private SignText setMessages(Player p_277396_, List<FilteredText> p_277744_, SignText p_277359_) {
+-        for (int i = 0; i < p_277744_.size(); i++) {
+-            FilteredText filteredtext = p_277744_.get(i);
+-            Style style = p_277359_.getMessage(i, p_277396_.isTextFilteringEnabled()).getStyle();
+-            if (p_277396_.isTextFilteringEnabled()) {
+-                p_277359_ = p_277359_.setMessage(i, Component.literal(filteredtext.filteredOrEmpty()).setStyle(style));
++    private SignText setMessages(Player player, List<FilteredText> filteredText, SignText text, boolean front) { // CraftBukkit
++        SignText originalText = text; // CraftBukkit
++        for (int i = 0; i < filteredText.size(); i++) {
++            FilteredText filteredText1 = filteredText.get(i);
++            Style style = text.getMessage(i, player.isTextFilteringEnabled()).getStyle();
++            if (player.isTextFilteringEnabled()) {
++                text = text.setMessage(i, Component.literal(net.minecraft.util.StringUtil.filterText(filteredText1.filteredOrEmpty())).setStyle(style)); // Paper - filter sign text to chat only
+             } else {
+-                p_277359_ = p_277359_.setMessage(
+-                    i, Component.literal(filteredtext.raw()).setStyle(style), Component.literal(filteredtext.filteredOrEmpty()).setStyle(style)
++                text = text.setMessage(
++                    i, Component.literal(filteredText1.raw()).setStyle(style), Component.literal(net.minecraft.util.StringUtil.filterText(filteredText1.filteredOrEmpty())).setStyle(style) // Paper - filter sign text to chat only
+                 );
+             }
+         }
+ 
+-        return p_277359_;
++        // CraftBukkit start
++        org.bukkit.entity.Player apiPlayer = ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity();
++        List<net.kyori.adventure.text.Component> lines = new java.util.ArrayList<>(); // Paper - adventure
++
++        for (int i = 0; i < filteredText.size(); ++i) {
++            lines.add(io.papermc.paper.adventure.PaperAdventure.asAdventure(text.getMessage(i, player.isTextFilteringEnabled()))); // Paper - Adventure
++        }
++
++        org.bukkit.event.block.SignChangeEvent event = new org.bukkit.event.block.SignChangeEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.worldPosition), apiPlayer, new java.util.ArrayList<>(lines), (front) ? org.bukkit.block.sign.Side.FRONT : org.bukkit.block.sign.Side.BACK); // Paper - Adventure
++        if (!event.callEvent()) {
++            return originalText;
++        }
++
++        Component[] components = org.bukkit.craftbukkit.block.CraftSign.sanitizeLines(event.lines()); // Paper - Adventure
++        for (int i = 0; i < components.length; i++) {
++            if (!java.util.Objects.equals(lines.get(i), event.line(i))) { // Paper - Adventure
++                text = text.setMessage(i, components[i]);
++            }
++        }
++        // CraftBukkit end
++
++        return text;
+     }
+ 
+     public boolean setText(SignText p_277733_, boolean p_277720_) {
+@@ -185,24 +_,38 @@
+         return this.isWaxed() && this.getText(p_278276_).hasAnyClickCommands(p_278240_);
+     }
+ 
+-    public boolean executeClickCommandsIfPresent(ServerLevel p_426215_, Player p_279304_, BlockPos p_278282_, boolean p_278254_) {
++    public boolean executeClickCommandsIfPresent(ServerLevel level, Player player, BlockPos pos, boolean isFrontText) {
+         boolean flag = false;
+ 
+-        for (Component component : this.getText(p_278254_).getMessages(p_279304_.isTextFilteringEnabled())) {
++        for (Component component : this.getText(isFrontText).getMessages(player.isTextFilteringEnabled())) {
+             Style style = component.getStyle();
+             switch (style.getClickEvent()) {
+-                case ClickEvent.RunCommand clickevent$runcommand:
+-                    p_426215_.getServer()
+-                        .getCommands()
+-                        .performPrefixedCommand(createCommandSourceStack(p_279304_, p_426215_, p_278282_), clickevent$runcommand.command());
+-                    flag = true;
+-                    break;
+-                case ClickEvent.ShowDialog clickevent$showdialog:
+-                    p_279304_.openDialog(clickevent$showdialog.dialog());
+-                    flag = true;
+-                    break;
+-                case ClickEvent.Custom clickevent$custom:
+-                    p_426215_.getServer().handleCustomClickAction(clickevent$custom.id(), clickevent$custom.payload());
++                case ClickEvent.RunCommand runCommand:
++                    // Paper start - Fix commands from signs not firing command events
++                    String command = runCommand.command().startsWith("/") ? runCommand.command() : "/" + runCommand.command();
++                    if (org.spigotmc.SpigotConfig.logCommands)  {
++                        LOGGER.info("{} issued server command: {}", player.getScoreboardName(), command);
++                    }
++                    io.papermc.paper.event.player.PlayerSignCommandPreprocessEvent event = new io.papermc.paper.event.player.PlayerSignCommandPreprocessEvent(
++                        (org.bukkit.entity.Player) player.getBukkitEntity(),
++                        command,
++                        new org.bukkit.craftbukkit.util.LazyPlayerSet(player.getServer()),
++                        (org.bukkit.block.Sign) org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.worldPosition).getState(),
++                        isFrontText ? org.bukkit.block.sign.Side.FRONT : org.bukkit.block.sign.Side.BACK
++                    );
++                    if (!event.callEvent()) {
++                        return false;
++                    }
++                    level.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle(), level, pos), event.getMessage());
++                    // Paper end - Fix commands from signs not firing command events
++                    flag = true;
++                    break;
++                case ClickEvent.ShowDialog showDialog:
++                    player.openDialog(showDialog.dialog());
++                    flag = true;
++                    break;
++                case ClickEvent.Custom custom:
++                    level.getServer().handleCustomClickAction(custom.id(), custom.payload());
+                     flag = true;
+                     break;
+                 case null:
+@@ -213,10 +_,55 @@
+         return flag;
+     }
+ 
+-    private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, ServerLevel p_426006_, BlockPos p_279430_) {
+-        String s = p_279428_ == null ? "Sign" : p_279428_.getName().getString();
+-        Component component = (Component)(p_279428_ == null ? Component.literal("Sign") : p_279428_.getDisplayName());
+-        return new CommandSourceStack(CommandSource.NULL, Vec3.atCenterOf(p_279430_), Vec2.ZERO, p_426006_, 2, s, component, p_426006_.getServer(), p_279428_);
++    // CraftBukkit start
++    private final CommandSource commandSource = new CommandSource() {
++
++        @Override
++        public void sendSystemMessage(Component message) {}
++
++        @Override
++        public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack commandSourceStack) {
++            return commandSourceStack.getEntity() != null ? commandSourceStack.getEntity().getBukkitEntity() : new org.bukkit.craftbukkit.command.CraftBlockCommandSender(commandSourceStack, SignBlockEntity.this);
++        }
++
++        @Override
++        public boolean acceptsSuccess() {
++            return false;
++        }
++
++        @Override
++        public boolean acceptsFailure() {
++            return false;
++        }
++
++        @Override
++        public boolean shouldInformAdmins() {
++            return false;
++        }
++    };
++
++    private CommandSourceStack createCommandSourceStack(@Nullable Player player, ServerLevel level, BlockPos pos) {
++        // CraftBukkit end
++        String string = player == null ? "Sign" : player.getName().getString();
++        Component component = (Component)(player == null ? Component.literal("Sign") : player.getDisplayName());
++
++        // Paper start - Fix commands from signs not firing command events
++        CommandSource commandSource = level.paperConfig().misc.showSignClickCommandFailureMsgsToPlayer ? new io.papermc.paper.commands.DelegatingCommandSource(this.commandSource) {
++            @Override
++            public void sendSystemMessage(Component message) {
++                if (player instanceof final net.minecraft.server.level.ServerPlayer serverPlayer) {
++                    serverPlayer.sendSystemMessage(message);
++                }
++            }
++
++            @Override
++            public boolean acceptsFailure() {
++                return true;
++            }
++        } : this.commandSource;
++        // Paper end - Fix commands from signs not firing command events
++        // CraftBukkit - this
++        return new CommandSourceStack(commandSource, Vec3.atCenterOf(pos), Vec2.ZERO, level, 2, string, component, level.getServer(), player); // Paper - Fix commands from signs not firing command events
+     }
+ 
+     public ClientboundBlockEntityDataPacket getUpdatePacket() {
+@@ -234,12 +_,17 @@
+ 
+     @Nullable
+     public UUID getPlayerWhoMayEdit() {
++        // CraftBukkit start - unnecessary sign ticking removed, so do this lazily
++        if (this.level != null && this.playerWhoMayEdit != null) {
++            this.clearInvalidPlayerWhoMayEdit(this, this.level, this.playerWhoMayEdit);
++        }
++        // CraftBukkit end
+         return this.playerWhoMayEdit;
+     }
+ 
+     private void markUpdated() {
+         this.setChanged();
+-        this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
++        if (this.level != null) this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3); // CraftBukkit - skip notify if world is null (SPIGOT-5122)
+     }
+ 
+     public boolean isWaxed() {

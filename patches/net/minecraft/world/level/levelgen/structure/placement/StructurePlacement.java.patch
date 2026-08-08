@@ -1,0 +1,124 @@
+--- a/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
++++ b/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
+@@ -79,14 +_,31 @@
+         return this.exclusionZone;
+     }
+ 
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Add missing structure set seed configs
+     public boolean isStructureChunk(ChunkGeneratorStructureState p_256635_, int p_255959_, int p_256065_) {
+-        return this.isPlacementChunk(p_256635_, p_255959_, p_256065_)
+-            && this.applyAdditionalChunkRestrictions(p_255959_, p_256065_, p_256635_.getLevelSeed())
+-            && this.applyInteractionsWithOtherStructures(p_256635_, p_255959_, p_256065_);
+-    }
+-
+-    public boolean applyAdditionalChunkRestrictions(int p_321784_, int p_321723_, long p_321834_) {
+-        return !(this.frequency < 1.0F) || this.frequencyReductionMethod.shouldGenerate(p_321834_, this.salt, p_321784_, p_321723_, this.frequency);
++        // Paper start - Add missing structure set seed configs
++        return this.isStructureChunk(p_256635_, p_255959_, p_256065_, null);
++    }
++
++    public boolean isStructureChunk(ChunkGeneratorStructureState structureState, int x, int z, @javax.annotation.Nullable net.minecraft.resources.ResourceKey<StructureSet> structureSetKey) {
++        Integer saltOverride = null;
++        if (structureSetKey != null) {
++            if (structureSetKey == net.minecraft.world.level.levelgen.structure.BuiltinStructureSets.MINESHAFTS) {
++                saltOverride = structureState.conf.mineshaftSeed;
++            } else if (structureSetKey == net.minecraft.world.level.levelgen.structure.BuiltinStructureSets.BURIED_TREASURES) {
++                saltOverride = structureState.conf.buriedTreasureSeed;
++            }
++        }
++        // Paper end - Add missing structure set seed configs
++        return this.isPlacementChunk(structureState, x, z)
++            && this.applyAdditionalChunkRestrictions(x, z, structureState.getLevelSeed(), saltOverride) // Paper - Add missing structure set seed configs
++            && this.applyInteractionsWithOtherStructures(structureState, x, z);
++    }
++
++    // Paper start - Add missing structure set seed configs
++    public boolean applyAdditionalChunkRestrictions(int regionX, int regionZ, long levelSeed, @javax.annotation.Nullable Integer saltOverride) {
++        return !(this.frequency < 1.0F) || this.frequencyReductionMethod.shouldGenerate(levelSeed, this.salt, regionX, regionZ, this.frequency, saltOverride);
++        // Paper end - Add missing structure set seed configs
+     }
+ 
+     public boolean applyInteractionsWithOtherStructures(ChunkGeneratorStructureState p_321651_, int p_321696_, int p_321521_) {
+@@ -101,31 +_,37 @@
+ 
+     public abstract StructurePlacementType<?> type();
+ 
+-    private static boolean probabilityReducer(long p_227034_, int p_227035_, int p_227036_, int p_227037_, float p_227038_) {
+-        WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+-        worldgenrandom.setLargeFeatureWithSalt(p_227034_, p_227035_, p_227036_, p_227037_);
+-        return worldgenrandom.nextFloat() < p_227038_;
+-    }
+-
+-    private static boolean legacyProbabilityReducerWithDouble(long p_227049_, int p_227050_, int p_227051_, int p_227052_, float p_227053_) {
+-        WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+-        worldgenrandom.setLargeFeatureSeed(p_227049_, p_227051_, p_227052_);
+-        return worldgenrandom.nextDouble() < p_227053_;
+-    }
+-
+-    private static boolean legacyArbitrarySaltProbabilityReducer(long p_227061_, int p_227062_, int p_227063_, int p_227064_, float p_227065_) {
+-        WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+-        worldgenrandom.setLargeFeatureWithSalt(p_227061_, p_227063_, p_227064_, 10387320);
+-        return worldgenrandom.nextFloat() < p_227065_;
+-    }
+-
+-    private static boolean legacyPillagerOutpostReducer(long p_227067_, int p_227068_, int p_227069_, int p_227070_, float p_227071_) {
+-        int i = p_227069_ >> 4;
+-        int j = p_227070_ >> 4;
+-        WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+-        worldgenrandom.setSeed(i ^ j << 4 ^ p_227067_);
+-        worldgenrandom.nextInt();
+-        return worldgenrandom.nextInt((int)(1.0F / p_227071_)) == 0;
++    private static boolean probabilityReducer(long levelSeed, int regionX, int regionZ, int salt, float probability, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs; ignore here
++        WorldgenRandom worldgenRandom = new WorldgenRandom(new LegacyRandomSource(0L));
++        worldgenRandom.setLargeFeatureWithSalt(levelSeed, regionX, regionZ, salt);
++        return worldgenRandom.nextFloat() < probability;
++    }
++
++    private static boolean legacyProbabilityReducerWithDouble(long baseSeed, int salt, int chunkX, int chunkZ, float probability, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
++        WorldgenRandom worldgenRandom = new WorldgenRandom(new LegacyRandomSource(0L));
++        if (saltOverride == null) { // Paper - Add missing structure set seed configs
++        worldgenRandom.setLargeFeatureSeed(baseSeed, chunkX, chunkZ);
++        // Paper start - Add missing structure set seed configs
++        } else {
++            worldgenRandom.setLargeFeatureWithSalt(baseSeed, chunkX, chunkZ, saltOverride);
++        }
++        // Paper end - Add missing structure set seed configs
++        return worldgenRandom.nextDouble() < probability;
++    }
++
++    private static boolean legacyArbitrarySaltProbabilityReducer(long levelSeed, int salt, int regionX, int regionZ, float probability, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
++        WorldgenRandom worldgenRandom = new WorldgenRandom(new LegacyRandomSource(0L));
++        worldgenRandom.setLargeFeatureWithSalt(levelSeed, regionX, regionZ, saltOverride != null ? saltOverride : HIGHLY_ARBITRARY_RANDOM_SALT); // Paper - Add missing structure set seed configs
++        return worldgenRandom.nextFloat() < probability;
++    }
++
++    private static boolean legacyPillagerOutpostReducer(long levelSeed, int salt, int regionX, int regionZ, float probability, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs; ignore here
++        int i = regionX >> 4;
++        int i1 = regionZ >> 4;
++        WorldgenRandom worldgenRandom = new WorldgenRandom(new LegacyRandomSource(0L));
++        worldgenRandom.setSeed(i ^ i1 << 4 ^ levelSeed);
++        worldgenRandom.nextInt();
++        return worldgenRandom.nextInt((int)(1.0F / probability)) == 0;
+     }
+ 
+     @Deprecated
+@@ -147,7 +_,7 @@
+ 
+     @FunctionalInterface
+     public interface FrequencyReducer {
+-        boolean shouldGenerate(long p_227099_, int p_227100_, int p_227101_, int p_227102_, float p_227103_);
++        boolean shouldGenerate(long levelSeed, int salt, int regionX, int regionZ, float probability, @org.jetbrains.annotations.Nullable Integer saltOverride); // Paper - Add missing structure set seed configs
+     }
+ 
+     public static enum FrequencyReductionMethod implements StringRepresentable {
+@@ -167,8 +_,8 @@
+             this.reducer = p_227117_;
+         }
+ 
+-        public boolean shouldGenerate(long p_227120_, int p_227121_, int p_227122_, int p_227123_, float p_227124_) {
+-            return this.reducer.shouldGenerate(p_227120_, p_227121_, p_227122_, p_227123_, p_227124_);
++        public boolean shouldGenerate(long levelSeed, int salt, int regionX, int regionZ, float probability, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
++            return this.reducer.shouldGenerate(levelSeed, salt, regionX, regionZ, probability, saltOverride); // Paper - Add missing structure set seed configs
+         }
+ 
+         @Override
