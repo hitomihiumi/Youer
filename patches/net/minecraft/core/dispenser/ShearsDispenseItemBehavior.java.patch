@@ -1,23 +1,76 @@
 --- a/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
-@@ -24,7 +_,7 @@
-         ServerLevel serverlevel = p_302443_.level();
-         if (!serverlevel.isClientSide()) {
-             BlockPos blockpos = p_302443_.pos().relative(p_302443_.state().getValue(DispenserBlock.FACING));
+@@ -20,17 +_,38 @@
+ 
+ public class ShearsDispenseItemBehavior extends OptionalDispenseItemBehavior {
+     @Override
+-    protected ItemStack execute(BlockSource p_302443_, ItemStack p_123581_) {
+-        ServerLevel serverlevel = p_302443_.level();
+-        if (!serverlevel.isClientSide()) {
+-            BlockPos blockpos = p_302443_.pos().relative(p_302443_.state().getValue(DispenserBlock.FACING));
 -            this.setSuccess(tryShearBeehive(serverlevel, blockpos) || tryShearEntity(serverlevel, blockpos, p_123581_));
-+            this.setSuccess(net.neoforged.neoforge.common.CommonHooks.tryDispenseShearsHarvestBlock(p_302443_, p_123581_, serverlevel, blockpos) || tryShearBeehive(serverlevel, blockpos) || tryShearEntity(serverlevel, blockpos, p_123581_));
++    protected ItemStack execute(BlockSource blockSource, ItemStack item) {
++        ServerLevel serverLevel = blockSource.level();
++        // CraftBukkit start
++        org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(serverLevel, blockSource.pos());
++        org.bukkit.craftbukkit.inventory.CraftItemStack craftItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(item); // Paper - ignore stack size on damageable items
++        org.bukkit.event.block.BlockDispenseEvent event = new org.bukkit.event.block.BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
++        serverLevel.getCraftServer().getPluginManager().callEvent(event);
++
++        if (event.isCancelled()) {
++            this.setSuccess(false);
++            return item;
++        }
++
++        if (!event.getItem().equals(craftItem)) {
++            // Chain to handler for new item
++            ItemStack eventStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem());
++            DispenseItemBehavior dispenseBehavior = DispenserBlock.getDispenseBehavior(blockSource, eventStack);
++            if (dispenseBehavior != DispenseItemBehavior.NOOP && dispenseBehavior != this) {
++                dispenseBehavior.dispense(blockSource, eventStack);
++                return item;
++            }
++        }
++        // CraftBukkit end
++        if (!serverLevel.isClientSide()) {
++            BlockPos blockPos = blockSource.pos().relative(blockSource.state().getValue(DispenserBlock.FACING));
++            this.setSuccess(net.neoforged.neoforge.common.CommonHooks.tryDispenseShearsHarvestBlock(blockSource, item, serverLevel, blockPos) || tryShearBeehive(serverLevel, blockPos) || tryShearEntity(serverLevel, blockPos, item, bukkitBlock, craftItem)); // CraftBukkit
              if (this.isSuccess()) {
-                 p_123581_.hurtAndBreak(1, serverlevel, null, p_348118_ -> {});
+-                p_123581_.hurtAndBreak(1, serverlevel, null, p_348118_ -> {});
++                item.hurtAndBreak(1, serverLevel, null, item1 -> {});
              }
-@@ -56,8 +_,9 @@
+         }
+ 
+-        return p_123581_;
++        return item;
+     }
+ 
+     private static boolean tryShearBeehive(ServerLevel p_123577_, BlockPos p_123578_) {
+@@ -50,15 +_,23 @@
+         return false;
+     }
+ 
+-    private static boolean tryShearEntity(ServerLevel p_418032_, BlockPos p_418277_, ItemStack p_418413_) {
+-        for (Entity entity : p_418032_.getEntitiesOfClass(Entity.class, new AABB(p_418277_), EntitySelector.NO_SPECTATORS)) {
++    private static boolean tryShearEntity(ServerLevel level, BlockPos pos, ItemStack stack, org.bukkit.block.Block bukkitBlock, org.bukkit.craftbukkit.inventory.CraftItemStack craftItem) { // CraftBukkit - add args
++        for (Entity entity : level.getEntitiesOfClass(Entity.class, new AABB(pos), EntitySelector.NO_SPECTATORS)) {
+             if (entity.shearOffAllLeashConnections(null)) {
                  return true;
              }
  
--            if (entity instanceof Shearable shearable && shearable.readyForShearing()) {
+             if (entity instanceof Shearable shearable && shearable.readyForShearing()) {
 -                shearable.shear(p_418032_, SoundSource.BLOCKS, p_418413_);
-+            if (entity instanceof net.neoforged.neoforge.common.IShearable shearable && shearable.isShearable(null, p_418413_, p_418032_, p_418277_)) {
-+                shearable.onSheared(null, p_418413_, p_418032_, p_418277_)
-+                        .forEach(drop -> shearable.spawnShearedDrop(p_418032_, p_418277_, drop));
-                 p_418032_.gameEvent(null, GameEvent.SHEAR, p_418277_);
+-                p_418032_.gameEvent(null, GameEvent.SHEAR, p_418277_);
++                // CraftBukkit start
++                // Paper start - Add drops to shear events
++                org.bukkit.event.block.BlockShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockShearEntityEvent(entity, bukkitBlock, craftItem, shearable.generateDefaultDrops(level, stack));
++                if (event.isCancelled()) {
++                    // Paper end - Add drops to shear events
++                    continue;
++                }
++                // CraftBukkit end
++                shearable.shear(level, SoundSource.BLOCKS, stack, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops())); // Paper - Add drops to shear events
++                level.gameEvent(null, GameEvent.SHEAR, pos);
                  return true;
              }
+         }

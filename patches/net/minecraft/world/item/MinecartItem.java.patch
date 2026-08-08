@@ -9,3 +9,18 @@
                  : RailShape.NORTH_SOUTH;
              double d0 = 0.0;
              if (railshape.isSlope()) {
+@@ -57,7 +_,13 @@
+                 }
+ 
+                 if (level instanceof ServerLevel serverlevel) {
+-                    serverlevel.addFreshEntity(abstractminecart);
++                    // CraftBukkit start
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(p_42943_, abstractminecart).isCancelled()) {
++                        if (p_42943_.getPlayer() != null) p_42943_.getPlayer().containerMenu.forceHeldSlot(p_42943_.getHand()); // Paper - Fix inventory desync
++                        return InteractionResult.FAIL;
++                    }
++                    // CraftBukkit end
++                    if (!serverlevel.addFreshEntity(abstractminecart)) return InteractionResult.PASS; // CraftBukkit
+                     serverlevel.gameEvent(
+                         GameEvent.ENTITY_PLACE, blockpos, GameEvent.Context.of(p_42943_.getPlayer(), serverlevel.getBlockState(blockpos.below()))
+                     );

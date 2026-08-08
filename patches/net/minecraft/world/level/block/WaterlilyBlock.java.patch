@@ -4,7 +4,7 @@
  
      @Override
      protected void entityInside(BlockState p_58164_, Level p_58165_, BlockPos p_58166_, Entity p_58167_, InsideBlockEffectApplier p_405495_) {
-+        if (!new io.papermc.paper.event.p_58167_.EntityInsideBlockEvent(p_58167_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_58165_, p_58166_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_58167_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_58165_, p_58166_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          super.entityInside(p_58164_, p_58165_, p_58166_, p_58167_, p_405495_);
          if (p_58165_ instanceof ServerLevel && p_58167_ instanceof AbstractBoat) {
 +            // CraftBukkit start

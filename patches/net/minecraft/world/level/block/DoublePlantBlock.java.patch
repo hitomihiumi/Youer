@@ -20,7 +20,7 @@
  
      protected static void preventDropFromBottomPart(Level p_52904_, BlockPos p_52905_, BlockState p_52906_, Player p_52907_) {
 +        // CraftBukkit start
-+        if (((net.minecraft.server.p_52904_.ServerLevel)p_52904_).hasPhysicsEvent && org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(p_52904_, p_52905_).isCancelled()) { // Paper
++        if (((net.minecraft.server.level.ServerLevel)p_52904_).hasPhysicsEvent && org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(p_52904_, p_52905_).isCancelled()) { // Paper
 +            return;
 +        }
 +        // CraftBukkit end

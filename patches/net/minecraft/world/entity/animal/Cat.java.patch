@@ -1,22 +1,124 @@
 --- a/net/minecraft/world/entity/animal/Cat.java
 +++ b/net/minecraft/world/entity/animal/Cat.java
-@@ -387,9 +_,9 @@
+@@ -369,34 +_,39 @@
+     }
+ 
+     @Override
+-    public InteractionResult mobInteract(Player p_28153_, InteractionHand p_28154_) {
+-        ItemStack itemstack = p_28153_.getItemInHand(p_28154_);
+-        Item item = itemstack.getItem();
++    public InteractionResult mobInteract(Player player, InteractionHand hand) {
++        ItemStack itemInHand = player.getItemInHand(hand);
++        Item item = itemInHand.getItem();
+         if (this.isTame()) {
+-            if (this.isOwnedBy(p_28153_)) {
+-                if (item instanceof DyeItem dyeitem) {
+-                    DyeColor dyecolor = dyeitem.getDyeColor();
+-                    if (dyecolor != this.getCollarColor()) {
++            if (this.isOwnedBy(player)) {
++                if (item instanceof DyeItem dyeItem) {
++                    DyeColor dyeColor = dyeItem.getDyeColor();
++                    if (dyeColor != this.getCollarColor()) {
++                        // Paper start - Add EntityDyeEvent and CollarColorable interface
++                        final io.papermc.paper.event.entity.EntityDyeEvent event = new io.papermc.paper.event.entity.EntityDyeEvent(this.getBukkitEntity(), org.bukkit.DyeColor.getByWoolData((byte) dyeColor.getId()), ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity());
++                        if (!event.callEvent()) return InteractionResult.FAIL;
++                        dyeColor = DyeColor.byId(event.getColor().getWoolData());
++                        // Paper end - Add EntityDyeEvent and CollarColorable interface
+                         if (!this.level().isClientSide()) {
+-                            this.setCollarColor(dyecolor);
+-                            itemstack.consume(1, p_28153_);
++                            this.setCollarColor(dyeColor);
++                            itemInHand.consume(1, player);
+                             this.setPersistenceRequired();
+                         }
+ 
+                         return InteractionResult.SUCCESS;
                      }
-                 } else if (this.isFood(itemstack) && this.getHealth() < this.getMaxHealth()) {
+-                } else if (this.isFood(itemstack) && this.getHealth() < this.getMaxHealth()) {
++                } else if (this.isFood(itemInHand) && this.getHealth() < this.getMaxHealth()) {
                      if (!this.level().isClientSide()) {
 -                        this.usePlayerItem(p_28153_, p_28154_, itemstack);
-                         FoodProperties foodproperties = itemstack.get(DataComponents.FOOD);
-                         this.heal(foodproperties != null ? foodproperties.nutrition() : 1.0F);
-+                        this.usePlayerItem(p_28153_, p_28154_, itemstack);
+-                        FoodProperties foodproperties = itemstack.get(DataComponents.FOOD);
+-                        this.heal(foodproperties != null ? foodproperties.nutrition() : 1.0F);
++                        FoodProperties foodProperties = itemInHand.get(DataComponents.FOOD);
++                        this.heal(foodProperties != null ? foodProperties.nutrition() : 1.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.EATING); // Paper - Add missing regain reason
++                        this.usePlayerItem(player, hand, itemInHand);
                          this.playEatingSound();
                      }
  
+                     return InteractionResult.SUCCESS;
+                 }
+ 
+-                InteractionResult interactionresult = super.mobInteract(p_28153_, p_28154_);
++                InteractionResult interactionresult = super.mobInteract(player, hand);
+                 if (!interactionresult.consumesAction()) {
+                     this.setOrderedToSit(!this.isOrderedToSit());
+                     return InteractionResult.SUCCESS;
+@@ -404,10 +_,10 @@
+ 
+                 return interactionresult;
+             }
+-        } else if (this.isFood(itemstack)) {
++        } else if (this.isFood(itemInHand)) {
+             if (!this.level().isClientSide()) {
+-                this.usePlayerItem(p_28153_, p_28154_, itemstack);
+-                this.tryToTame(p_28153_);
++                this.usePlayerItem(player, hand, itemInHand);
++                this.tryToTame(player);
+                 this.setPersistenceRequired();
+                 this.playEatingSound();
+             }
+@@ -415,7 +_,7 @@
+             return InteractionResult.SUCCESS;
+         }
+ 
+-        InteractionResult interactionresult1 = super.mobInteract(p_28153_, p_28154_);
++        InteractionResult interactionresult1 = super.mobInteract(player, hand);
+         if (interactionresult1.consumesAction()) {
+             this.setPersistenceRequired();
+         }
 @@ -451,7 +_,7 @@
      }
  
      private void tryToTame(Player p_333858_) {
 -        if (this.random.nextInt(3) == 0) {
-+        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333858_)) {
++        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333858_) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, p_333858_).isCancelled()) { // CraftBukkit
              this.tame(p_333858_);
              this.setOrderedToSit(true);
              this.level().broadcastEntityEvent(this, (byte)7);
+@@ -585,15 +_,20 @@
+                 .dropFromGiftLootTable(
+                     getServerLevel(this.cat),
+                     BuiltInLootTables.CAT_MORNING_GIFT,
+-                    (p_375797_, p_375798_) -> p_375797_.addFreshEntity(
+-                        new ItemEntity(
+-                            p_375797_,
++                    // CraftBukkit start
++                    (level, stack) -> {
++                        final ItemEntity item = new ItemEntity(
++                            level,
+                             (double)blockpos$mutableblockpos.getX() - Mth.sin(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
+                             blockpos$mutableblockpos.getY(),
+                             (double)blockpos$mutableblockpos.getZ() + Mth.cos(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
+-                            p_375798_
+-                        )
+-                    )
++                            stack
++                        );
++                        org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.cat.getBukkitEntity(), (org.bukkit.entity.Item) item.getBukkitEntity());
++                        if (!event.callEvent()) return;
++                        level.addFreshEntity(item);
++                    }
++                    // CraftBukkit end
+                 );
+         }
+ 
+@@ -620,7 +_,7 @@
+ 
+     static class CatTemptGoal extends TemptGoal {
+         @Nullable
+-        private Player selectedPlayer;
++        private LivingEntity selectedPlayer; // CraftBukkit
+         private final Cat cat;
+ 
+         public CatTemptGoal(Cat p_28219_, double p_28220_, Predicate<ItemStack> p_335450_, boolean p_28222_) {

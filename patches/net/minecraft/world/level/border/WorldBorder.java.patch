@@ -1,0 +1,131 @@
+--- a/net/minecraft/world/level/border/WorldBorder.java
++++ b/net/minecraft/world/level/border/WorldBorder.java
+@@ -31,6 +_,7 @@
+     int absoluteMaxSize = 29999984;
+     private WorldBorder.BorderExtent extent = new WorldBorder.StaticBorderExtent(5.999997E7F);
+     public static final WorldBorder.Settings DEFAULT_SETTINGS = new WorldBorder.Settings(0.0, 0.0, 0.2, 5.0, 5, 15, 5.999997E7F, 0L, 0.0);
++    public net.minecraft.server.level.ServerLevel world; // CraftBukkit
+ 
+     public boolean isWithinBounds(BlockPos p_61938_) {
+         return this.isWithinBounds(p_61938_.getX(), p_61938_.getZ());
+@@ -44,6 +_,20 @@
+         return this.isWithinBounds(p_61928_.getMinBlockX(), p_61928_.getMinBlockZ()) && this.isWithinBounds(p_61928_.getMaxBlockX(), p_61928_.getMaxBlockZ());
+     }
+ 
++    // Paper start - Bound treasure maps to world border
++    private final BlockPos.MutableBlockPos mutPos = new BlockPos.MutableBlockPos();
++
++    public boolean isBlockInBounds(int chunkX, int chunkZ) {
++        this.mutPos.set(chunkX, 64, chunkZ);
++        return this.isWithinBounds(this.mutPos);
++    }
++
++    public boolean isChunkInBounds(int chunkX, int chunkZ) {
++        this.mutPos.set(((chunkX << 4) + 15), 64, (chunkZ << 4) + 15);
++        return this.isWithinBounds(this.mutPos);
++    }
++    // Paper end - Bound treasure maps to world border
++
+     public boolean isWithinBounds(AABB p_61936_) {
+         return this.isWithinBounds(p_61936_.minX, p_61936_.minZ, p_61936_.maxX - 1.0E-5F, p_61936_.maxZ - 1.0E-5F);
+     }
+@@ -146,13 +_,21 @@
+         return this.centerZ;
+     }
+ 
+-    public void setCenter(double p_61950_, double p_61951_) {
+-        this.centerX = p_61950_;
+-        this.centerZ = p_61951_;
++    public void setCenter(double x, double z) {
++        // Paper start - Add worldborder events
++        if (this.world != null) {
++            io.papermc.paper.event.world.border.WorldBorderCenterChangeEvent event = new io.papermc.paper.event.world.border.WorldBorderCenterChangeEvent(world.getWorld(), world.getWorld().getWorldBorder(), new org.bukkit.Location(world.getWorld(), this.getCenterX(), 0, this.getCenterZ()), new org.bukkit.Location(world.getWorld(), x, 0, z));
++            if (!event.callEvent()) return;
++            x = event.getNewCenter().getX();
++            z = event.getNewCenter().getZ();
++        }
++        // Paper end - Add worldborder events
++        this.centerX = x;
++        this.centerZ = z;
+         this.extent.onCenterChange();
+ 
+-        for (BorderChangeListener borderchangelistener : this.getListeners()) {
+-            borderchangelistener.onBorderCenterSet(this, p_61950_, p_61951_);
++        for (BorderChangeListener borderChangeListener : this.getListeners()) {
++            borderChangeListener.onBorderCenterSet(this, x, z);
+         }
+     }
+ 
+@@ -168,21 +_,46 @@
+         return this.extent.getLerpTarget();
+     }
+ 
+-    public void setSize(double p_61918_) {
+-        this.extent = new WorldBorder.StaticBorderExtent(p_61918_);
++    public void setSize(double size) {
++        // Paper start - Add worldborder events
++        if (this.world != null) {
++            io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent event = new io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent(world.getWorld(), world.getWorld().getWorldBorder(), io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent.Type.INSTANT_MOVE, getSize(), size, 0);
++            if (!event.callEvent()) return;
++            if (event.getType() == io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent.Type.STARTED_MOVE && event.getDuration() > 0) { // If changed to a timed transition
++                lerpSizeBetween(event.getOldSize(), event.getNewSize(), event.getDuration());
++                return;
++            }
++            size = event.getNewSize();
++        }
++        // Paper end - Add worldborder events
++        this.extent = new WorldBorder.StaticBorderExtent(size);
+ 
+-        for (BorderChangeListener borderchangelistener : this.getListeners()) {
+-            borderchangelistener.onBorderSizeSet(this, p_61918_);
++        for (BorderChangeListener borderChangeListener : this.getListeners()) {
++            borderChangeListener.onBorderSizeSet(this, size);
+         }
+     }
+ 
+-    public void lerpSizeBetween(double p_61920_, double p_61921_, long p_61922_) {
+-        this.extent = (WorldBorder.BorderExtent)(p_61920_ == p_61921_
+-            ? new WorldBorder.StaticBorderExtent(p_61921_)
+-            : new WorldBorder.MovingBorderExtent(p_61920_, p_61921_, p_61922_));
++    public void lerpSizeBetween(double oldSize, double newSize, long time) {
++        // Paper start - Add worldborder events
++        if (this.world != null) {
++            io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent.Type type;
++            if (oldSize == newSize) { // new size = old size
++                type = io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent.Type.INSTANT_MOVE; // Use INSTANT_MOVE because below it creates a Static border if they are equal.
++            } else {
++                type = io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent.Type.STARTED_MOVE;
++            }
++            io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent event = new io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent(world.getWorld(), world.getWorld().getWorldBorder(), type, oldSize, newSize, time);
++            if (!event.callEvent()) return;
++            newSize = event.getNewSize();
++            time = event.getDuration();
++        }
++        // Paper end - Add worldborder events
++        this.extent = (WorldBorder.BorderExtent)(oldSize == newSize
++            ? new WorldBorder.StaticBorderExtent(newSize)
++            : new WorldBorder.MovingBorderExtent(oldSize, newSize, time));
+ 
+-        for (BorderChangeListener borderchangelistener : this.getListeners()) {
+-            borderchangelistener.onBorderSizeLerping(this, p_61920_, p_61921_, p_61922_);
++        for (BorderChangeListener borderChangeListener : this.getListeners()) {
++            borderChangeListener.onBorderSizeLerping(this, oldSize, newSize, time);
+         }
+     }
+ 
+@@ -191,6 +_,7 @@
+     }
+ 
+     public void addListener(BorderChangeListener p_61930_) {
++        if (this.listeners.contains(p_61930_)) return; // CraftBukkit
+         this.listeners.add(p_61930_);
+     }
+ 
+@@ -390,6 +_,7 @@
+ 
+         @Override
+         public WorldBorder.BorderExtent update() {
++            if (world != null && this.getLerpRemainingTime() <= 0L) new io.papermc.paper.event.world.border.WorldBorderBoundsChangeFinishEvent(world.getWorld(), world.getWorld().getWorldBorder(), this.from, this.to, this.lerpDuration).callEvent(); // Paper - Add worldborder events
+             return (WorldBorder.BorderExtent)(this.getLerpRemainingTime() <= 0L ? WorldBorder.this.new StaticBorderExtent(this.to) : this);
+         }
+ 

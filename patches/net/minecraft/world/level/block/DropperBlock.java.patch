@@ -1,22 +1,86 @@
 --- a/net/minecraft/world/level/block/DropperBlock.java
 +++ b/net/minecraft/world/level/block/DropperBlock.java
-@@ -58,12 +_,16 @@
-                 ItemStack itemstack = dispenserblockentity.getItem(i);
-                 if (!itemstack.isEmpty()) {
-                     Direction direction = p_52944_.getBlockState(p_52945_).getValue(FACING);
+@@ -45,34 +_,62 @@
+     }
+ 
+     @Override
+-    public void dispenseFrom(ServerLevel p_52944_, BlockState p_302455_, BlockPos p_52945_) {
+-        DispenserBlockEntity dispenserblockentity = p_52944_.getBlockEntity(p_52945_, BlockEntityType.DROPPER).orElse(null);
+-        if (dispenserblockentity == null) {
+-            LOGGER.warn("Ignoring dispensing attempt for Dropper without matching block entity at {}", p_52945_);
++    public void dispenseFrom(ServerLevel level, BlockState state, BlockPos pos) {
++        DispenserBlockEntity dispenserBlockEntity = level.getBlockEntity(pos, BlockEntityType.DROPPER).orElse(null);
++        if (dispenserBlockEntity == null) {
++            LOGGER.warn("Ignoring dispensing attempt for Dropper without matching block entity at {}", pos);
+         } else {
+-            BlockSource blocksource = new BlockSource(p_52944_, p_52945_, p_302455_, dispenserblockentity);
+-            int i = dispenserblockentity.getRandomSlot(p_52944_.random);
+-            if (i < 0) {
+-                p_52944_.levelEvent(1001, p_52945_, 0);
++            BlockSource blockSource = new BlockSource(level, pos, state, dispenserBlockEntity);
++            int randomSlot = dispenserBlockEntity.getRandomSlot(level.random);
++            if (randomSlot < 0) {
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFailedDispenseEvent(level, pos)) // Paper - Add BlockFailedDispenseEvent
++                level.levelEvent(1001, pos, 0);
+             } else {
+-                ItemStack itemstack = dispenserblockentity.getItem(i);
+-                if (!itemstack.isEmpty()) {
+-                    Direction direction = p_52944_.getBlockState(p_52945_).getValue(FACING);
 -                    Container container = HopperBlockEntity.getContainerAt(p_52944_, p_52945_.relative(direction));
-+                    var containerOrHandler = HopperBlockEntity.getContainerOrHandlerAt(p_52944_, p_52945_.relative(direction), direction.getOpposite());
-                     ItemStack itemstack1;
+-                    ItemStack itemstack1;
 -                    if (container == null) {
+-                        itemstack1 = DISPENSE_BEHAVIOUR.dispense(blocksource, itemstack);
++                ItemStack item = dispenserBlockEntity.getItem(randomSlot);
++                if (!item.isEmpty()) {
++                    Direction direction = level.getBlockState(pos).getValue(FACING);
++                    var containerOrHandler = HopperBlockEntity.getContainerOrHandlerAt(level, pos.relative(direction), direction.getOpposite());
++                    ItemStack itemStack;
 +                    if (containerOrHandler.isEmpty()) {
-                         itemstack1 = DISPENSE_BEHAVIOUR.dispense(blocksource, itemstack);
++                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockPreDispenseEvent(level, pos, item, randomSlot)) return; // Paper - Add BlockPreDispenseEvent
++                        itemStack = DISPENSE_BEHAVIOUR.dispense(blockSource, item);
++                    } else if (containerOrHandler.container() != null) {
++                        Container containerAt = containerOrHandler.container();
++                        // CraftBukkit start - Fire event when pushing items into other inventories
++                        org.bukkit.craftbukkit.inventory.CraftItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(item.copyWithCount(1));
++
++                        org.bukkit.inventory.Inventory destinationInventory;
++                        // Have to special case large chests as they work oddly
++                        if (containerAt instanceof net.minecraft.world.CompoundContainer compoundContainer) {
++                            destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest(compoundContainer);
++                        } else {
++                            destinationInventory = containerAt.getOwner().getInventory();
++                        }
++
++                        org.bukkit.event.inventory.InventoryMoveItemEvent event = new org.bukkit.event.inventory.InventoryMoveItemEvent(dispenserBlockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
++                        level.getCraftServer().getPluginManager().callEvent(event);
++                        if (event.isCancelled()) {
++                            return;
++                        }
++                        itemStack = HopperBlockEntity.addItem(dispenserBlockEntity, containerAt, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem()), direction.getOpposite());
++                        if (event.getItem().equals(oitemstack) && itemStack.isEmpty()) {
++                            // CraftBukkit end
++                            itemStack = item.copy();
++                            itemStack.shrink(1);
++                        } else {
++                            itemStack = item.copy();
++                        }
                      } else {
 -                        itemstack1 = HopperBlockEntity.addItem(dispenserblockentity, container, itemstack.copyWithCount(1), direction.getOpposite());
-+                        if (containerOrHandler.container() != null) {
-+                            itemstack1 = HopperBlockEntity.addItem(dispenserblockentity, containerOrHandler.container(), itemstack.copyWithCount(1), direction.getOpposite());
-+                        } else {
-+                            itemstack1 = net.neoforged.neoforge.items.ItemHandlerHelper.insertItem(containerOrHandler.itemHandler(), itemstack.copyWithCount(1), false);
-+                        }
-                         if (itemstack1.isEmpty()) {
-                             itemstack1 = itemstack.copy();
-                             itemstack1.shrink(1);
+-                        if (itemstack1.isEmpty()) {
+-                            itemstack1 = itemstack.copy();
+-                            itemstack1.shrink(1);
++                        itemStack = net.neoforged.neoforge.items.ItemHandlerHelper.insertItem(containerOrHandler.itemHandler(), item.copyWithCount(1), false);
++                        if (itemStack.isEmpty()) {
++                            itemStack = item.copy();
++                            itemStack.shrink(1);
+                         } else {
+-                            itemstack1 = itemstack.copy();
++                            itemStack = item.copy();
+                         }
+                     }
+ 
+-                    dispenserblockentity.setItem(i, itemstack1);
++                    dispenserBlockEntity.setItem(randomSlot, itemStack);
+                 }
+             }
+         }

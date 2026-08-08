@@ -22,7 +22,7 @@
              this.setItemSlot(equipmentslot, itemstack);
              this.take(p_37866_, itemstack.getCount());
 -            p_37866_.discard();
-+            p_37866_.discard(org.bukkit.event.p_37866_.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
++            p_37866_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
              this.getCurrentRaid().setLeader(this.getWave(), this);
              this.setPatrolLeader(true);
          } else {

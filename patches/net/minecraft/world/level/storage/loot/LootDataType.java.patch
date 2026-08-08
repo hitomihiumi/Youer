@@ -29,3 +29,17 @@
  
      public void runValidation(ValidationContext p_279366_, ResourceKey<T> p_336149_, T p_279124_) {
          this.validator.run(p_279366_, p_336149_, p_279124_);
+@@ -32,9 +_,11 @@
+     }
+ 
+     private static LootDataType.Validator<LootTable> createLootTableValidator() {
+-        return (p_421457_, p_421458_, p_421459_) -> p_421459_.validate(
+-            p_421457_.setContextKeySet(p_421459_.getParamSet()).enterElement(new ProblemReporter.RootElementPathElement(p_421458_), p_421458_)
++        // CraftBukkit start - TODO: restore value.craftLootTable assignment once LootTable.java is merged (out of corpus for this batch)
++        return (context, key, value) -> value.validate(
++            context.setContextKeySet(value.getParamSet()).enterElement(new ProblemReporter.RootElementPathElement(key), key)
+         );
++        // CraftBukkit end
+     }
+ 
+     @FunctionalInterface

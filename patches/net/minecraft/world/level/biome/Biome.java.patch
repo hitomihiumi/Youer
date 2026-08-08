@@ -40,6 +40,39 @@
      }
  
      public boolean hasPrecipitation() {
+@@ -115,21 +_,8 @@
+     }
+ 
+     @Deprecated
+-    private float getTemperature(BlockPos p_47506_, int p_365137_) {
+-        long i = p_47506_.asLong();
+-        Long2FloatLinkedOpenHashMap long2floatlinkedopenhashmap = this.temperatureCache.get();
+-        float f = long2floatlinkedopenhashmap.get(i);
+-        if (!Float.isNaN(f)) {
+-            return f;
+-        } else {
+-            float f1 = this.getHeightAdjustedTemperature(p_47506_, p_365137_);
+-            if (long2floatlinkedopenhashmap.size() == 1024) {
+-                long2floatlinkedopenhashmap.removeFirstFloat();
+-            }
+-
+-            long2floatlinkedopenhashmap.put(i, f1);
+-            return f1;
+-        }
++    public float getTemperature(BlockPos pos, int seaLevel) {
++        return this.getHeightAdjustedTemperature(pos, seaLevel); // Paper - optimise random ticking
+     }
+ 
+     public boolean shouldFreeze(LevelReader p_47478_, BlockPos p_47479_) {
+@@ -175,7 +_,7 @@
+     }
+ 
+     public boolean shouldSnow(LevelReader p_47520_, BlockPos p_47521_) {
+-        if (this.warmEnoughToRain(p_47521_, p_47520_.getSeaLevel())) {
++        if (this.getPrecipitationAt(p_47521_, p_47520_.getSeaLevel()) != Precipitation.SNOW) { // Paper - Fixes MC-248212
+             return false;
+         } else {
+             if (p_47520_.isInsideBuildHeight(p_47521_.getY()) && p_47520_.getBrightness(LightLayer.BLOCK, p_47521_) < 10) {
 @@ -190,7 +_,7 @@
      }
  

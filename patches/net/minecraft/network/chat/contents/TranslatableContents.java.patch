@@ -41,7 +41,7 @@
          for (FormattedText formattedtext : this.decomposedParts) {
              Optional<T> optional = formattedtext.visit(p_237521_, p_237522_);
              if (optional.isPresent()) {
-@@ -178,12 +_,21 @@
+@@ -178,21 +_,64 @@
          }
  
          return Optional.empty();
@@ -51,25 +51,62 @@
      }
  
      @Override
-     public <T> Optional<T> visit(FormattedText.ContentConsumer<T> p_237519_) {
+-    public <T> Optional<T> visit(FormattedText.ContentConsumer<T> p_237519_) {
++    public <T> Optional<T> visit(FormattedText.ContentConsumer<T> contentConsumer) {
++        // Paper start - Count visited parts
++        try {
++            return this.visit(new TranslatableContentConsumer<>(contentConsumer));
++        } catch (IllegalArgumentException ignored) {
++            return contentConsumer.accept("...");
++        }
++    }
++
++    private <T> Optional<T> visit(TranslatableContentConsumer<T> contentConsumer) {
++        // Paper end - Count visited parts
          this.decompose();
  
+-        for (FormattedText formattedtext : this.decomposedParts) {
+-            Optional<T> optional = formattedtext.visit(p_237519_);
 +        if (!net.neoforged.neoforge.common.util.InsertingContents.pushTranslation(this)) {
 +            // Reference cycle.
 +            return Optional.empty();
 +        }
 +
 +        try {
-         for (FormattedText formattedtext : this.decomposedParts) {
-             Optional<T> optional = formattedtext.visit(p_237519_);
++        for (FormattedText formattedText : this.decomposedParts) {
++            Optional<T> optional = formattedText.visit(contentConsumer);
              if (optional.isPresent()) {
-@@ -192,6 +_,9 @@
+                 return optional;
+             }
          }
  
          return Optional.empty();
+-    }
 +        } finally {
 +            net.neoforged.neoforge.common.util.InsertingContents.popTranslation();
 +        }
-     }
++    }
++
++    // Paper start - Count visited parts
++    private static final class TranslatableContentConsumer<T> implements FormattedText.ContentConsumer<T> {
++        private static final IllegalArgumentException NESTED_TOO_LONG = new IllegalArgumentException("Too long");
++
++        private final FormattedText.ContentConsumer<T> visitor;
++        private int visited;
++
++        private TranslatableContentConsumer(final FormattedText.ContentConsumer<T> visitor) {
++            this.visitor = visitor;
++        }
++
++        @Override
++        public Optional<T> accept(final String asString) {
++            if (this.visited++ > 32) {
++                throw NESTED_TOO_LONG;
++            }
++            return this.visitor.accept(asString);
++        }
++    }
++    // Paper end - Count visited parts
  
      @Override
+     public MutableComponent resolve(@Nullable CommandSourceStack p_237512_, @Nullable Entity p_237513_, int p_237514_) throws CommandSyntaxException {

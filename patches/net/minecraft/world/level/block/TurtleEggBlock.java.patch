@@ -1,5 +1,80 @@
 --- a/net/minecraft/world/level/block/TurtleEggBlock.java
 +++ b/net/minecraft/world/level/block/TurtleEggBlock.java
+@@ -69,12 +_,25 @@
+         super.fallOn(p_154845_, p_154846_, p_154847_, p_154848_, p_397908_);
+     }
+ 
+-    private void destroyEgg(Level p_154851_, BlockState p_154852_, BlockPos p_154853_, Entity p_154854_, int p_154855_) {
+-        if (p_154852_.is(Blocks.TURTLE_EGG)
+-            && p_154851_ instanceof ServerLevel serverlevel
+-            && this.canDestroyEgg(serverlevel, p_154854_)
+-            && p_154851_.random.nextInt(p_154855_) == 0) {
+-            this.decreaseEggs(serverlevel, p_154853_, p_154852_);
++    private void destroyEgg(Level level, BlockState state, BlockPos pos, Entity entity, int chance) {
++        if (state.is(Blocks.TURTLE_EGG)
++            && level instanceof ServerLevel serverLevel
++            && this.canDestroyEgg(serverLevel, entity)
++            && level.random.nextInt(chance) == 0) {
++            // CraftBukkit start - Step on eggs
++            org.bukkit.event.Cancellable cancellable;
++            if (entity instanceof Player) {
++                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
++            } else {
++                cancellable = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos));
++                level.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++            }
++
++            if (cancellable.isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
++            this.decreaseEggs(serverLevel, pos, state);
+         }
+     }
+ 
+@@ -95,10 +_,19 @@
+         if (this.shouldUpdateHatchLevel(p_222645_) && onSand(p_222645_, p_222646_)) {
+             int i = p_222644_.getValue(HATCH);
+             if (i < 2) {
++                // CraftBukkit start - Call BlockGrowEvent
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222645_, p_222646_, p_222644_.setValue(HATCH, i + 1), 2)) {
++                    return;
++                }
++                // CraftBukkit end
+                 p_222645_.playSound(null, p_222646_, SoundEvents.TURTLE_EGG_CRACK, SoundSource.BLOCKS, 0.7F, 0.9F + p_222647_.nextFloat() * 0.2F);
+-                p_222645_.setBlock(p_222646_, p_222644_.setValue(HATCH, i + 1), 2);
+                 p_222645_.gameEvent(GameEvent.BLOCK_CHANGE, p_222646_, GameEvent.Context.of(p_222644_));
+             } else {
++                // CraftBukkit start - Call BlockFadeEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_222645_, p_222646_, Blocks.AIR.defaultBlockState()).isCancelled()) {
++                    return;
++                }
++                // CraftBukkit end
+                 p_222645_.playSound(null, p_222646_, SoundEvents.TURTLE_EGG_HATCH, SoundSource.BLOCKS, 0.7F, 0.9F + p_222647_.nextFloat() * 0.2F);
+                 p_222645_.removeBlock(p_222646_, false);
+                 p_222645_.gameEvent(GameEvent.BLOCK_DESTROY, p_222646_, GameEvent.Context.of(p_222644_));
+@@ -110,7 +_,7 @@
+                         turtle.setAge(-24000);
+                         turtle.setHomePos(p_222646_);
+                         turtle.snapTo(p_222646_.getX() + 0.3 + j * 0.2, p_222646_.getY(), p_222646_.getZ() + 0.3, 0.0F, 0.0F);
+-                        p_222645_.addFreshEntity(turtle);
++                        p_222645_.addFreshEntity(turtle, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EGG); // CraftBukkit
+                     }
+                 }
+             }
+@@ -138,9 +_,9 @@
+     }
+ 
+     @Override
+-    public void playerDestroy(Level p_57771_, Player p_57772_, BlockPos p_57773_, BlockState p_57774_, @Nullable BlockEntity p_57775_, ItemStack p_57776_) {
+-        super.playerDestroy(p_57771_, p_57772_, p_57773_, p_57774_, p_57775_, p_57776_);
+-        this.decreaseEggs(p_57771_, p_57773_, p_57774_);
++    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity te, ItemStack stack, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
++        super.playerDestroy(level, player, pos, state, te, stack, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion
++        this.decreaseEggs(level, pos, state);
+     }
+ 
+     @Override
 @@ -171,7 +_,7 @@
          if (p_57769_ instanceof Turtle || p_57769_ instanceof Bat) {
              return false;

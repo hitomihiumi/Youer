@@ -13,7 +13,7 @@
 +                        dragonfireball.preserveMotion = true; // Paper - Fix Entity Teleportation and cancel velocity if teleported
                          dragonfireball.snapTo(d6, d7, d8, 0.0F, 0.0F);
 +                        if (new com.destroystokyo.paper.event.entity.EnderDragonShootFireballEvent((org.bukkit.entity.EnderDragon) this.dragon.getBukkitEntity(), (org.bukkit.entity.DragonFireball) dragonfireball.getBukkitEntity()).callEvent()) { // Paper - EnderDragon Events
-+                            if (!this.dragon.isSilent()) p_376857_.levelEvent(null, net.minecraft.world.p_376857_.block.LevelEvent.SOUND_DRAGON_FIREBALL, this.dragon.blockPosition(), 0); // Paper - EnderDragon Events; Fire after shoot fireball event
++                            if (!this.dragon.isSilent()) p_376857_.levelEvent(null, net.minecraft.world.level.block.LevelEvent.SOUND_DRAGON_FIREBALL, this.dragon.blockPosition(), 0); // Paper - EnderDragon Events; Fire after shoot fireball event
                          p_376857_.addFreshEntity(dragonfireball);
 +                        } else dragonfireball.discard(null); // Paper - EnderDragon Events
                          this.fireballCharge = 0;

@@ -1,0 +1,97 @@
+--- a/net/minecraft/world/RandomizableContainer.java
++++ b/net/minecraft/world/RandomizableContainer.java
+@@ -27,7 +_,7 @@
+ 
+     void setLootTable(@Nullable ResourceKey<LootTable> p_335578_);
+ 
+-    default void setLootTable(ResourceKey<LootTable> p_335762_, long p_335967_) {
++    default void setLootTable(@Nullable ResourceKey<LootTable> p_335762_, long p_335967_) { // Paper - add nullable
+         this.setLootTable(p_335762_);
+         this.setLootTableSeed(p_335967_);
+     }
+@@ -50,8 +_,9 @@
+     default boolean tryLoadLootTable(ValueInput p_421668_) {
+         ResourceKey<LootTable> resourcekey = p_421668_.read("LootTable", LootTable.KEY_CODEC).orElse(null);
+         this.setLootTable(resourcekey);
++        if (this.lootableData() != null && resourcekey != null) this.lootableData().loadNbt(p_421668_); // Paper - LootTable API
+         this.setLootTableSeed(p_421668_.getLongOr("LootTableSeed", 0L));
+-        return resourcekey != null;
++        return resourcekey != null && this.lootableData() == null; // Paper - only track the loot table if there is chance for replenish
+     }
+ 
+     default boolean trySaveLootTable(ValueOutput p_422271_) {
+@@ -60,33 +_,61 @@
+             return false;
+         } else {
+             p_422271_.store("LootTable", LootTable.KEY_CODEC, resourcekey);
++            if (this.lootableData() != null) this.lootableData().saveNbt(p_422271_); // Paper - LootTable API
+             long i = this.getLootTableSeed();
+             if (i != 0L) {
+                 p_422271_.putLong("LootTableSeed", i);
+             }
+ 
+-            return true;
++            return this.lootableData() == null; // Paper - only track the loot table if there is chance for replenish
+         }
+     }
+ 
+-    default void unpackLootTable(@Nullable Player p_309628_) {
++    default void unpackLootTable(@Nullable Player player) {
++        // Paper start - LootTable API
++        this.unpackLootTable(player, false);
++    }
++    default void unpackLootTable(@Nullable final Player player, final boolean forceClearLootTable) {
++        // Paper end - LootTable API
+         Level level = this.getLevel();
+-        BlockPos blockpos = this.getBlockPos();
+-        ResourceKey<LootTable> resourcekey = this.getLootTable();
+-        if (resourcekey != null && level != null && level.getServer() != null) {
+-            LootTable loottable = level.getServer().reloadableRegistries().getLootTable(resourcekey);
+-            if (p_309628_ instanceof ServerPlayer) {
+-                CriteriaTriggers.GENERATE_LOOT.trigger((ServerPlayer)p_309628_, resourcekey);
++        BlockPos blockPos = this.getBlockPos();
++        ResourceKey<LootTable> lootTable = this.getLootTable();
++        // Paper start - LootTable API
++        lootReplenish: if (lootTable != null && level != null && level.getServer() != null) {
++            if (this.lootableData() != null && !this.lootableData().shouldReplenish(this, com.destroystokyo.paper.loottable.PaperLootableInventoryData.CONTAINER, player)) {
++                if (forceClearLootTable) {
++                    this.setLootTable(null);
++                }
++                break lootReplenish;
++            }
++            // Paper end - LootTable API
++            LootTable lootTable1 = level.getServer().reloadableRegistries().getLootTable(lootTable);
++            if (player instanceof ServerPlayer) {
++                CriteriaTriggers.GENERATE_LOOT.trigger((ServerPlayer)player, lootTable);
+             }
+ 
++            if (forceClearLootTable || this.lootableData() == null || this.lootableData().shouldClearLootTable(this, com.destroystokyo.paper.loottable.PaperLootableInventoryData.CONTAINER, player)) { // Paper - LootTable API
+             this.setLootTable(null);
+-            LootParams.Builder lootparams$builder = new LootParams.Builder((ServerLevel)level)
+-                .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockpos));
+-            if (p_309628_ != null) {
+-                lootparams$builder.withLuck(p_309628_.getLuck()).withParameter(LootContextParams.THIS_ENTITY, p_309628_);
++            } // Paper - LootTable API
++            LootParams.Builder builder = new LootParams.Builder((ServerLevel)level).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockPos));
++            if (player != null) {
++                builder.withLuck(player.getLuck()).withParameter(LootContextParams.THIS_ENTITY, player);
+             }
+ 
+-            loottable.fill(this, lootparams$builder.create(LootContextParamSets.CHEST), this.getLootTableSeed());
++            lootTable1.fill(this, builder.create(LootContextParamSets.CHEST), this.getLootTableSeed());
+         }
+     }
++
++    // Paper start - LootTable API
++    @Nullable
++    @org.jetbrains.annotations.Contract(pure = true)
++    default com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData() {
++        return null; // some containers don't really have a "replenish" ability like decorated pots
++    }
++
++    default com.destroystokyo.paper.loottable.PaperLootableInventory getLootableInventory() {
++        final org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(java.util.Objects.requireNonNull(this.getLevel(), "Cannot manage loot tables on block entities not in world"), this.getBlockPos());
++        return (com.destroystokyo.paper.loottable.PaperLootableInventory) block.getState(false);
++    }
++    // Paper end - LootTable API
+ }

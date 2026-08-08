@@ -20,7 +20,7 @@
  
      @Override
      public void entityInside(BlockState p_279266_, Level p_279469_, BlockPos p_279119_, Entity p_279372_, InsideBlockEffectApplier p_404719_) {
-+        if (!new io.papermc.paper.event.p_279372_.EntityInsideBlockEvent(p_279372_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_279469_, p_279119_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_279372_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_279469_, p_279119_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          if (p_279469_ instanceof ServerLevel serverlevel && p_279372_ instanceof Ravager && serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
              serverlevel.destroyBlock(p_279119_, true, p_279372_);
          }

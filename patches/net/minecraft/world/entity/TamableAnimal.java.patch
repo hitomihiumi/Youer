@@ -1,22 +1,88 @@
 --- a/net/minecraft/world/entity/TamableAnimal.java
 +++ b/net/minecraft/world/entity/TamableAnimal.java
-@@ -212,13 +_,16 @@
+@@ -75,7 +_,7 @@
+         }
+ 
+         this.orderedToSit = p_421492_.getBooleanOr("Sitting", false);
+-        this.setInSittingPose(this.orderedToSit);
++        this.setInSittingPose(this.orderedToSit, false); // Paper - Add EntityToggleSitEvent
+     }
  
      @Override
-     public void die(DamageSource p_21809_) {
+@@ -132,12 +_,19 @@
+         return (this.entityData.get(DATA_FLAGS_ID) & 1) != 0;
+     }
+ 
+-    public void setInSittingPose(boolean p_21838_) {
+-        byte b0 = this.entityData.get(DATA_FLAGS_ID);
+-        if (p_21838_) {
+-            this.entityData.set(DATA_FLAGS_ID, (byte)(b0 | 1));
++    public void setInSittingPose(boolean sitting) {
++        // Paper start - Add EntityToggleSitEvent
++        this.setInSittingPose(sitting, true);
++    }
++
++    public void setInSittingPose(boolean sitting, boolean callEvent) {
++        if (callEvent && !new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), sitting).callEvent()) return;
++        // Paper end - Add EntityToggleSitEvent
++        byte b = this.entityData.get(DATA_FLAGS_ID);
++        if (sitting) {
++            this.entityData.set(DATA_FLAGS_ID, (byte)(b | 1));
+         } else {
+-            this.entityData.set(DATA_FLAGS_ID, (byte)(b0 & -2));
++            this.entityData.set(DATA_FLAGS_ID, (byte)(b & -2));
+         }
+     }
+ 
+@@ -211,14 +_,22 @@
+     }
+ 
+     @Override
+-    public void die(DamageSource p_21809_) {
+-        if (this.level() instanceof ServerLevel serverlevel
+-            && serverlevel.getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES)
+-            && this.getOwner() instanceof ServerPlayer serverplayer) {
+-            serverplayer.sendSystemMessage(this.getCombatTracker().getDeathMessage());
+-        }
++    public void die(DamageSource cause) {
 +        // FORGE: Super moved to top so that death message would be cancelled properly
 +        net.minecraft.network.chat.Component deathMessage = this.getCombatTracker().getDeathMessage();
-+        super.die(p_21809_);
-+
-+        if (this.dead)
-         if (this.level() instanceof ServerLevel serverlevel
-             && serverlevel.getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES)
-             && this.getOwner() instanceof ServerPlayer serverplayer) {
--            serverplayer.sendSystemMessage(this.getCombatTracker().getDeathMessage());
-+            serverplayer.sendSystemMessage(deathMessage);
-         }
--
++        super.die(cause);
+ 
 -        super.die(p_21809_);
++        if (this.dead)
++        if (this.level() instanceof ServerLevel serverLevel
++            && serverLevel.getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES)
++            && this.getOwner() instanceof ServerPlayer serverPlayer) {
++            // Paper start - Add TameableDeathMessageEvent
++            io.papermc.paper.event.entity.TameableDeathMessageEvent event = new io.papermc.paper.event.entity.TameableDeathMessageEvent((org.bukkit.entity.Tameable) getBukkitEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(deathMessage));
++            if (event.callEvent()) {
++                serverPlayer.sendSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.deathMessage()));
++            }
++            // Paper end - Add TameableDeathMessageEvent
++        }
      }
  
      public boolean isOrderedToSit() {
+@@ -254,11 +_,18 @@
+         }
+     }
+ 
+-    private boolean maybeTeleportTo(int p_350930_, int p_350303_, int p_350410_) {
+-        if (!this.canTeleportTo(new BlockPos(p_350930_, p_350303_, p_350410_))) {
++    private boolean maybeTeleportTo(int x, int y, int z) {
++        if (!this.canTeleportTo(new BlockPos(x, y, z))) {
+             return false;
+         } else {
+-            this.snapTo(p_350930_ + 0.5, p_350303_, p_350410_ + 0.5, this.getYRot(), this.getXRot());
++            // CraftBukkit start
++            org.bukkit.event.entity.EntityTeleportEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, x + 0.5, y, z + 0.5);
++            if (event.isCancelled() || event.getTo() == null) {
++                return false;
++            }
++            org.bukkit.Location to = event.getTo();
++            this.snapTo(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
++            // CraftBukkit end
+             this.navigation.stop();
+             return true;
+         }

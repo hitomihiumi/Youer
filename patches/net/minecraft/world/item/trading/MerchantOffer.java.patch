@@ -1,0 +1,141 @@
+--- a/net/minecraft/world/item/trading/MerchantOffer.java
++++ b/net/minecraft/world/item/trading/MerchantOffer.java
+@@ -11,17 +_,18 @@
+ 
+ public class MerchantOffer {
+     public static final Codec<MerchantOffer> CODEC = RecordCodecBuilder.create(
+-        p_324269_ -> p_324269_.group(
+-                ItemCost.CODEC.fieldOf("buy").forGetter(p_330121_ -> p_330121_.baseCostA),
+-                ItemCost.CODEC.lenientOptionalFieldOf("buyB").forGetter(p_330120_ -> p_330120_.costB),
+-                ItemStack.CODEC.fieldOf("sell").forGetter(p_324095_ -> p_324095_.result),
+-                Codec.INT.lenientOptionalFieldOf("uses", 0).forGetter(p_324003_ -> p_324003_.uses),
+-                Codec.INT.lenientOptionalFieldOf("maxUses", 4).forGetter(p_323849_ -> p_323849_.maxUses),
+-                Codec.BOOL.lenientOptionalFieldOf("rewardExp", true).forGetter(p_323485_ -> p_323485_.rewardExp),
+-                Codec.INT.lenientOptionalFieldOf("specialPrice", 0).forGetter(p_324423_ -> p_324423_.specialPriceDiff),
+-                Codec.INT.lenientOptionalFieldOf("demand", 0).forGetter(p_324040_ -> p_324040_.demand),
+-                Codec.FLOAT.lenientOptionalFieldOf("priceMultiplier", 0.0F).forGetter(p_323953_ -> p_323953_.priceMultiplier),
+-                Codec.INT.lenientOptionalFieldOf("xp", 1).forGetter(p_324202_ -> p_324202_.xp)
++        instance -> instance.group(
++                ItemCost.CODEC.fieldOf("buy").forGetter(merchantOffer -> merchantOffer.baseCostA),
++                ItemCost.CODEC.lenientOptionalFieldOf("buyB").forGetter(merchantOffer -> merchantOffer.costB),
++                ItemStack.CODEC.fieldOf("sell").forGetter(merchantOffer -> merchantOffer.result),
++                Codec.INT.lenientOptionalFieldOf("uses", 0).forGetter(merchantOffer -> merchantOffer.uses),
++                Codec.INT.lenientOptionalFieldOf("maxUses", 4).forGetter(merchantOffer -> merchantOffer.maxUses),
++                Codec.BOOL.lenientOptionalFieldOf("rewardExp", true).forGetter(merchantOffer -> merchantOffer.rewardExp),
++                Codec.INT.lenientOptionalFieldOf("specialPrice", 0).forGetter(merchantOffer -> merchantOffer.specialPriceDiff),
++                Codec.INT.lenientOptionalFieldOf("demand", 0).forGetter(merchantOffer -> merchantOffer.demand),
++                Codec.FLOAT.lenientOptionalFieldOf("priceMultiplier", 0.0F).forGetter(merchantOffer -> merchantOffer.priceMultiplier),
++                Codec.INT.lenientOptionalFieldOf("xp", 1).forGetter(merchantOffer -> merchantOffer.xp)
++                , Codec.BOOL.lenientOptionalFieldOf("Paper.IgnoreDiscounts", false).forGetter(merchantOffer -> merchantOffer.ignoreDiscounts) // Paper
+             )
+             .apply(p_324269_, MerchantOffer::new)
+     );
+@@ -38,29 +_,46 @@
+     public int demand;
+     public float priceMultiplier;
+     public int xp;
++    public boolean ignoreDiscounts; // Paper - Add ignore discounts API
++
++    // CraftBukkit start
++    private org.bukkit.craftbukkit.inventory.@org.jspecify.annotations.Nullable CraftMerchantRecipe bukkitHandle;
++
++    public org.bukkit.craftbukkit.inventory.CraftMerchantRecipe asBukkit() {
++        return (this.bukkitHandle == null) ? this.bukkitHandle = new org.bukkit.craftbukkit.inventory.CraftMerchantRecipe(this) : this.bukkitHandle;
++    }
++
++    public MerchantOffer(ItemCost baseCostA, Optional<ItemCost> costB, ItemStack result, int uses, int maxUses, int experience, float priceMultiplier, int demand, final boolean ignoreDiscounts, org.bukkit.craftbukkit.inventory.CraftMerchantRecipe bukkit) { // Paper
++        this(baseCostA, costB, result, uses, maxUses, experience, priceMultiplier, demand);
++        this.ignoreDiscounts = ignoreDiscounts; // Paper
++        this.bukkitHandle = bukkit;
++    }
++    // CraftBukkit end
+ 
+     private MerchantOffer(
+-        ItemCost p_330734_,
+-        Optional<ItemCost> p_331500_,
+-        ItemStack p_45327_,
+-        int p_45330_,
+-        int p_45331_,
+-        boolean p_330754_,
+-        int p_332006_,
+-        int p_330432_,
+-        float p_45332_,
+-        int p_330282_
++        ItemCost baseCostA,
++        Optional<ItemCost> costB,
++        ItemStack result,
++        int _uses,
++        int maxUses,
++        boolean rewardExp,
++        int specialPriceDiff,
++        int demand,
++        float priceMultiplier,
++        int xp
++        , final boolean ignoreDiscounts // Paper
+     ) {
+-        this.baseCostA = p_330734_;
+-        this.costB = p_331500_;
+-        this.result = p_45327_;
+-        this.uses = p_45330_;
+-        this.maxUses = p_45331_;
+-        this.rewardExp = p_330754_;
+-        this.specialPriceDiff = p_332006_;
+-        this.demand = p_330432_;
+-        this.priceMultiplier = p_45332_;
+-        this.xp = p_330282_;
++        this.baseCostA = baseCostA;
++        this.costB = costB;
++        this.result = result;
++        this.uses = _uses;
++        this.maxUses = maxUses;
++        this.rewardExp = rewardExp;
++        this.specialPriceDiff = specialPriceDiff;
++        this.demand = demand;
++        this.priceMultiplier = priceMultiplier;
++        this.xp = xp;
++        this.ignoreDiscounts = ignoreDiscounts; // Paper
+     }
+ 
+     public MerchantOffer(ItemCost p_332077_, ItemStack p_320418_, int p_320071_, int p_320069_, float p_320947_) {
+@@ -75,10 +_,8 @@
+         this(p_331409_, p_331614_, p_45321_, p_45323_, p_45324_, p_330951_, p_45325_, 0);
+     }
+ 
+-    public MerchantOffer(
+-        ItemCost p_331744_, Optional<ItemCost> p_330460_, ItemStack p_324239_, int p_324562_, int p_324493_, int p_323558_, float p_323528_, int p_324484_
+-    ) {
+-        this(p_331744_, p_330460_, p_324239_, p_324562_, p_324493_, true, 0, p_324484_, p_323528_, p_323558_);
++    public MerchantOffer(ItemCost p_331744_, Optional<ItemCost> p_330460_, ItemStack p_324239_, int p_324562_, int p_324493_, int p_323558_, float p_323528_, int p_324484_) {
++        this(p_331744_, p_330460_, p_324239_, p_324562_, p_324493_, true, 0, p_324484_, p_323528_, p_323558_, false); // Paper
+     }
+ 
+     private MerchantOffer(MerchantOffer p_302340_) {
+@@ -93,6 +_,7 @@
+             p_302340_.demand,
+             p_302340_.priceMultiplier,
+             p_302340_.xp
++            , p_302340_.ignoreDiscounts // Paper
+         );
+     }
+ 
+@@ -128,6 +_,7 @@
+ 
+     public void updateDemand() {
+         this.demand = this.demand + this.uses - (this.maxUses - this.uses);
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.preventNegativeVillagerDemand) this.demand = Math.max(0, this.demand); // Paper - Fix MC-163962
+     }
+ 
+     public ItemStack assemble() {
+@@ -206,7 +_,11 @@
+         if (!this.satisfiedBy(p_45362_, p_45363_)) {
+             return false;
+         } else {
+-            p_45362_.shrink(this.getCostA().getCount());
++            // CraftBukkit start
++            if (!this.getCostA().isEmpty()) {
++                p_45362_.shrink(this.getCostA().getCount());
++            }
++            // CraftBukkit end
+             if (!this.getCostB().isEmpty()) {
+                 p_45363_.shrink(this.getCostB().getCount());
+             }

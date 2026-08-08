@@ -1,23 +1,150 @@
 --- a/net/minecraft/world/entity/animal/MushroomCow.java
 +++ b/net/minecraft/world/entity/animal/MushroomCow.java
-@@ -171,11 +_,19 @@
+@@ -90,43 +_,53 @@
+     }
+ 
+     @Override
+-    public InteractionResult mobInteract(Player p_28941_, InteractionHand p_28942_) {
+-        ItemStack itemstack = p_28941_.getItemInHand(p_28942_);
+-        if (itemstack.is(Items.BOWL) && !this.isBaby()) {
++    public InteractionResult mobInteract(Player player, InteractionHand hand) {
++        ItemStack itemInHand = player.getItemInHand(hand);
++        if (itemInHand.is(Items.BOWL) && !this.isBaby()) {
+             boolean flag = false;
+-            ItemStack itemstack2;
++            ItemStack itemStack;
+             if (this.stewEffects != null) {
+                 flag = true;
+-                itemstack2 = new ItemStack(Items.SUSPICIOUS_STEW);
+-                itemstack2.set(DataComponents.SUSPICIOUS_STEW_EFFECTS, this.stewEffects);
++                itemStack = new ItemStack(Items.SUSPICIOUS_STEW);
++                itemStack.set(DataComponents.SUSPICIOUS_STEW_EFFECTS, this.stewEffects);
+                 this.stewEffects = null;
+             } else {
+-                itemstack2 = new ItemStack(Items.MUSHROOM_STEW);
++                itemStack = new ItemStack(Items.MUSHROOM_STEW);
+             }
+ 
+-            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, p_28941_, itemstack2, false);
+-            p_28941_.setItemInHand(p_28942_, itemstack1);
+-            SoundEvent soundevent;
++            ItemStack itemStack1 = ItemUtils.createFilledResult(itemInHand, player, itemStack, false);
++            player.setItemInHand(hand, itemStack1);
++            SoundEvent soundEvent;
+             if (flag) {
+-                soundevent = SoundEvents.MOOSHROOM_MILK_SUSPICIOUSLY;
++                soundEvent = SoundEvents.MOOSHROOM_MILK_SUSPICIOUSLY;
+             } else {
+-                soundevent = SoundEvents.MOOSHROOM_MILK;
++                soundEvent = SoundEvents.MOOSHROOM_MILK;
+             }
+ 
+-            this.playSound(soundevent, 1.0F, 1.0F);
++            this.playSound(soundEvent, 1.0F, 1.0F);
+             return InteractionResult.SUCCESS;
+-        } else if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
+-            if (this.level() instanceof ServerLevel serverlevel) {
+-                this.shear(serverlevel, SoundSource.PLAYERS, itemstack);
+-                this.gameEvent(GameEvent.SHEAR, p_28941_);
+-                itemstack.hurtAndBreak(1, p_28941_, getSlotForHand(p_28942_));
++        } else if (itemInHand.is(Items.SHEARS) && this.readyForShearing()) {
++            if (this.level() instanceof ServerLevel serverLevel) {
++                // CraftBukkit start
++                // Paper start - custom shear drops
++                java.util.List<ItemStack> drops = this.generateDefaultDrops(serverLevel, itemInHand);
++                org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemInHand, hand, drops);
++                if (event != null) {
++                    if (event.isCancelled()) return InteractionResult.PASS;
++                    drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
++                    // Paper end - custom shear drops
++                }
++                // CraftBukkit end
++                this.shear(serverLevel, SoundSource.PLAYERS, itemInHand, drops); // Paper - custom shear drops
++                this.gameEvent(GameEvent.SHEAR, player);
++                itemInHand.hurtAndBreak(1, player, getSlotForHand(hand));
+             }
+ 
+             return InteractionResult.SUCCESS;
+         } else if (this.getVariant() == MushroomCow.Variant.BROWN) {
+-            Optional<SuspiciousStewEffects> optional = this.getEffectsFromItemStack(itemstack);
+-            if (optional.isEmpty()) {
+-                return super.mobInteract(p_28941_, p_28942_);
++            Optional<SuspiciousStewEffects> effectsFromItemStack = this.getEffectsFromItemStack(itemInHand);
++            if (effectsFromItemStack.isEmpty()) {
++                return super.mobInteract(player, hand);
+             } else {
+                 if (this.stewEffects != null) {
+                     for (int i = 0; i < 2; i++) {
+@@ -142,9 +_,9 @@
+                             );
+                     }
+                 } else {
+-                    itemstack.consume(1, p_28941_);
++                    itemInHand.consume(1, player);
+ 
+-                    for (int j = 0; j < 4; j++) {
++                    for (int i = 0; i < 4; i++) {
+                         this.level()
+                             .addParticle(
+                                 ParticleTypes.EFFECT,
+@@ -157,28 +_,50 @@
+                             );
+                     }
+ 
+-                    this.stewEffects = optional.get();
++                    this.stewEffects = effectsFromItemStack.get();
+                     this.playSound(SoundEvents.MOOSHROOM_EAT, 2.0F, 1.0F);
+                 }
+ 
+                 return InteractionResult.SUCCESS;
+             }
+         } else {
+-            return super.mobInteract(p_28941_, p_28942_);
++            return super.mobInteract(player, hand);
+         }
+     }
+ 
      @Override
      public void shear(ServerLevel p_376375_, SoundSource p_28924_, ItemStack p_373092_) {
-         p_376375_.playSound(null, this, SoundEvents.MOOSHROOM_SHEAR, p_28924_, 1.0F, 1.0F);
-+        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.COW, (timer) -> {})) return;
-         this.convertTo(EntityType.COW, ConversionParams.single(this, false, false), p_427076_ -> {
-+            net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, p_427076_);
-             p_376375_.sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(0.5), this.getZ(), 1, 0.0, 0.0, 0.0, 0.0);
-             this.dropFromShearingLootTable(p_376375_, BuiltInLootTables.SHEAR_MOOSHROOM, p_373092_, (p_427077_, p_427078_) -> {
-                 for (int i = 0; i < p_427078_.getCount(); i++) {
+-        p_376375_.playSound(null, this, SoundEvents.MOOSHROOM_SHEAR, p_28924_, 1.0F, 1.0F);
+-        this.convertTo(EntityType.COW, ConversionParams.single(this, false, false), p_427076_ -> {
+-            p_376375_.sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(0.5), this.getZ(), 1, 0.0, 0.0, 0.0, 0.0);
+-            this.dropFromShearingLootTable(p_376375_, BuiltInLootTables.SHEAR_MOOSHROOM, p_373092_, (p_427077_, p_427078_) -> {
+-                for (int i = 0; i < p_427078_.getCount(); i++) {
 -                    p_427077_.addFreshEntity(new ItemEntity(this.level(), this.getX(), this.getY(1.0), this.getZ(), p_427078_.copyWithCount(1)));
-+                    // Neo: Change from addFreshEntity to spawnAtLocation to ensure captureDrops can capture this, we also need to unset the default pickup delay from the item
-+                    // Vanilla uses this.getY(1.0) for the y-level, which is this.getY() + this.getBbHeight() * 1.0, so we pass the BB height as the Y-offset.
-+                    ItemEntity item = spawnAtLocation(p_376375_, p_427078_.copyWithCount(1), this.getBbHeight());
-+                    if (item != null) {
-+                        // addFreshEntity does not incur a pickup delay, while spawnAtLocation sets the default pickup delay.
-+                        item.setNoPickUpDelay();
-+                    }
-                 }
-             });
+-                }
+-            });
++        // Paper start - custom shear drops
++        this.shear(p_376375_, p_28924_, p_373092_, this.generateDefaultDrops(p_376375_, p_373092_));
++    }
++
++    @Override
++    public java.util.List<ItemStack> generateDefaultDrops(final ServerLevel serverLevel, final ItemStack shears) {
++        final java.util.List<ItemStack> drops = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++        this.dropFromShearingLootTable(serverLevel, BuiltInLootTables.SHEAR_MOOSHROOM, shears, (ignored, stack) -> {
++            for (int i = 0; i < stack.getCount(); ++i) drops.add(stack.copyWithCount(1));
          });
++        return drops;
++    }
++
++    @Override
++    public void shear(ServerLevel level, SoundSource soundSource, ItemStack shears, java.util.List<ItemStack> drops) {
++        // Paper end
++        level.playSound(null, this, SoundEvents.MOOSHROOM_SHEAR, soundSource, 1.0F, 1.0F);
++        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.COW, (timer) -> {})) return;
++        this.convertTo(EntityType.COW, ConversionParams.single(this, false, false), cow -> {
++            net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, cow);
++            level.sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(0.5), this.getZ(), 1, 0.0, 0.0, 0.0, 0.0);
++            // Paper start - custom shear drops; moved drop generation to separate method
++            drops.forEach(drop -> {
++                // Neo: Change from addFreshEntity to spawnAtLocation to ensure captureDrops can capture this, we also need to unset the default pickup delay from the item
++                ItemEntity item = spawnAtLocation(level, drop, this.getBbHeight());
++                if (item != null) {
++                    item.setNoPickUpDelay();
++                }
++            });
++            // Paper end - custom shear drops
++        }, org.bukkit.event.entity.EntityTransformEvent.TransformReason.SHEARED, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SHEARED); // CraftBukkit
+     }
+ 
+     @Override

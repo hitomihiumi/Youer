@@ -9,12 +9,85 @@
                  this.finishConversion((ServerLevel)this.level());
              }
          }
-@@ -224,6 +_,8 @@
-                 if (!this.isSilent()) {
-                     p_34399_.levelEvent(null, 1027, this.blockPosition(), 0);
+@@ -159,12 +_,20 @@
+     }
+ 
+     public void startConverting(@Nullable UUID p_34384_, int p_34385_) {
+-        this.conversionStarter = p_34384_;
+-        this.villagerConversionTime = p_34385_;
++        // Paper start - missing entity behaviour api - converting without entity event
++        this.startConverting(p_34384_, p_34385_, true);
++    }
++
++    public void startConverting(@Nullable UUID conversionStarter, int villagerConversionTime, boolean broadcastEntityEvent) {
++        // Paper end - missing entity behaviour api - converting without entity event
++        this.conversionStarter = conversionStarter;
++        this.villagerConversionTime = villagerConversionTime;
+         this.getEntityData().set(DATA_CONVERTING_ID, true);
+-        this.removeEffect(MobEffects.WEAKNESS);
+-        this.addEffect(new MobEffectInstance(MobEffects.STRENGTH, p_34385_, Math.min(this.level().getDifficulty().getId() - 1, 0)));
+-        this.level().broadcastEntityEvent(this, (byte)16);
++        // CraftBukkit start
++        this.removeEffect(MobEffects.WEAKNESS, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
++        this.addEffect(new MobEffectInstance(MobEffects.STRENGTH, villagerConversionTime, Math.min(this.level().getDifficulty().getId() - 1, 0)), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
++        // CraftBukkit end
++        if (broadcastEntityEvent) this.level().broadcastEntityEvent(this, (byte)16); // Paper - missing entity behaviour api - converting without entity event
+     }
+ 
+     @Override
+@@ -188,13 +_,13 @@
+         }
+     }
+ 
+-    private void finishConversion(ServerLevel p_34399_) {
+-        this.convertTo(
++    private void finishConversion(ServerLevel level) {
++        Villager converted = this.convertTo( // CraftBukkit
+             EntityType.VILLAGER,
+             ConversionParams.single(this, false, false),
+             p_375894_ -> {
+                 for (EquipmentSlot equipmentslot : this.dropPreservedEquipment(
+-                    p_34399_, p_351901_ -> !EnchantmentHelper.has(p_351901_, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE)
++                    level, p_351901_ -> !EnchantmentHelper.has(p_351901_, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE)
+                 )) {
+                     SlotAccess slotaccess = p_375894_.getSlot(equipmentslot.getIndex() + 300);
+                     slotaccess.set(this.getItemBySlot(equipmentslot));
+@@ -210,22 +_,29 @@
                  }
+ 
+                 p_375894_.setVillagerXp(this.villagerXp);
+-                p_375894_.finalizeSpawn(p_34399_, p_34399_.getCurrentDifficultyAt(p_375894_.blockPosition()), EntitySpawnReason.CONVERSION, null);
+-                p_375894_.refreshBrain(p_34399_);
++                p_375894_.finalizeSpawn(level, level.getCurrentDifficultyAt(p_375894_.blockPosition()), EntitySpawnReason.CONVERSION, null);
++                p_375894_.refreshBrain(level);
+                 if (this.conversionStarter != null) {
+-                    Player player = p_34399_.getPlayerByUUID(this.conversionStarter);
+-                    if (player instanceof ServerPlayer) {
+-                        CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger((ServerPlayer)player, this, p_375894_);
+-                        p_34399_.onReputationEvent(ReputationEventType.ZOMBIE_VILLAGER_CURED, player, p_375894_);
++                    Player playerByUuid = level.getPlayerByUUID(this.conversionStarter);
++                    if (playerByUuid instanceof ServerPlayer) {
++                        CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger((ServerPlayer)playerByUuid, this, p_375894_);
++                        level.onReputationEvent(ReputationEventType.ZOMBIE_VILLAGER_CURED, playerByUuid, p_375894_);
+                     }
+                 }
+ 
+-                p_375894_.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 200, 0));
++                p_375894_.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 200, 0), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION); // CraftBukkit
+                 if (!this.isSilent()) {
+-                    p_34399_.levelEvent(null, 1027, this.blockPosition(), 0);
++                    level.levelEvent(null, 1027, this.blockPosition(), 0);
+                 }
+-            }
 +
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, p_375894_);
-             }
++                // CraftBukkit start
++            }, org.bukkit.event.entity.EntityTransformEvent.TransformReason.CURED, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CURED // CraftBukkit
          );
++        if (converted == null) {
++            ((org.bukkit.entity.ZombieVillager) this.getBukkitEntity()).setConversionTime(-1); // SPIGOT-5208: End conversion to stop event spam
++        }
++        // CraftBukkit end
      }
+ 
+     @VisibleForTesting

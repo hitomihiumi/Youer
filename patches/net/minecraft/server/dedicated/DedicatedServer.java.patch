@@ -17,6 +17,15 @@
                  BufferedReader bufferedreader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
  
                  String s1;
+@@ -170,7 +_,7 @@
+         }
+ 
+         if (this.convertOldUsers()) {
+-            this.getProfileCache().save();
++            this.getProfileCache().save(false); // Paper - Perf: Async GameProfileCache saving
+         }
+ 
+         if (!OldUsersConverter.serverReadyAfterUserconversion(this)) {
 @@ -184,11 +_,13 @@
              long i = Util.getNanos();
              SkullBlockEntity.setup(this.services, this);

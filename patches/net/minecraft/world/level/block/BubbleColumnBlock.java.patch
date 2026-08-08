@@ -4,7 +4,7 @@
  
      @Override
      protected void entityInside(BlockState p_50976_, Level p_50977_, BlockPos p_50978_, Entity p_50979_, InsideBlockEffectApplier p_404857_) {
-+        if (!new io.papermc.paper.event.p_50979_.EntityInsideBlockEvent(p_50979_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_50977_, p_50978_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_50979_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_50977_, p_50978_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          BlockState blockstate = p_50977_.getBlockState(p_50978_.above());
          boolean flag = blockstate.getCollisionShape(p_50977_, p_50978_).isEmpty() && blockstate.getFluidState().isEmpty();
          if (flag) {

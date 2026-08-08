@@ -23,7 +23,7 @@
              Holder<MobEffect> holder = spider$spidereffectsgroupdata.effect;
              if (holder != null) {
 -                this.addEffect(new MobEffectInstance(holder, -1));
-+                this.addEffect(new MobEffectInstance(holder, -1), null, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.SPIDER_SPAWN, p_33790_ instanceof net.minecraft.server.p_33790_.ServerLevel); // CraftBukkit
++                this.addEffect(new MobEffectInstance(holder, -1), null, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.SPIDER_SPAWN, p_33790_ instanceof net.minecraft.server.level.ServerLevel); // CraftBukkit
              }
          }
  

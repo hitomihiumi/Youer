@@ -1,22 +1,50 @@
 --- a/net/minecraft/world/level/block/ConcretePowderBlock.java
 +++ b/net/minecraft/world/level/block/ConcretePowderBlock.java
-@@ -36,7 +_,7 @@
+@@ -36,33 +_,54 @@
  
      @Override
      public void onLand(Level p_52068_, BlockPos p_52069_, BlockState p_52070_, BlockState p_52071_, FallingBlockEntity p_52072_) {
 -        if (shouldSolidify(p_52068_, p_52069_, p_52071_)) {
+-            p_52068_.setBlock(p_52069_, this.concrete.defaultBlockState(), 3);
 +        if (shouldSolidify(p_52068_, p_52069_, p_52070_, p_52071_.getFluidState())) { // Forge: Use block of falling entity instead of block at replaced position, and check if shouldSolidify with the FluidState of the replaced block
-             p_52068_.setBlock(p_52069_, this.concrete.defaultBlockState(), 3);
++            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(p_52068_, p_52069_, this.concrete.defaultBlockState(), 3); // CraftBukkit
          }
      }
-@@ -49,20 +_,24 @@
-         return shouldSolidify(blockgetter, blockpos, blockstate) ? this.concrete.defaultBlockState() : super.getStateForPlacement(p_52063_);
-     }
  
-+    private static boolean shouldSolidify(BlockGetter p_52081_, BlockPos p_52082_, BlockState p_52083_, net.minecraft.world.level.material.FluidState fluidState) {
-+        return p_52083_.canBeHydrated(p_52081_, p_52082_, fluidState, p_52082_) || touchesLiquid(p_52081_, p_52082_, p_52083_);
+     @Override
+-    public BlockState getStateForPlacement(BlockPlaceContext p_52063_) {
+-        BlockGetter blockgetter = p_52063_.getLevel();
+-        BlockPos blockpos = p_52063_.getClickedPos();
+-        BlockState blockstate = blockgetter.getBlockState(blockpos);
+-        return shouldSolidify(blockgetter, blockpos, blockstate) ? this.concrete.defaultBlockState() : super.getStateForPlacement(p_52063_);
++    public BlockState getStateForPlacement(BlockPlaceContext context) {
++        Level level = context.getLevel(); // Paper
++        BlockPos clickedPos = context.getClickedPos();
++        BlockState blockState = level.getBlockState(clickedPos);
++        // CraftBukkit start
++        if (!ConcretePowderBlock.shouldSolidify(level, clickedPos, blockState)) {
++            return super.getStateForPlacement(context);
++        }
++
++        // TODO: An event factory call for methods like this
++        org.bukkit.craftbukkit.block.CraftBlockState craftBlockState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState((net.minecraft.world.level.LevelAccessor) level, clickedPos);
++        craftBlockState.setData(this.concrete.defaultBlockState());
++
++        org.bukkit.event.block.BlockFormEvent event = new org.bukkit.event.block.BlockFormEvent(craftBlockState.getBlock(), craftBlockState);
++        level.getServer().server.getPluginManager().callEvent(event);
++
++        if (!event.isCancelled()) {
++            return craftBlockState.getHandle();
++        }
++
++        return super.getStateForPlacement(context);
++        // CraftBukkit end
 +    }
 +
++    private static boolean shouldSolidify(BlockGetter p_52081_, BlockPos p_52082_, BlockState p_52083_, net.minecraft.world.level.material.FluidState fluidState) {
++        return p_52083_.canBeHydrated(p_52081_, p_52082_, fluidState, p_52082_) || touchesLiquid(p_52081_, p_52082_, p_52083_);
+     }
+ 
      private static boolean shouldSolidify(BlockGetter p_52081_, BlockPos p_52082_, BlockState p_52083_) {
 -        return canSolidify(p_52083_) || touchesLiquid(p_52081_, p_52082_);
 +        return shouldSolidify(p_52081_, p_52082_, p_52083_, p_52081_.getFluidState(p_52082_));
@@ -38,12 +66,49 @@
                      flag = true;
                      break;
                  }
-@@ -87,7 +_,7 @@
-         BlockState p_52076_,
-         RandomSource p_374119_
+@@ -78,18 +_,34 @@
+ 
+     @Override
+     protected BlockState updateShape(
+-        BlockState p_52074_,
+-        LevelReader p_374245_,
+-        ScheduledTickAccess p_374286_,
+-        BlockPos p_52078_,
+-        Direction p_52075_,
+-        BlockPos p_52079_,
+-        BlockState p_52076_,
+-        RandomSource p_374119_
++        BlockState state,
++        LevelReader level,
++        ScheduledTickAccess scheduledTickAccess,
++        BlockPos pos,
++        Direction direction,
++        BlockPos neighborPos,
++        BlockState neighborState,
++        RandomSource random
      ) {
 -        return touchesLiquid(p_374245_, p_52078_)
-+        return touchesLiquid(p_374245_, p_52078_, p_52074_)
-             ? this.concrete.defaultBlockState()
-             : super.updateShape(p_52074_, p_374245_, p_374286_, p_52078_, p_52075_, p_52079_, p_52076_, p_374119_);
+-            ? this.concrete.defaultBlockState()
+-            : super.updateShape(p_52074_, p_374245_, p_374286_, p_52078_, p_52075_, p_52079_, p_52076_, p_374119_);
++        // CraftBukkit start
++        if (ConcretePowderBlock.touchesLiquid(level, pos, state)) {
++            // Suppress during worldgen
++            if (!(level instanceof Level world1)) {
++                return this.concrete.defaultBlockState();
++            }
++            org.bukkit.craftbukkit.block.CraftBlockState blockState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(world1, pos);
++            blockState.setData(this.concrete.defaultBlockState());
++
++            org.bukkit.event.block.BlockFormEvent event = new org.bukkit.event.block.BlockFormEvent(blockState.getBlock(), blockState);
++            world1.getCraftServer().getPluginManager().callEvent(event);
++
++            if (!event.isCancelled()) {
++                return blockState.getHandle();
++            }
++        }
++
++        return super.updateShape(state, level, scheduledTickAccess, pos, direction, neighborPos, neighborState, random);
++        // CraftBukkit end
      }
+ 
+     @Override

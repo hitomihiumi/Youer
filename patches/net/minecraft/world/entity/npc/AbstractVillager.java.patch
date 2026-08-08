@@ -1,6 +1,59 @@
 --- a/net/minecraft/world/entity/npc/AbstractVillager.java
 +++ b/net/minecraft/world/entity/npc/AbstractVillager.java
-@@ -125,6 +_,7 @@
+@@ -42,7 +_,7 @@
+     private Player tradingPlayer;
+     @Nullable
+     protected MerchantOffers offers;
+-    private final SimpleContainer inventory = new SimpleContainer(8);
++    private final SimpleContainer inventory = new SimpleContainer(8, (org.bukkit.craftbukkit.entity.CraftAbstractVillager) this.getBukkitEntity()); // CraftBukkit - add argument
+ 
+     public AbstractVillager(EntityType<? extends AbstractVillager> p_35267_, Level p_35268_) {
+         super(p_35267_, p_35268_);
+@@ -95,6 +_,20 @@
+         return this.tradingPlayer != null;
+     }
+ 
++    // CraftBukkit start
++    @Override
++    public org.bukkit.craftbukkit.inventory.CraftMerchant getCraftMerchant() {
++        return (org.bukkit.craftbukkit.entity.CraftAbstractVillager) this.getBukkitEntity();
++    }
++    // CraftBukkit end
++
++    // Paper start - Villager#resetOffers
++    public void resetOffers() {
++        this.offers = new MerchantOffers();
++        this.updateTrades();
++    }
++    // Paper end - Villager#resetOffers
++
+     @Override
+     public MerchantOffers getOffers() {
+         if (this.level().isClientSide) {
+@@ -117,14 +_,28 @@
+     public void overrideXp(int p_35322_) {
+     }
+ 
++    // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
++    @Override
++    public void processTrade(MerchantOffer offer, @Nullable io.papermc.paper.event.player.PlayerPurchaseEvent event) { // The MerchantRecipe passed in here is the one set by the PlayerPurchaseEvent
++        if (event == null || event.willIncreaseTradeUses()) {
++            offer.increaseUses();
++        }
++        if (event == null || event.isRewardingExp()) {
++            this.rewardTradeXp(offer);
++        }
++        this.notifyTrade(offer);
++    }
++    // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
++
+     @Override
+     public void notifyTrade(MerchantOffer p_35274_) {
+-        p_35274_.increaseUses();
++        // p_35274_.increaseUses(); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
+         this.ambientSoundTime = -this.getAmbientSoundInterval();
+-        this.rewardTradeXp(p_35274_);
++        // this.rewardTradeXp(p_35274_); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
          if (this.tradingPlayer instanceof ServerPlayer) {
              CriteriaTriggers.TRADE.trigger((ServerPlayer)this.tradingPlayer, this, p_35274_.getResult());
          }
@@ -8,3 +61,37 @@
      }
  
      protected abstract void rewardTradeXp(MerchantOffer p_35299_);
+@@ -219,14 +_,27 @@
+ 
+     protected abstract void updateTrades();
+ 
+-    protected void addOffersFromItemListings(MerchantOffers p_35278_, VillagerTrades.ItemListing[] p_35279_, int p_35280_) {
+-        ArrayList<VillagerTrades.ItemListing> arraylist = Lists.newArrayList(p_35279_);
++    protected void addOffersFromItemListings(MerchantOffers givenMerchantOffers, VillagerTrades.ItemListing[] newTrades, int maxNumbers) {
++        ArrayList<VillagerTrades.ItemListing> list = Lists.newArrayList(newTrades);
+         int i = 0;
+ 
+-        while (i < p_35280_ && !arraylist.isEmpty()) {
+-            MerchantOffer merchantoffer = arraylist.remove(this.random.nextInt(arraylist.size())).getOffer(this, this.random);
+-            if (merchantoffer != null) {
+-                p_35278_.add(merchantoffer);
++        while (i < maxNumbers && !list.isEmpty()) {
++            MerchantOffer offer = list.remove(this.random.nextInt(list.size())).getOffer(this, this.random);
++            if (offer != null) {
++                // CraftBukkit start
++                org.bukkit.event.entity.VillagerAcquireTradeEvent event = new org.bukkit.event.entity.VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) this.getBukkitEntity(), offer.asBukkit());
++                // Suppress during worldgen
++                if (this.valid) {
++                    event.callEvent();
++                }
++                if (!event.isCancelled()) {
++                    // Paper start - Fix crash from invalid ingredient list
++                    final org.bukkit.craftbukkit.inventory.CraftMerchantRecipe craftMerchantRecipe = org.bukkit.craftbukkit.inventory.CraftMerchantRecipe.fromBukkit(event.getRecipe());
++                    if (craftMerchantRecipe.getIngredients().isEmpty()) return;
++                    givenMerchantOffers.add(craftMerchantRecipe.toMinecraft());
++                    // Paper end - Fix crash from invalid ingredient list
++                }
++                // CraftBukkit end
+                 i++;
+             }
+         }

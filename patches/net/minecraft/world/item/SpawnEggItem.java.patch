@@ -1,9 +1,27 @@
 --- a/net/minecraft/world/item/SpawnEggItem.java
 +++ b/net/minecraft/world/item/SpawnEggItem.java
-@@ -190,4 +_,45 @@
+@@ -55,6 +_,7 @@
+             Direction direction = p_43223_.getClickedFace();
+             BlockState blockstate = level.getBlockState(blockpos);
+             if (level.getBlockEntity(blockpos) instanceof Spawner spawner) {
++                if (level.paperConfig().entities.spawning.disableMobSpawnerSpawnEggTransformation) return InteractionResult.FAIL; // Paper - Allow disabling mob spawner spawn egg transformation
+                 EntityType<?> entitytype1 = this.getType(level.registryAccess(), itemstack);
+                 spawner.setEntityId(entitytype1, level.getRandom());
+                 level.sendBlockUpdated(blockpos, blockstate, blockstate, 3);
+@@ -170,7 +_,7 @@
+                 } else {
+                     mob.snapTo(p_43220_.x(), p_43220_.y(), p_43220_.z(), 0.0F, 0.0F);
+                     mob.applyComponentsFromItemStack(p_43221_);
+-                    p_43219_.addFreshEntityWithPassengers(mob);
++                    p_43219_.addFreshEntityWithPassengers(mob, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG); // CraftBukkit
+                     p_43221_.consume(1, p_43216_);
+                     return Optional.of(mob);
+                 }
+@@ -189,5 +_,46 @@
+         }
  
          return false;
-     }
++    }
 +
 +    public static final net.minecraft.core.dispenser.DispenseItemBehavior DEFAULT_DISPENSE_BEHAVIOR = new net.minecraft.core.dispenser.DefaultDispenseItemBehavior() {
 +        @Override
@@ -44,5 +62,5 @@
 +                }
 +            }
 +        }));
-+    }
+     }
  }

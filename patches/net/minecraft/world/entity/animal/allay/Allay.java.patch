@@ -1,5 +1,98 @@
 --- a/net/minecraft/world/entity/animal/allay/Allay.java
 +++ b/net/minecraft/world/entity/animal/allay/Allay.java
+@@ -113,6 +_,7 @@
+     private float dancingAnimationTicks;
+     private float spinningAnimationTicks;
+     private float spinningAnimationTicks0;
++    public boolean forceDancing = false; // CraftBukkit
+ 
+     public Allay(EntityType<? extends Allay> p_218310_, Level p_218311_) {
+         super(p_218310_, p_218311_);
+@@ -126,6 +_,12 @@
+         );
+     }
+ 
++    // CraftBukkit start
++    public void setCanDuplicate(boolean canDuplicate) {
++        this.entityData.set(Allay.DATA_CAN_DUPLICATE, canDuplicate);
++    }
++    // CraftBukkit end
++
+     @Override
+     protected Brain.Provider<Allay> brainProvider() {
+         return Brain.provider(MEMORY_TYPES, SENSOR_TYPES);
+@@ -233,7 +_,7 @@
+     public void aiStep() {
+         super.aiStep();
+         if (!this.level().isClientSide && this.isAlive() && this.tickCount % 10 == 0) {
+-            this.heal(1.0F);
++            this.heal(1.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.REGEN); // CraftBukkit
+         }
+ 
+         if (this.isDancing() && this.shouldStopDancing() && this.tickCount % 20 == 0) {
+@@ -297,36 +_,41 @@
+     }
+ 
+     @Override
+-    protected InteractionResult mobInteract(Player p_218361_, InteractionHand p_218362_) {
+-        ItemStack itemstack = p_218361_.getItemInHand(p_218362_);
+-        ItemStack itemstack1 = this.getItemInHand(InteractionHand.MAIN_HAND);
+-        if (this.isDancing() && itemstack.is(ItemTags.DUPLICATES_ALLAYS) && this.canDuplicate()) {
+-            this.duplicateAllay();
++    protected InteractionResult mobInteract(Player player, InteractionHand hand) {
++        ItemStack itemInHand = player.getItemInHand(hand);
++        ItemStack itemInHand1 = this.getItemInHand(InteractionHand.MAIN_HAND);
++        if (this.isDancing() && itemInHand.is(ItemTags.DUPLICATES_ALLAYS) && this.canDuplicate()) {
++            // CraftBukkit start - handle cancel duplication
++            Allay allay = this.duplicateAllay();
++            if (allay == null) {
++                return InteractionResult.SUCCESS;
++            }
++            // CraftBukkit end
+             this.level().broadcastEntityEvent(this, (byte)18);
+-            this.level().playSound(p_218361_, this, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 2.0F, 1.0F);
+-            this.removeInteractionItem(p_218361_, itemstack);
+-            return InteractionResult.SUCCESS;
+-        } else if (itemstack1.isEmpty() && !itemstack.isEmpty()) {
+-            ItemStack itemstack3 = itemstack.copyWithCount(1);
+-            this.setItemInHand(InteractionHand.MAIN_HAND, itemstack3);
+-            this.removeInteractionItem(p_218361_, itemstack);
+-            this.level().playSound(p_218361_, this, SoundEvents.ALLAY_ITEM_GIVEN, SoundSource.NEUTRAL, 2.0F, 1.0F);
+-            this.getBrain().setMemory(MemoryModuleType.LIKED_PLAYER, p_218361_.getUUID());
+-            return InteractionResult.SUCCESS;
+-        } else if (!itemstack1.isEmpty() && p_218362_ == InteractionHand.MAIN_HAND && itemstack.isEmpty()) {
++            this.level().playSound(player, this, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 2.0F, 1.0F);
++            this.removeInteractionItem(player, itemInHand);
++            return InteractionResult.SUCCESS;
++        } else if (itemInHand1.isEmpty() && !itemInHand.isEmpty()) {
++            ItemStack itemStack = itemInHand.copyWithCount(1);
++            this.setItemInHand(InteractionHand.MAIN_HAND, itemStack);
++            this.removeInteractionItem(player, itemInHand);
++            this.level().playSound(player, this, SoundEvents.ALLAY_ITEM_GIVEN, SoundSource.NEUTRAL, 2.0F, 1.0F);
++            this.getBrain().setMemory(MemoryModuleType.LIKED_PLAYER, player.getUUID());
++            return InteractionResult.SUCCESS;
++        } else if (!itemInHand1.isEmpty() && hand == InteractionHand.MAIN_HAND && itemInHand.isEmpty()) {
+             this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+-            this.level().playSound(p_218361_, this, SoundEvents.ALLAY_ITEM_TAKEN, SoundSource.NEUTRAL, 2.0F, 1.0F);
++            this.level().playSound(player, this, SoundEvents.ALLAY_ITEM_TAKEN, SoundSource.NEUTRAL, 2.0F, 1.0F);
+             this.swing(InteractionHand.MAIN_HAND);
+ 
+-            for (ItemStack itemstack2 : this.getInventory().removeAllItems()) {
+-                BehaviorUtils.throwItem(this, itemstack2, this.position());
++            for (ItemStack itemStack1 : this.getInventory().removeAllItems()) {
++                BehaviorUtils.throwItem(this, itemStack1, this.position());
+             }
+ 
+             this.getBrain().eraseMemory(MemoryModuleType.LIKED_PLAYER);
+-            p_218361_.addItem(itemstack1);
++            player.addItem(itemInHand1);
+             return InteractionResult.SUCCESS;
+         } else {
+-            return super.mobInteract(p_218361_, p_218362_);
++            return super.mobInteract(player, hand);
+         }
+     }
+ 
 @@ -356,9 +_,9 @@
      public boolean wantsToPickUp(ServerLevel p_376111_, ItemStack p_218387_) {
          ItemStack itemstack = this.getItemInHand(InteractionHand.MAIN_HAND);
@@ -12,3 +105,40 @@
      }
  
      private boolean allayConsidersItemEqual(ItemStack p_252278_, ItemStack p_250405_) {
+@@ -406,6 +_,7 @@
+     }
+ 
+     private boolean shouldStopDancing() {
++        if (this.forceDancing) {return false;} // CraftBukkit
+         return this.jukeboxPos == null
+             || !this.jukeboxPos.closerToCenterThan(this.position(), GameEvent.JUKEBOX_PLAY.value().notificationRadius())
+             || !this.level().getBlockState(this.jukeboxPos).is(Blocks.JUKEBOX);
+@@ -458,7 +_,7 @@
+         super.readAdditionalSaveData(p_422340_);
+         this.readInventoryFromTag(p_422340_);
+         this.vibrationData = p_422340_.read("listener", VibrationSystem.Data.CODEC).orElseGet(VibrationSystem.Data::new);
+-        this.setDuplicationCooldown(p_422340_.getIntOr("DuplicationCooldown", 0));
++        this.setDuplicationCooldown(p_422340_.getLongOr("DuplicationCooldown", 0)); // Paper - Load as long
+     }
+ 
+     @Override
+@@ -477,15 +_,17 @@
+         this.entityData.set(DATA_CAN_DUPLICATE, p_404640_ == 0L);
+     }
+ 
+-    public void duplicateAllay() {
++    @Nullable public Allay duplicateAllay() { // CraftBukkit - return allay
+         Allay allay = EntityType.ALLAY.create(this.level(), EntitySpawnReason.BREEDING);
+         if (allay != null) {
+             allay.snapTo(this.position());
+             allay.setPersistenceRequired();
+             allay.resetDuplicationCooldown();
+             this.resetDuplicationCooldown();
+-            this.level().addFreshEntity(allay);
++            this.level().addFreshEntity(allay, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DUPLICATION); // CraftBukkit - reason for duplicated allay
+         }
++
++        return allay; // CraftBukkit
+     }
+ 
+     public void resetDuplicationCooldown() {

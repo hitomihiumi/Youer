@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/StemBlock.java
 +++ b/net/minecraft/world/level/block/StemBlock.java
-@@ -64,23 +_,23 @@
+@@ -64,32 +_,40 @@
  
      @Override
      protected boolean mayPlaceOn(BlockState p_57053_, BlockGetter p_57054_, BlockPos p_57055_) {
@@ -15,12 +15,14 @@
 -            float f = CropBlock.getGrowthSpeed(this, p_222539_, p_222540_);
 -            if (p_222541_.nextInt((int)(25.0F / f) + 1) == 0) {
 +            float f = CropBlock.getGrowthSpeed(p_222538_, p_222539_, p_222540_);
-+            if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_222539_, p_222540_, p_222538_, p_222541_.nextInt((int)(25.0F / f) + 1) == 0)) {
++            if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_222539_, p_222540_, p_222538_, p_222541_.nextFloat() < ((this == Blocks.PUMPKIN_STEM ? p_222539_.spigotConfig.pumpkinModifier : p_222539_.spigotConfig.melonModifier) / (100.0F * (Math.floor((25.0F / f) + 1)))))) { // Spigot - SPIGOT-7159: Better modifier resolution
                  int i = p_222538_.getValue(AGE);
                  if (i < 7) {
--                    p_222538_ = p_222538_.setValue(AGE, i + 1);
+                     p_222538_ = p_222538_.setValue(AGE, i + 1);
 -                    p_222539_.setBlock(p_222540_, p_222538_, 2);
-+                    p_222539_.setBlock(p_222540_, p_222538_.setValue(AGE, i + 1), 2);
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222539_, p_222540_, p_222538_, 2)) { // CraftBukkit
++                        return;
++                    }
                  } else {
                      Direction direction = Direction.Plane.HORIZONTAL.getRandomDirection(p_222541_);
                      BlockPos blockpos = p_222540_.relative(direction);
@@ -30,7 +32,14 @@
                          Registry<Block> registry = p_222539_.registryAccess().lookupOrThrow(Registries.BLOCK);
                          Optional<Block> optional = registry.getOptional(this.fruit);
                          Optional<Block> optional1 = registry.getOptional(this.attachedStem);
-@@ -90,6 +_,7 @@
+                         if (optional.isPresent() && optional1.isPresent()) {
+-                            p_222539_.setBlockAndUpdate(blockpos, optional.get().defaultBlockState());
++                            // CraftBukkit start
++                            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222539_, blockpos, optional.get().defaultBlockState(), 3)) {
++                                return;
++                            }
++                            // CraftBukkit end
+                             p_222539_.setBlockAndUpdate(p_222540_, optional1.get().defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, direction));
                          }
                      }
                  }
@@ -38,3 +47,12 @@
              }
          }
      }
+@@ -113,7 +_,7 @@
+     public void performBonemeal(ServerLevel p_222528_, RandomSource p_222529_, BlockPos p_222530_, BlockState p_222531_) {
+         int i = Math.min(7, p_222531_.getValue(AGE) + Mth.nextInt(p_222528_.random, 2, 5));
+         BlockState blockstate = p_222531_.setValue(AGE, i);
+-        p_222528_.setBlock(p_222530_, blockstate, 2);
++        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222528_, p_222530_, blockstate, 2); // CraftBukkit
+         if (i == 7) {
+             blockstate.randomTick(p_222528_, p_222530_, p_222528_.random);
+         }

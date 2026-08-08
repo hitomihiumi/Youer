@@ -1,5 +1,63 @@
 --- a/net/minecraft/commands/arguments/MessageArgument.java
 +++ b/net/minecraft/commands/arguments/MessageArgument.java
+@@ -38,33 +_,42 @@
+         return messageargument$message.resolveComponent(p_96836_.getSource());
+     }
+ 
+-    public static void resolveChatMessage(CommandContext<CommandSourceStack> p_249433_, String p_248718_, Consumer<PlayerChatMessage> p_249460_) throws CommandSyntaxException {
+-        MessageArgument.Message messageargument$message = p_249433_.getArgument(p_248718_, MessageArgument.Message.class);
+-        CommandSourceStack commandsourcestack = p_249433_.getSource();
+-        Component component = messageargument$message.resolveComponent(commandsourcestack);
+-        CommandSigningContext commandsigningcontext = commandsourcestack.getSigningContext();
+-        PlayerChatMessage playerchatmessage = commandsigningcontext.getArgument(p_248718_);
+-        if (playerchatmessage != null) {
+-            resolveSignedMessage(p_249460_, commandsourcestack, playerchatmessage.withUnsignedContent(component));
++    public static void resolveChatMessage(CommandContext<CommandSourceStack> context, String key, Consumer<PlayerChatMessage> callback) throws CommandSyntaxException {
++        MessageArgument.Message message = context.getArgument(key, MessageArgument.Message.class);
++        // Paper start - brig message argument support
++        resolveChatMessage(message, context, key, callback);
++    }
++    public static void resolveChatMessage(MessageArgument.Message message, CommandContext<CommandSourceStack> context, String key, Consumer<PlayerChatMessage> callback) throws CommandSyntaxException {
++        // Paper end - brig message argument support
++        CommandSourceStack commandSourceStack = context.getSource();
++        Component component = message.resolveComponent(commandSourceStack);
++        CommandSigningContext signingContext = commandSourceStack.getSigningContext();
++        PlayerChatMessage argument = signingContext.getArgument(key);
++        if (argument != null) {
++            resolveSignedMessage(callback, commandSourceStack, argument.withUnsignedContent(component));
+         } else {
+-            resolveDisguisedMessage(p_249460_, commandsourcestack, PlayerChatMessage.system(messageargument$message.text).withUnsignedContent(component));
++            resolveDisguisedMessage(callback, commandSourceStack, PlayerChatMessage.system(message.text).withUnsignedContent(component));
+         }
+     }
+ 
+     private static void resolveSignedMessage(Consumer<PlayerChatMessage> p_250000_, CommandSourceStack p_252335_, PlayerChatMessage p_249420_) {
+         MinecraftServer minecraftserver = p_252335_.getServer();
+         CompletableFuture<FilteredText> completablefuture = filterPlainText(p_252335_, p_249420_);
+-        Component component = minecraftserver.getChatDecorator().decorate(p_252335_.getPlayer(), p_249420_.decoratedContent());
+-        p_252335_.getChatMessageChainer().append(completablefuture, p_300688_ -> {
+-            PlayerChatMessage playerchatmessage = p_249420_.withUnsignedContent(component).filter(p_300688_.mask());
+-            p_250000_.accept(playerchatmessage);
++        // Paper start - support asynchronous chat decoration
++        CompletableFuture<Component> component = minecraftserver.getChatDecorator().decorate(p_252335_.getPlayer(), p_252335_, p_249420_.decoratedContent());
++        p_252335_.getChatMessageChainer().append(CompletableFuture.allOf(completablefuture, component), filtered -> {
++            PlayerChatMessage playerChatMessage = p_249420_.withUnsignedContent(component.join()).filter(completablefuture.join().mask());
++            // Paper end - support asynchronous chat decoration
++            p_250000_.accept(playerChatMessage);
+         });
+     }
+ 
+     private static void resolveDisguisedMessage(Consumer<PlayerChatMessage> p_249162_, CommandSourceStack p_248759_, PlayerChatMessage p_252332_) {
+         ChatDecorator chatdecorator = p_248759_.getServer().getChatDecorator();
+-        Component component = chatdecorator.decorate(p_248759_.getPlayer(), p_252332_.decoratedContent());
+-        p_249162_.accept(p_252332_.withUnsignedContent(component));
++        // Paper start - support asynchronous chat decoration
++        CompletableFuture<Component> component = chatdecorator.decorate(p_248759_.getPlayer(), p_248759_, p_252332_.decoratedContent());
++        p_248759_.getChatMessageChainer().append(component, (result) -> p_249162_.accept(p_252332_.withUnsignedContent(result)));
++        // Paper end - support asynchronous chat decoration
+     }
+ 
+     private static CompletableFuture<FilteredText> filterPlainText(CommandSourceStack p_252063_, PlayerChatMessage p_251184_) {
 @@ -89,7 +_,7 @@
  
      public record Message(String text, MessageArgument.Part[] parts) {
