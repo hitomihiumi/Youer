@@ -1,15 +1,80 @@
 --- a/net/minecraft/world/entity/monster/Shulker.java
 +++ b/net/minecraft/world/entity/monster/Shulker.java
-@@ -388,6 +_,12 @@
-                     && this.level().noCollision(this, new AABB(blockpos1).deflate(1.0E-6))) {
-                     Direction direction = this.findAttachableSurface(blockpos1);
-                     if (direction != null) {
+@@ -274,7 +_,13 @@
+ 
+     @Override
+     public void stopRiding() {
+-        super.stopRiding();
++        // Paper start - Force entity dismount during teleportation
++        this.stopRiding(false);
++    }
++    @Override
++    public void stopRiding(boolean suppressCancellation) {
++        super.stopRiding(suppressCancellation);
++        // Paper end - Force entity dismount during teleportation
+         if (this.level().isClientSide) {
+             this.clientOldAttachPosition = this.blockPosition();
+         }
+@@ -374,25 +_,39 @@
+ 
+     protected boolean teleportSomewhere() {
+         if (!this.isNoAi() && this.isAlive()) {
+-            BlockPos blockpos = this.blockPosition();
++            BlockPos blockPos = this.blockPosition();
+ 
+             for (int i = 0; i < 5; i++) {
+-                BlockPos blockpos1 = blockpos.offset(
++                BlockPos blockPos1 = blockPos.offset(
+                     Mth.randomBetweenInclusive(this.random, -8, 8),
+                     Mth.randomBetweenInclusive(this.random, -8, 8),
+                     Mth.randomBetweenInclusive(this.random, -8, 8)
+                 );
+-                if (blockpos1.getY() > this.level().getMinY()
+-                    && this.level().isEmptyBlock(blockpos1)
+-                    && this.level().getWorldBorder().isWithinBounds(blockpos1)
+-                    && this.level().noCollision(this, new AABB(blockpos1).deflate(1.0E-6))) {
+-                    Direction direction = this.findAttachableSurface(blockpos1);
++                if (blockPos1.getY() > this.level().getMinY()
++                    && this.level().isEmptyBlock(blockPos1)
++                    && this.level().getWorldBorder().isWithinBounds(blockPos1)
++                    && this.level().noCollision(this, new AABB(blockPos1).deflate(1.0E-6))) {
++                    Direction direction = this.findAttachableSurface(blockPos1);
++                    // CraftBukkit start
++                    org.bukkit.event.entity.EntityTeleportEvent teleportEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, blockPos1.getX(), blockPos1.getY(), blockPos1.getZ());
++                    if (teleportEvent.isCancelled() || teleportEvent.getTo() == null) { // Paper
++                        return false;
++                    } else {
++                        blockPos1 = org.bukkit.craftbukkit.util.CraftLocation.toBlockPosition(teleportEvent.getTo());
++                    }
++                    // CraftBukkit end
++                    if (direction != null) {
 +                        net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderEntity event = net.neoforged.neoforge.event.EventHooks.onEnderTeleport(this, blockpos1.getX(), blockpos1.getY(), blockpos1.getZ());
 +                        if (event.isCanceled()) direction = null;
 +                        blockpos1 = BlockPos.containing(event.getTargetX(), event.getTargetY(), event.getTargetZ());
 +                    }
 +
-+                    if (direction != null) {
+                     if (direction != null) {
                          this.unRide();
                          this.setAttachFace(direction);
                          this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);
+-                        this.setPos(blockpos1.getX() + 0.5, blockpos1.getY(), blockpos1.getZ() + 0.5);
+-                        this.level().gameEvent(GameEvent.TELEPORT, blockpos, GameEvent.Context.of(this));
++                        this.setPos(blockPos1.getX() + 0.5, blockPos1.getY(), blockPos1.getZ() + 0.5);
++                        this.level().gameEvent(GameEvent.TELEPORT, blockPos, GameEvent.Context.of(this));
+                         this.entityData.set(DATA_PEEK_ID, (byte)0);
+                         this.setTarget(null);
+                         return true;
+@@ -451,7 +_,12 @@
+                 if (shulker != null) {
+                     shulker.setVariant(this.getVariant());
+                     shulker.snapTo(vec3);
+-                    this.level().addFreshEntity(shulker);
++                    // Paper start - Call ShulkerDuplicateEvent
++                    if (!new io.papermc.paper.event.entity.ShulkerDuplicateEvent((org.bukkit.entity.Shulker) shulker.getBukkitEntity(), (org.bukkit.entity.Shulker) this.getBukkitEntity()).callEvent()) {
++                        return;
++                    }
++                    // Paper end - Call ShulkerDuplicateEvent
++                    this.level().addFreshEntity(shulker, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - the mysteries of life
+                 }
+             }
+         }

@@ -1,0 +1,95 @@
+--- a/net/minecraft/world/entity/boss/enderdragon/EndCrystal.java
++++ b/net/minecraft/world/entity/boss/enderdragon/EndCrystal.java
+@@ -26,6 +_,7 @@
+     private static final EntityDataAccessor<Boolean> DATA_SHOW_BOTTOM = SynchedEntityData.defineId(EndCrystal.class, EntityDataSerializers.BOOLEAN);
+     private static final boolean DEFAULT_SHOW_BOTTOM = true;
+     public int time;
++    public boolean generatedByDragonFight = false; // Paper - Fix invulnerable end crystals
+ 
+     public EndCrystal(EntityType<? extends EndCrystal> p_31037_, Level p_31038_) {
+         super(p_31037_, p_31038_);
+@@ -57,21 +_,37 @@
+         if (this.level() instanceof ServerLevel) {
+             BlockPos blockpos = this.blockPosition();
+             if (((ServerLevel)this.level()).getDragonFight() != null && this.level().getBlockState(blockpos).isAir()) {
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level(), blockpos, this).isCancelled()) { // Paper
+                 this.level().setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level(), blockpos));
+-            }
+-        }
++                } // Paper
++            }
++        }
++
++        // Paper start - Fix invulnerable end crystals
++        if (this.level().paperConfig().unsupportedSettings.fixInvulnerableEndCrystalExploit && this.generatedByDragonFight && this.isInvulnerable()) {
++            if (!java.util.Objects.equals(((ServerLevel) this.level()).uuid, this.originWorld)
++                || ((ServerLevel) this.level()).getDragonFight() == null
++                || ((ServerLevel) this.level()).getDragonFight().respawnStage == null
++                || ((ServerLevel) this.level()).getDragonFight().respawnStage.ordinal() > net.minecraft.world.level.dimension.end.DragonRespawnAnimation.SUMMONING_DRAGON.ordinal()) {
++                this.setInvulnerable(false);
++                this.setBeamTarget(null);
++            }
++        }
++        // Paper end - Fix invulnerable end crystals
+     }
+ 
+     @Override
+     protected void addAdditionalSaveData(ValueOutput p_422042_) {
+         p_422042_.storeNullable("beam_target", BlockPos.CODEC, this.getBeamTarget());
+         p_422042_.putBoolean("ShowBottom", this.showsBottom());
++        p_422042_.putBoolean("Paper.GeneratedByDragonFight", this.generatedByDragonFight); // Paper - Fix invulnerable end crystals
+     }
+ 
+     @Override
+     protected void readAdditionalSaveData(ValueInput p_421742_) {
+         this.setBeamTarget(p_421742_.read("beam_target", BlockPos.CODEC).orElse(null));
+         this.setShowBottom(p_421742_.getBooleanOr("ShowBottom", true));
++        this.generatedByDragonFight = p_421742_.getBooleanOr("Paper.GeneratedByDragonFight", false); // Paper - Fix invulnerable end crystals
+     }
+ 
+     @Override
+@@ -85,20 +_,34 @@
+     }
+ 
+     @Override
+-    public final boolean hurtServer(ServerLevel p_376280_, DamageSource p_376179_, float p_376203_) {
+-        if (this.isInvulnerableToBase(p_376179_)) {
++    public final boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
++        if (this.isInvulnerableToBase(damageSource)) {
+             return false;
+-        } else if (p_376179_.getEntity() instanceof EnderDragon) {
++        } else if (damageSource.getEntity() instanceof EnderDragon) {
+             return false;
+         } else {
+             if (!this.isRemoved()) {
+-                this.remove(Entity.RemovalReason.KILLED);
+-                if (!p_376179_.is(DamageTypeTags.IS_EXPLOSION)) {
+-                    DamageSource damagesource = p_376179_.getEntity() != null ? this.damageSources().explosion(this, p_376179_.getEntity()) : null;
+-                    p_376280_.explode(this, damagesource, null, this.getX(), this.getY(), this.getZ(), 6.0F, false, Level.ExplosionInteraction.BLOCK);
+-                }
+-
+-                this.onDestroyedBy(p_376280_, p_376179_);
++                // CraftBukkit start - All non-living entities need this
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, damageSource, amount, false)) {
++                    return false;
++                }
++                // CraftBukkit end
++                if (!damageSource.is(DamageTypeTags.IS_EXPLOSION)) {
++                    DamageSource damageSource1 = damageSource.getEntity() != null ? this.damageSources().explosion(this, damageSource.getEntity()) : null;
++                    // CraftBukkit start
++                    org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, 6.0F, false);
++                    if (event.isCancelled()) {
++                        return false;
++                    }
++
++                    this.remove(Entity.RemovalReason.KILLED, org.bukkit.event.entity.EntityRemoveEvent.Cause.EXPLODE); // Paper - add Bukkit remove cause
++                    level.explode(this, damageSource1, null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.BLOCK);
++                } else {
++                    this.remove(Entity.RemovalReason.KILLED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // Paper - add Bukkit remove cause
++                    // CraftBukkit end
++                }
++
++                this.onDestroyedBy(level, damageSource);
+             }
+ 
+             return true;

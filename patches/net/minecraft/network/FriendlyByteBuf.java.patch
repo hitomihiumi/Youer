@@ -1,12 +1,61 @@
 --- a/net/minecraft/network/FriendlyByteBuf.java
 +++ b/net/minecraft/network/FriendlyByteBuf.java
-@@ -1649,4 +_,9 @@
+@@ -71,14 +_,20 @@
+ public class FriendlyByteBuf extends ByteBuf implements net.neoforged.neoforge.common.extensions.IFriendlyByteBufExtension {
+     public static final int DEFAULT_NBT_QUOTA = 2097152;
+     private final ByteBuf source;
++    @Nullable public final java.util.Locale adventure$locale; // Paper - track player's locale for server-side translations
+     public static final short MAX_STRING_LENGTH = 32767;
+     public static final int MAX_COMPONENT_STRING_LENGTH = 262144;
+     private static final int PUBLIC_KEY_SIZE = 256;
+     private static final int MAX_PUBLIC_KEY_HEADER_SIZE = 256;
+     private static final int MAX_PUBLIC_KEY_LENGTH = 512;
+     private static final Gson GSON = new Gson();
++    // Paper start - Track codec depth
++    public boolean trackCodecDepth;
++    public byte codecDepth;
++    // Paper end - Track codec depth
+ 
+     public FriendlyByteBuf(ByteBuf p_130051_) {
++        this.adventure$locale = PacketEncoder.ADVENTURE_LOCALE.get(); // Paper - track player's locale for server-side translations
+         this.source = p_130051_;
+     }
+ 
+@@ -106,9 +_,14 @@
+         return dataresult.getOrThrow(p_272382_ -> new DecoderException("Failed to decode JSON: " + p_272382_));
+     }
+ 
+-    public <T> void writeJsonWithCodec(Codec<T> p_273285_, T p_272770_) {
+-        DataResult<JsonElement> dataresult = p_273285_.encodeStart(JsonOps.INSTANCE, p_272770_);
+-        this.writeUtf(GSON.toJson(dataresult.getOrThrow(p_339402_ -> new EncoderException("Failed to encode: " + p_339402_ + " " + p_272770_))));
++    public <T> void writeJsonWithCodec(Codec<T> codec, T value) {
++        // Paper start - Adventure; add max length parameter
++        this.writeJsonWithCodec(codec, value, MAX_STRING_LENGTH);
++    }
++    public <T> void writeJsonWithCodec(Codec<T> codec, T value, int maxLength) {
++        // Paper end - Adventure; add max length parameter
++        DataResult<JsonElement> dataResult = codec.encodeStart(JsonOps.INSTANCE, value);
++        this.writeUtf(GSON.toJson(dataResult.getOrThrow(exception -> new EncoderException("Failed to encode: " + exception + " " + value))), maxLength); // Paper - Adventure; add max length parameter
+     }
+ 
+     public static <T> IntFunction<T> limitValue(IntFunction<T> p_182696_, int p_182697_) {
+@@ -556,7 +_,7 @@
+ 
+         try {
+             NbtIo.writeAnyTag(p_320692_, new ByteBufOutputStream(p_320344_));
+-        } catch (IOException ioexception) {
++        } catch (Exception ioexception) { // CraftBukkit - IOException -> Exception
+             throw new EncoderException(ioexception);
+         }
+     }
+@@ -1648,5 +_,10 @@
+     @Override
      public boolean release(int p_130347_) {
          return this.source.release(p_130347_);
-     }
++    }
 +
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public ByteBuf getSource() {
 +        return this.source;
-+    }
+     }
  }

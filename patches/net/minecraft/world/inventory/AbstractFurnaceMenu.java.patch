@@ -1,5 +1,43 @@
 --- a/net/minecraft/world/inventory/AbstractFurnaceMenu.java
 +++ b/net/minecraft/world/inventory/AbstractFurnaceMenu.java
+@@ -34,6 +_,21 @@
+     private final RecipeType<? extends AbstractCookingRecipe> recipeType;
+     private final RecipePropertySet acceptedInputs;
+     private final RecipeBookType recipeBookType;
++    // CraftBukkit start
++    private @javax.annotation.Nullable org.bukkit.craftbukkit.inventory.view.CraftFurnaceView view = null;
++    private final Inventory inventory;
++
++    @Override
++    public org.bukkit.craftbukkit.inventory.view.CraftFurnaceView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
++        }
++
++        org.bukkit.craftbukkit.inventory.CraftInventoryFurnace inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryFurnace((net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity) this.container);
++        this.view = new org.bukkit.craftbukkit.inventory.view.CraftFurnaceView(this.inventory.player.getBukkitEntity(), inventory, this);
++        return this.view;
++    }
++    // CraftBukkit end
+ 
+     protected AbstractFurnaceMenu(
+         MenuType<?> p_38966_,
+@@ -68,6 +_,7 @@
+         this.addSlot(new Slot(p_379971_, 0, 56, 17));
+         this.addSlot(new FurnaceFuelSlot(this, p_379971_, 1, 56, 53));
+         this.addSlot(new FurnaceResultSlot(p_38964_.player, p_379971_, 2, 116, 35));
++        this.p_38964_ = p_38964_; // CraftBukkit
+         this.addStandardInventorySlots(p_38964_, 8, 84);
+         this.addDataSlots(p_379737_);
+     }
+@@ -85,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(Player p_38974_) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.container.stillValid(p_38974_);
+     }
+ 
 @@ -142,7 +_,7 @@
      }
  

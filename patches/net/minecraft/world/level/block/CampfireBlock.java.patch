@@ -1,5 +1,28 @@
 --- a/net/minecraft/world/level/block/CampfireBlock.java
 +++ b/net/minecraft/world/level/block/CampfireBlock.java
+@@ -108,8 +_,9 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_51269_, Level p_51270_, BlockPos p_51271_, Entity p_51272_, InsideBlockEffectApplier p_405507_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_51272_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_51270_, p_51271_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (p_51269_.getValue(LIT) && p_51272_ instanceof LivingEntity) {
+-            p_51272_.hurt(p_51270_.damageSources().campfire(), this.fireDamage);
++            p_51272_.hurt(p_51270_.damageSources().campfire().eventBlockDamager(p_51270_, p_51271_), (float) this.fireDamage); // CraftBukkit
+         }
+ 
+         super.entityInside(p_51269_, p_51270_, p_51271_, p_51272_, p_405507_);
+@@ -227,6 +_,11 @@
+             && p_51247_.mayInteract(serverlevel, blockpos)
+             && !p_51245_.getValue(LIT)
+             && !p_51245_.getValue(WATERLOGGED)) {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(p_51244_, blockpos, p_51247_).isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
+             p_51244_.setBlock(blockpos, p_51245_.setValue(BlockStateProperties.LIT, true), 11);
+         }
+     }
 @@ -265,7 +_,7 @@
                  return true;
              }

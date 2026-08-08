@@ -1,0 +1,84 @@
+--- a/net/minecraft/world/item/BoatItem.java
++++ b/net/minecraft/world/item/BoatItem.java
+@@ -28,44 +_,59 @@
+     }
+ 
+     @Override
+-    public InteractionResult use(Level p_40622_, Player p_40623_, InteractionHand p_40624_) {
+-        ItemStack itemstack = p_40623_.getItemInHand(p_40624_);
+-        HitResult hitresult = getPlayerPOVHitResult(p_40622_, p_40623_, ClipContext.Fluid.ANY);
+-        if (hitresult.getType() == HitResult.Type.MISS) {
++    public InteractionResult use(Level level, Player player, InteractionHand hand) {
++        ItemStack itemInHand = player.getItemInHand(hand);
++        net.minecraft.world.phys.BlockHitResult playerPovHitResult = getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY); // Paper
++        if (playerPovHitResult.getType() == HitResult.Type.MISS) {
+             return InteractionResult.PASS;
+         } else {
+-            Vec3 vec3 = p_40623_.getViewVector(1.0F);
+-            double d0 = 5.0;
+-            List<Entity> list = p_40622_.getEntities(
+-                p_40623_, p_40623_.getBoundingBox().expandTowards(vec3.scale(5.0)).inflate(1.0), EntitySelector.CAN_BE_PICKED
++            Vec3 viewVector = player.getViewVector(1.0F);
++            double d = 5.0;
++            List<Entity> entities = level.getEntities(
++                player, player.getBoundingBox().expandTowards(viewVector.scale(5.0)).inflate(1.0), EntitySelector.CAN_BE_PICKED
+             );
+-            if (!list.isEmpty()) {
+-                Vec3 vec31 = p_40623_.getEyePosition();
++            if (!entities.isEmpty()) {
++                Vec3 eyePosition = player.getEyePosition();
+ 
+-                for (Entity entity : list) {
++                for (Entity entity : entities) {
+                     AABB aabb = entity.getBoundingBox().inflate(entity.getPickRadius());
+-                    if (aabb.contains(vec31)) {
++                    if (aabb.contains(eyePosition)) {
+                         return InteractionResult.PASS;
+                     }
+                 }
+             }
+ 
+-            if (hitresult.getType() == HitResult.Type.BLOCK) {
+-                AbstractBoat abstractboat = this.getBoat(p_40622_, hitresult, itemstack, p_40623_);
+-                if (abstractboat == null) {
++            if (playerPovHitResult.getType() == HitResult.Type.BLOCK) {
++                // CraftBukkit start - Boat placement
++                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(player, org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK, playerPovHitResult.getBlockPos(), playerPovHitResult.getDirection(), itemInHand, false, hand, playerPovHitResult.getLocation());
++
++                if (event.isCancelled()) {
++                    return InteractionResult.PASS;
++                }
++                // CraftBukkit end
++                AbstractBoat boat = this.getBoat(level, playerPovHitResult, itemInHand, player);
++                if (boat == null) {
+                     return InteractionResult.FAIL;
+                 } else {
+-                    abstractboat.setYRot(p_40623_.getYRot());
+-                    if (!p_40622_.noCollision(abstractboat, abstractboat.getBoundingBox())) {
++                    boat.setYRot(player.getYRot());
++                    if (!level.noCollision(boat, boat.getBoundingBox())) {
+                         return InteractionResult.FAIL;
+                     } else {
+-                        if (!p_40622_.isClientSide) {
+-                            p_40622_.addFreshEntity(abstractboat);
+-                            p_40622_.gameEvent(p_40623_, GameEvent.ENTITY_PLACE, hitresult.getLocation());
+-                            itemstack.consume(1, p_40623_);
++                        if (!level.isClientSide) {
++                            // CraftBukkit start
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(level, playerPovHitResult.getBlockPos(), player.getDirection(), player, boat, hand).isCancelled()) {
++                                return InteractionResult.FAIL;
++                            }
++
++                            if (!level.addFreshEntity(boat)) {
++                                return InteractionResult.PASS;
++                            }
++                            // CraftBukkit end
++                            level.gameEvent(player, GameEvent.ENTITY_PLACE, playerPovHitResult.getLocation());
++                            itemInHand.consume(1, player);
+                         }
+ 
+-                        p_40623_.awardStat(Stats.ITEM_USED.get(this));
++                        player.awardStat(Stats.ITEM_USED.get(this));
+                         return InteractionResult.SUCCESS;
+                     }
+                 }

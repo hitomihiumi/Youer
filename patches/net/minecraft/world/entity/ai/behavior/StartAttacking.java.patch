@@ -1,15 +1,25 @@
 --- a/net/minecraft/world/entity/ai/behavior/StartAttacking.java
 +++ b/net/minecraft/world/entity/ai/behavior/StartAttacking.java
-@@ -28,7 +_,11 @@
+@@ -28,6 +_,22 @@
                              if (!p_375685_.canAttack(livingentity)) {
                                  return false;
                              } else {
--                                p_258778_.set(livingentity);
 +                                net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(p_375685_, livingentity, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.BEHAVIOR_TARGET);
 +                                if (changeTargetEvent.isCanceled() || changeTargetEvent.getNewAboutToBeSetTarget() == null)
 +                                    return false;
++                                livingentity = changeTargetEvent.getNewAboutToBeSetTarget();
 +
-+                                p_258778_.set(changeTargetEvent.getNewAboutToBeSetTarget());
++                                // CraftBukkit start
++                                org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(p_375685_, livingentity, (livingentity instanceof net.minecraft.server.level.ServerPlayer) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++                                if (event.isCancelled()) {
++                                    return false;
++                                }
++                                if (event.getTarget() == null) {
++                                    p_258779_.erase();
++                                    return true;
++                                }
++                                livingentity = ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++                                // CraftBukkit end
+                                 p_258778_.set(livingentity);
                                  p_258779_.erase();
                                  return true;
-                             }

@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/level/block/CarvedPumpkinBlock.java
++++ b/net/minecraft/world/level/block/CarvedPumpkinBlock.java
+@@ -79,9 +_,14 @@
+     }
+ 
+     private static void spawnGolemInWorld(Level p_249110_, BlockPattern.BlockPatternMatch p_251293_, Entity p_251251_, BlockPos p_251189_) {
+-        clearPatternBlocks(p_249110_, p_251293_);
++        // clearPatternBlocks(p_249110_, p_251293_); // Paper - moved down
+         p_251251_.snapTo(p_251189_.getX() + 0.5, p_251189_.getY() + 0.05, p_251189_.getZ() + 0.5, 0.0F, 0.0F);
+-        p_249110_.addFreshEntity(p_251251_);
++        // Paper start
++        if (!p_249110_.addFreshEntity(p_251251_, (p_251251_.getType() == EntityType.SNOW_GOLEM) ? org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BUILD_SNOWMAN : org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BUILD_IRONGOLEM)) {
++            return;
++        }
++        // Paper end
++        clearPatternBlocks(p_249110_, p_251293_); // Paper - from above
+ 
+         for (ServerPlayer serverplayer : p_249110_.getEntitiesOfClass(ServerPlayer.class, p_251251_.getBoundingBox().inflate(5.0))) {
+             CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, p_251251_);

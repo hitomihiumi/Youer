@@ -1,0 +1,72 @@
+--- a/net/minecraft/world/item/crafting/SmithingTrimRecipe.java
++++ b/net/minecraft/world/item/crafting/SmithingTrimRecipe.java
+@@ -29,29 +_,41 @@
+     final Holder<TrimPattern> pattern;
+     @Nullable
+     private PlacementInfo placementInfo;
++    final boolean copyDataComponents; // Paper - Option to prevent data components copy
+ 
+     public SmithingTrimRecipe(Ingredient p_399501_, Ingredient p_399626_, Ingredient p_399756_, Holder<TrimPattern> p_399526_) {
+-        this.template = p_399501_;
+-        this.base = p_399626_;
+-        this.addition = p_399756_;
+-        this.pattern = p_399526_;
++        // Paper start - Option to prevent data components copy
++        this(p_399501_, p_399626_, p_399756_, p_399526_, true);
++    }
++    public SmithingTrimRecipe(Ingredient template, Ingredient base, Ingredient addition, Holder<TrimPattern> pattern, final boolean copyDataComponents) {
++        this.copyDataComponents = copyDataComponents;
++        // Paper end - Option to prevent data components copy
++        this.template = template;
++        this.base = base;
++        this.addition = addition;
++        this.pattern = pattern;
+     }
+ 
+     public ItemStack assemble(SmithingRecipeInput p_345750_, HolderLookup.Provider p_335536_) {
+-        return applyTrim(p_335536_, p_345750_.base(), p_345750_.addition(), this.pattern);
++        return applyTrim(p_335536_, p_345750_.base(), p_345750_.addition(), this.pattern, this.copyDataComponents); // Paper start - Option to prevent data components copy
+     }
+ 
+-    public static ItemStack applyTrim(HolderLookup.Provider p_381047_, ItemStack p_381169_, ItemStack p_381102_, Holder<TrimPattern> p_399470_) {
+-        Optional<Holder<TrimMaterial>> optional = TrimMaterials.getFromIngredient(p_381047_, p_381102_);
+-        if (optional.isPresent()) {
+-            ArmorTrim armortrim = p_381169_.get(DataComponents.TRIM);
+-            ArmorTrim armortrim1 = new ArmorTrim(optional.get(), p_399470_);
+-            if (Objects.equals(armortrim, armortrim1)) {
++    public static ItemStack applyTrim(HolderLookup.Provider registries, ItemStack base, ItemStack addition, Holder<TrimPattern> pattern) {
++    // Paper start - Option to prevent data components copy
++        return applyTrim(registries, base, addition, pattern, true);
++    }
++    public static ItemStack applyTrim(HolderLookup.Provider registries, ItemStack base, ItemStack addition, Holder<TrimPattern> pattern, final boolean copyDataComponents) {
++    // Paper end - Option to prevent data components copy
++        Optional<Holder<TrimMaterial>> fromIngredient = TrimMaterials.getFromIngredient(registries, addition);
++        if (fromIngredient.isPresent()) {
++            ArmorTrim armorTrim = base.get(DataComponents.TRIM);
++            ArmorTrim armorTrim1 = new ArmorTrim(fromIngredient.get(), pattern);
++            if (Objects.equals(armorTrim, armorTrim1)) {
+                 return ItemStack.EMPTY;
+             } else {
+-                ItemStack itemstack = p_381169_.copyWithCount(1);
+-                itemstack.set(DataComponents.TRIM, armortrim1);
+-                return itemstack;
++                ItemStack itemStack = copyDataComponents ? base.copyWithCount(1) : new ItemStack(base.getItem(), 1); // Paper - Option to prevent data components copy
++                itemStack.set(DataComponents.TRIM, armorTrim1);
++                return itemStack;
+             }
+         } else {
+             return ItemStack.EMPTY;
+@@ -102,6 +_,13 @@
+             )
+         );
+     }
++
++    // CraftBukkit start
++    @Override
++    public org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id) {
++        return new org.bukkit.craftbukkit.inventory.CraftSmithingTrimRecipe(id, org.bukkit.craftbukkit.inventory.CraftRecipe.toBukkit(this.template), org.bukkit.craftbukkit.inventory.CraftRecipe.toBukkit(this.base), org.bukkit.craftbukkit.inventory.CraftRecipe.toBukkit(this.addition), org.bukkit.craftbukkit.inventory.trim.CraftTrimPattern.minecraftHolderToBukkit(this.pattern), this.copyDataComponents); // Paper - Option to prevent data components copy
++    }
++    // CraftBukkit end
+ 
+     public static class Serializer implements RecipeSerializer<SmithingTrimRecipe> {
+         private static final MapCodec<SmithingTrimRecipe> CODEC = RecordCodecBuilder.mapCodec(

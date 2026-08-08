@@ -1,13 +1,98 @@
 --- a/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java
 +++ b/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java
-@@ -40,8 +_,10 @@
-     @Override
-     protected void randomTick(BlockState p_222508_, ServerLevel p_222509_, BlockPos p_222510_, RandomSource p_222511_) {
-         if (!canBeGrass(p_222508_, p_222509_, p_222510_)) {
-+            if (!p_222509_.isAreaLoaded(p_222510_, 1)) return; // Forge: prevent loading unloaded chunks when checking neighbor's light and spreading
-             p_222509_.setBlockAndUpdate(p_222510_, Blocks.DIRT.defaultBlockState());
-         } else {
-+            if (!p_222509_.isAreaLoaded(p_222510_, 3)) return; // Forge: prevent loading unloaded chunks when checking neighbor's light and spreading
-             if (p_222509_.getMaxLocalRawBrightness(p_222510_.above()) >= 9) {
-                 BlockState blockstate = this.defaultBlockState();
+@@ -16,39 +_,77 @@
+         super(p_56817_);
+     }
  
+-    private static boolean canBeGrass(BlockState p_56824_, LevelReader p_56825_, BlockPos p_56826_) {
+-        BlockPos blockpos = p_56826_.above();
+-        BlockState blockstate = p_56825_.getBlockState(blockpos);
+-        if (blockstate.is(Blocks.SNOW) && blockstate.getValue(SnowLayerBlock.LAYERS) == 1) {
++    private static boolean canBeGrass(BlockState state, LevelReader levelReader, BlockPos pos) {
++        // Paper start - Perf: optimize dirt and snow spreading
++        return canBeGrass(levelReader.getChunk(pos), state, levelReader, pos);
++    }
++    private static boolean canBeGrass(net.minecraft.world.level.chunk.ChunkAccess chunk, BlockState state, LevelReader levelReader, BlockPos pos) {
++        // Paper end - Perf: optimize dirt and snow spreading
++        BlockPos blockPos = pos.above();
++        BlockState blockState = chunk.getBlockState(blockPos); // Paper - Perf: optimize dirt and snow spreading
++        if (blockState.is(Blocks.SNOW) && blockState.getValue(SnowLayerBlock.LAYERS) == 1) {
+             return true;
+-        } else if (blockstate.getFluidState().getAmount() == 8) {
++        } else if (blockState.getFluidState().getAmount() == 8) {
+             return false;
+         } else {
+-            int i = LightEngine.getLightBlockInto(p_56824_, blockstate, Direction.UP, blockstate.getLightBlock());
+-            return i < 15;
++            int lightBlockInto = LightEngine.getLightBlockInto(state, blockState, Direction.UP, blockState.getLightBlock());
++            return lightBlockInto < 15;
+         }
+     }
+ 
+     @Override
+     protected abstract MapCodec<? extends SpreadingSnowyDirtBlock> codec();
+ 
+-    private static boolean canPropagate(BlockState p_56828_, LevelReader p_56829_, BlockPos p_56830_) {
+-        BlockPos blockpos = p_56830_.above();
+-        return canBeGrass(p_56828_, p_56829_, p_56830_) && !p_56829_.getFluidState(blockpos).is(FluidTags.WATER);
++    private static boolean canPropagate(BlockState state, LevelReader level, BlockPos pos) {
++        // Paper start - Perf: optimize dirt and snow spreading
++        return canPropagate(level.getChunk(pos), state, level, pos);
++    }
++
++    private static boolean canPropagate(net.minecraft.world.level.chunk.ChunkAccess chunk, BlockState state, LevelReader level, BlockPos pos) {
++        // Paper end - Perf: optimize dirt and snow spreading
++        BlockPos blockPos = pos.above();
++        return canBeGrass(chunk, state, level, pos) && !chunk.getFluidState(blockPos).is(FluidTags.WATER); // Paper - Perf: optimize dirt and snow spreading
+     }
+ 
+     @Override
+-    protected void randomTick(BlockState p_222508_, ServerLevel p_222509_, BlockPos p_222510_, RandomSource p_222511_) {
+-        if (!canBeGrass(p_222508_, p_222509_, p_222510_)) {
+-            p_222509_.setBlockAndUpdate(p_222510_, Blocks.DIRT.defaultBlockState());
++    protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
++        if (this instanceof GrassBlock && level.paperConfig().tickRates.grassSpread != 1 && (level.paperConfig().tickRates.grassSpread < 1 || (net.minecraft.server.MinecraftServer.currentTick + pos.hashCode()) % level.paperConfig().tickRates.grassSpread != 0)) { return; } // Paper - Configurable random tick rates for blocks
++        if (!level.isAreaLoaded(pos, 1)) return; // Forge: prevent loading unloaded chunks when checking neighbor's light and spreading
++        // Paper start - Perf: optimize dirt and snow spreading
++        final net.minecraft.world.level.chunk.ChunkAccess cachedBlockChunk = level.getChunkIfLoaded(pos);
++        if (cachedBlockChunk == null) { // Is this needed?
++            return;
++        }
++
++        if (!canBeGrass(cachedBlockChunk, state, level, pos)) {
++            // Paper end - Perf: optimize dirt and snow spreading
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(level, pos, Blocks.DIRT.defaultBlockState()).isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
++            level.setBlockAndUpdate(pos, Blocks.DIRT.defaultBlockState());
+         } else {
+-            if (p_222509_.getMaxLocalRawBrightness(p_222510_.above()) >= 9) {
+-                BlockState blockstate = this.defaultBlockState();
++            if (!level.isAreaLoaded(pos, 3)) return; // Forge: prevent loading unloaded chunks when checking neighbor's light and spreading
++            if (level.getMaxLocalRawBrightness(pos.above()) >= 9) {
++                BlockState blockState = this.defaultBlockState();
+ 
+                 for (int i = 0; i < 4; i++) {
+-                    BlockPos blockpos = p_222510_.offset(p_222511_.nextInt(3) - 1, p_222511_.nextInt(5) - 3, p_222511_.nextInt(3) - 1);
+-                    if (p_222509_.getBlockState(blockpos).is(Blocks.DIRT) && canPropagate(blockstate, p_222509_, blockpos)) {
+-                        p_222509_.setBlockAndUpdate(blockpos, blockstate.setValue(SNOWY, isSnowySetting(p_222509_.getBlockState(blockpos.above()))));
++                    BlockPos blockPos = pos.offset(random.nextInt(3) - 1, random.nextInt(5) - 3, random.nextInt(3) - 1);
++                    // Paper start - Perf: optimize dirt and snow spreading
++                    if (pos.getX() == blockPos.getX() && pos.getY() == blockPos.getY() && pos.getZ() == blockPos.getZ()) {
++                        continue;
++                    }
++
++                    final net.minecraft.world.level.chunk.ChunkAccess access;
++                    if (cachedBlockChunk.locX == blockPos.getX() >> 4 && cachedBlockChunk.locZ == blockPos.getZ() >> 4) {
++                        access = cachedBlockChunk;
++                    } else {
++                        access = level.getChunkAt(blockPos);
++                    }
++                    if (access.getBlockState(blockPos).is(Blocks.DIRT) && SpreadingSnowyDirtBlock.canPropagate(access, blockState, level, blockPos)) {
++                        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, pos, blockPos, blockState.setValue(SNOWY, isSnowySetting(access.getBlockState(blockPos.above()))), 3); // CraftBukkit
++                        // Paper end - Perf: optimize dirt and snow spreading
+                     }
+                 }
+             }

@@ -1,0 +1,112 @@
+--- a/net/minecraft/world/entity/ai/gossip/GossipContainer.java
++++ b/net/minecraft/world/entity/ai/gossip/GossipContainer.java
+@@ -29,7 +_,7 @@
+ public class GossipContainer {
+     public static final Codec<GossipContainer> CODEC = GossipContainer.GossipEntry.CODEC
+         .listOf()
+-        .xmap(GossipContainer::new, p_404372_ -> p_404372_.unpack().toList());
++        .xmap(GossipContainer::new, gossipContainer -> gossipContainer.decompress()); // Paper - Perf: Remove streams from hot code
+     public static final int DISCARD_THRESHOLD = 2;
+     private final Map<UUID, GossipContainer.EntityGossips> gossips = new HashMap<>();
+ 
+@@ -66,8 +_,22 @@
+         return this.gossips.entrySet().stream().flatMap(p_26185_ -> p_26185_.getValue().unpack(p_26185_.getKey()));
+     }
+ 
++    // Paper start - Perf: Remove streams from hot code
++    private List<GossipContainer.GossipEntry> decompress() {
++        final List<GossipContainer.GossipEntry> list = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++        for (final Map.Entry<UUID, GossipContainer.EntityGossips> entry : this.gossips.entrySet()) {
++            for (final GossipContainer.GossipEntry cur : entry.getValue().decompress(entry.getKey())) {
++                if (cur.weightedValue() != 0) {
++                    list.add(cur);
++                }
++            }
++        }
++        return list;
++    }
++    // Paper end - Perf: Remove streams from hot code
++
+     private Collection<GossipContainer.GossipEntry> selectGossipsForTransfer(RandomSource p_217760_, int p_217761_) {
+-        List<GossipContainer.GossipEntry> list = this.unpack().toList();
++        List<GossipContainer.GossipEntry> list = this.decompress(); // Paper - Perf: Remove streams from hot code
+         if (list.isEmpty()) {
+             return Collections.emptyList();
+         } else {
+@@ -177,13 +_,24 @@
+     static class EntityGossips {
+         final Object2IntMap<GossipType> entries = new Object2IntOpenHashMap<>();
+ 
+-        public int weightedValue(Predicate<GossipType> p_26221_) {
+-            return this.entries
+-                .object2IntEntrySet()
+-                .stream()
+-                .filter(p_26224_ -> p_26221_.test(p_26224_.getKey()))
+-                .mapToInt(p_26214_ -> p_26214_.getIntValue() * p_26214_.getKey().weight)
+-                .sum();
++        public int weightedValue(Predicate<GossipType> gossipType) {
++            // Paper start - Perf: Remove streams from hot code
++            int weight = 0;
++            for (Object2IntMap.Entry<GossipType> entry : entries.object2IntEntrySet()) {
++                if (gossipType.test(entry.getKey())) {
++                    weight += entry.getIntValue() * entry.getKey().weight;
++                }
++            }
++            return weight;
++        }
++
++        public List<GossipContainer.GossipEntry> decompress(UUID uuid) {
++            List<GossipContainer.GossipEntry> list = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++            for (Object2IntMap.Entry<GossipType> entry : entries.object2IntEntrySet()) {
++                list.add(new GossipContainer.GossipEntry(uuid, entry.getKey(), entry.getIntValue()));
++            }
++            return list;
++            // Paper end - Perf: Remove streams from hot code
+         }
+ 
+         public Stream<GossipContainer.GossipEntry> unpack(UUID p_26216_) {
+@@ -225,6 +_,44 @@
+         public void remove(GossipType p_26227_) {
+             this.entries.removeInt(p_26227_);
+         }
++
++        // Paper start - Add villager reputation API
++        private static final GossipType[] TYPES = GossipType.values();
++
++        public com.destroystokyo.paper.entity.villager.Reputation getPaperReputation() {
++            Map<com.destroystokyo.paper.entity.villager.ReputationType, Integer> map = new java.util.EnumMap<>(com.destroystokyo.paper.entity.villager.ReputationType.class);
++            for (Object2IntMap.Entry<GossipType> type : this.entries.object2IntEntrySet()) {
++                map.put(toApi(type.getKey()), type.getIntValue());
++            }
++
++            return new com.destroystokyo.paper.entity.villager.Reputation(map);
++        }
++
++        public void assignFromPaperReputation(com.destroystokyo.paper.entity.villager.Reputation rep) {
++            for (GossipType type : TYPES) {
++                com.destroystokyo.paper.entity.villager.ReputationType api = toApi(type);
++
++                if (rep.hasReputationSet(api)) {
++                    int reputation = rep.getReputation(api);
++                    if (reputation == 0) {
++                        this.entries.removeInt(type);
++                    } else {
++                        this.entries.put(type, reputation);
++                    }
++                }
++            }
++        }
++
++        private static com.destroystokyo.paper.entity.villager.ReputationType toApi(GossipType type) {
++            return switch (type) {
++                case MAJOR_NEGATIVE -> com.destroystokyo.paper.entity.villager.ReputationType.MAJOR_NEGATIVE;
++                case MINOR_NEGATIVE -> com.destroystokyo.paper.entity.villager.ReputationType.MINOR_NEGATIVE;
++                case MINOR_POSITIVE -> com.destroystokyo.paper.entity.villager.ReputationType.MINOR_POSITIVE;
++                case MAJOR_POSITIVE -> com.destroystokyo.paper.entity.villager.ReputationType.MAJOR_POSITIVE;
++                case TRADING -> com.destroystokyo.paper.entity.villager.ReputationType.TRADING;
++            };
++        }
++        // Paper end - Add villager reputation API
+     }
+ 
+     record GossipEntry(UUID target, GossipType type, int value) {

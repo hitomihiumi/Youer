@@ -1,6 +1,21 @@
 --- a/net/minecraft/world/entity/animal/horse/SkeletonTrapGoal.java
 +++ b/net/minecraft/world/entity/animal/horse/SkeletonTrapGoal.java
-@@ -31,6 +_,10 @@
+@@ -18,6 +_,7 @@
+ 
+ public class SkeletonTrapGoal extends Goal {
+     private final SkeletonHorse horse;
++    private java.util.List<org.bukkit.entity.HumanEntity> eligiblePlayers; // Paper
+ 
+     public SkeletonTrapGoal(SkeletonHorse p_30927_) {
+         this.horse = p_30927_;
+@@ -25,12 +_,17 @@
+ 
+     @Override
+     public boolean canUse() {
+-        return this.horse.level().hasNearbyAlivePlayer(this.horse.getX(), this.horse.getY(), this.horse.getZ(), 10.0);
++        return !(this.eligiblePlayers = this.horse.level().findNearbyBukkitPlayers(this.horse.getX(), this.horse.getY(), this.horse.getZ(), 10.0, net.minecraft.world.entity.EntitySelector.PLAYER_AFFECTS_SPAWNING)).isEmpty(); // Paper - Affects Spawning API & SkeletonHorseTrapEvent
+     }
+ 
      @Override
      public void tick() {
          ServerLevel serverlevel = (ServerLevel)this.horse.level();
@@ -8,10 +23,32 @@
 +        // (MC-206338/Forge PR #7509)
 +        serverlevel.getServer().schedule(new net.minecraft.server.TickTask(serverlevel.getServer().getTickCount(), () -> {
 +        if (!this.horse.isAlive()) return;
++        if (!new com.destroystokyo.paper.event.entity.SkeletonHorseTrapEvent((org.bukkit.entity.SkeletonHorse) this.horse.getBukkitEntity(), this.eligiblePlayers).callEvent()) return; // Paper
          DifficultyInstance difficultyinstance = serverlevel.getCurrentDifficultyAt(this.horse.blockPosition());
          this.horse.setTrap(false);
          this.horse.setTamed(true);
-@@ -58,6 +_,7 @@
+@@ -39,11 +_,11 @@
+         if (lightningbolt != null) {
+             lightningbolt.snapTo(this.horse.getX(), this.horse.getY(), this.horse.getZ());
+             lightningbolt.setVisualOnly(true);
+-            serverlevel.addFreshEntity(lightningbolt);
++            serverlevel.strikeLightning(lightningbolt, org.bukkit.event.weather.LightningStrikeEvent.Cause.TRAP); // CraftBukkit
+             Skeleton skeleton = this.createSkeleton(difficultyinstance, this.horse);
+             if (skeleton != null) {
+                 skeleton.startRiding(this.horse);
+-                serverlevel.addFreshEntityWithPassengers(skeleton);
++                serverlevel.addFreshEntityWithPassengers(skeleton, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRAP); // CraftBukkit
+ 
+                 for (int i = 0; i < 3; i++) {
+                     AbstractHorse abstracthorse = this.createHorse(difficultyinstance);
+@@ -52,12 +_,13 @@
+                         if (skeleton1 != null) {
+                             skeleton1.startRiding(abstracthorse);
+                             abstracthorse.push(this.horse.getRandom().triangle(0.0, 1.1485), 0.0, this.horse.getRandom().triangle(0.0, 1.1485));
+-                            serverlevel.addFreshEntityWithPassengers(abstracthorse);
++                            serverlevel.addFreshEntityWithPassengers(abstracthorse, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.JOCKEY); // CraftBukkit
+                         }
+                     }
                  }
              }
          }

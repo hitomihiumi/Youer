@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/entity/ai/behavior/GoToWantedItem.java
++++ b/net/minecraft/world/entity/ai/behavior/GoToWantedItem.java
+@@ -36,6 +_,21 @@
+                                 && itementity.closerThan(p_367936_, p_259054_)
+                                 && p_367936_.level().getWorldBorder().isWithinBounds(itementity.blockPosition())
+                                 && p_367936_.canPickUpLoot()) {
++                                // CraftBukkit start
++                                if (p_367936_ instanceof net.minecraft.world.entity.animal.allay.Allay) {
++                                    org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetEvent(p_367936_, itementity, org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++
++                                    if (event.isCancelled()) {
++                                        return false;
++                                    }
++                                    if (!(event.getTarget() instanceof org.bukkit.craftbukkit.entity.CraftItem targetItem)) { // Paper - only erase allay memory on non-item targets
++                                        p_258389_.erase();
++                                        return false; // Paper - only erase allay memory on non-item targets
++                                    }
++
++                                    itementity = targetItem.getHandle();
++                                }
++                                // CraftBukkit end
+                                 WalkTarget walktarget = new WalkTarget(new EntityTracker(itementity, false), p_260346_, 0);
+                                 p_258387_.set(new EntityTracker(itementity, true));
+                                 p_258388_.set(walktarget);

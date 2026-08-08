@@ -1,5 +1,133 @@
 --- a/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
+@@ -125,7 +_,13 @@
+ 
+     @Nullable
+     public Path createPath(BlockPos p_26546_, int p_26547_) {
+-        return this.createPath(ImmutableSet.of(p_26546_), 8, false, p_26547_);
++        // Paper start - EntityPathfindEvent
++        return this.createPath(p_26546_, null, p_26547_);
++    }
++    @Nullable
++    public Path createPath(BlockPos target, @Nullable Entity entity, int accuracy) {
++        return this.createPath(ImmutableSet.of(target), entity, 8, false, accuracy);
++        // Paper end - EntityPathfindEvent
+     }
+ 
+     @Nullable
+@@ -135,7 +_,7 @@
+ 
+     @Nullable
+     public Path createPath(Entity p_26534_, int p_26535_) {
+-        return this.createPath(ImmutableSet.of(p_26534_.blockPosition()), 16, true, p_26535_);
++        return this.createPath(ImmutableSet.of(p_26534_.blockPosition()), p_26534_, 16, true, p_26535_); // Paper - EntityPathfindEvent
+     }
+ 
+     @Nullable
+@@ -144,26 +_,55 @@
+     }
+ 
+     @Nullable
+-    protected Path createPath(Set<BlockPos> p_148223_, int p_148224_, boolean p_148225_, int p_148226_, float p_148227_) {
+-        if (p_148223_.isEmpty()) {
++    protected Path createPath(Set<BlockPos> targets, int regionOffset, boolean offsetUpward, int accuracy, float followRange) {
++        // Paper start - EntityPathfindEvent
++        return this.createPath(targets, null, regionOffset, offsetUpward, accuracy, followRange);
++    }
++
++    @Nullable
++    protected Path createPath(Set<BlockPos> targets, @Nullable Entity target, int regionOffset, boolean offsetUpward, int accuracy) {
++        return this.createPath(targets, target, regionOffset, offsetUpward, accuracy, this.getMaxPathLength());
++    }
++
++    @Nullable
++    protected Path createPath(Set<BlockPos> targets, @Nullable Entity target, int regionOffset, boolean offsetUpward, int accuracy, float followRange) {
++        // Paper end - EntityPathfindEvent
++        if (targets.isEmpty()) {
+             return null;
+         } else if (this.mob.getY() < this.level.getMinY()) {
+             return null;
+         } else if (!this.canUpdatePath()) {
+             return null;
+-        } else if (this.path != null && !this.path.isDone() && p_148223_.contains(this.targetPos)) {
++        } else if (this.path != null && !this.path.isDone() && targets.contains(this.targetPos)) {
+             return this.path;
+         } else {
+-            ProfilerFiller profilerfiller = Profiler.get();
+-            profilerfiller.push("pathfind");
+-            BlockPos blockpos = p_148225_ ? this.mob.blockPosition().above() : this.mob.blockPosition();
+-            int i = (int)(p_148227_ + p_148224_);
+-            PathNavigationRegion pathnavigationregion = new PathNavigationRegion(this.level, blockpos.offset(-i, -i, -i), blockpos.offset(i, i, i));
+-            Path path = this.pathFinder.findPath(pathnavigationregion, this.mob, p_148223_, p_148227_, p_148226_, this.maxVisitedNodesMultiplier);
+-            profilerfiller.pop();
++            // Paper start - EntityPathfindEvent
++            boolean copiedSet = false;
++            for (BlockPos possibleTarget : targets) {
++                if (!this.mob.level().getWorldBorder().isWithinBounds(possibleTarget) || !new com.destroystokyo.paper.event.entity.EntityPathfindEvent(this.mob.getBukkitEntity(), // Paper - don't path out of world border
++                    org.bukkit.craftbukkit.util.CraftLocation.toBukkit(possibleTarget, this.mob.level()), target == null ? null : target.getBukkitEntity()).callEvent()) {
++                    if (!copiedSet) {
++                        copiedSet = true;
++                        targets = new java.util.HashSet<>(targets);
++                    }
++                    // note: since we copy the set this remove call is safe, since we're iterating over the old copy
++                    targets.remove(possibleTarget);
++                    if (targets.isEmpty()) {
++                        return null;
++                    }
++                }
++            }
++            // Paper end - EntityPathfindEvent
++            ProfilerFiller profilerFiller = Profiler.get();
++            profilerFiller.push("pathfind");
++            BlockPos blockPos = offsetUpward ? this.mob.blockPosition().above() : this.mob.blockPosition();
++            int i = (int)(followRange + regionOffset);
++            PathNavigationRegion pathNavigationRegion = new PathNavigationRegion(this.level, blockPos.offset(-i, -i, -i), blockPos.offset(i, i, i));
++            Path path = this.pathFinder.findPath(pathNavigationRegion, this.mob, targets, followRange, accuracy, this.maxVisitedNodesMultiplier);
++            profilerFiller.pop();
+             if (path != null && path.getTarget() != null) {
+                 this.targetPos = path.getTarget();
+-                this.reachRange = p_148226_;
++                this.reachRange = accuracy;
+                 this.resetStuckTimeout();
+             }
+ 
+@@ -171,6 +_,11 @@
+         }
+     }
+ 
++    // Paper start - Perf: Optimise pathfinding
++    private int lastFailure = 0;
++    private int pathfindFailures = 0;
++    // Paper end - Perf: Optimise pathfinding
++
+     public boolean moveTo(double p_26520_, double p_26521_, double p_26522_, double p_26523_) {
+         return this.moveTo(this.createPath(p_26520_, p_26521_, p_26522_, 1), p_26523_);
+     }
+@@ -180,8 +_,23 @@
+     }
+ 
+     public boolean moveTo(Entity p_26532_, double p_26533_) {
++        // Paper start - Perf: Optimise pathfinding
++        if (this.pathfindFailures > 10 && this.path == null && net.minecraft.server.MinecraftServer.currentTick < this.lastFailure + 40) {
++            return false;
++        }
++        // Paper end - Perf: Optimise pathfinding
+         Path path = this.createPath(p_26532_, 1);
+-        return path != null && this.moveTo(path, p_26533_);
++        // Paper start - Perf: Optimise pathfinding
++        if (path != null && this.moveTo(path, p_26533_)) {
++            this.lastFailure = 0;
++            this.pathfindFailures = 0;
++            return true;
++        } else {
++            this.pathfindFailures++;
++            this.lastFailure = net.minecraft.server.MinecraftServer.currentTick;
++            return false;
++        }
++        // Paper end - Perf: Optimise pathfinding
+     }
+ 
+     public boolean moveTo(@Nullable Path p_26537_, double p_26538_) {
 @@ -249,10 +_,10 @@
          Vec3 vec3 = this.getTempMobPos();
          this.maxDistanceToWaypoint = this.mob.getBbWidth() > 0.75F ? this.mob.getBbWidth() / 2.0F : 0.75F - this.mob.getBbWidth() / 2.0F;

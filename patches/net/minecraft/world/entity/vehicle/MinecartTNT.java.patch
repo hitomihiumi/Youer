@@ -1,0 +1,73 @@
+--- a/net/minecraft/world/entity/vehicle/MinecartTNT.java
++++ b/net/minecraft/world/entity/vehicle/MinecartTNT.java
+@@ -37,8 +_,9 @@
+     @Nullable
+     private DamageSource ignitionSource;
+     public int fuse = -1;
+-    private float explosionPowerBase = 4.0F;
+-    private float explosionSpeedFactor = 1.0F;
++    public float explosionPowerBase = 4.0F;
++    public float explosionSpeedFactor = 1.0F;
++    public boolean isIncendiary = false; // CraftBukkit
+ 
+     public MinecartTNT(EntityType<? extends MinecartTNT> p_38649_, Level p_38650_) {
+         super(p_38649_, p_38650_);
+@@ -53,6 +_,12 @@
+     public void tick() {
+         super.tick();
+         if (this.fuse > 0) {
++            // Paper start - Configurable TNT height nerf
++            if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                return;
++            }
++            // Paper end - Configurable TNT height nerf
+             this.fuse--;
+             this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
+         } else if (this.fuse == 0) {
+@@ -104,24 +_,35 @@
+         this.explode(null, p_38689_);
+     }
+ 
+-    public void explode(@Nullable DamageSource p_259539_, double p_260287_) {
+-        if (this.level() instanceof ServerLevel serverlevel) {
+-            if (serverlevel.getGameRules().getBoolean(GameRules.RULE_TNT_EXPLODES)) {
+-                double d0 = Math.min(Math.sqrt(p_260287_), 5.0);
+-                serverlevel.explode(
++    protected void explode(@Nullable DamageSource damageSource, double radiusModifier) {
++        if (this.level() instanceof ServerLevel serverLevel) {
++            if (serverLevel.getGameRules().getBoolean(GameRules.RULE_TNT_EXPLODES)) {
++                double min = Math.min(Math.sqrt(radiusModifier), 5.0);
++                // CraftBukkit start
++                org.bukkit.event.entity.ExplosionPrimeEvent event = new org.bukkit.event.entity.ExplosionPrimeEvent(
++                    this.getBukkitEntity(),
++                    (float) (this.explosionPowerBase + this.explosionSpeedFactor * this.random.nextDouble() * 1.5 * min),
++                    this.isIncendiary
++                );
++                if (!event.callEvent()) {
++                    this.fuse = -1;
++                    return;
++                }
++                // CraftBukkit end
++                serverLevel.explode(
+                     this,
+-                    p_259539_,
++                    damageSource,
+                     null,
+                     this.getX(),
+                     this.getY(),
+                     this.getZ(),
+-                    (float)(this.explosionPowerBase + this.explosionSpeedFactor * this.random.nextDouble() * 1.5 * d0),
+-                    false,
++                    event.getRadius(), // CraftBukkit - explosion prime event
++                    event.getFire(), // CraftBukkit - explosion prime event
+                     Level.ExplosionInteraction.TNT
+                 );
+-                this.discard();
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+             } else if (this.isPrimed()) {
+-                this.discard();
++                this.discard(null); // CraftBukkit
+             }
+         }
+     }

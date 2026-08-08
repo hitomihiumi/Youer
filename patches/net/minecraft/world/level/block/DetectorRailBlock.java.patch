@@ -11,6 +11,96 @@
          this.registerDefaultState(this.stateDefinition.any().setValue(POWERED, false).setValue(SHAPE, RailShape.NORTH_SOUTH).setValue(WATERLOGGED, false));
      }
  
+@@ -49,6 +_,7 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_52458_, Level p_52459_, BlockPos p_52460_, Entity p_52461_, InsideBlockEffectApplier p_405668_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_52461_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_52459_, p_52460_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (!p_52459_.isClientSide) {
+             if (!p_52458_.getValue(POWERED)) {
+                 this.checkPressed(p_52459_, p_52460_, p_52458_);
+@@ -77,38 +_,49 @@
+         }
+     }
+ 
+-    private void checkPressed(Level p_52433_, BlockPos p_52434_, BlockState p_52435_) {
+-        if (this.canSurvive(p_52435_, p_52433_, p_52434_)) {
+-            boolean flag = p_52435_.getValue(POWERED);
+-            boolean flag1 = false;
+-            List<AbstractMinecart> list = this.getInteractingMinecartOfType(p_52433_, p_52434_, AbstractMinecart.class, p_153125_ -> true);
+-            if (!list.isEmpty()) {
+-                flag1 = true;
+-            }
+-
+-            if (flag1 && !flag) {
+-                BlockState blockstate = p_52435_.setValue(POWERED, true);
+-                p_52433_.setBlock(p_52434_, blockstate, 3);
+-                this.updatePowerToConnected(p_52433_, p_52434_, blockstate, true);
+-                p_52433_.updateNeighborsAt(p_52434_, this);
+-                p_52433_.updateNeighborsAt(p_52434_.below(), this);
+-                p_52433_.setBlocksDirty(p_52434_, p_52435_, blockstate);
+-            }
+-
+-            if (!flag1 && flag) {
+-                BlockState blockstate1 = p_52435_.setValue(POWERED, false);
+-                p_52433_.setBlock(p_52434_, blockstate1, 3);
+-                this.updatePowerToConnected(p_52433_, p_52434_, blockstate1, false);
+-                p_52433_.updateNeighborsAt(p_52434_, this);
+-                p_52433_.updateNeighborsAt(p_52434_.below(), this);
+-                p_52433_.setBlocksDirty(p_52434_, p_52435_, blockstate1);
+-            }
+-
+-            if (flag1) {
+-                p_52433_.scheduleTick(p_52434_, this, 20);
+-            }
+-
+-            p_52433_.updateNeighbourForOutputSignal(p_52434_, this);
++    private void checkPressed(Level level, BlockPos pos, BlockState state) {
++        if (this.canSurvive(state, level, pos)) {
++            if (!state.is(this)) { return; } // Paper - Fix some rails connecting improperly
++            boolean poweredValue = state.getValue(POWERED);
++            boolean flag = false;
++            List<AbstractMinecart> interactingMinecartOfType = this.getInteractingMinecartOfType(level, pos, AbstractMinecart.class, entity -> true);
++            if (!interactingMinecartOfType.isEmpty()) {
++                flag = true;
++            }
++
++            // CraftBukkit start
++            if (poweredValue != flag) {
++                org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++
++                org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(block, flag ? 15 : 0, flag ? 15 : 0);
++                level.getCraftServer().getPluginManager().callEvent(eventRedstone);
++
++                flag = eventRedstone.getNewCurrent() > 0;
++            }
++            // CraftBukkit end
++            if (flag && !poweredValue) {
++                BlockState blockState = state.setValue(POWERED, true);
++                level.setBlock(pos, blockState, 3);
++                this.updatePowerToConnected(level, pos, blockState, true);
++                level.updateNeighborsAt(pos, this);
++                level.updateNeighborsAt(pos.below(), this);
++                level.setBlocksDirty(pos, state, blockState);
++            }
++
++            if (!flag && poweredValue) {
++                BlockState blockState = state.setValue(POWERED, false);
++                level.setBlock(pos, blockState, 3);
++                this.updatePowerToConnected(level, pos, blockState, false);
++                level.updateNeighborsAt(pos, this);
++                level.updateNeighborsAt(pos.below(), this);
++                level.setBlocksDirty(pos, state, blockState);
++            }
++
++            if (flag) {
++                level.scheduleTick(pos, this, 20);
++            }
++
++            level.updateNeighbourForOutputSignal(pos, this);
+         }
+     }
+ 
 @@ -185,6 +_,6 @@
  
      @Override

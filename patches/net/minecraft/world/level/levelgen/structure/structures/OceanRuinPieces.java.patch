@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/level/levelgen/structure/structures/OceanRuinPieces.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/OceanRuinPieces.java
+@@ -308,14 +_,18 @@
+         @Override
+         protected void handleDataMarker(String p_229046_, BlockPos p_229047_, ServerLevelAccessor p_229048_, RandomSource p_229049_, BoundingBox p_229050_) {
+             if ("chest".equals(p_229046_)) {
+-                p_229048_.setBlock(
+-                    p_229047_, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.WATERLOGGED, p_229048_.getFluidState(p_229047_).is(FluidTags.WATER)), 2
+-                );
+-                BlockEntity blockentity = p_229048_.getBlockEntity(p_229047_);
+-                if (blockentity instanceof ChestBlockEntity) {
+-                    ((ChestBlockEntity)blockentity)
+-                        .setLootTable(this.isLarge ? BuiltInLootTables.UNDERWATER_RUIN_BIG : BuiltInLootTables.UNDERWATER_RUIN_SMALL, p_229049_.nextLong());
+-                }
++                // CraftBukkit start - transform block to ensure loot table is accessible
++                // p_229048_.setBlock(p_229047_, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.WATERLOGGED, p_229048_.getFluidState(p_229047_).is(FluidTags.WATER)), 2);
++                // BlockEntity blockEntity = p_229048_.getBlockEntity(p_229047_);
++                // if (blockEntity instanceof ChestBlockEntity) {
++                //     ((ChestBlockEntity)blockEntity)
++                //         .setLootTable(this.isLarge ? BuiltInLootTables.UNDERWATER_RUIN_BIG : BuiltInLootTables.UNDERWATER_RUIN_SMALL, p_229049_.nextLong());
++                // }
++                org.bukkit.craftbukkit.block.CraftChest blockentity = (org.bukkit.craftbukkit.block.CraftChest) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(p_229048_, p_229047_, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.WATERLOGGED, p_229048_.getFluidState(p_229047_).is(FluidTags.WATER)), null);
++                blockentity.setSeed(p_229049_.nextLong());
++                blockentity.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(this.isLarge ? BuiltInLootTables.UNDERWATER_RUIN_BIG : BuiltInLootTables.UNDERWATER_RUIN_SMALL));
++                this.placeCraftBlockEntity(p_229048_, p_229047_, blockentity, 2);
++                // CraftBukkit end
+             } else if ("drowned".equals(p_229046_)) {
+                 Drowned drowned = EntityType.DROWNED.create(p_229048_.getLevel(), EntitySpawnReason.STRUCTURE);
+                 if (drowned != null) {

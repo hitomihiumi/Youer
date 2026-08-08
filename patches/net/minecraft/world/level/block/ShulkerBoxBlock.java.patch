@@ -1,0 +1,61 @@
+--- a/net/minecraft/world/level/block/ShulkerBoxBlock.java
++++ b/net/minecraft/world/level/block/ShulkerBoxBlock.java
+@@ -78,8 +_,8 @@
+     protected InteractionResult useWithoutItem(BlockState p_56227_, Level p_56228_, BlockPos p_56229_, Player p_56230_, BlockHitResult p_56232_) {
+         if (p_56228_ instanceof ServerLevel serverlevel
+             && p_56228_.getBlockEntity(p_56229_) instanceof ShulkerBoxBlockEntity shulkerboxblockentity
+-            && canOpen(p_56227_, p_56228_, p_56229_, shulkerboxblockentity)) {
+-            p_56230_.openMenu(shulkerboxblockentity);
++            && canOpen(p_56227_, p_56228_, p_56229_, shulkerboxblockentity) // Paper - Fix InventoryOpenEvent cancellation - expand if for belows check
++            && p_56230_.openMenu(shulkerboxblockentity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_56230_.awardStat(Stats.OPEN_SHULKER_BOX);
+             PiglinAi.angerNearbyPiglins(serverlevel, p_56230_, true);
+         }
+@@ -117,7 +_,7 @@
+                 itementity.setDefaultPickUpDelay();
+                 p_56212_.addFreshEntity(itementity);
+             } else {
+-                shulkerboxblockentity.unpackLootTable(p_56215_);
++                shulkerboxblockentity.unpackLootTable(p_56215_, true); // Paper - force clear loot table so replenish data isn't persisted in the stack
+             }
+         }
+ 
+@@ -125,17 +_,31 @@
+     }
+ 
+     @Override
+-    protected List<ItemStack> getDrops(BlockState p_287632_, LootParams.Builder p_287691_) {
+-        BlockEntity blockentity = p_287691_.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
+-        if (blockentity instanceof ShulkerBoxBlockEntity shulkerboxblockentity) {
+-            p_287691_ = p_287691_.withDynamicDrop(CONTENTS, p_56219_ -> {
+-                for (int i = 0; i < shulkerboxblockentity.getContainerSize(); i++) {
+-                    p_56219_.accept(shulkerboxblockentity.getItem(i));
++    protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
++        BlockEntity blockEntity = params.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
++        Runnable reAdd = null; // Paper
++        if (blockEntity instanceof ShulkerBoxBlockEntity shulkerBoxBlockEntity) {
++            // Paper start - clear loot table if it was already used
++            if (shulkerBoxBlockEntity.lootableData().getLastFill() != -1 || !params.getLevel().paperConfig().lootables.retainUnlootedShulkerBoxLootTableOnNonPlayerBreak) {
++                net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable> lootTableResourceKey = shulkerBoxBlockEntity.getLootTable();
++                reAdd = () -> shulkerBoxBlockEntity.setLootTable(lootTableResourceKey);
++                shulkerBoxBlockEntity.setLootTable(null);
++            }
++            // Paper end
++            params = params.withDynamicDrop(CONTENTS, output -> {
++                for (int i = 0; i < shulkerBoxBlockEntity.getContainerSize(); i++) {
++                    output.accept(shulkerBoxBlockEntity.getItem(i));
+                 }
+             });
+         }
+ 
+-        return super.getDrops(p_287632_, p_287691_);
++        // Paper start - re-set loot table if it was cleared
++        try {
++        return super.getDrops(state, params);
++        } finally {
++            if (reAdd != null) reAdd.run();
++        }
++        // Paper end - re-set loot table if it was cleared
+     }
+ 
+     @Override
