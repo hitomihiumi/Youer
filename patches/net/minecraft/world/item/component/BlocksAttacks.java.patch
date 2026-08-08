@@ -1,6 +1,47 @@
 --- a/net/minecraft/world/item/component/BlocksAttacks.java
 +++ b/net/minecraft/world/item/component/BlocksAttacks.java
-@@ -112,14 +_,22 @@
+@@ -87,39 +_,51 @@
+             );
+     }
+ 
+-    public void disable(ServerLevel p_400187_, LivingEntity p_399747_, float p_399988_, ItemStack p_399719_) {
+-        int i = this.disableBlockingForTicks(p_399988_);
++    public void disable(ServerLevel level, LivingEntity entity, float duration, ItemStack stack, LivingEntity attacker) { // Paper
++        int i = this.disableBlockingForTicks(duration);
+         if (i > 0) {
+-            if (p_399747_ instanceof Player player) {
+-                player.getCooldowns().addCooldown(p_399719_, i);
++            if (entity instanceof Player player) {
++                // Paper start
++                final io.papermc.paper.event.player.PlayerShieldDisableEvent shieldDisableEvent = new io.papermc.paper.event.player.PlayerShieldDisableEvent((org.bukkit.entity.Player) player.getBukkitEntity(), attacker.getBukkitEntity(), i);
++                if (!shieldDisableEvent.callEvent()) return;
++                // Paper end
++                player.getCooldowns().addCooldown(stack, i);
+             }
+ 
+-            p_399747_.stopUsingItem();
++            entity.stopUsingItem();
+             this.disableSound
+                 .ifPresent(
+-                    p_427168_ -> p_400187_.playSound(
++                    sound -> level.playSound(
+                         null,
+-                        p_399747_.getX(),
+-                        p_399747_.getY(),
+-                        p_399747_.getZ(),
+-                        (Holder<SoundEvent>)p_427168_,
+-                        p_399747_.getSoundSource(),
++                        entity.getX(),
++                        entity.getY(),
++                        entity.getZ(),
++                        (Holder<SoundEvent>)sound,
++                        entity.getSoundSource(),
+                         0.8F,
+-                        0.8F + p_400187_.random.nextFloat() * 0.4F
++                        0.8F + level.random.nextFloat() * 0.4F
+                     )
+                 );
+         }
      }
  
      public void hurtBlockingItem(Level p_400285_, ItemStack p_399533_, LivingEntity p_400149_, InteractionHand p_400151_, float p_399754_) {

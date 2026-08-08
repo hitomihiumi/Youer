@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/LevelReader.java
 +++ b/net/minecraft/world/level/LevelReader.java
-@@ -22,16 +_,21 @@
+@@ -22,49 +_,54 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.phys.AABB;
  
@@ -19,23 +19,23 @@
 -    int getHeight(Heightmap.Types p_46827_, int p_46828_, int p_46829_);
 -
 -    default int getHeight(Heightmap.Types p_401234_, BlockPos p_401043_) {
+-        return this.getHeight(p_401234_, p_401043_.getX(), p_401043_.getZ());
 +    boolean hasChunk(int chunkX, int p_46839_);
 +
 +    int getHeight(Heightmap.Types heightmapType, int p_46828_, int p_46829_);
 +
 +    default int getHeight(Heightmap.Types heightmapType, BlockPos p_401043_) {
-         return this.getHeight(p_401234_, p_401043_.getX(), p_401043_.getZ());
++        return this.getHeight(heightmapType, p_401043_.getX(), p_401043_.getZ());
      }
  
-@@ -39,32 +_,32 @@
+     int getSkyDarken();
  
      BiomeManager getBiomeManager();
  
 -    default Holder<Biome> getBiome(BlockPos p_204167_) {
-+    default Holder<Biome> getBiome(BlockPos pos) {
-         return this.getBiomeManager().getBiome(p_204167_);
-     }
- 
+-        return this.getBiomeManager().getBiome(p_204167_);
+-    }
+-
 -    default Stream<BlockState> getBlockStatesIfLoaded(AABB p_46848_) {
 -        int i = Mth.floor(p_46848_.minX);
 -        int j = Mth.floor(p_46848_.maxX);
@@ -44,6 +44,24 @@
 -        int i1 = Mth.floor(p_46848_.minZ);
 -        int j1 = Mth.floor(p_46848_.maxZ);
 -        return this.hasChunksAt(i, k, i1, j, l, j1) ? this.getBlockStates(p_46848_) : Stream.empty();
+-    }
+-
+-    @Override
+-    default int getBlockTint(BlockPos p_46836_, ColorResolver p_46837_) {
+-        return p_46837_.getColor(this.getBiome(p_46836_).value(), p_46836_.getX(), p_46836_.getZ());
+-    }
+-
+-    @Override
+-    default Holder<Biome> getNoiseBiome(int p_204163_, int p_204164_, int p_204165_) {
+-        ChunkAccess chunkaccess = this.getChunk(QuartPos.toSection(p_204163_), QuartPos.toSection(p_204165_), ChunkStatus.BIOMES, false);
+-        return chunkaccess != null ? chunkaccess.getNoiseBiome(p_204163_, p_204164_, p_204165_) : this.getUncachedNoiseBiome(p_204163_, p_204164_, p_204165_);
+-    }
+-
+-    Holder<Biome> getUncachedNoiseBiome(int p_204159_, int p_204160_, int p_204161_);
++    default Holder<Biome> getBiome(BlockPos pos) {
++        return this.getBiomeManager().getBiome(pos);
++    }
++
 +    default Stream<BlockState> getBlockStatesIfLoaded(AABB aabb) {
 +        int i = Mth.floor(aabb.minX);
 +        int j = Mth.floor(aabb.maxX);
@@ -52,48 +70,60 @@
 +        int i1 = Mth.floor(aabb.minZ);
 +        int j1 = Mth.floor(aabb.maxZ);
 +        return this.hasChunksAt(i, k, i1, j, l, j1) ? this.getBlockStates(aabb) : Stream.empty();
-     }
- 
-     @Override
--    default int getBlockTint(BlockPos p_46836_, ColorResolver p_46837_) {
++    }
++
++    @Override
 +    default int getBlockTint(BlockPos blockPos, ColorResolver p_46837_) {
-         return p_46837_.getColor(this.getBiome(p_46836_).value(), p_46836_.getX(), p_46836_.getZ());
-     }
- 
-     @Override
--    default Holder<Biome> getNoiseBiome(int p_204163_, int p_204164_, int p_204165_) {
++        return p_46837_.getColor(this.getBiome(blockPos).value(), blockPos.getX(), blockPos.getZ());
++    }
++
++    @Override
 +    default Holder<Biome> getNoiseBiome(int x, int y, int z) {
-         ChunkAccess chunkaccess = this.getChunk(QuartPos.toSection(p_204163_), QuartPos.toSection(p_204165_), ChunkStatus.BIOMES, false);
-         return chunkaccess != null ? chunkaccess.getNoiseBiome(p_204163_, p_204164_, p_204165_) : this.getUncachedNoiseBiome(p_204163_, p_204164_, p_204165_);
-     }
- 
--    Holder<Biome> getUncachedNoiseBiome(int p_204159_, int p_204160_, int p_204161_);
++        ChunkAccess chunkaccess = this.getChunk(QuartPos.toSection(x), QuartPos.toSection(z), ChunkStatus.BIOMES, false);
++        return chunkaccess != null ? chunkaccess.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
++    }
++
 +    Holder<Biome> getUncachedNoiseBiome(int p_204163_, int p_204164_, int p_204165_);
  
      boolean isClientSide();
  
-@@ -82,16 +_,16 @@
+@@ -82,23 +_,23 @@
          return this.dimensionType().height();
      }
  
 -    default BlockPos getHeightmapPos(Heightmap.Types p_46830_, BlockPos p_46831_) {
-+    default BlockPos getHeightmapPos(Heightmap.Types heightmapType, BlockPos pos) {
-         return new BlockPos(p_46831_.getX(), this.getHeight(p_46830_, p_46831_.getX(), p_46831_.getZ()), p_46831_.getZ());
-     }
- 
+-        return new BlockPos(p_46831_.getX(), this.getHeight(p_46830_, p_46831_.getX(), p_46831_.getZ()), p_46831_.getZ());
+-    }
+-
 -    default boolean isEmptyBlock(BlockPos p_46860_) {
 -        return this.getBlockState(p_46860_).isAir();
-+    default boolean isEmptyBlock(BlockPos p_46831_) {
-+        return this.getBlockState(p_46831_).isAir();
-     }
- 
+-    }
+-
 -    default boolean canSeeSkyFromBelowWater(BlockPos p_46862_) {
 -        if (p_46862_.getY() >= this.getSeaLevel()) {
+-            return this.canSeeSky(p_46862_);
++    default BlockPos getHeightmapPos(Heightmap.Types heightmapType, BlockPos pos) {
++        return new BlockPos(pos.getX(), this.getHeight(heightmapType, pos.getX(), pos.getZ()), pos.getZ());
++    }
++
++    default boolean isEmptyBlock(BlockPos p_46831_) {
++        return this.getBlockState(p_46831_).isAir();
++    }
++
 +    default boolean canSeeSkyFromBelowWater(BlockPos p_46860_) {
 +        if (p_46860_.getY() >= this.getSeaLevel()) {
-             return this.canSeeSky(p_46862_);
++            return this.canSeeSky(p_46860_);
          } else {
-             BlockPos blockpos = new BlockPos(p_46862_.getX(), this.getSeaLevel(), p_46862_.getZ());
+-            BlockPos blockpos = new BlockPos(p_46862_.getX(), this.getSeaLevel(), p_46862_.getZ());
++            BlockPos blockpos = new BlockPos(p_46860_.getX(), this.getSeaLevel(), p_46860_.getZ());
+             if (!this.canSeeSky(blockpos)) {
+                 return false;
+             } else {
+-                for (BlockPos blockpos1 = blockpos.below(); blockpos1.getY() > p_46862_.getY(); blockpos1 = blockpos1.below()) {
++                for (BlockPos blockpos1 = blockpos.below(); blockpos1.getY() > p_46860_.getY(); blockpos1 = blockpos1.below()) {
+                     BlockState blockstate = this.getBlockState(blockpos1);
+                     if (blockstate.getLightBlock() > 0 && !blockstate.liquid()) {
+                         return false;
 @@ -110,37 +_,37 @@
          }
      }
@@ -101,14 +131,14 @@
 -    default float getPathfindingCostFromLightLevels(BlockPos p_220420_) {
 -        return this.getLightLevelDependentMagicValue(p_220420_) - 0.5F;
 +    default float getPathfindingCostFromLightLevels(BlockPos p_46862_) {
-+        return this.getLightLevelDependentMagicValue(pos) - 0.5F;
++        return this.getLightLevelDependentMagicValue(p_46862_) - 0.5F;
      }
  
      @Deprecated
 -    default float getLightLevelDependentMagicValue(BlockPos p_220418_) {
 -        float f = this.getMaxLocalRawBrightness(p_220418_) / 15.0F;
 +    default float getLightLevelDependentMagicValue(BlockPos p_220420_) {
-+        float f = this.getMaxLocalRawBrightness(pos) / 15.0F;
++        float f = this.getMaxLocalRawBrightness(p_220420_) / 15.0F;
          float f1 = f / (4.0F - 3.0F * f);
          return Mth.lerp(this.dimensionType().ambientLight(), f1, 1.0F);
      }
@@ -124,7 +154,7 @@
 -    default ChunkAccess getChunk(int p_46820_, int p_46821_, ChunkStatus p_332007_) {
 -        return this.getChunk(p_46820_, p_46821_, p_332007_, true);
 +    default ChunkAccess getChunk(BlockPos p_220418_) {
-+        return this.getChunk(SectionPos.blockToSectionCoord(p_220418_.getX()), SectionPos.blockToSectionCoord(p_46866_.getZ()));
++        return this.getChunk(SectionPos.blockToSectionCoord(p_220418_.getX()), SectionPos.blockToSectionCoord(p_220418_.getZ()));
 +    }
 +
 +    default ChunkAccess getChunk(int chunkX, int chunkZ) {
@@ -161,7 +191,7 @@
      }
  
      default int getMaxLocalRawBrightness(BlockPos p_46850_, int p_46851_) {
-@@ -177,29 +_,29 @@
+@@ -177,31 +_,31 @@
      }
  
      @Deprecated
@@ -188,6 +218,8 @@
 -    default boolean hasChunksAt(int p_151573_, int p_151574_, int p_151575_, int p_151576_) {
 -        int i = SectionPos.blockToSectionCoord(p_151573_);
 -        int j = SectionPos.blockToSectionCoord(p_151575_);
+-        int k = SectionPos.blockToSectionCoord(p_151574_);
+-        int l = SectionPos.blockToSectionCoord(p_151576_);
 +    default boolean hasChunkAt(int x, int z) {
 +        return this.hasChunk(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z));
 +    }
@@ -209,11 +241,13 @@
 +
 +    @Deprecated
 +    default boolean hasChunksAt(int p_46813_, int p_46815_, int p_46816_, int p_46818_) {
-+        int sectionPosCoord = SectionPos.blockToSectionCoord(p_46813_);
-+        int sectionPosCoord1 = SectionPos.blockToSectionCoord(p_151575_);
-         int k = SectionPos.blockToSectionCoord(p_151574_);
-         int l = SectionPos.blockToSectionCoord(p_151576_);
++        int i = SectionPos.blockToSectionCoord(p_46813_);
++        int j = SectionPos.blockToSectionCoord(p_46815_);
++        int k = SectionPos.blockToSectionCoord(p_46816_);
++        int l = SectionPos.blockToSectionCoord(p_46818_);
  
+         for (int i1 = i; i1 <= j; i1++) {
+             for (int j1 = k; j1 <= l; j1++) {
 @@ -218,8 +_,8 @@
  
      FeatureFlagSet enabledFeatures();

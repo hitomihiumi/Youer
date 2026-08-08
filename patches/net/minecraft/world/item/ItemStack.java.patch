@@ -138,6 +138,35 @@
      }
  
      public <T> void copyFrom(DataComponentType<T> p_397950_, DataComponentGetter p_397631_) {
+@@ -768,6 +_,28 @@
+         this.getItem().verifyComponentsAfterLoad(this);
+     }
+ 
++    // Paper start - (this is just a good no conflict location)
++    public org.bukkit.inventory.ItemStack asBukkitMirror() {
++        return org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this);
++    }
++
++    public org.bukkit.inventory.ItemStack asBukkitCopy() {
++        return org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this.copy());
++    }
++
++    public static ItemStack fromBukkitCopy(org.bukkit.inventory.ItemStack itemstack) {
++        return org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(itemstack);
++    }
++
++    private @Nullable org.bukkit.craftbukkit.inventory.CraftItemStack bukkitStack;
++    public org.bukkit.inventory.ItemStack getBukkitStack() {
++        if (this.bukkitStack == null || this.bukkitStack.handle != this) {
++            this.bukkitStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this);
++        }
++        return this.bukkitStack;
++    }
++    // Paper end
++
+     public Component getHoverName() {
+         Component component = this.getCustomName();
+         return component != null ? component : this.getItemName();
 @@ -796,7 +_,7 @@
      }
  

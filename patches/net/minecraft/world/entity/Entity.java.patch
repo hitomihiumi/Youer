@@ -795,6 +795,25 @@
                  if (vec31.horizontalDistanceSqr() > vec3.horizontalDistanceSqr()) {
                      double d0 = aabb.minY - aabb1.minY;
                      return vec31.subtract(0.0, d0, 0.0);
+@@ -1105,15 +_,15 @@
+         return (int)this.moveDist + 1;
+     }
+ 
+-    protected SoundEvent getSwimSound() {
++    public SoundEvent getSwimSound() {
+         return SoundEvents.GENERIC_SWIM;
+     }
+ 
+-    protected SoundEvent getSwimSplashSound() {
++    public SoundEvent getSwimSplashSound() {
+         return SoundEvents.GENERIC_SPLASH;
+     }
+ 
+-    protected SoundEvent getSwimHighSpeedSplashSound() {
++    public SoundEvent getSwimHighSpeedSplashSound() {
+         return SoundEvents.GENERIC_SPLASH;
+     }
+ 
 @@ -1164,7 +_,7 @@
                              || this.collidedWithShapeMovingFrom(p_428555_, p_428532_, voxelshape.move(new Vec3(p_428149_)).toAabbs());
                          if (flag) {
@@ -843,6 +862,15 @@
      }
  
      private boolean shouldPlayAmethystStepSound(BlockState p_278069_) {
+@@ -1391,7 +_,7 @@
+         return this.wasTouchingWater;
+     }
+ 
+-    boolean isInRain() {
++    public boolean isInRain() {
+         BlockPos blockpos = this.blockPosition();
+         return this.level().isRainingAt(blockpos)
+             || this.level().isRainingAt(BlockPos.containing(blockpos.getX(), this.getBoundingBox().maxY, blockpos.getZ()));
 @@ -1426,26 +_,34 @@
  
      public void updateSwimming() {
@@ -2106,8 +2134,9 @@
              );
      }
  
-     protected final boolean isInvulnerableToBase(DamageSource p_20122_) {
+-    protected final boolean isInvulnerableToBase(DamageSource p_20122_) {
 -        return this.isRemoved()
++    public final boolean isInvulnerableToBase(DamageSource p_20122_) {
 +        boolean isVanillaInvulnerable = this.isRemoved()
              || this.invulnerable && !p_20122_.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !p_20122_.isCreativePlayer()
              || p_20122_.is(DamageTypeTags.IS_FIRE) && this.fireImmune()
@@ -2392,6 +2421,15 @@
          return entity != null;
      }
  
+@@ -3138,7 +_,7 @@
+         }
+     }
+ 
+-    private void teleportPassengers() {
++    public void teleportPassengers() {
+         this.getSelfAndPassengers().forEach(p_185977_ -> {
+             for (Entity entity : p_185977_.passengers) {
+                 p_185977_.positionRider(entity, Entity::snapTo);
 @@ -3177,6 +_,8 @@
          EntityDimensions entitydimensions = this.dimensions;
          Pose pose = this.getPose();
@@ -2996,6 +3034,15 @@
      public boolean isFlyingVehicle() {
          return false;
      }
+@@ -3845,7 +_,7 @@
+         return this.level;
+     }
+ 
+-    protected void setLevel(Level p_285201_) {
++    public void setLevel(Level p_285201_) {
+         this.level = p_285201_;
+     }
+ 
 @@ -4000,4 +_,14 @@
              return this.save;
          }

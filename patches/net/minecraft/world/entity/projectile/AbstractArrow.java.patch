@@ -135,6 +135,15 @@
      }
  
      private void startFalling() {
+@@ -325,7 +_,7 @@
+         this.life = 0;
+     }
+ 
+-    protected boolean isInGround() {
++    public boolean isInGround() {
+         return this.entityData.get(IN_GROUND);
+     }
+ 
 @@ -348,8 +_,8 @@
  
      protected void tickDespawn() {

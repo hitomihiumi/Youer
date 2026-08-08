@@ -18,6 +18,15 @@
  public abstract class LivingEntity extends Entity implements Attackable, WaypointTransmitter, net.neoforged.neoforge.common.extensions.ILivingEntityExtension {
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final String TAG_ACTIVE_EFFECTS = "active_effects";
+@@ -173,7 +_,7 @@
+     private static final double MAX_LINE_OF_SIGHT_TEST_RANGE = 128.0;
+     protected static final int LIVING_ENTITY_FLAG_IS_USING = 1;
+     protected static final int LIVING_ENTITY_FLAG_OFF_HAND = 2;
+-    protected static final int LIVING_ENTITY_FLAG_SPIN_ATTACK = 4;
++    public static final int LIVING_ENTITY_FLAG_SPIN_ATTACK = 4;
+     protected static final EntityDataAccessor<Byte> DATA_LIVING_ENTITY_FLAGS = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.BYTE);
+     public static final EntityDataAccessor<Float> DATA_HEALTH_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.FLOAT);
+     private static final EntityDataAccessor<List<ParticleOptions>> DATA_EFFECT_PARTICLES = SynchedEntityData.defineId(
 @@ -189,13 +_,19 @@
      protected static final EntityDimensions SLEEPING_DIMENSIONS = EntityDimensions.fixed(0.2F, 0.2F).withEyeHeight(0.2F);
      public static final float EXTRA_RENDER_CULLING_SIZE_WITH_BIG_HAT = 0.5F;
@@ -40,6 +49,20 @@
      };
      private static final Dynamic<?> EMPTY_BRAIN = new Dynamic<>(JavaOps.INSTANCE, Map.of("memories", Map.of()));
      private final AttributeMap attributes;
+@@ -223,11 +_,11 @@
+     public final ElytraAnimationState elytraAnimationState = new ElytraAnimationState(this);
+     @Nullable
+     public EntityReference<Player> lastHurtByPlayer;
+-    protected int lastHurtByPlayerMemoryTime;
++    public int lastHurtByPlayerMemoryTime;
+     protected boolean dead;
+     protected int noActionTime;
+     public float lastHurt;
+-    protected boolean jumping;
++    public boolean jumping;
+     public float xxa;
+     public float yya;
+     public float zza;
 @@ -265,11 +_,33 @@
      );
      protected final EntityEquipment equipment;
@@ -1413,6 +1436,26 @@
          }
      }
  
+@@ -1592,16 +_,16 @@
+     }
+ 
+     @Nullable
+-    protected SoundEvent getHurtSound(DamageSource p_21239_) {
++    public SoundEvent getHurtSound(DamageSource p_21239_) {
+         return SoundEvents.GENERIC_HURT;
+     }
+ 
+     @Nullable
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.GENERIC_DEATH;
+     }
+ 
+-    private SoundEvent getFallDamageSound(int p_21313_) {
++    public SoundEvent getFallDamageSound(int p_21313_) {
+         return p_21313_ > 4 ? this.getFallSounds().big() : this.getFallSounds().small();
+     }
+ 
 @@ -1646,15 +_,9 @@
          } else {
              BlockPos blockpos = this.blockPosition();
@@ -2583,6 +2626,15 @@
              this.completeUsingItem();
          }
      }
+@@ -3181,7 +_,7 @@
+         }
+     }
+ 
+-    protected void setLivingEntityFlag(int p_21156_, boolean p_21157_) {
++    public void setLivingEntityFlag(int p_21156_, boolean p_21157_) {
+         int i = this.entityData.get(DATA_LIVING_ENTITY_FLAGS);
+         if (p_21157_) {
+             i |= p_21156_;
 @@ -3192,14 +_,25 @@
          this.entityData.set(DATA_LIVING_ENTITY_FLAGS, (byte)i);
      }
@@ -2627,9 +2679,12 @@
              }
          }
      }
-@@ -3254,14 +_,46 @@
+@@ -3252,16 +_,48 @@
+         }
+     }
  
-     protected void completeUsingItem() {
+-    protected void completeUsingItem() {
++    public void completeUsingItem() {
          if (!this.level().isClientSide || this.isUsingItem()) {
 -            InteractionHand interactionhand = this.getUsedItemHand();
 -            if (!this.useItem.equals(this.getItemInHand(interactionhand))) {
@@ -2915,7 +2970,7 @@
      }
  
      @Override
-@@ -3521,7 +_,7 @@
+@@ -3521,10 +_,10 @@
      }
  
      public ItemStack getProjectile(ItemStack p_21272_) {
@@ -2923,7 +2978,11 @@
 +        return net.neoforged.neoforge.common.CommonHooks.getProjectile(this, p_21272_, ItemStack.EMPTY);
      }
  
-     private static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
+-    private static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
++    public static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
+         return switch (p_21267_) {
+             case MAINHAND -> 47;
+             case OFFHAND -> 48;
 @@ -3577,6 +_,8 @@
      }
  
