@@ -1,0 +1,97 @@
+--- a/net/minecraft/world/level/block/entity/ContainerOpenersCounter.java
++++ b/net/minecraft/world/level/block/entity/ContainerOpenersCounter.java
+@@ -13,6 +_,7 @@
+     private static final int CHECK_TICK_DELAY = 5;
+     private int openCount;
+     private double maxInteractionRange;
++    public boolean opened; // CraftBukkit
+ 
+     protected abstract void onOpen(Level p_155460_, BlockPos p_155461_, BlockState p_155462_);
+ 
+@@ -20,29 +_,68 @@
+ 
+     protected abstract void openerCountChanged(Level p_155463_, BlockPos p_155464_, BlockState p_155465_, int p_155466_, int p_155467_);
+ 
++    // CraftBukkit start
++    public void onAPIOpen(Level level, BlockPos blockPos, BlockState blockState) {
++        this.onOpen(level, blockPos, blockState);
++    }
++
++    public void onAPIClose(Level level, BlockPos blockPos, BlockState blockState) {
++        this.onClose(level, blockPos, blockState);
++    }
++
++    public void openerAPICountChanged(Level level, BlockPos blockPos, BlockState blockState, int count, int openCount) {
++        this.openerCountChanged(level, blockPos, blockState, count, openCount);
++    }
++    // CraftBukkit end
++
+     protected abstract boolean isOwnContainer(Player p_155451_);
+ 
+-    public void incrementOpeners(Player p_155453_, Level p_155454_, BlockPos p_155455_, BlockState p_155456_) {
++    public void incrementOpeners(Player player, Level level, BlockPos pos, BlockState state) {
++        int oldPower = Math.max(0, Math.min(15, this.openCount)); // CraftBukkit - Get power before new viewer is added
+         int i = this.openCount++;
++
++        // CraftBukkit start - Call redstone event
++        if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.TRAPPED_CHEST)) {
++            int newPower = Math.max(0, Math.min(15, this.openCount));
++
++            if (oldPower != newPower) {
++                org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, oldPower, newPower);
++            }
++        }
++        // CraftBukkit end
++
+         if (i == 0) {
+-            this.onOpen(p_155454_, p_155455_, p_155456_);
+-            p_155454_.gameEvent(p_155453_, GameEvent.CONTAINER_OPEN, p_155455_);
+-            scheduleRecheck(p_155454_, p_155455_, p_155456_);
++            this.onOpen(level, pos, state);
++            level.gameEvent(player, GameEvent.CONTAINER_OPEN, pos);
++            scheduleRecheck(level, pos, state);
+         }
+ 
+-        this.openerCountChanged(p_155454_, p_155455_, p_155456_, i, this.openCount);
+-        this.maxInteractionRange = Math.max(p_155453_.blockInteractionRange(), this.maxInteractionRange);
++        this.openerCountChanged(level, pos, state, i, this.openCount);
++        this.maxInteractionRange = Math.max(player.blockInteractionRange(), this.maxInteractionRange);
+     }
+ 
+-    public void decrementOpeners(Player p_155469_, Level p_155470_, BlockPos p_155471_, BlockState p_155472_) {
++    public void decrementOpeners(Player player, Level level, BlockPos pos, BlockState state) {
++        int oldPower = Math.max(0, Math.min(15, this.openCount)); // CraftBukkit - Get power before new viewer is added
++        if (this.openCount == 0) return; // Paper - Prevent ContainerOpenersCounter openCount from going negative
+         int i = this.openCount--;
++
++        // CraftBukkit start - Call redstone event
++        if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.TRAPPED_CHEST)) {
++            int newPower = Math.max(0, Math.min(15, this.openCount));
++
++            if (oldPower != newPower) {
++                org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, oldPower, newPower);
++            }
++        }
++        // CraftBukkit end
++
+         if (this.openCount == 0) {
+-            this.onClose(p_155470_, p_155471_, p_155472_);
+-            p_155470_.gameEvent(p_155469_, GameEvent.CONTAINER_CLOSE, p_155471_);
++            this.onClose(level, pos, state);
++            level.gameEvent(player, GameEvent.CONTAINER_CLOSE, pos);
+             this.maxInteractionRange = 0.0;
+         }
+ 
+-        this.openerCountChanged(p_155470_, p_155471_, p_155472_, i, this.openCount);
++        this.openerCountChanged(level, pos, state, i, this.openCount);
+     }
+ 
+     private List<Player> getPlayersWithContainerOpen(Level p_320335_, BlockPos p_320624_) {
+@@ -60,6 +_,7 @@
+         }
+ 
+         int i = list.size();
++        if (this.opened) i++; // CraftBukkit - add dummy count from API
+         int j = this.openCount;
+         if (j != i) {
+             boolean flag = i != 0;

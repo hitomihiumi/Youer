@@ -18,10 +18,19 @@
  
              if (!this.level().isClientSide) {
 -                if (this.random.nextInt(10) == 0) {
-+                if (this.random.nextInt(10) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_29414_)) {
++                if (this.random.nextInt(10) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_29414_) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, p_29414_).isCancelled()) { // CraftBukkit
                      this.tame(p_29414_);
                      this.level().broadcastEntityEvent(this, (byte)7);
                  } else {
+@@ -287,7 +_,7 @@
+             }
+         } else {
+             this.usePlayerItem(p_29414_, p_29415_, itemstack);
+-            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900));
++            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.FOOD); // CraftBukkit
+             if (p_29414_.isCreative() || !this.isInvulnerable()) {
+                 this.hurt(this.damageSources().playerAttack(p_29414_), Float.MAX_VALUE);
+             }
 @@ -330,7 +_,10 @@
  
      public static SoundEvent getAmbient(Level p_218239_, RandomSource p_218240_) {
@@ -45,3 +54,29 @@
      }
  
      @Override
+@@ -382,8 +_,8 @@
+     }
+ 
+     @Override
+-    public boolean isPushable() {
+-        return true;
++    public boolean isCollidable(boolean ignoreClimbing) { // Paper - Climbing should not bypass cramming gamerule
++        return super.isCollidable(ignoreClimbing); // CraftBukkit - collidable API // Paper - Climbing should not bypass cramming gamerule
+     }
+ 
+     @Override
+@@ -398,8 +_,13 @@
+         if (this.isInvulnerableTo(p_376162_, p_376903_)) {
+             return false;
+         } else {
++            // CraftBukkit start
++            if (!super.hurtServer(p_376162_, p_376903_, p_376601_)) {
++                return false;
++            }
+             this.setOrderedToSit(false);
+-            return super.hurtServer(p_376162_, p_376903_, p_376601_);
++            return true;
++            // CraftBukkit
+         }
+     }
+ 

@@ -1,14 +1,72 @@
 --- a/net/minecraft/world/level/block/SweetBerryBushBlock.java
 +++ b/net/minecraft/world/level/block/SweetBerryBushBlock.java
-@@ -70,9 +_,10 @@
+@@ -70,15 +_,17 @@
      @Override
      protected void randomTick(BlockState p_222563_, ServerLevel p_222564_, BlockPos p_222565_, RandomSource p_222566_) {
          int i = p_222563_.getValue(AGE);
 -        if (i < 3 && p_222566_.nextInt(5) == 0 && p_222564_.getRawBrightness(p_222565_.above(), 0) >= 9) {
-+        if (i < 3 && p_222564_.getRawBrightness(p_222565_.above(), 0) >= 9 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_222564_, p_222565_, p_222563_, p_222566_.nextInt(5) == 0)) {
++        if (i < 3 && p_222564_.getRawBrightness(p_222565_.above(), 0) >= 9 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_222564_, p_222565_, p_222563_, p_222566_.nextFloat() < (p_222564_.spigotConfig.sweetBerryModifier / (100.0F * 5)))) { // Spigot - SPIGOT-7159: Better modifier resolution
              BlockState blockstate = p_222563_.setValue(AGE, i + 1);
-             p_222564_.setBlock(p_222565_, blockstate, 2);
+-            p_222564_.setBlock(p_222565_, blockstate, 2);
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222564_, p_222565_, blockstate, 2)) return; // CraftBukkit
 +            net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_222564_, p_222565_, p_222563_);
              p_222564_.gameEvent(GameEvent.BLOCK_CHANGE, p_222565_, GameEvent.Context.of(blockstate));
          }
      }
+ 
+     @Override
+     protected void entityInside(BlockState p_57270_, Level p_57271_, BlockPos p_57272_, Entity p_57273_, InsideBlockEffectApplier p_405414_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_57273_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_57271_, p_57272_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (p_57273_ instanceof LivingEntity && p_57273_.getType() != EntityType.FOX && p_57273_.getType() != EntityType.BEE) {
+             p_57273_.makeStuckInBlock(p_57270_, new Vec3(0.8F, 0.75, 0.8F));
+             if (p_57271_ instanceof ServerLevel serverlevel && p_57270_.getValue(AGE) != 0) {
+@@ -87,7 +_,7 @@
+                     double d0 = Math.abs(vec3.x());
+                     double d1 = Math.abs(vec3.z());
+                     if (d0 >= 0.003F || d1 >= 0.003F) {
+-                        p_57273_.hurtServer(serverlevel, p_57271_.damageSources().sweetBerryBush(), 1.0F);
++                        p_57273_.hurtServer(serverlevel, p_57271_.damageSources().sweetBerryBush().eventBlockDamager(p_57271_, p_57272_), 1.0F); // CraftBukkit
+                     }
+                 }
+             }
+@@ -106,21 +_,27 @@
+     }
+ 
+     @Override
+-    protected InteractionResult useWithoutItem(BlockState p_316134_, Level p_316429_, BlockPos p_316748_, Player p_316431_, BlockHitResult p_316474_) {
+-        int i = p_316134_.getValue(AGE);
+-        boolean flag = i == 3;
+-        if (i > 1) {
+-            int j = 1 + p_316429_.random.nextInt(2);
+-            popResource(p_316429_, p_316748_, new ItemStack(Items.SWEET_BERRIES, j + (flag ? 1 : 0)));
+-            p_316429_.playSound(
+-                null, p_316748_, SoundEvents.SWEET_BERRY_BUSH_PICK_BERRIES, SoundSource.BLOCKS, 1.0F, 0.8F + p_316429_.random.nextFloat() * 0.4F
+-            );
+-            BlockState blockstate = p_316134_.setValue(AGE, 1);
+-            p_316429_.setBlock(p_316748_, blockstate, 2);
+-            p_316429_.gameEvent(GameEvent.BLOCK_CHANGE, p_316748_, GameEvent.Context.of(p_316431_, blockstate));
++    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
++        int ageValue = state.getValue(AGE);
++        boolean flag = ageValue == 3;
++        if (ageValue > 1) {
++            int i = 1 + level.random.nextInt(2);
++            // CraftBukkit start - useWithoutItem is always MAIN_HAND
++            org.bukkit.event.player.PlayerHarvestBlockEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerHarvestBlockEvent(level, pos, player, InteractionHand.MAIN_HAND, java.util.Collections.singletonList(new ItemStack(Items.SWEET_BERRIES, i + (flag ? 1 : 0))));
++            if (event.isCancelled()) {
++                return InteractionResult.SUCCESS; // We need to return a success either way, because making it PASS or FAIL will result in a bug where cancelling while harvesting w/ block in hand places block
++            }
++            for (org.bukkit.inventory.ItemStack itemStack : event.getItemsHarvested()) {
++                popResource(level, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(itemStack));
++            }
++            // CraftBukkit end
++            level.playSound(null, pos, SoundEvents.SWEET_BERRY_BUSH_PICK_BERRIES, SoundSource.BLOCKS, 1.0F, 0.8F + level.random.nextFloat() * 0.4F);
++            BlockState blockState = state.setValue(AGE, 1);
++            level.setBlock(pos, blockState, 2);
++            level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(player, blockState));
+             return InteractionResult.SUCCESS;
+         } else {
+-            return super.useWithoutItem(p_316134_, p_316429_, p_316748_, p_316431_, p_316474_);
++            return super.useWithoutItem(state, level, pos, player, hitResult);
+         }
+     }
+ 

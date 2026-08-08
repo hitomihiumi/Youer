@@ -1,5 +1,117 @@
 --- a/net/minecraft/world/entity/Leashable.java
 +++ b/net/minecraft/world/entity/Leashable.java
+@@ -84,6 +_,11 @@
+     }
+ 
+     default void writeLeashData(ValueOutput p_422090_, @Nullable Leashable.LeashData p_352363_) {
++        // CraftBukkit start - SPIGOT-7487: Don't save (and possible drop) leash, when the holder was removed by a plugin
++        if (p_352363_ != null && p_352363_.leashHolder != null && p_352363_.leashHolder.pluginRemoved) {
++            return;
++        }
++        // CraftBukkit end
+         p_422090_.storeNullable("leash", Leashable.LeashData.CODEC, p_352363_);
+     }
+ 
+@@ -103,7 +_,9 @@
+             }
+ 
+             if (p_352354_.tickCount > 100) {
++                p_352354_.forceDrops = true; // CraftBukkit
+                 p_352354_.spawnAtLocation(serverlevel, Items.LEAD);
++                p_352354_.forceDrops = false; // CraftBukkit
+                 p_352354_.setLeashData(null);
+             }
+         }
+@@ -127,7 +_,9 @@
+             p_352163_.onLeashRemoved();
+             if (p_352163_.level() instanceof ServerLevel serverlevel) {
+                 if (p_352272_) {
++                    p_352163_.forceDrops = true; // CraftBukkit
+                     p_352163_.spawnAtLocation(serverlevel, Items.LEAD);
++                    p_352163_.forceDrops = false; // CraftBukkit
+                 }
+ 
+                 if (p_352286_) {
+@@ -139,37 +_,44 @@
+         }
+     }
+ 
+-    static <E extends Entity & Leashable> void tickLeash(ServerLevel p_376374_, E p_352082_) {
+-        Leashable.LeashData leashable$leashdata = p_352082_.getLeashData();
+-        if (leashable$leashdata != null && leashable$leashdata.delayedLeashInfo != null) {
+-            restoreLeashFromSave(p_352082_, leashable$leashdata);
++    static <E extends Entity & Leashable> void tickLeash(ServerLevel level, E entity) {
++        Leashable.LeashData leashData = entity.getLeashData();
++        if (leashData != null && leashData.delayedLeashInfo != null) {
++            restoreLeashFromSave(entity, leashData);
+         }
+ 
+-        if (leashable$leashdata != null && leashable$leashdata.leashHolder != null) {
+-            if (!p_352082_.isAlive() || !leashable$leashdata.leashHolder.isAlive()) {
+-                if (p_376374_.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+-                    p_352082_.dropLeash();
++        if (leashData != null && leashData.leashHolder != null) {
++            if (!entity.isAlive() || !leashData.leashHolder.isAlive()) {
++                // Paper start - Expand EntityUnleashEvent
++                final org.bukkit.event.entity.EntityUnleashEvent event = new org.bukkit.event.entity.EntityUnleashEvent(
++                    entity.getBukkitEntity(),
++                    !entity.isAlive() ? org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.PLAYER_UNLEASH : org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.HOLDER_GONE,
++                    level.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS) && !entity.pluginRemoved
++                );
++                event.callEvent();
++                if (event.isDropLeash()) { // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
++                    // Paper end - Expand EntityUnleashEvent
++                    entity.dropLeash();
+                 } else {
+-                    p_352082_.removeLeash();
++                    entity.removeLeash();
+                 }
+             }
+ 
+-            Entity entity = p_352082_.getLeashHolder();
+-            if (entity != null && entity.level() == p_352082_.level()) {
+-                double d0 = p_352082_.leashDistanceTo(entity);
+-                p_352082_.whenLeashedTo(entity);
+-                if (d0 > p_352082_.leashSnapDistance()) {
+-                    p_376374_.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.LEAD_BREAK, SoundSource.NEUTRAL, 1.0F, 1.0F);
+-                    p_352082_.leashTooFarBehaviour();
+-                } else if (d0 > p_352082_.leashElasticDistance() - entity.getBbWidth() - p_352082_.getBbWidth()
+-                    && p_352082_.checkElasticInteractions(entity, leashable$leashdata)) {
+-                    p_352082_.onElasticLeashPull();
++            Entity leashHolder = entity.getLeashHolder();
++            if (leashHolder != null && leashHolder.level() == entity.level()) {
++                double d = entity.leashDistanceTo(leashHolder);
++                entity.whenLeashedTo(leashHolder);
++                if (d > entity.leashSnapDistanceOrConfig()) { // Paper - Configurable max leash distance
++                    entity.leashTooFarBehaviour();
++                } else if (d > entity.leashElasticDistance() - leashHolder.getBbWidth() - entity.getBbWidth()
++                    && entity.checkElasticInteractions(leashHolder, leashData)) {
++                    entity.onElasticLeashPull();
+                 } else {
+-                    p_352082_.closeRangeLeashBehaviour(entity);
++                    entity.closeRangeLeashBehaviour(leashHolder);
+                 }
+ 
+-                p_352082_.setYRot((float)(p_352082_.getYRot() - leashable$leashdata.angularMomentum));
+-                leashable$leashdata.angularMomentum = leashable$leashdata.angularMomentum * angularFriction(p_352082_);
++                entity.setYRot((float)(entity.getYRot() - leashData.angularMomentum));
++                leashData.angularMomentum = leashData.angularMomentum * angularFriction(entity);
+             }
+         }
+     }
+@@ -179,6 +_,12 @@
+         entity.checkFallDistanceAccumulation();
+     }
+ 
++    // Paper start - Configurable max leash distance
++    default double leashSnapDistanceOrConfig() {
++        if (!(this instanceof final Entity entity)) return leashSnapDistance();
++        return entity.level().paperConfig().misc.maxLeashDistance.or(leashSnapDistance());
++    }
++    // Paper end - Configurable max leash distance
+     default double leashSnapDistance() {
+         return 12.0;
+     }
 @@ -189,7 +_,8 @@
  
      static <E extends Entity & Leashable> float angularFriction(E p_418015_) {
@@ -10,3 +122,30 @@
          } else {
              return p_418015_.isInLiquid() ? 0.8F : 0.91F;
          }
+@@ -200,7 +_,25 @@
+     }
+ 
+     default void leashTooFarBehaviour() {
+-        this.dropLeash();
++        // CraftBukkit start
++        boolean dropLeash = true; // Paper
++        if (this instanceof Entity entity) {
++            // Paper start - Expand EntityUnleashEvent
++            final org.bukkit.event.entity.EntityUnleashEvent event = new org.bukkit.event.entity.EntityUnleashEvent(entity.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.DISTANCE, true);
++            if (!event.callEvent()) return;
++
++            Entity leashHolder = this.getLeashHolder();
++            Level level = leashHolder.level();
++            dropLeash = event.isDropLeash();
++            level.playSound(null, leashHolder.getX(), leashHolder.getY(), leashHolder.getZ(), SoundEvents.LEAD_BREAK, SoundSource.NEUTRAL, 1.0F, 1.0F); // Moved from Leashable#tickLeash
++        }
++        // CraftBukkit end
++        if (dropLeash) {
++            this.dropLeash();
++        } else {
++            this.removeLeash();
++        }
++        // Paper end - Expand EntityUnleashEvent
+     }
+ 
+     default void closeRangeLeashBehaviour(Entity p_352073_) {

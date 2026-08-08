@@ -9,7 +9,7 @@
  
      MobSpawnSettings(
          float p_196689_, Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> p_196690_, Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> p_196691_
-@@ -53,15 +_,25 @@
+@@ -53,27 +_,61 @@
          this.creatureGenerationProbability = p_196689_;
          this.spawners = ImmutableMap.copyOf(p_196690_);
          this.mobSpawnCosts = ImmutableMap.copyOf(p_196691_);
@@ -28,10 +28,50 @@
      @Nullable
      public MobSpawnSettings.MobSpawnCost getMobSpawnCost(EntityType<?> p_48346_) {
          return this.mobSpawnCosts.get(p_48346_);
-+    }
-+
-+    public java.util.Set<EntityType<?>> getEntityTypes() {
-+         return this.costView;
      }
  
++    public java.util.Set<EntityType<?>> getEntityTypes() {
++         return this.costView;
++    }
++
      public float getCreatureProbability() {
+         return this.creatureGenerationProbability;
+     }
+ 
+     public static class Builder {
+-        protected final Map<MobCategory, WeightedList.Builder<MobSpawnSettings.SpawnerData>> spawners = Util.makeEnumMap(
+-            MobCategory.class, p_393314_ -> WeightedList.builder()
++        // Paper start - Perf: keep track of data in a pair set to give O(1) contains calls - we have to hook removals incase plugins mess with it
++        public static class MobListBuilder<E> extends WeightedList.Builder<E> {
++            @Override
++            public WeightedList<E> build() {
++                return new WeightedSpawnerDataList<>(this.result);
++            }
++        }
++
++        public static class WeightedSpawnerDataList<E> extends WeightedList<E> {
++            private final java.util.Set<E> spawnerDataSet = new java.util.HashSet<>();
++
++            public WeightedSpawnerDataList(final java.util.List<? extends net.minecraft.util.random.Weighted<E>> items) {
++                super(items);
++                for (final net.minecraft.util.random.Weighted<E> item : items) {
++                    this.spawnerDataSet.add(item.value());
++                }
++            }
++
++            @Override
++            public boolean contains(final E element) {
++                return this.spawnerDataSet.contains(element);
++            }
++        }
++        private final Map<MobCategory, WeightedList.Builder<MobSpawnSettings.SpawnerData>> spawners = Util.makeEnumMap(
++            MobCategory.class, mobCategory -> new MobListBuilder<>()
+         );
+-        protected final Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> mobSpawnCosts = Maps.newLinkedHashMap();
+-        protected float creatureGenerationProbability = 0.1F;
++        // Paper end - Perf: keep track of data in a pair set to give O(1) contains calls
++        private final Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> mobSpawnCosts = Maps.newLinkedHashMap();
++        private float creatureGenerationProbability = 0.1F;
+ 
+         public MobSpawnSettings.Builder addSpawn(MobCategory p_48377_, int p_393812_, MobSpawnSettings.SpawnerData p_48378_) {
+             this.spawners.get(p_48377_).add(p_48378_, p_393812_);

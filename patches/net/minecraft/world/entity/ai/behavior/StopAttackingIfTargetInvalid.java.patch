@@ -1,0 +1,33 @@
+--- a/net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.java
++++ b/net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.java
+@@ -39,6 +_,30 @@
+                             && !p_376588_.test(p_375693_, livingentity)) {
+                             return true;
+                         } else {
++                        // Paper start - better track target change reason
++                        final org.bukkit.event.entity.EntityTargetEvent.TargetReason reason;
++                        if (!p_375694_.canAttack(livingentity)) {
++                            reason = org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_INVALID;
++                        } else if (p_260319_ && StopAttackingIfTargetInvalid.isTiredOfTryingToReachTarget(p_375694_, p_258801_.tryGet(p_258788_))) {
++                            reason = org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET;
++                        } else if (!livingentity.isAlive()) {
++                            reason = org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_DIED;
++                        } else if (livingentity.level() != p_375694_.level()) {
++                            reason = org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_OTHER_LEVEL;
++                        } else {
++                            reason = org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_INVALID;
++                        }
++                        // Paper end
++                        // CraftBukkit start
++                        org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(p_375694_, null, reason); // Paper
++                        if (event.isCancelled()) {
++                            return false;
++                        }
++                        if (event.getTarget() != null) {
++                            p_375694_.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle());
++                            return true;
++                        }
++                        // CraftBukkit end
+                             p_376931_.accept(p_375693_, p_375694_, livingentity);
+                             p_258787_.erase();
+                             return true;

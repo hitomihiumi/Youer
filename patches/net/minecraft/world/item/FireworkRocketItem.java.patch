@@ -1,0 +1,92 @@
+--- a/net/minecraft/world/item/FireworkRocketItem.java
++++ b/net/minecraft/world/item/FireworkRocketItem.java
+@@ -25,29 +_,34 @@
+     }
+ 
+     @Override
+-    public InteractionResult useOn(UseOnContext p_41216_) {
+-        Level level = p_41216_.getLevel();
+-        Player player = p_41216_.getPlayer();
++    public InteractionResult useOn(UseOnContext context) {
++        Level level = context.getLevel();
++        Player player = context.getPlayer();
+         if (player != null && player.isFallFlying()) {
+             return InteractionResult.PASS;
+         } else {
+-            if (level instanceof ServerLevel serverlevel) {
+-                ItemStack itemstack = p_41216_.getItemInHand();
+-                Vec3 vec3 = p_41216_.getClickLocation();
+-                Direction direction = p_41216_.getClickedFace();
+-                Projectile.spawnProjectile(
++            if (level instanceof ServerLevel serverLevel) {
++                ItemStack itemInHand = context.getItemInHand();
++                Vec3 clickLocation = context.getClickLocation();
++                Direction clickedFace = context.getClickedFace();
++                final Projectile.Delayed<FireworkRocketEntity> fireworkRocketEntity = Projectile.spawnProjectileDelayed( // Paper - PlayerLaunchProjectileEvent
+                     new FireworkRocketEntity(
+                         level,
+-                        p_41216_.getPlayer(),
+-                        vec3.x + direction.getStepX() * 0.15,
+-                        vec3.y + direction.getStepY() * 0.15,
+-                        vec3.z + direction.getStepZ() * 0.15,
+-                        itemstack
++                        context.getPlayer(),
++                        clickLocation.x + clickedFace.getStepX() * 0.15,
++                        clickLocation.y + clickedFace.getStepY() * 0.15,
++                        clickLocation.z + clickedFace.getStepZ() * 0.15,
++                        itemInHand
+                     ),
+-                    serverlevel,
+-                    itemstack
++                    serverLevel,
++                    itemInHand, f -> f.spawningEntity = context.getPlayer() == null ? null : context.getPlayer().getUUID() // Paper - firework api - assign spawning entity uuid
+                 );
+-                itemstack.shrink(1);
++                // Paper start - PlayerLaunchProjectileEvent
++                com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent event = new com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) context.getPlayer().getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemInHand), (org.bukkit.entity.Firework) fireworkRocketEntity.projectile().getBukkitEntity());
++                if (!event.callEvent() || !fireworkRocketEntity.attemptSpawn()) return InteractionResult.PASS;
++                if (event.shouldConsume() && !context.getPlayer().hasInfiniteMaterials()) itemInHand.shrink(1);
++                else context.getPlayer().containerMenu.forceHeldSlot(context.getHand());
++                // Paper end - PlayerLaunchProjectileEvent
+             }
+ 
+             return InteractionResult.SUCCESS;
+@@ -55,17 +_,28 @@
+     }
+ 
+     @Override
+-    public InteractionResult use(Level p_41218_, Player p_41219_, InteractionHand p_41220_) {
+-        if (p_41219_.isFallFlying()) {
+-            ItemStack itemstack = p_41219_.getItemInHand(p_41220_);
+-            if (p_41218_ instanceof ServerLevel serverlevel) {
+-                if (p_41219_.dropAllLeashConnections(null)) {
+-                    p_41218_.playSound(null, p_41219_, SoundEvents.LEAD_BREAK, SoundSource.NEUTRAL, 1.0F, 1.0F);
++    public InteractionResult use(Level level, Player player, InteractionHand hand) {
++        if (player.isFallFlying()) {
++            ItemStack itemInHand = player.getItemInHand(hand);
++            if (level instanceof ServerLevel serverLevel) {
++                // Paper start - PlayerElytraBoostEvent
++                final Projectile.Delayed<FireworkRocketEntity> delayed = Projectile.spawnProjectileDelayed(new FireworkRocketEntity(level, itemInHand, player), serverLevel, itemInHand, f -> f.spawningEntity = player.getUUID()); // Paper - firework api - assign spawning entity uuid
++                com.destroystokyo.paper.event.player.PlayerElytraBoostEvent event = new com.destroystokyo.paper.event.player.PlayerElytraBoostEvent((org.bukkit.entity.Player) player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemInHand), (org.bukkit.entity.Firework) delayed.projectile().getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand));
++                if (event.callEvent() && delayed.attemptSpawn()) {
++                    player.awardStat(Stats.ITEM_USED.get(this)); // Moved up from below
++                    if (player.dropAllLeashConnections(null)) {
++                        level.playSound(null, player, SoundEvents.LEAD_BREAK, SoundSource.NEUTRAL, 1.0F, 1.0F);
++                    }
++                    if (event.shouldConsume() && !player.hasInfiniteMaterials()) {
++                        itemInHand.shrink(1); // Moved up from below
++                    } else {
++                        player.containerMenu.forceHeldSlot(hand);
++                    }
++                } else {
++                    player.containerMenu.forceHeldSlot(hand);
+                 }
+-
+-                Projectile.spawnProjectile(new FireworkRocketEntity(p_41218_, itemstack, p_41219_), serverlevel, itemstack);
+-                itemstack.consume(1, p_41219_);
+-                p_41219_.awardStat(Stats.ITEM_USED.get(this));
++                // Moved up consume and changed consume to shrink
++                // Paper end - PlayerElytraBoostEvent
+             }
+ 
+             return InteractionResult.SUCCESS;

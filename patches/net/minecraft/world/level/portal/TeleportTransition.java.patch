@@ -1,0 +1,71 @@
+--- a/net/minecraft/world/level/portal/TeleportTransition.java
++++ b/net/minecraft/world/level/portal/TeleportTransition.java
+@@ -19,15 +_,34 @@
+     boolean asPassenger,
+     Set<Relative> relatives,
+     TeleportTransition.PostTeleportTransition postTeleportTransition
++    , org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause // CraftBukkit
+ ) {
+     public static final TeleportTransition.PostTeleportTransition DO_NOTHING = p_379662_ -> {};
+     public static final TeleportTransition.PostTeleportTransition PLAY_PORTAL_SOUND = TeleportTransition::playPortalSound;
+     public static final TeleportTransition.PostTeleportTransition PLACE_PORTAL_TICKET = TeleportTransition::placePortalTicket;
+ 
++    // CraftBukkit start
++    public TeleportTransition(ServerLevel newLevel, Vec3 position, Vec3 deltaMovement, float yRot, float xRot, boolean missingRespawnBlock, boolean asPassenger, Set<Relative> relatives, TeleportTransition.PostTeleportTransition postTeleportTransition) {
++        this(newLevel, position, deltaMovement, yRot, xRot, missingRespawnBlock, asPassenger, relatives, postTeleportTransition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++
++    public TeleportTransition(org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        this(null, Vec3.ZERO, Vec3.ZERO, 0.0F, 0.0F, false, false, Set.of(), DO_NOTHING, cause);
++    }
++    // CraftBukkit end
++
+     public TeleportTransition(
+         ServerLevel p_379776_, Vec3 p_379412_, Vec3 p_379320_, float p_380257_, float p_379610_, TeleportTransition.PostTeleportTransition p_380303_
+     ) {
+-        this(p_379776_, p_379412_, p_379320_, p_380257_, p_379610_, Set.of(), p_380303_);
++        // CraftBukkit start
++        this(p_379776_, p_379412_, p_379320_, p_380257_, p_379610_, p_380303_, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++
++    public TeleportTransition(
++        ServerLevel newLevel, Vec3 position, Vec3 deltaMovement, float yRot, float xRot, TeleportTransition.PostTeleportTransition postTeleportTransition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause
++    ) {
++        this(newLevel, position, deltaMovement, yRot, xRot, Set.of(), postTeleportTransition, cause);
++        // CraftBukkit end
+     }
+ 
+     public TeleportTransition(
+@@ -39,11 +_,30 @@
+         Set<Relative> p_379959_,
+         TeleportTransition.PostTeleportTransition p_379425_
+     ) {
+-        this(p_380133_, p_379861_, p_380308_, p_379941_, p_380119_, false, false, p_379959_, p_379425_);
++        // CraftBukkit start
++        this(p_380133_, p_379861_, p_380308_, p_379941_, p_380119_, p_379959_, p_379425_, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++    public TeleportTransition(
++        ServerLevel newLevel,
++        Vec3 position,
++        Vec3 deltaMovement,
++        float yRot,
++        float xRot,
++        Set<Relative> relatives,
++        TeleportTransition.PostTeleportTransition postTeleportTransition,
++        org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause
++    ) {
++        this(newLevel, position, deltaMovement, yRot, xRot, false, false, relatives, postTeleportTransition, cause);
++        // CraftBukkit end
+     }
+ 
+     public TeleportTransition(ServerLevel p_379938_, Entity p_379604_, TeleportTransition.PostTeleportTransition p_379683_) {
+-        this(p_379938_, findAdjustedSharedSpawnPos(p_379938_, p_379604_), Vec3.ZERO, p_379938_.getSharedSpawnAngle(), 0.0F, false, false, Set.of(), p_379683_);
++        // CraftBukkit start
++        this(p_379938_, p_379604_, p_379683_, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++    public TeleportTransition(ServerLevel level, Entity entity, TeleportTransition.PostTeleportTransition postTeleportTransition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        this(level, findAdjustedSharedSpawnPos(level, entity), Vec3.ZERO, level.getSharedSpawnAngle(), 0.0F, false, false, Set.of(), postTeleportTransition, cause);
++        // CraftBukkit end
+     }
+ 
+     private static void playPortalSound(Entity p_380322_) {

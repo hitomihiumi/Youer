@@ -1,0 +1,57 @@
+--- a/net/minecraft/world/entity/monster/Phantom.java
++++ b/net/minecraft/world/entity/monster/Phantom.java
+@@ -49,6 +_,11 @@
+     @Nullable
+     public BlockPos anchorPoint;
+     Phantom.AttackPhase attackPhase = Phantom.AttackPhase.CIRCLE;
++    // Paper start
++    @Nullable
++    public java.util.UUID spawningEntity;
++    public boolean shouldBurnInDay = true;
++    // Paper end
+ 
+     public Phantom(EntityType<? extends Phantom> p_33101_, Level p_33102_) {
+         super(p_33101_, p_33102_);
+@@ -143,7 +_,7 @@
+ 
+     @Override
+     public void aiStep() {
+-        if (this.isAlive() && this.isSunBurnTick()) {
++        if (this.isAlive() && this.shouldBurnInDay && this.isSunBurnTick()) { // Paper - shouldBurnInDay API
+             this.igniteForSeconds(8.0F);
+         }
+ 
+@@ -178,6 +_,10 @@
+         super.readAdditionalSaveData(p_421906_);
+         this.anchorPoint = p_421906_.read("anchor_pos", BlockPos.CODEC).orElse(null);
+         this.setPhantomSize(p_421906_.getIntOr("size", 0));
++        // Paper start
++        this.spawningEntity = p_421906_.read("Paper.SpawningEntity", net.minecraft.core.UUIDUtil.CODEC).orElse(null);
++        this.shouldBurnInDay = p_421906_.getBooleanOr("Paper.ShouldBurnInDay", true);
++        // Paper end
+     }
+ 
+     @Override
+@@ -185,6 +_,10 @@
+         super.addAdditionalSaveData(p_422420_);
+         p_422420_.storeNullable("anchor_pos", BlockPos.CODEC, this.anchorPoint);
+         p_422420_.putInt("size", this.getPhantomSize());
++        // Paper start
++        p_422420_.storeNullable("Paper.SpawningEntity", net.minecraft.core.UUIDUtil.CODEC, this.spawningEntity);
++        p_422420_.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay);
++        // Paper end
+     }
+ 
+     @Override
+@@ -256,8 +_,10 @@
+ 
+                     for (Player player : list) {
+                         if (Phantom.this.canAttack(serverlevel, player, TargetingConditions.DEFAULT)) {
+-                            Phantom.this.setTarget(player);
++                            if (!level().paperConfig().entities.behavior.phantomsOnlyAttackInsomniacs || EntitySelector.IS_INSOMNIAC.test(player)) { // Paper - Add phantom creative and insomniac controls
++                            Phantom.this.setTarget(player, org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER); // CraftBukkit - reason
+                             return true;
++                            } // Paper - Add phantom creative and insomniac controls
+                         }
+                     }
+                 }

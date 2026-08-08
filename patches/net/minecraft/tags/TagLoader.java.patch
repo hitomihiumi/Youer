@@ -18,7 +18,28 @@
                  list.add(tagloader$entrywithsource);
              }
          }
-@@ -111,7 +_,7 @@
+@@ -86,7 +_,10 @@
+         return list.isEmpty() ? Either.right(List.copyOf(sequencedset)) : Either.left(list);
+     }
+ 
+-    public Map<ResourceLocation, List<T>> build(Map<ResourceLocation, List<TagLoader.EntryWithSource>> p_203899_) {
++    // Paper start - fire tag registrar events
++    public Map<ResourceLocation, List<T>> build(Map<ResourceLocation, List<TagLoader.EntryWithSource>> builders, @Nullable io.papermc.paper.tag.TagEventConfig<T, ?> eventConfig) {
++        builders = io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePreFlattenEvent(builders, eventConfig);
++        // Paper end
+         final Map<ResourceLocation, List<T>> map = new HashMap<>();
+         TagEntry.Lookup<T> lookup = new TagEntry.Lookup<T>() {
+             @Nullable
+@@ -102,7 +_,7 @@
+             }
+         };
+         DependencySorter<ResourceLocation, TagLoader.SortingEntry> dependencysorter = new DependencySorter<>();
+-        p_203899_.forEach(
++        builders.forEach(
+             (p_284685_, p_284686_) -> dependencysorter.addEntry(p_284685_, new TagLoader.SortingEntry((List<TagLoader.EntryWithSource>)p_284686_))
+         );
+         dependencysorter.orderByDependencies(
+@@ -111,12 +_,12 @@
                      p_359633_ -> LOGGER.error(
                          "Couldn't load tag {} as it is missing following references: {}",
                          p_359645_,
@@ -27,6 +48,67 @@
                      )
                  )
                  .ifRight(p_364232_ -> map.put(p_359645_, (List<T>)p_364232_))
+         );
+-        return map;
++        return io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePostFlattenEvent(map, eventConfig); // Paper - fire tag registrar events
+     }
+ 
+     public static <T> void loadTagsFromNetwork(TagNetworkSerialization.NetworkPayload p_362324_, WritableRegistry<T> p_363626_) {
+@@ -124,30 +_,41 @@
+     }
+ 
+     public static List<Registry.PendingTags<?>> loadTagsForExistingRegistries(ResourceManager p_362119_, RegistryAccess p_363563_) {
+-        return p_363563_.registries()
+-            .map(p_359642_ -> loadPendingTags(p_362119_, p_359642_.value()))
++        // Paper start - tag lifecycle - add cause
++        return loadTagsForExistingRegistries(p_362119_, p_363563_, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL);
++    }
++
++    public static List<Registry.PendingTags<?>> loadTagsForExistingRegistries(ResourceManager resourceManager, RegistryAccess registryAccess, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause cause) {
++        // Paper end - tag lifecycle - add cause
++        return registryAccess.registries()
++            .map(registryEntry -> loadPendingTags(resourceManager, registryEntry.value(), cause)) // Paper - tag lifecycle - add cause
+             .flatMap(Optional::stream)
+             .collect(Collectors.toUnmodifiableList());
+     }
+ 
+-    public static <T> void loadTagsForRegistry(ResourceManager p_360949_, WritableRegistry<T> p_364371_) {
+-        ResourceKey<? extends Registry<T>> resourcekey = p_364371_.key();
+-        TagLoader<Holder<T>> tagloader = new TagLoader<>(TagLoader.ElementLookup.fromWritableRegistry(p_364371_), Registries.tagsDirPath(resourcekey));
+-        tagloader.build(tagloader.load(p_360949_))
+-            .forEach((p_359639_, p_359640_) -> p_364371_.bindTag(TagKey.create(resourcekey, p_359639_), (List<Holder<T>>)p_359640_));
++    public static <T> void loadTagsForRegistry(ResourceManager resourceManager, WritableRegistry<T> registry) {
++        // Paper start - tag lifecycle - add registrar event cause
++        loadTagsForRegistry(resourceManager, registry, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL);
++    }
++    public static <T> void loadTagsForRegistry(ResourceManager resourceManager, WritableRegistry<T> registry, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause cause) {
++        // Paper end - tag lifecycle - add registrar event cause
++        ResourceKey<? extends Registry<T>> resourceKey = registry.key();
++        TagLoader<Holder<T>> tagLoader = new TagLoader<>(TagLoader.ElementLookup.fromWritableRegistry(registry), Registries.tagsDirPath(resourceKey));
++        tagLoader.build(tagLoader.load(resourceManager), io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.createEventConfig(registry, cause)) // Paper - tag lifecycle - add registrar event cause
++            .forEach((resourceLocation, list) -> registry.bindTag(TagKey.create(resourceKey, resourceLocation), (List<Holder<T>>)list));
+     }
+ 
+     private static <T> Map<TagKey<T>, List<Holder<T>>> wrapTags(ResourceKey<? extends Registry<T>> p_365157_, Map<ResourceLocation, List<Holder<T>>> p_364335_) {
+         return p_364335_.entrySet().stream().collect(Collectors.toUnmodifiableMap(p_359651_ -> TagKey.create(p_365157_, p_359651_.getKey()), Entry::getValue));
+     }
+ 
+-    private static <T> Optional<Registry.PendingTags<T>> loadPendingTags(ResourceManager p_363343_, Registry<T> p_364997_) {
+-        ResourceKey<? extends Registry<T>> resourcekey = p_364997_.key();
+-        TagLoader<Holder<T>> tagloader = new TagLoader<>(
+-            (TagLoader.ElementLookup<Holder<T>>)TagLoader.ElementLookup.fromFrozenRegistry(p_364997_), Registries.tagsDirPath(resourcekey)
++    private static <T> Optional<Registry.PendingTags<T>> loadPendingTags(ResourceManager resourceManager, Registry<T> registry, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause cause) { // Paper - add registrar event cause
++        ResourceKey<? extends Registry<T>> resourceKey = registry.key();
++        TagLoader<Holder<T>> tagLoader = new TagLoader<>(
++            (TagLoader.ElementLookup<Holder<T>>)TagLoader.ElementLookup.fromFrozenRegistry(registry), Registries.tagsDirPath(resourceKey)
+         );
+-        TagLoader.LoadResult<T> loadresult = new TagLoader.LoadResult<>(resourcekey, wrapTags(p_364997_.key(), tagloader.build(tagloader.load(p_363343_))));
+-        return loadresult.tags().isEmpty() ? Optional.empty() : Optional.of(p_364997_.prepareTagReload(loadresult));
++        TagLoader.LoadResult<T> loadResult = new TagLoader.LoadResult<>(resourceKey, wrapTags(registry.key(), tagLoader.build(tagLoader.load(resourceManager), io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.createEventConfig(registry, cause)))); // Paper - add registrar event cause
++        return loadResult.tags().isEmpty() ? Optional.empty() : Optional.of(registry.prepareTagReload(loadResult));
+     }
+ 
+     public static List<HolderLookup.RegistryLookup<?>> buildUpdatedLookups(RegistryAccess.Frozen p_363335_, List<Registry.PendingTags<?>> p_364879_) {
 @@ -183,7 +_,11 @@
          }
      }

@@ -1,0 +1,75 @@
+--- a/net/minecraft/world/level/block/LecternBlock.java
++++ b/net/minecraft/world/level/block/LecternBlock.java
+@@ -134,11 +_,28 @@
+         }
+     }
+ 
+-    private static void placeBook(@Nullable LivingEntity p_347484_, Level p_270065_, BlockPos p_270155_, BlockState p_270753_, ItemStack p_270173_) {
+-        if (p_270065_.getBlockEntity(p_270155_) instanceof LecternBlockEntity lecternblockentity) {
+-            lecternblockentity.setBook(p_270173_.consumeAndReturn(1, p_347484_));
+-            resetBookState(p_347484_, p_270065_, p_270155_, p_270753_, true);
+-            p_270065_.playSound(null, p_270155_, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, 1.0F, 1.0F);
++    private static void placeBook(@Nullable LivingEntity entity, Level level, BlockPos pos, BlockState state, ItemStack stack) {
++        if (level.getBlockEntity(pos) instanceof LecternBlockEntity lecternBlockEntity) {
++            // Paper start - Add PlayerInsertLecternBookEvent
++            ItemStack eventSourcedBookStack = null;
++            if (entity instanceof final net.minecraft.server.level.ServerPlayer serverPlayer) {
++                final io.papermc.paper.event.player.PlayerInsertLecternBookEvent event = new io.papermc.paper.event.player.PlayerInsertLecternBookEvent(
++                    serverPlayer.getBukkitEntity(),
++                    org.bukkit.craftbukkit.block.CraftBlock.at(level, pos),
++                    org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(stack.copyWithCount(1))
++                );
++                if (!event.callEvent()) return;
++                eventSourcedBookStack = org.bukkit.craftbukkit.inventory.CraftItemStack.unwrap(event.getBook());
++            }
++            if (eventSourcedBookStack == null) {
++                eventSourcedBookStack = stack.consumeAndReturn(1, entity);
++            } else {
++                stack.consume(1, entity);
++            }
++            lecternBlockEntity.setBook(eventSourcedBookStack);
++            // Paper end - Add PlayerInsertLecternBookEvent
++            resetBookState(entity, level, pos, state, true);
++            level.playSound(null, pos, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, 1.0F, 1.0F);
+         }
+     }
+ 
+@@ -155,9 +_,19 @@
+         p_54489_.levelEvent(1043, p_54490_, 0);
+     }
+ 
+-    private static void changePowered(Level p_54554_, BlockPos p_54555_, BlockState p_54556_, boolean p_54557_) {
+-        p_54554_.setBlock(p_54555_, p_54556_.setValue(POWERED, p_54557_), 3);
+-        updateBelow(p_54554_, p_54555_, p_54556_);
++    private static void changePowered(Level level, BlockPos pos, BlockState state, boolean powered) {
++        // Paper start - Call BlockRedstoneEvent properly
++        final int currentRedstoneLevel = state.getValue(LecternBlock.POWERED) ? 15 : 0, targetRedstoneLevel = powered ? 15 : 0;
++        if (currentRedstoneLevel != targetRedstoneLevel) {
++            final org.bukkit.event.block.BlockRedstoneEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, currentRedstoneLevel, targetRedstoneLevel);
++
++            if (event.getNewCurrent() != targetRedstoneLevel) {
++                return;
++            }
++        }
++        // Paper end - Call BlockRedstoneEvent properly
++        level.setBlock(pos, state.setValue(POWERED, powered), 3);
++        updateBelow(level, pos, state);
+     }
+ 
+     private static void updateBelow(Level p_54545_, BlockPos p_54546_, BlockState p_54547_) {
+@@ -243,11 +_,10 @@
+         return !p_54571_.getValue(HAS_BOOK) ? null : super.getMenuProvider(p_54571_, p_54572_, p_54573_);
+     }
+ 
+-    private void openScreen(Level p_54485_, BlockPos p_54486_, Player p_54487_) {
+-        BlockEntity blockentity = p_54485_.getBlockEntity(p_54486_);
+-        if (blockentity instanceof LecternBlockEntity) {
+-            p_54487_.openMenu((LecternBlockEntity)blockentity);
+-            p_54487_.awardStat(Stats.INTERACT_WITH_LECTERN);
++    private void openScreen(Level level, BlockPos pos, Player player) {
++        BlockEntity blockEntity = level.getBlockEntity(pos);
++        if (blockEntity instanceof LecternBlockEntity lecternBlockEntity && player.openMenu(lecternBlockEntity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
++            player.awardStat(Stats.INTERACT_WITH_LECTERN);
+         }
+     }
+ 

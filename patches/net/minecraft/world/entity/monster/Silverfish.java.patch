@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/monster/Silverfish.java
 +++ b/net/minecraft/world/entity/monster/Silverfish.java
+@@ -119,7 +_,7 @@
+             return true;
+         } else {
+             Player player = p_219078_.getNearestPlayer(p_219080_.getX() + 0.5, p_219080_.getY() + 0.5, p_219080_.getZ() + 0.5, 5.0, true);
+-            return player == null;
++            return !(player != null && !player.affectsSpawning) && player == null; // Paper - Affects Spawning API
+         }
+     }
+ 
 @@ -141,7 +_,7 @@
                  return false;
              } else {
@@ -9,12 +18,61 @@
                      this.selectedDirection = Direction.getRandom(randomsource);
                      BlockPos blockpos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
                      BlockState blockstate = this.mob.level().getBlockState(blockpos);
-@@ -212,7 +_,7 @@
-                             BlockState blockstate = level.getBlockState(blockpos1);
-                             Block block = blockstate.getBlock();
+@@ -170,9 +_,14 @@
+                 BlockPos blockpos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
+                 BlockState blockstate = levelaccessor.getBlockState(blockpos);
+                 if (InfestedBlock.isCompatibleHostBlock(blockstate)) {
++                    // CraftBukkit start
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockpos, InfestedBlock.infestedStateByHost(blockstate))) {
++                        return;
++                    }
++                    // CraftBukkit end
+                     levelaccessor.setBlock(blockpos, InfestedBlock.infestedStateByHost(blockstate), 3);
+                     this.mob.spawnAnim();
+-                    this.mob.discard();
++                    this.mob.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.ENTER_BLOCK); // CraftBukkit - add Bukkit remove cause
+                 }
+             }
+         }
+@@ -202,23 +_,30 @@
+             this.lookForFriends--;
+             if (this.lookForFriends <= 0) {
+                 Level level = this.silverfish.level();
+-                RandomSource randomsource = this.silverfish.getRandom();
+-                BlockPos blockpos = this.silverfish.blockPosition();
++                RandomSource random = this.silverfish.getRandom();
++                BlockPos blockPos = this.silverfish.blockPosition();
+ 
+                 for (int i = 0; i <= 5 && i >= -5; i = (i <= 0 ? 1 : 0) - i) {
+-                    for (int j = 0; j <= 10 && j >= -10; j = (j <= 0 ? 1 : 0) - j) {
+-                        for (int k = 0; k <= 10 && k >= -10; k = (k <= 0 ? 1 : 0) - k) {
+-                            BlockPos blockpos1 = blockpos.offset(j, i, k);
+-                            BlockState blockstate = level.getBlockState(blockpos1);
+-                            Block block = blockstate.getBlock();
++                    for (int i1 = 0; i1 <= 10 && i1 >= -10; i1 = (i1 <= 0 ? 1 : 0) - i1) {
++                        for (int i2 = 0; i2 <= 10 && i2 >= -10; i2 = (i2 <= 0 ? 1 : 0) - i2) {
++                            BlockPos blockPos1 = blockPos.offset(i1, i, i2);
++                            BlockState blockState = level.getBlockState(blockPos1);
++                            Block block = blockState.getBlock();
                              if (block instanceof InfestedBlock) {
 -                                if (getServerLevel(level).getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+                                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(level), this.silverfish)) {
-                                     level.destroyBlock(blockpos1, true, this.silverfish);
+-                                    level.destroyBlock(blockpos1, true, this.silverfish);
++                                // CraftBukkit start
++                                boolean canGrief = net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(level), this.silverfish);
++                                BlockState afterState = canGrief ? blockState.getFluidState().createLegacyBlock() : ((InfestedBlock) block).hostStateByInfested(level.getBlockState(blockPos1)); // Paper - fix wrong block state
++                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, blockPos1, afterState)) { // Paper - fix wrong block state
++                                    continue;
++                                }
++                                // CraftBukkit end
++                                if (canGrief) {
++                                    level.destroyBlock(blockPos1, true, this.silverfish);
                                  } else {
-                                     level.setBlock(blockpos1, ((InfestedBlock)block).hostStateByInfested(level.getBlockState(blockpos1)), 3);
+-                                    level.setBlock(blockpos1, ((InfestedBlock)block).hostStateByInfested(level.getBlockState(blockpos1)), 3);
++                                    level.setBlock(blockPos1, ((InfestedBlock)block).hostStateByInfested(level.getBlockState(blockPos1)), 3);
+                                 }
+ 
+-                                if (randomsource.nextBoolean()) {
++                                if (random.nextBoolean()) {
+                                     return;
+                                 }
+                             }

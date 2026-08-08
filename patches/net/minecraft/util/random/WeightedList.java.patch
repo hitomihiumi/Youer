@@ -1,11 +1,28 @@
 --- a/net/minecraft/util/random/WeightedList.java
 +++ b/net/minecraft/util/random/WeightedList.java
+@@ -13,14 +_,14 @@
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.RandomSource;
+ 
+-public final class WeightedList<E> {
++public class WeightedList<E> { // Paper - non-final
+     private static final int FLAT_THRESHOLD = 64;
+     private final int totalWeight;
+     private final List<Weighted<E>> items;
+     @Nullable
+     private final WeightedList.Selector<E> selector;
+ 
+-    WeightedList(List<? extends Weighted<E>> p_393913_) {
++    protected WeightedList(List<? extends Weighted<E>> p_393913_) { // Paper - protected
+         this.items = List.copyOf(p_393913_);
+         this.totalWeight = WeightedRandom.getTotalWeight(p_393913_, Weighted::weight);
+         if (this.totalWeight == 0) {
 @@ -127,7 +_,7 @@
      }
  
      public static class Builder<E> {
 -        private final ImmutableList.Builder<Weighted<E>> result = ImmutableList.builder();
-+        private final List<Weighted<E>> result = new java.util.ArrayList<>();
++        protected final List<Weighted<E>> result = new java.util.ArrayList<>(); // Paper - protected
  
          public WeightedList.Builder<E> add(E p_394625_) {
              return this.add(p_394625_, 1);

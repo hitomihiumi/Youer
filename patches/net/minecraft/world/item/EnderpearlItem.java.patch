@@ -1,0 +1,63 @@
+--- a/net/minecraft/world/item/EnderpearlItem.java
++++ b/net/minecraft/world/item/EnderpearlItem.java
+@@ -19,24 +_,44 @@
+     }
+ 
+     @Override
+-    public InteractionResult use(Level p_41190_, Player p_41191_, InteractionHand p_41192_) {
+-        ItemStack itemstack = p_41191_.getItemInHand(p_41192_);
+-        p_41190_.playSound(
+-            null,
+-            p_41191_.getX(),
+-            p_41191_.getY(),
+-            p_41191_.getZ(),
+-            SoundEvents.ENDER_PEARL_THROW,
+-            SoundSource.NEUTRAL,
+-            0.5F,
+-            0.4F / (p_41190_.getRandom().nextFloat() * 0.4F + 0.8F)
+-        );
+-        if (p_41190_ instanceof ServerLevel serverlevel) {
+-            Projectile.spawnProjectileFromRotation(ThrownEnderpearl::new, serverlevel, itemstack, p_41191_, 0.0F, PROJECTILE_SHOOT_POWER, 1.0F);
++    public InteractionResult use(Level level, Player player, InteractionHand hand) {
++        ItemStack itemInHand = player.getItemInHand(hand);
++        if (level instanceof ServerLevel serverLevel) {
++            // CraftBukkit start
++            // Paper start - PlayerLaunchProjectileEvent
++            final Projectile.Delayed<ThrownEnderpearl> thrownEnderpearl = Projectile.spawnProjectileFromRotationDelayed(ThrownEnderpearl::new, serverLevel, itemInHand, player, 0.0F, EnderpearlItem.PROJECTILE_SHOOT_POWER, 1.0F);
++            com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent event = new com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemInHand), (org.bukkit.entity.Projectile) thrownEnderpearl.projectile().getBukkitEntity());
++            if (event.callEvent() && thrownEnderpearl.attemptSpawn()) {
++                if (event.shouldConsume()) {
++                    itemInHand.consume(1, player);
++                } else {
++                    player.containerMenu.forceHeldSlot(hand);
++                }
++
++                level.playSound(
++                    null,
++                    player.getX(),
++                    player.getY(),
++                    player.getZ(),
++                    SoundEvents.ENDER_PEARL_THROW,
++                    SoundSource.NEUTRAL,
++                    0.5F,
++                    0.4F / (level.getRandom().nextFloat() * 0.4F + 0.8F)
++                );
++                player.awardStat(Stats.ITEM_USED.get(this));
++            } else {
++                if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
++                    serverPlayer.deregisterEnderPearl(thrownEnderpearl.projectile());
++                    serverPlayer.connection.send(new net.minecraft.network.protocol.game.ClientboundCooldownPacket(player.getCooldowns().getCooldownGroup(itemInHand), 0)); // prevent visual desync of cooldown on the slot
++                }
++                // Paper end - PlayerLaunchProjectileEvent
++                player.containerMenu.forceHeldSlot(hand);
++                return InteractionResult.FAIL;
++            }
+         }
++        // CraftBukkit end
+ 
+-        p_41191_.awardStat(Stats.ITEM_USED.get(this));
+-        itemstack.consume(1, p_41191_);
++        // Paper - PlayerLaunchProjectileEvent - moved up
+         return InteractionResult.SUCCESS;
+     }
+ }

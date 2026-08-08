@@ -1,11 +1,87 @@
 --- a/net/minecraft/commands/arguments/EntityArgument.java
 +++ b/net/minecraft/commands/arguments/EntityArgument.java
-@@ -127,7 +_,7 @@
-         if (p_91482_.getSource() instanceof SharedSuggestionProvider sharedsuggestionprovider) {
-             StringReader stringreader = new StringReader(p_91483_.getInput());
-             stringreader.setCursor(p_91483_.getStart());
+@@ -102,46 +_,58 @@
+         return this.parse(p_353128_, EntitySelectorParser.allowSelectors(p_353120_));
+     }
+ 
+-    private EntitySelector parse(StringReader p_353134_, boolean p_353142_) throws CommandSyntaxException {
++    private EntitySelector parse(StringReader reader, boolean allowSelectors) throws CommandSyntaxException {
++        // CraftBukkit start
++        return this.parse(reader, allowSelectors, false);
++    }
++    public EntitySelector parse(StringReader reader, boolean allowSelectors, boolean overridePermissions) throws CommandSyntaxException {
++        // CraftBukkit end
+         int i = 0;
+-        EntitySelectorParser entityselectorparser = new EntitySelectorParser(p_353134_, p_353142_);
+-        EntitySelector entityselector = entityselectorparser.parse();
+-        if (entityselector.getMaxResults() > 1 && this.single) {
++        EntitySelectorParser entitySelectorParser = new EntitySelectorParser(reader, allowSelectors);
++        EntitySelector entitySelector = entitySelectorParser.parse(overridePermissions); // CraftBukkit
++        if (entitySelector.getMaxResults() > 1 && this.single) {
+             if (this.playersOnly) {
+-                p_353134_.setCursor(0);
+-                throw ERROR_NOT_SINGLE_PLAYER.createWithContext(p_353134_);
++                reader.setCursor(0);
++                throw ERROR_NOT_SINGLE_PLAYER.createWithContext(reader);
+             } else {
+-                p_353134_.setCursor(0);
+-                throw ERROR_NOT_SINGLE_ENTITY.createWithContext(p_353134_);
++                reader.setCursor(0);
++                throw ERROR_NOT_SINGLE_ENTITY.createWithContext(reader);
+             }
+-        } else if (entityselector.includesEntities() && this.playersOnly && !entityselector.isSelfSelector()) {
+-            p_353134_.setCursor(0);
+-            throw ERROR_ONLY_PLAYERS_ALLOWED.createWithContext(p_353134_);
++        } else if (entitySelector.includesEntities() && this.playersOnly && !entitySelector.isSelfSelector()) {
++            reader.setCursor(0);
++            throw ERROR_ONLY_PLAYERS_ALLOWED.createWithContext(reader);
+         } else {
+-            return entityselector;
++            return entitySelector;
+         }
+     }
+ 
+     @Override
+-    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> p_91482_, SuggestionsBuilder p_91483_) {
+-        if (p_91482_.getSource() instanceof SharedSuggestionProvider sharedsuggestionprovider) {
+-            StringReader stringreader = new StringReader(p_91483_.getInput());
+-            stringreader.setCursor(p_91483_.getStart());
 -            EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, EntitySelectorParser.allowSelectors(sharedsuggestionprovider));
-+            EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(sharedsuggestionprovider));
++    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
++        if (context.getSource() instanceof SharedSuggestionProvider sharedSuggestionProvider) {
++            StringReader stringReader = new StringReader(builder.getInput());
++            stringReader.setCursor(builder.getStart());
++            // Paper start - Fix EntityArgument permissions
++            final boolean permission = (sharedSuggestionProvider instanceof CommandSourceStack stack
++                ? stack.bypassSelectorPermissions || stack.hasPermission(2, "minecraft.command.selector")
++                // Only CommandSourceStack implements SharedSuggestionProvider. If *somehow* anything else ends up here, try to query its permission level, otherwise yield false.
++                : (sharedSuggestionProvider instanceof final net.minecraft.commands.PermissionSource permissionSource && permissionSource.hasPermission(2)))
++                || net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(sharedSuggestionProvider);
++            EntitySelectorParser entitySelectorParser = new EntitySelectorParser(stringReader, permission);
++            // Paper end - Fix EntityArgument permissions
  
              try {
-                 entityselectorparser.parse();
+-                entityselectorparser.parse();
+-            } catch (CommandSyntaxException commandsyntaxexception) {
++                entitySelectorParser.parse();
++            } catch (CommandSyntaxException var7) {
+             }
+ 
+-            return entityselectorparser.fillSuggestions(
+-                p_91483_,
+-                p_91457_ -> {
+-                    Collection<String> collection = sharedsuggestionprovider.getOnlinePlayerNames();
++            return entitySelectorParser.fillSuggestions(
++                builder,
++                offsetBuilder -> {
++                    Collection<String> onlinePlayerNames = sharedSuggestionProvider.getOnlinePlayerNames();
+                     Iterable<String> iterable = (Iterable<String>)(this.playersOnly
+-                        ? collection
+-                        : Iterables.concat(collection, sharedsuggestionprovider.getSelectedEntities()));
+-                    SharedSuggestionProvider.suggest(iterable, p_91457_);
++                        ? onlinePlayerNames
++                        : Iterables.concat(onlinePlayerNames, sharedSuggestionProvider.getSelectedEntities()));
++                    SharedSuggestionProvider.suggest(iterable, offsetBuilder);
+                 }
+             );
+         } else {

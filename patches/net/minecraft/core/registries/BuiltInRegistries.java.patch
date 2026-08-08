@@ -1,13 +1,76 @@
 --- a/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -402,6 +_,10 @@
-         ((MappedRegistry)p_365443_).bindAllTagsToEmpty();
+@@ -325,6 +_,11 @@
+     public static final Registry<MapCodec<? extends DialogBody>> DIALOG_BODY_TYPE = registerSimple(Registries.DIALOG_BODY_TYPE, DialogBodyTypes::bootstrap);
+     public static final Registry<Consumer<GameTestHelper>> TEST_FUNCTION = registerSimple(Registries.TEST_FUNCTION, BuiltinTestFunctions::bootstrap);
+     public static final Registry<? extends Registry<?>> REGISTRY = WRITABLE_REGISTRY;
++    // Paper start - add built-in registry conversions
++    public static final io.papermc.paper.registry.data.util.Conversions STATIC_ACCESS_CONVERSIONS = new io.papermc.paper.registry.data.util.Conversions(
++        new net.minecraft.resources.RegistryOps.HolderLookupAdapter(net.minecraft.server.RegistryLayer.STATIC_ACCESS)
++    );
++    // Paper end - add built-in registry conversions
+ 
+     private static <T> Registry<T> registerSimple(ResourceKey<? extends Registry<T>> p_260095_, BuiltInRegistries.RegistryBootstrap<T> p_259057_) {
+         return internalRegister(p_260095_, new MappedRegistry<>(p_260095_, Lifecycle.stable(), false), p_259057_);
+@@ -352,6 +_,7 @@
+         ResourceKey<? extends Registry<T>> p_259230_, R p_260327_, BuiltInRegistries.RegistryBootstrap<T> p_259210_
+     ) {
+         Bootstrap.checkBootstrapCalled(() -> "registry " + p_259230_.location());
++        io.papermc.paper.registry.PaperRegistryAccess.instance().registerRegistry(p_260327_); // Paper - initialize API registry
+         ResourceLocation resourcelocation = p_259230_.location();
+         LOADERS.put(resourcelocation, () -> p_259210_.run(p_260327_));
+         WRITABLE_REGISTRY.register((ResourceKey)p_259230_, p_260327_, RegistrationInfo.BUILT_IN);
+@@ -359,16 +_,34 @@
      }
  
-+    public static java.util.Set<ResourceLocation> getVanillaRegistrationOrder() {
-+        return java.util.Collections.unmodifiableSet(LOADERS.keySet());
+     public static void bootStrap() {
++        // Paper start
++        bootStrap(() -> {});
++    }
++    public static void bootStrap(Runnable runnable) {
++        // Paper end
++        REGISTRY.freeze(); // Paper - freeze main registry early
+         createContents();
++        runnable.run(); // Paper
+         freeze();
+         validate(REGISTRY);
+     }
+ 
+     private static void createContents() {
++        // Paper start - class-load org.bukkit.Registry
++        // we have to class-load Registry here to create all the CraftRegistry instances
++        // that will be created when Registry is class-loaded before RegistryAccess#getRegistry
++        // would try to create them in lockReferenceHolder
++        try {
++            Class.forName(org.bukkit.Registry.class.getName());
++        } catch (final ClassNotFoundException ex) {
++            throw new RuntimeException(ex);
++        }
++        // Paper end - class-load org.bukkit.Registry
+         LOADERS.forEach((p_259863_, p_259387_) -> {
+             if (p_259387_.get() == null) {
+                 LOGGER.error("Unable to bootstrap registry '{}'", p_259863_);
+             }
++            io.papermc.paper.registry.PaperRegistryAccess.instance().lockReferenceHolders(ResourceKey.createRegistryKey(p_259863_)); // Paper - lock reference holder creation
+         });
+     }
+ 
+@@ -377,6 +_,7 @@
+ 
+         for (Registry<?> registry : REGISTRY) {
+             bindBootstrappedTagsToEmpty(registry);
++            io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.runFreezeListeners(registry.key(), STATIC_ACCESS_CONVERSIONS); // Paper
+             registry.freeze();
+         }
+     }
+@@ -400,6 +_,10 @@
+ 
+     private static void bindBootstrappedTagsToEmpty(Registry<?> p_365443_) {
+         ((MappedRegistry)p_365443_).bindAllTagsToEmpty();
 +    }
 +
++    public static java.util.Set<ResourceLocation> getVanillaRegistrationOrder() {
++        return java.util.Collections.unmodifiableSet(LOADERS.keySet());
+     }
+ 
      @FunctionalInterface
-     interface RegistryBootstrap<T> {
-         Object run(Registry<T> p_260128_);

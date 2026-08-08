@@ -1,13 +1,90 @@
 --- a/net/minecraft/world/entity/animal/frog/Tadpole.java
 +++ b/net/minecraft/world/entity/animal/frog/Tadpole.java
-@@ -229,8 +_,10 @@
+@@ -65,6 +_,7 @@
+         MemoryModuleType.BREED_TARGET,
+         MemoryModuleType.IS_PANICKING
+     );
++    public boolean ageLocked; // Paper
+ 
+     public Tadpole(EntityType<? extends AbstractFish> p_218686_, Level p_218687_) {
+         super(p_218686_, p_218687_);
+@@ -116,7 +_,7 @@
+     @Override
+     public void aiStep() {
+         super.aiStep();
+-        if (!this.level().isClientSide) {
++        if (!this.level().isClientSide && !this.ageLocked) { // Paper
+             this.setAge(this.age + 1);
+         }
+     }
+@@ -125,12 +_,14 @@
+     protected void addAdditionalSaveData(ValueOutput p_421725_) {
+         super.addAdditionalSaveData(p_421725_);
+         p_421725_.putInt("Age", this.age);
++        p_421725_.putBoolean("AgeLocked", this.ageLocked); // Paper
+     }
+ 
+     @Override
+     protected void readAdditionalSaveData(ValueInput p_422579_) {
+         super.readAdditionalSaveData(p_422579_);
+         this.setAge(p_422579_.getIntOr("Age", 0));
++        this.ageLocked = p_422579_.getBooleanOr("AgeLocked", false); // Paper
+     }
+ 
+     @Nullable
+@@ -180,13 +_,19 @@
+     @Override
+     public void saveToBucketTag(ItemStack p_218725_) {
+         Bucketable.saveDefaultDataToBucketTag(this, p_218725_);
+-        CustomData.update(DataComponents.BUCKET_ENTITY_DATA, p_218725_, p_331788_ -> p_331788_.putInt("Age", this.getAge()));
++        // Paper start - Save tadpole age
++        CustomData.update(DataComponents.BUCKET_ENTITY_DATA, p_218725_, compoundTag -> {
++            compoundTag.putInt("Age", this.getAge());
++            compoundTag.putBoolean("AgeLocked", this.ageLocked);
++        });
++        // Paper end - Save tadpole age
+     }
+ 
+     @Override
+     public void loadFromBucketTag(CompoundTag p_218715_) {
+         Bucketable.loadDefaultDataFromBucketTag(this, p_218715_);
+         p_218715_.getInt("Age").ifPresent(this::setAge);
++        this.ageLocked = p_218715_.getBooleanOr("AgeLocked", false); // Paper
+     }
+ 
+     @Override
+@@ -218,6 +_,7 @@
+     }
+ 
+     private void ageUp(int p_218701_) {
++        if (this.ageLocked) return; // Paper
+         this.setAge(this.age + p_218701_ * 20);
+     }
+ 
+@@ -229,13 +_,20 @@
      }
  
      private void ageUp() {
+-        if (this.level() instanceof ServerLevel serverlevel) {
+-            this.convertTo(EntityType.FROG, ConversionParams.single(this, false, false), p_427090_ -> {
+-                p_427090_.finalizeSpawn(serverlevel, this.level().getCurrentDifficultyAt(p_427090_.blockPosition()), EntitySpawnReason.CONVERSION, null);
+-                p_427090_.setPersistenceRequired();
+-                p_427090_.fudgePositionAfterSizeChange(this.getDimensions(this.getPose()));
 +        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.FROG, (timer) -> {})) return;
-         if (this.level() instanceof ServerLevel serverlevel) {
-             this.convertTo(EntityType.FROG, ConversionParams.single(this, false, false), p_427090_ -> {
-+                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, p_427090_);
-                 p_427090_.finalizeSpawn(serverlevel, this.level().getCurrentDifficultyAt(p_427090_.blockPosition()), EntitySpawnReason.CONVERSION, null);
-                 p_427090_.setPersistenceRequired();
-                 p_427090_.fudgePositionAfterSizeChange(this.getDimensions(this.getPose()));
++        if (this.level() instanceof ServerLevel serverLevel) {
++            Frog converted = this.convertTo(EntityType.FROG, ConversionParams.single(this, false, false), mob -> { // CraftBukkit
++                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, mob);
++                mob.finalizeSpawn(serverLevel, this.level().getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.CONVERSION, null);
++                mob.setPersistenceRequired();
++                mob.fudgePositionAfterSizeChange(this.getDimensions(this.getPose()));
+                 this.playSound(SoundEvents.TADPOLE_GROW_UP, 0.15F, 1.0F);
+-            });
++            // CraftBukkit start
++            }, org.bukkit.event.entity.EntityTransformEvent.TransformReason.METAMORPHOSIS, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.METAMORPHOSIS);
++            if (converted == null) {
++                this.setAge(0); // Sets the age to 0 for avoid a loop if the event is canceled
++            }
++            // CraftBukkit end
+         }
+     }
+ 

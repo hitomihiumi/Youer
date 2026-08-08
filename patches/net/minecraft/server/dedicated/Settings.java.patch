@@ -1,11 +1,150 @@
 --- a/net/minecraft/server/dedicated/Settings.java
 +++ b/net/minecraft/server/dedicated/Settings.java
-@@ -66,7 +_,7 @@
+@@ -26,12 +_,26 @@
+ public abstract class Settings<T extends Settings<T>> {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public final Properties properties;
+-
+-    public Settings(Properties p_139801_) {
+-        this.properties = p_139801_;
++    private static final boolean skipComments = Boolean.getBoolean("Paper.skipServerPropertiesComments"); // Paper - allow skipping server.properties comments
++    // CraftBukkit start
++    private joptsimple.OptionSet options = null;
++
++    public Settings(Properties properties, final joptsimple.OptionSet options) {
++        this.properties = properties;
++        this.options = options;
++    }
++
++    private String getOverride(String name, String value) {
++        if (this.options != null && this.options.has(name)) {
++            return String.valueOf(this.options.valueOf(name));
++        }
++
++        return value;
++        // CraftBukkit end
+     }
  
-     public void store(Path p_139877_) {
-         try (Writer writer = Files.newBufferedWriter(p_139877_, StandardCharsets.UTF_8)) {
--            this.properties.store(writer, "Minecraft server properties");
-+            net.neoforged.neoforge.common.util.SortedProperties.store(this.properties, writer, "Minecraft server properties");
-         } catch (IOException ioexception) {
-             LOGGER.error("Failed to store properties to file: {}", p_139877_);
+     public static Properties loadFromFile(Path p_139840_) {
++        if (!Files.exists(p_139840_)) return new Properties(); // CraftBukkit - SPIGOT-7465, MC-264979: Don't load if file doesn't exist
+         try {
+             try {
+                 Properties properties3;
+@@ -64,11 +_,57 @@
          }
+     }
+ 
+-    public void store(Path p_139877_) {
+-        try (Writer writer = Files.newBufferedWriter(p_139877_, StandardCharsets.UTF_8)) {
+-            this.properties.store(writer, "Minecraft server properties");
+-        } catch (IOException ioexception) {
+-            LOGGER.error("Failed to store properties to file: {}", p_139877_);
++    public void store(Path path) {
++        try /*(Writer bufferedWriter = Files.newBufferedWriter(path, StandardCharsets.UTF_8))*/ { // Paper
++            // CraftBukkit start - Don't attempt writing to file if it's read only
++            if (path.toFile().exists() && !path.toFile().canWrite()) {
++                Settings.LOGGER.warn("Can not write to file {}, skipping.", path); // Paper - log message file is read-only
++                return;
++            }
++            // CraftBukkit end
++            // Paper start - allow skipping server.properties comments
++            java.io.OutputStream outputstream = Files.newOutputStream(path);
++            java.io.BufferedOutputStream bufferedOutputStream = !skipComments ? new java.io.BufferedOutputStream(outputstream) : new java.io.BufferedOutputStream(outputstream) {
++                private boolean isRightAfterNewline = true; // If last written char was newline
++                private boolean isComment = false; // Are we writing comment currently?
++
++                @Override
++                public void write(@org.jetbrains.annotations.NotNull byte[] b) throws IOException {
++                    this.write(b, 0, b.length);
++                }
++
++                @Override
++                public void write(@org.jetbrains.annotations.NotNull byte[] bbuf, int off, int len) throws IOException {
++                    int latest_offset = off; // The latest offset, updated when comment ends
++                    for (int index = off; index < off + len; ++index ) {
++                        byte c = bbuf[index];
++                        boolean isNewline = (c == '\n' || c == '\r');
++                        if (isNewline && this.isComment) {
++                            // Comment has ended
++                            this.isComment = false;
++                            latest_offset = index+1;
++                        }
++                        if (c == '#' && this.isRightAfterNewline) {
++                            this.isComment = true;
++                            if (index != latest_offset) {
++                                // We got some non-comment data earlier
++                                super.write(bbuf, latest_offset, index-latest_offset);
++                            }
++                        }
++                        this.isRightAfterNewline = isNewline; // Store for next iteration
++
++                    }
++                    if (latest_offset < off+len && !this.isComment) {
++                        // We have some unwritten data, that isn't part of a comment
++                        super.write(bbuf, latest_offset, (off + len) - latest_offset);
++                    }
++                }
++            };
++            java.io.BufferedWriter bufferedWriter = new java.io.BufferedWriter(new java.io.OutputStreamWriter(bufferedOutputStream, java.nio.charset.StandardCharsets.UTF_8.newEncoder()));
++            // Paper end - allow skipping server.properties comments
++            net.neoforged.neoforge.common.util.SortedProperties.store(this.properties, bufferedWriter, "Minecraft server properties");
++        } catch (IOException var7) {
++            LOGGER.error("Failed to store properties to file: {}", path);
+         }
+     }
+ 
+@@ -93,8 +_,8 @@
+     }
+ 
+     @Nullable
+-    private String getStringRaw(String p_139879_) {
+-        return (String)this.properties.get(p_139879_);
++    public String getStringRaw(String p_139879_) {
++        return (String)this.getOverride(p_139879_, this.properties.getProperty(p_139879_)); // CraftBukkit
+     }
+ 
+     @Nullable
+@@ -108,11 +_,20 @@
+         }
+     }
+ 
+-    protected <V> V get(String p_139822_, Function<String, V> p_139823_, Function<V, String> p_139824_, V p_139825_) {
+-        String s = this.getStringRaw(p_139822_);
+-        V v = MoreObjects.firstNonNull(s != null ? p_139823_.apply(s) : null, p_139825_);
+-        this.properties.put(p_139822_, p_139824_.apply(v));
+-        return v;
++    protected <V> V get(String key, Function<String, V> serializer, Function<V, String> deserializer, V defaultValue) {
++        // CraftBukkit start
++        try {
++            return this.get0(key, serializer, deserializer, defaultValue);
++        } catch (Exception ex) {
++            throw new RuntimeException("Could not load invalidly configured property '" + key + "'", ex);
++        }
++    }
++    private <V> V get0(String key, Function<String, V> serializer, Function<V, String> deserializer, V defaultValue) {
++        // CraftBukkit end
++        String stringRaw = this.getStringRaw(key);
++        V object = MoreObjects.firstNonNull(stringRaw != null ? serializer.apply(stringRaw) : null, defaultValue);
++        this.properties.put(key, deserializer.apply(object));
++        return object;
+     }
+ 
+     protected <V> Settings<T>.MutableValue<V> getMutable(String p_139869_, Function<String, V> p_139870_, Function<V, String> p_139871_, V p_139872_) {
+@@ -181,7 +_,7 @@
+         return properties;
+     }
+ 
+-    protected abstract T reload(RegistryAccess p_139857_, Properties p_139858_);
++    protected abstract T reload(RegistryAccess registryAccess, Properties properties, joptsimple.OptionSet optionset); // CraftBukkit
+ 
+     public class MutableValue<V> implements Supplier<V> {
+         private final String key;
+@@ -202,7 +_,7 @@
+         public T update(RegistryAccess p_139896_, V p_139897_) {
+             Properties properties = Settings.this.cloneProperties();
+             properties.put(this.key, this.serializer.apply(p_139897_));
+-            return Settings.this.reload(p_139896_, properties);
++            return Settings.this.reload(p_139896_, properties, Settings.this.options); // CraftBukkit
+         }
+     }
+ }

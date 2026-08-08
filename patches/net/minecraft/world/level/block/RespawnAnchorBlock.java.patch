@@ -1,0 +1,58 @@
+--- a/net/minecraft/world/level/block/RespawnAnchorBlock.java
++++ b/net/minecraft/world/level/block/RespawnAnchorBlock.java
+@@ -103,7 +_,7 @@
+                 ServerPlayer.RespawnConfig serverplayer$respawnconfig = serverplayer.getRespawnConfig();
+                 ServerPlayer.RespawnConfig serverplayer$respawnconfig1 = new ServerPlayer.RespawnConfig(p_316150_.dimension(), p_316161_, 0.0F, false);
+                 if (serverplayer$respawnconfig == null || !serverplayer$respawnconfig.isSamePosition(serverplayer$respawnconfig1)) {
+-                    serverplayer.setRespawnPosition(serverplayer$respawnconfig1, true);
++                    if (serverplayer.setRespawnPosition(serverplayer$respawnconfig1, true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.RESPAWN_ANCHOR)) { // Paper - Add PlayerSetSpawnEvent
+                     p_316150_.playSound(
+                         null,
+                         p_316161_.getX() + 0.5,
+@@ -115,6 +_,11 @@
+                         1.0F
+                     );
+                     return InteractionResult.SUCCESS_SERVER;
++                    // Paper start - Add PlayerSetSpawnEvent
++                    } else {
++                        return InteractionResult.FAIL;
++                    }
++                    // Paper end - Add PlayerSetSpawnEvent
+                 }
+             }
+ 
+@@ -147,23 +_,22 @@
+         }
+     }
+ 
+-    private void explode(BlockState p_55891_, Level p_55892_, final BlockPos p_55893_) {
+-        p_55892_.removeBlock(p_55893_, false);
+-        boolean flag = Direction.Plane.HORIZONTAL.stream().map(p_55893_::relative).anyMatch(p_55854_ -> isWaterThatWouldFlow(p_55854_, p_55892_));
+-        final boolean flag1 = flag || p_55892_.getFluidState(p_55893_.above()).is(FluidTags.WATER);
+-        ExplosionDamageCalculator explosiondamagecalculator = new ExplosionDamageCalculator() {
++    private void explode(BlockState state, Level level, final BlockPos pos2) {
++        org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos2).getState(); // CraftBukkit - capture BlockState before remove block
++        level.removeBlock(pos2, false);
++        boolean flag = Direction.Plane.HORIZONTAL.stream().map(pos2::relative).anyMatch(pos -> isWaterThatWouldFlow(pos, level));
++        final boolean flag1 = flag || level.getFluidState(pos2.above()).is(FluidTags.WATER);
++        ExplosionDamageCalculator explosionDamageCalculator = new ExplosionDamageCalculator() {
+             @Override
+-            public Optional<Float> getBlockExplosionResistance(
+-                Explosion p_55904_, BlockGetter p_55905_, BlockPos p_55906_, BlockState p_55907_, FluidState p_55908_
+-            ) {
+-                return p_55906_.equals(p_55893_) && flag1
++            public Optional<Float> getBlockExplosionResistance(Explosion p_55904_, BlockGetter p_55905_, BlockPos p_55906_, BlockState p_55907_, FluidState p_55908_) {
++                return p_55906_.equals(pos2) && flag1
+                     ? Optional.of(Blocks.WATER.getExplosionResistance())
+                     : super.getBlockExplosionResistance(p_55904_, p_55905_, p_55906_, p_55907_, p_55908_);
+             }
+         };
+-        Vec3 vec3 = p_55893_.getCenter();
+-        p_55892_.explode(
+-            null, p_55892_.damageSources().badRespawnPointExplosion(vec3), explosiondamagecalculator, vec3, 5.0F, true, Level.ExplosionInteraction.BLOCK
++        Vec3 center = pos2.getCenter();
++        level.explode(
++            null, level.damageSources().badRespawnPointExplosion(center).causingBlockSnapshot(blockState), explosionDamageCalculator, center, 5.0F, true, Level.ExplosionInteraction.BLOCK // CraftBukkit - add state
+         );
+     }
+ 

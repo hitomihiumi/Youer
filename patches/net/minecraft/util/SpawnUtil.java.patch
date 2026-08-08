@@ -1,11 +1,109 @@
 --- a/net/minecraft/util/SpawnUtil.java
 +++ b/net/minecraft/util/SpawnUtil.java
-@@ -45,7 +_,7 @@
+@@ -16,42 +_,74 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ 
+ public class SpawnUtil {
+-    public static <T extends Mob> Optional<T> trySpawnMob(
+-        EntityType<T> p_216404_,
+-        EntitySpawnReason p_364255_,
+-        ServerLevel p_216406_,
+-        BlockPos p_216407_,
+-        int p_216408_,
+-        int p_216409_,
+-        int p_216410_,
+-        SpawnUtil.Strategy p_216411_,
+-        boolean p_382971_
+-    ) {
+-        BlockPos.MutableBlockPos blockpos$mutableblockpos = p_216407_.mutable();
+-
+-        for (int i = 0; i < p_216408_; i++) {
+-            int j = Mth.randomBetweenInclusive(p_216406_.random, -p_216409_, p_216409_);
+-            int k = Mth.randomBetweenInclusive(p_216406_.random, -p_216409_, p_216409_);
+-            blockpos$mutableblockpos.setWithOffset(p_216407_, j, p_216410_, k);
+-            if (p_216406_.getWorldBorder().isWithinBounds(blockpos$mutableblockpos)
+-                && moveToPossibleSpawnPosition(p_216406_, p_216410_, blockpos$mutableblockpos, p_216411_)
++
++    public static <T extends Mob> Optional<T> trySpawnMob(
++        EntityType<T> entityType,
++        EntitySpawnReason spawnReason,
++        ServerLevel level,
++        BlockPos pos,
++        int attempts,
++        int range,
++        int yOffset,
++        SpawnUtil.Strategy strategy,
++        boolean checkCollision
++    ) {
++        // CraftBukkit start
++        return trySpawnMob(entityType, spawnReason, level, pos, attempts, range, yOffset, strategy, checkCollision, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT, null); // Paper - pre creature spawn event
++    }
++
++    public static <T extends Mob> Optional<T> trySpawnMob(
++        EntityType<T> entityType,
++        EntitySpawnReason spawnReason,
++        ServerLevel level,
++        BlockPos pos,
++        int attempts,
++        int range,
++        int yOffset,
++        SpawnUtil.Strategy strategy,
++        boolean checkCollision,
++        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason,
++        @javax.annotation.Nullable Runnable onAbort // Paper - pre creature spawn event
++    ) {
++        // CraftBukkit end
++        BlockPos.MutableBlockPos mutableBlockPos = pos.mutable();
++
++        for (int i = 0; i < attempts; i++) {
++            int i1 = Mth.randomBetweenInclusive(level.random, -range, range);
++            int i2 = Mth.randomBetweenInclusive(level.random, -range, range);
++            mutableBlockPos.setWithOffset(pos, i1, yOffset, i2);
++            if (level.getWorldBorder().isWithinBounds(mutableBlockPos)
++                && moveToPossibleSpawnPosition(level, yOffset, mutableBlockPos, strategy)
+                 && (
+-                    !p_382971_
+-                        || p_216406_.noCollision(
+-                            p_216404_.getSpawnAABB(
+-                                blockpos$mutableblockpos.getX() + 0.5, blockpos$mutableblockpos.getY(), blockpos$mutableblockpos.getZ() + 0.5
+-                            )
+-                        )
++                    !checkCollision
++                        || level.noCollision(entityType.getSpawnAABB(mutableBlockPos.getX() + 0.5, mutableBlockPos.getY(), mutableBlockPos.getZ() + 0.5))
                  )) {
-                 T t = (T)p_216404_.create(p_216406_, null, blockpos$mutableblockpos, p_364255_, false, false);
-                 if (t != null) {
+-                T t = (T)p_216404_.create(p_216406_, null, blockpos$mutableblockpos, p_364255_, false, false);
+-                if (t != null) {
 -                    if (t.checkSpawnRules(p_216406_, p_364255_) && t.checkSpawnObstruction(p_216406_)) {
-+                    if (net.neoforged.neoforge.event.EventHooks.checkSpawnPosition(t, p_216406_, p_364255_)) {
-                         p_216406_.addFreshEntityWithPassengers(t);
-                         t.playAmbientSound();
-                         return Optional.of(t);
+-                        p_216406_.addFreshEntityWithPassengers(t);
+-                        t.playAmbientSound();
+-                        return Optional.of(t);
++                // Paper start - PreCreatureSpawnEvent
++                final com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
++                    org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level),
++                    org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(entityType),
++                    reason
++                );
++                if (!event.callEvent()) {
++                    if (event.shouldAbortSpawn()) {
++                        if (onAbort != null) {
++                            onAbort.run();
++                        }
++                        return Optional.empty();
++                    }
++                    break;
++                }
++                // Paper end - PreCreatureSpawnEvent
++                T mob = (T)entityType.create(level, null, mutableBlockPos, spawnReason, false, false);
++                if (mob != null) {
++                    if (net.neoforged.neoforge.event.EventHooks.checkSpawnPosition(mob, level, spawnReason)) {
++                        level.addFreshEntityWithPassengers(mob, reason); // CraftBukkit
++                        if (mob.isRemoved()) return Optional.empty(); // CraftBukkit
++                        mob.playAmbientSound();
++                        return Optional.of(mob);
+                     }
+ 
+-                    t.discard();
++                    mob.discard(null); // CraftBukkit - add Bukkit remove cause
+                 }
+             }
+         }

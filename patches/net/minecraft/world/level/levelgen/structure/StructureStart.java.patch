@@ -1,8 +1,67 @@
 --- a/net/minecraft/world/level/levelgen/structure/StructureStart.java
 +++ b/net/minecraft/world/level/levelgen/structure/StructureStart.java
-@@ -100,6 +_,9 @@
+@@ -30,6 +_,12 @@
+     @Nullable
+     private volatile BoundingBox cachedBoundingBox;
+ 
++    // CraftBukkit start
++    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
++    public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(StructureStart.DATA_TYPE_REGISTRY);
++    public org.bukkit.event.world.AsyncStructureGenerateEvent.Cause generationEventCause = org.bukkit.event.world.AsyncStructureGenerateEvent.Cause.WORLD_GENERATION;
++    // CraftBukkit end
++
+     public StructureStart(Structure p_226846_, ChunkPos p_226847_, int p_226848_, PiecesContainer p_226849_) {
+         this.structure = p_226846_;
+         this.chunkPos = p_226847_;
+@@ -79,27 +_,47 @@
+     }
+ 
+     public void placeInChunk(
+-        WorldGenLevel p_226851_, StructureManager p_226852_, ChunkGenerator p_226853_, RandomSource p_226854_, BoundingBox p_226855_, ChunkPos p_226856_
++        WorldGenLevel level, StructureManager structureManager, ChunkGenerator generator, RandomSource random, BoundingBox box, ChunkPos chunkPos
+     ) {
+         List<StructurePiece> list = this.pieceContainer.pieces();
+         if (!list.isEmpty()) {
+-            BoundingBox boundingbox = list.get(0).boundingBox;
+-            BlockPos blockpos = boundingbox.getCenter();
+-            BlockPos blockpos1 = new BlockPos(blockpos.getX(), boundingbox.minY(), blockpos.getZ());
++            BoundingBox boundingBox = list.get(0).boundingBox;
++            BlockPos center = boundingBox.getCenter();
++            BlockPos blockPos = new BlockPos(center.getX(), boundingBox.minY(), center.getZ());
+ 
+-            for (StructurePiece structurepiece : list) {
+-                if (structurepiece.getBoundingBox().intersects(p_226855_)) {
+-                    structurepiece.postProcess(p_226851_, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, blockpos1);
++            // CraftBukkit start
++            // for (StructurePiece structurePiece : list) {
++            //     if (structurePiece.getBoundingBox().intersects(box)) {
++            //         structurePiece.postProcess(level, structureManager, generator, random, box, chunkPos, blockPos);
++            //     }
++            // }
++            List<StructurePiece> pieces = list.stream().filter(piece -> piece.getBoundingBox().intersects(box)).toList();
++            if (!pieces.isEmpty()) {
++                org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess = new org.bukkit.craftbukkit.util.TransformerGeneratorAccess();
++                transformerAccess.setDelegate(level);
++                transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(this.generationEventCause, level, structureManager, this.structure, box, chunkPos));
++                for (StructurePiece piece : pieces) {
++                    piece.postProcess(transformerAccess, structureManager, generator, random, box, chunkPos, blockPos);
+                 }
++                transformerAccess.getStructureTransformer().discard();
+             }
++            // CraftBukkit end
+ 
+-            this.structure.afterPlace(p_226851_, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, this.pieceContainer);
++            this.structure.afterPlace(level, structureManager, generator, random, box, chunkPos, this.pieceContainer);
+         }
+     }
+ 
      public CompoundTag createTag(StructurePieceSerializationContext p_192661_, ChunkPos p_192662_) {
          CompoundTag compoundtag = new CompoundTag();
++        // CraftBukkit start - store persistent data in nbt
++        if (!this.persistentDataContainer.isEmpty()) {
++            compoundtag.put("StructureBukkitValues", this.persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
          if (this.isValid()) {
 +            if (p_192661_.registryAccess().lookupOrThrow(Registries.STRUCTURE).getKey(this.getStructure()) == null) { // FORGE: This is just a more friendly error instead of the 'Null String' below
 +                throw new RuntimeException("StructureStart \"" + this.getClass().getName() + "\": \"" + this.getStructure() + "\" unregistered, serializing impossible.");

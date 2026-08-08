@@ -1,0 +1,114 @@
+--- a/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -28,6 +_,12 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.entity.ExplosionPrimeEvent;
++// CraftBukkit end
++
+ public class PrimedTnt extends Entity implements TraceableEntity {
+     private static final EntityDataAccessor<Integer> DATA_FUSE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.INT);
+     private static final EntityDataAccessor<BlockState> DATA_BLOCK_STATE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.BLOCK_STATE);
+@@ -55,7 +_,8 @@
+     @Nullable
+     public EntityReference<LivingEntity> owner;
+     private boolean usedPortal;
+-    private float explosionPower = 4.0F;
++    public float explosionPower = 4.0F;
++    public boolean isIncendiary = false; // CraftBukkit
+ 
+     public PrimedTnt(EntityType<? extends PrimedTnt> p_32076_, Level p_32077_) {
+         super(p_32076_, p_32077_);
+@@ -65,7 +_,7 @@
+     public PrimedTnt(Level p_32079_, double p_32080_, double p_32081_, double p_32082_, @Nullable LivingEntity p_32083_) {
+         this(EntityType.TNT, p_32079_);
+         this.setPos(p_32080_, p_32081_, p_32082_);
+-        double d0 = p_32079_.random.nextDouble() * (float) (Math.PI * 2);
++        double d0 = this.random.nextDouble() * (float) (Math.PI * 2); // Paper - Don't use p_32079_ random in entity constructors
+         this.setDeltaMovement(-Math.sin(d0) * 0.02, 0.2F, -Math.cos(d0) * 0.02);
+         this.setFuse(80);
+         this.xo = p_32080_;
+@@ -97,10 +_,17 @@
+ 
+     @Override
+     public void tick() {
++        if (this.level().spigotConfig.maxTntTicksPerTick > 0 && ++this.level().spigotConfig.currentPrimedTnt > this.level().spigotConfig.maxTntTicksPerTick) { return; } // Spigot
+         this.handlePortal();
+         this.applyGravity();
+         this.move(MoverType.SELF, this.getDeltaMovement());
+         this.applyEffectsFromBlocks();
++        // Paper start - Configurable TNT height nerf
++        if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
++            this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++            return;
++        }
++        // Paper end - Configurable TNT height nerf
+         this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
+         if (this.onGround()) {
+             this.setDeltaMovement(this.getDeltaMovement().multiply(0.7, -0.5, 0.7));
+@@ -109,20 +_,35 @@
+         int i = this.getFuse() - 1;
+         this.setFuse(i);
+         if (i <= 0) {
+-            this.discard();
++            // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
++            //this.discard();
+             if (!this.level().isClientSide) {
+                 this.explode();
+             }
++            this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++            // CraftBukkit end
+         } else {
+             this.updateInWaterStateAndDoFluidPushing();
+             if (this.level().isClientSide) {
+                 this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
+             }
+         }
++        // Paper start - Option to prevent TNT from moving in water
++        if (!this.isRemoved() && this.wasTouchingWater && this.level().paperConfig().fixes.preventTntFromMovingInWater) {
++            this.hurtMarked = true;
++            this.hasImpulse = true;
++        }
++        // Paper end - Option to prevent TNT from moving in water
+     }
+ 
+-    public void explode() {
+-        if (this.level() instanceof ServerLevel serverlevel && serverlevel.getGameRules().getBoolean(GameRules.RULE_TNT_EXPLODES)) {
++    private void explode() {
++        if (this.level() instanceof ServerLevel serverLevel && serverLevel.getGameRules().getBoolean(GameRules.RULE_TNT_EXPLODES)) {
++            // CraftBukkit start
++            ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive) this.getBukkitEntity());
++            if (event.isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
+             this.level()
+                 .explode(
+                     this,
+@@ -131,8 +_,8 @@
+                     this.getX(),
+                     this.getY(0.0625),
+                     this.getZ(),
+-                    this.explosionPower,
+-                    false,
++                    event.getRadius(), // CraftBukkit
++                    event.getFire(), // CraftBukkit
+                     Level.ExplosionInteraction.TNT
+                 );
+         }
+@@ -205,4 +_,11 @@
+     public final boolean hurtServer(ServerLevel p_376658_, DamageSource p_376356_, float p_376220_) {
+         return false;
+     }
++
++    // Paper start - Option to prevent TNT from moving in water
++    @Override
++    public boolean isPushedByFluid() {
++        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && super.isPushedByFluid();
++    }
++    // Paper end - Option to prevent TNT from moving in water
+ }
