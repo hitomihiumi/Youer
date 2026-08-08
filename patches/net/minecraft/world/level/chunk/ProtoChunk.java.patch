@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/ProtoChunk.java
 +++ b/net/minecraft/world/level/chunk/ProtoChunk.java
-@@ -88,10 +_,27 @@
+@@ -88,16 +_,33 @@
          return new ChunkAccess.PackedTicks(this.blockTicks.pack(p_360967_), this.fluidTicks.pack(p_360967_));
      }
  
@@ -31,13 +31,25 @@
 +        if (this.isOutsideBuildHeight(y)) {
              return Blocks.VOID_AIR.defaultBlockState();
          } else {
-             LevelChunkSection levelchunksection = this.getSection(this.getSectionIndex(i));
-@@ -139,7 +_,7 @@
+-            LevelChunkSection levelchunksection = this.getSection(this.getSectionIndex(i));
+-            return levelchunksection.hasOnlyAir()
+-                ? Blocks.AIR.defaultBlockState()
+-                : levelchunksection.getBlockState(p_63264_.getX() & 15, i & 15, p_63264_.getZ() & 15);
++            // Paper start
++            LevelChunkSection section = this.getSections()[this.getSectionIndex(y)];
++            return section.hasOnlyAir() ? Blocks.AIR.defaultBlockState() : section.getBlockState(x & 15, y & 15, z & 15);
++            // Paper end
+         }
+     }
+ 
+@@ -139,8 +_,9 @@
                          this.lightEngine.updateSectionStatus(p_63217_, flag1);
                      }
  
 -                    if (LightEngine.hasDifferentLightProperties(blockstate, p_63218_)) {
 +                    if (LightEngine.hasDifferentLightProperties(this, p_63217_, blockstate, p_63218_)) {
                          this.skyLightSources.update(this, i1, j, k1);
++                        // Paper - rewrite chunk system
                          this.lightEngine.checkBlock(p_63217_);
                      }
+                 }

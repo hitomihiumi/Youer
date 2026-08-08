@@ -26,7 +26,7 @@
          this.addSlot(new Slot(p_379971_, 0, 56, 17));
          this.addSlot(new FurnaceFuelSlot(this, p_379971_, 1, 56, 53));
          this.addSlot(new FurnaceResultSlot(p_38964_.player, p_379971_, 2, 116, 35));
-+        this.p_38964_ = p_38964_; // CraftBukkit
++        this.inventory = p_38964_; // CraftBukkit
          this.addStandardInventorySlots(p_38964_, 8, 84);
          this.addDataSlots(p_379737_);
      }

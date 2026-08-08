@@ -1,0 +1,178 @@
+--- a/net/minecraft/recipebook/ServerPlaceRecipe.java
++++ b/net/minecraft/recipebook/ServerPlaceRecipe.java
+@@ -40,6 +_,7 @@
+             return RecipeBookMenu.PostPlaceAction.NOTHING;
+         } else {
+             StackedItemContents stackeditemcontents = new StackedItemContents();
++            stackeditemcontents.initializeExtras(p_363024_.value(), null); // Paper - Improve exact choice p_363024_ ingredients
+             p_364618_.fillStackedContents(stackeditemcontents);
+             p_361341_.fillCraftSlotsStackedContents(stackeditemcontents);
+             return serverplacerecipe.tryPlaceRecipe(p_363024_, stackeditemcontents);
+@@ -86,9 +_,9 @@
+         this.menu.clearCraftingContent();
+     }
+ 
+-    private void placeRecipe(RecipeHolder<R> p_364551_, StackedItemContents p_362416_) {
+-        boolean flag = this.menu.recipeMatches(p_364551_);
+-        int i = p_362416_.getBiggestCraftableStack(p_364551_.value(), null);
++    private void placeRecipe(RecipeHolder<R> recipe, StackedItemContents stackedItemContents) {
++        boolean flag = this.menu.recipeMatches(recipe);
++        int i = stackedItemContents.getBiggestCraftableStack(recipe.value(), null);
+         if (flag) {
+             for (Slot slot : this.inputGridSlots) {
+                 ItemStack itemstack = slot.getItem();
+@@ -99,31 +_,27 @@
+         }
+ 
+         int j = this.calculateAmountToCraft(i, flag);
+-        List<Holder<Item>> list = new ArrayList<>();
+-        if (p_362416_.canCraft(p_364551_.value(), j, list::add)) {
++        List<io.papermc.paper.inventory.recipe.ItemOrExact> list = new ArrayList<>(); // Paper - Improve exact choice recipe ingredients
++        if (stackedItemContents.canCraft(recipe.value(), j, list::add)) {
+             int k = clampToMaxStackSize(j, list);
+             if (k != j) {
+                 list.clear();
+-                if (!p_362416_.canCraft(p_364551_.value(), k, list::add)) {
++                if (!stackedItemContents.canCraft(recipe.value(), k, list::add)) {
+                     return;
+                 }
+             }
+ 
+             this.clearGrid();
+             PlaceRecipeHelper.placeRecipe(
+-                this.gridWidth,
+-                this.gridHeight,
+-                p_364551_.value(),
+-                p_364551_.value().placementInfo().slotsToIngredientIndex(),
+-                (p_389375_, p_389376_, p_389377_, p_389378_) -> {
+-                    if (p_389375_ != -1) {
+-                        Slot slot1 = this.inputGridSlots.get(p_389376_);
+-                        Holder<Item> holder = list.get(p_389375_);
+-                        int l = k;
++                this.gridWidth, this.gridHeight, recipe.value(), recipe.value().placementInfo().slotsToIngredientIndex(), (item1, slot1, x, y) -> {
++                    if (item1 != -1) {
++                        Slot slot2 = this.inputGridSlots.get(slot1);
++                        io.papermc.paper.inventory.recipe.ItemOrExact holder = list.get(item1); // Paper - Improve exact choice recipe ingredients
++                        int i2 = k;
+ 
+-                        while (l > 0) {
+-                            l = this.moveItemToGrid(slot1, holder, l);
+-                            if (l == -1) {
++                        while (i2 > 0) {
++                            i2 = this.moveItemToGrid(slot2, holder, i2);
++                            if (i2 == -1) {
+                                 return;
+                             }
+                         }
+@@ -133,18 +_,20 @@
+         }
+     }
+ 
+-    private static int clampToMaxStackSize(int p_389711_, List<Holder<Item>> p_389467_) {
+-        for (Holder<Item> holder : p_389467_) {
+-            p_389711_ = Math.min(p_389711_, holder.value().getDefaultMaxStackSize());
++    // Paper start - Improve exact choice recipe ingredients
++    private static int clampToMaxStackSize(int amount, List<io.papermc.paper.inventory.recipe.ItemOrExact> items) {
++        for (io.papermc.paper.inventory.recipe.ItemOrExact holder : items) {
++            amount = Math.min(amount, holder.getMaxStackSize());
++            // Paper end - Improve exact choice recipe ingredients
+         }
+ 
+-        return p_389711_;
++        return amount;
+     }
+ 
+-    private int calculateAmountToCraft(int p_364430_, boolean p_362919_) {
++    private int calculateAmountToCraft(int max, boolean recipeMatches) {
+         if (this.useMaxItems) {
+-            return p_364430_;
+-        } else if (p_362919_) {
++            return max;
++        } else if (recipeMatches) {
+             int i = Integer.MAX_VALUE;
+ 
+             for (Slot slot : this.inputGridSlots) {
+@@ -164,40 +_,40 @@
+         }
+     }
+ 
+-    private int moveItemToGrid(Slot p_135439_, Holder<Item> p_360762_, int p_346157_) {
+-        ItemStack itemstack = p_135439_.getItem();
+-        int i = this.inventory.findSlotMatchingCraftingIngredient(p_360762_, itemstack);
++    private int moveItemToGrid(Slot slot, io.papermc.paper.inventory.recipe.ItemOrExact itemstack, int count) { // Paper - Improve exact choice recipe ingredients
++        ItemStack item1 = slot.getItem();
++        int i = this.inventory.findSlotMatchingCraftingIngredient(itemstack, item1);
+         if (i == -1) {
+             return -1;
+         } else {
+-            ItemStack itemstack1 = this.inventory.getItem(i);
+-            ItemStack itemstack2;
+-            if (p_346157_ < itemstack1.getCount()) {
+-                itemstack2 = this.inventory.removeItem(i, p_346157_);
+-            } else {
+-                itemstack2 = this.inventory.removeItemNoUpdate(i);
+-            }
+-
+-            int j = itemstack2.getCount();
+-            if (itemstack.isEmpty()) {
+-                p_135439_.set(itemstack2);
+-            } else {
+-                itemstack.grow(j);
+-            }
+-
+-            return p_346157_ - j;
++            ItemStack item2 = this.inventory.getItem(i);
++            ItemStack itemStack;
++            if (count < item2.getCount()) {
++                itemStack = this.inventory.removeItem(i, count);
++            } else {
++                itemStack = this.inventory.removeItemNoUpdate(i);
++            }
++
++            int count1 = itemStack.getCount();
++            if (item1.isEmpty()) {
++                slot.set(itemStack);
++            } else {
++                item1.grow(count1);
++            }
++
++            return count - count1;
+         }
+     }
+ 
+     private boolean testClearGrid() {
+         List<ItemStack> list = Lists.newArrayList();
+-        int i = this.getAmountOfFreeSlotsInInventory();
++        int amountOfFreeSlotsInInventory = this.getAmountOfFreeSlotsInInventory();
+ 
+         for (Slot slot : this.inputGridSlots) {
+             ItemStack itemstack = slot.getItem().copy();
+             if (!itemstack.isEmpty()) {
+                 int j = this.inventory.getSlotWithRemainingSpace(itemstack);
+-                if (j == -1 && list.size() <= i) {
++                if (j == -1 && list.size() <= amountOfFreeSlotsInInventory) {
+                     for (ItemStack itemstack1 : list) {
+                         if (ItemStack.isSameItem(itemstack1, itemstack)
+                             && itemstack1.getCount() != itemstack1.getMaxStackSize()
+@@ -209,7 +_,7 @@
+                     }
+ 
+                     if (!itemstack.isEmpty()) {
+-                        if (list.size() >= i) {
++                        if (list.size() >= amountOfFreeSlotsInInventory) {
+                             return false;
+                         }
+ 
+@@ -237,10 +_,10 @@
+     }
+ 
+     public interface CraftingMenuAccess<T extends Recipe<?>> {
+-        void fillCraftSlotsStackedContents(StackedItemContents p_362423_);
++        void fillCraftSlotsStackedContents(StackedItemContents stackedItemContents);
+ 
+         void clearCraftingContent();
+ 
+-        boolean recipeMatches(RecipeHolder<T> p_361972_);
++        boolean recipeMatches(RecipeHolder<T> recipe);
+     }
+ }

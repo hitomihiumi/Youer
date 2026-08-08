@@ -1,0 +1,218 @@
+--- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
++++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
+@@ -32,44 +_,72 @@
+     private final Map<Heightmap.Types, long[]> heightmaps;
+     private final byte[] buffer;
+     private final List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
+-
+-    public ClientboundLevelChunkPacketData(LevelChunk p_195651_) {
+-        this.heightmaps = p_195651_.getHeightmaps()
++    // Paper start - Handle oversized block entities in chunks
++    private final java.util.List<net.minecraft.network.protocol.Packet<?>> extraPackets = new java.util.ArrayList<>();
++    private static final int BLOCK_ENTITY_LIMIT = Integer.getInteger("Paper.excessiveTELimit", 750);
++
++    public List<net.minecraft.network.protocol.Packet<?>> getExtraPackets() {
++        return this.extraPackets;
++    }
++    // Paper end - Handle oversized block entities in chunks
++
++    // Paper start - Anti-Xray - Add chunk packet info
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
++    public ClientboundLevelChunkPacketData(LevelChunk levelChunk) {
++        this(levelChunk, null);
++    }
++    public ClientboundLevelChunkPacketData(LevelChunk levelChunk, io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo) {
++        // Paper end
++        this.heightmaps = levelChunk.getHeightmaps()
+             .stream()
+-            .filter(p_404183_ -> p_404183_.getKey().sendToClient())
+-            .collect(Collectors.toMap(Entry::getKey, p_404181_ -> (long[])p_404181_.getValue().getRawData().clone()));
+-        this.buffer = new byte[calculateChunkSize(p_195651_)];
+-        extractChunkData(new FriendlyByteBuf(this.getWriteBuffer()), p_195651_);
++            .filter(entry1 -> entry1.getKey().sendToClient())
++            .collect(Collectors.toMap(Entry::getKey, entry1 -> (long[])entry1.getValue().getRawData().clone()));
++        this.buffer = new byte[calculateChunkSize(levelChunk)];
++        // Paper start - Anti-Xray - Add chunk packet info
++        if (chunkPacketInfo != null) {
++            chunkPacketInfo.setBuffer(this.buffer);
++        }
++        extractChunkData(new FriendlyByteBuf(this.getWriteBuffer()), levelChunk, chunkPacketInfo);
+         this.blockEntitiesData = Lists.newArrayList();
++        int totalTileEntities = 0; // Paper - Handle oversized block entities in chunks
+ 
+-        for (Entry<BlockPos, BlockEntity> entry : p_195651_.getBlockEntities().entrySet()) {
++        for (Entry<BlockPos, BlockEntity> entry : levelChunk.getBlockEntities().entrySet()) {
++            // Paper start - Handle oversized block entities in chunks
++            if (++totalTileEntities > BLOCK_ENTITY_LIMIT) {
++                net.minecraft.network.protocol.Packet<ClientGamePacketListener> packet = entry.getValue().getUpdatePacket();
++                if (packet != null) {
++                    this.extraPackets.add(packet);
++                    continue;
++                }
++            }
++            // Paper end - Handle oversized block entities in chunks
+             this.blockEntitiesData.add(ClientboundLevelChunkPacketData.BlockEntityInfo.create(entry.getValue()));
+         }
+     }
+ 
+-    public ClientboundLevelChunkPacketData(RegistryFriendlyByteBuf p_320343_, int p_195654_, int p_195655_) {
+-        this.heightmaps = HEIGHTMAPS_STREAM_CODEC.decode(p_320343_);
+-        int i = p_320343_.readVarInt();
+-        if (i > 2097152) {
++    public ClientboundLevelChunkPacketData(RegistryFriendlyByteBuf buffer, int x, int p_195655_) {
++        this.heightmaps = HEIGHTMAPS_STREAM_CODEC.decode(buffer);
++        int i = buffer.readVarInt();
++        if (i > 2097152) { // Paper - diff on change - if this changes, update PacketEncoder
+             throw new RuntimeException("Chunk Packet trying to allocate too much memory on read.");
+         } else {
+             this.buffer = new byte[i];
+-            p_320343_.readBytes(this.buffer);
+-            this.blockEntitiesData = ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.decode(p_320343_);
++            buffer.readBytes(this.buffer);
++            this.blockEntitiesData = ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.decode(buffer);
+         }
+     }
+ 
+-    public void write(RegistryFriendlyByteBuf p_320863_) {
+-        HEIGHTMAPS_STREAM_CODEC.encode(p_320863_, this.heightmaps);
+-        p_320863_.writeVarInt(this.buffer.length);
+-        p_320863_.writeBytes(this.buffer);
+-        ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.encode(p_320863_, this.blockEntitiesData);
++    public void write(RegistryFriendlyByteBuf p_320343_) {
++        HEIGHTMAPS_STREAM_CODEC.encode(p_320343_, this.heightmaps);
++        p_320343_.writeVarInt(this.buffer.length);
++        p_320343_.writeBytes(this.buffer);
++        ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.encode(p_320343_, this.blockEntitiesData);
+     }
+ 
+-    private static int calculateChunkSize(LevelChunk p_195665_) {
++    private static int calculateChunkSize(LevelChunk chunk) {
+         int i = 0;
+ 
+-        for (LevelChunkSection levelchunksection : p_195665_.getSections()) {
++        for (LevelChunkSection levelchunksection : chunk.getSections()) {
+             i += levelchunksection.getSerializedSize();
+         }
+ 
+@@ -77,35 +_,43 @@
+     }
+ 
+     private ByteBuf getWriteBuffer() {
+-        ByteBuf bytebuf = Unpooled.wrappedBuffer(this.buffer);
+-        bytebuf.writerIndex(0);
+-        return bytebuf;
++        ByteBuf byteBuf = Unpooled.wrappedBuffer(this.buffer);
++        byteBuf.writerIndex(0);
++        return byteBuf;
+     }
+ 
+-    public static void extractChunkData(FriendlyByteBuf p_195669_, LevelChunk p_195670_) {
+-        for (LevelChunkSection levelchunksection : p_195670_.getSections()) {
+-            levelchunksection.write(p_195669_);
++    // Paper start - Anti-Xray - Add chunk packet info
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
++    public static void extractChunkData(FriendlyByteBuf buffer, LevelChunk chunk) {
++        ClientboundLevelChunkPacketData.extractChunkData(buffer, chunk, null);
++    }
++    public static void extractChunkData(FriendlyByteBuf buffer, LevelChunk chunk, io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo) {
++        int chunkSectionIndex = 0;
++        for (LevelChunkSection levelChunkSection : chunk.getSections()) {
++            levelChunkSection.write(buffer, chunkPacketInfo, chunkSectionIndex);
++            chunkSectionIndex++;
++            // Paper end  - Anti-Xray - Add chunk packet info
+         }
+ 
+-        if (p_195669_.writerIndex() != p_195669_.capacity()) {
+-            throw new IllegalStateException("Didn't fill chunk buffer: expected " + p_195669_.capacity() + " bytes, got " + p_195669_.writerIndex());
++        if (buffer.writerIndex() != buffer.capacity()) {
++            throw new IllegalStateException("Didn't fill chunk buffer: expected " + buffer.capacity() + " bytes, got " + buffer.writerIndex());
+         }
+     }
+ 
+     public Consumer<ClientboundLevelChunkPacketData.BlockEntityTagOutput> getBlockEntitiesTagsConsumer(int p_195658_, int p_195659_) {
+-        return p_195663_ -> this.getBlockEntitiesTags(p_195663_, p_195658_, p_195659_);
++        return blockEntityTagOutput -> this.getBlockEntitiesTags(blockEntityTagOutput, p_195658_, p_195659_);
+     }
+ 
+-    private void getBlockEntitiesTags(ClientboundLevelChunkPacketData.BlockEntityTagOutput p_195675_, int p_195676_, int p_195677_) {
+-        int i = 16 * p_195676_;
+-        int j = 16 * p_195677_;
++    private void getBlockEntitiesTags(ClientboundLevelChunkPacketData.BlockEntityTagOutput output, int p_195658_, int p_195659_) {
++        int i = 16 * p_195658_;
++        int j = 16 * p_195659_;
+         BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
+ 
+         for (ClientboundLevelChunkPacketData.BlockEntityInfo clientboundlevelchunkpacketdata$blockentityinfo : this.blockEntitiesData) {
+             int k = i + SectionPos.sectionRelative(clientboundlevelchunkpacketdata$blockentityinfo.packedXZ >> 4);
+             int l = j + SectionPos.sectionRelative(clientboundlevelchunkpacketdata$blockentityinfo.packedXZ);
+             blockpos$mutableblockpos.set(k, clientboundlevelchunkpacketdata$blockentityinfo.y, l);
+-            p_195675_.accept(
++            output.accept(
+                 blockpos$mutableblockpos, clientboundlevelchunkpacketdata$blockentityinfo.type, clientboundlevelchunkpacketdata$blockentityinfo.tag
+             );
+         }
+@@ -132,37 +_,38 @@
+         @Nullable
+         final CompoundTag tag;
+ 
+-        private BlockEntityInfo(int p_195685_, int p_195686_, BlockEntityType<?> p_195687_, @Nullable CompoundTag p_195688_) {
+-            this.packedXZ = p_195685_;
+-            this.y = p_195686_;
+-            this.type = p_195687_;
+-            this.tag = p_195688_;
+-        }
+-
+-        private BlockEntityInfo(RegistryFriendlyByteBuf p_319780_) {
+-            this.packedXZ = p_319780_.readByte();
+-            this.y = p_319780_.readShort();
+-            this.type = ByteBufCodecs.registry(Registries.BLOCK_ENTITY_TYPE).decode(p_319780_);
+-            this.tag = p_319780_.readNbt();
+-        }
+-
+-        private void write(RegistryFriendlyByteBuf p_320914_) {
+-            p_320914_.writeByte(this.packedXZ);
+-            p_320914_.writeShort(this.y);
+-            ByteBufCodecs.registry(Registries.BLOCK_ENTITY_TYPE).encode(p_320914_, this.type);
+-            p_320914_.writeNbt(this.tag);
+-        }
+-
+-        static ClientboundLevelChunkPacketData.BlockEntityInfo create(BlockEntity p_195692_) {
+-            CompoundTag compoundtag = p_195692_.getUpdateTag(p_195692_.getLevel().registryAccess());
+-            BlockPos blockpos = p_195692_.getBlockPos();
++        private BlockEntityInfo(int packedXZ, int y, BlockEntityType<?> type, @Nullable CompoundTag tag) {
++            this.packedXZ = packedXZ;
++            this.y = y;
++            this.type = type;
++            this.tag = tag;
++        }
++
++        private BlockEntityInfo(RegistryFriendlyByteBuf buffer) {
++            this.packedXZ = buffer.readByte();
++            this.y = buffer.readShort();
++            this.type = ByteBufCodecs.registry(Registries.BLOCK_ENTITY_TYPE).decode(buffer);
++            this.tag = buffer.readNbt();
++        }
++
++        private void write(RegistryFriendlyByteBuf p_319780_) {
++            p_319780_.writeByte(this.packedXZ);
++            p_319780_.writeShort(this.y);
++            ByteBufCodecs.registry(Registries.BLOCK_ENTITY_TYPE).encode(p_319780_, this.type);
++            p_319780_.writeNbt(this.tag);
++        }
++
++        static ClientboundLevelChunkPacketData.BlockEntityInfo create(BlockEntity blockEntity) {
++            CompoundTag updateTag = blockEntity.getUpdateTag(blockEntity.getLevel().registryAccess());
++            BlockPos blockpos = blockEntity.getBlockPos();
+             int i = SectionPos.sectionRelative(blockpos.getX()) << 4 | SectionPos.sectionRelative(blockpos.getZ());
+-            return new ClientboundLevelChunkPacketData.BlockEntityInfo(i, blockpos.getY(), p_195692_.getType(), compoundtag.isEmpty() ? null : compoundtag);
++            // TODO: restore blockEntity.sanitizeSentNbt(updateTag) once BlockEntity.java is merged (not yet in corpus for this batch)
++            return new ClientboundLevelChunkPacketData.BlockEntityInfo(i, blockpos.getY(), blockEntity.getType(), updateTag.isEmpty() ? null : updateTag);
+         }
+     }
+ 
+     @FunctionalInterface
+     public interface BlockEntityTagOutput {
+-        void accept(BlockPos p_195696_, BlockEntityType<?> p_195697_, @Nullable CompoundTag p_195698_);
++        void accept(BlockPos pos, BlockEntityType<?> type, @Nullable CompoundTag nbt);
+     }
+ }

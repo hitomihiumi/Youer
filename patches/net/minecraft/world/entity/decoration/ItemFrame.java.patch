@@ -1,5 +1,93 @@
 --- a/net/minecraft/world/entity/decoration/ItemFrame.java
 +++ b/net/minecraft/world/entity/decoration/ItemFrame.java
+@@ -54,6 +_,7 @@
+     private static final boolean DEFAULT_FIXED = false;
+     public float dropChance = 1.0F;
+     public boolean fixed = false;
++    public @Nullable MapId cachedMapId; // Paper - Perf: Cache map ids on item frames
+ 
+     public ItemFrame(EntityType<? extends ItemFrame> p_31761_, Level p_31762_) {
+         super(p_31761_, p_31762_);
+@@ -101,14 +_,20 @@
+     }
+ 
+     @Override
+-    protected AABB calculateBoundingBox(BlockPos p_345363_, Direction p_344892_) {
++    protected AABB calculateBoundingBox(BlockPos pos, Direction direction) {
++        // CraftBukkit start - break out BB calc into own method
++        return ItemFrame.calculateBoundingBoxStatic(pos, direction);
++    }
++
++    public static AABB calculateBoundingBoxStatic(BlockPos pos, Direction direction) {
++        // CraftBukkit end
+         float f = 0.46875F;
+-        Vec3 vec3 = Vec3.atCenterOf(p_345363_).relative(p_344892_, -0.46875);
+-        Direction.Axis direction$axis = p_344892_.getAxis();
+-        double d0 = direction$axis == Direction.Axis.X ? 0.0625 : 0.75;
+-        double d1 = direction$axis == Direction.Axis.Y ? 0.0625 : 0.75;
+-        double d2 = direction$axis == Direction.Axis.Z ? 0.0625 : 0.75;
+-        return AABB.ofSize(vec3, d0, d1, d2);
++        Vec3 vec3 = Vec3.atCenterOf(pos).relative(direction, -0.46875);
++        Direction.Axis axis = direction.getAxis();
++        double d = axis == Direction.Axis.X ? 0.0625 : 0.75;
++        double d1 = axis == Direction.Axis.Y ? 0.0625 : 0.75;
++        double d2 = axis == Direction.Axis.Z ? 0.0625 : 0.75;
++        return AABB.ofSize(vec3, d, d1, d2);
+     }
+ 
+     @Override
+@@ -133,9 +_,9 @@
+     }
+ 
+     @Override
+-    public void push(double p_31817_, double p_31818_, double p_31819_) {
++    public void push(double x, double y, double z, @Nullable Entity pushingEntity) { // Paper - add push source entity param
+         if (!this.fixed) {
+-            super.push(p_31817_, p_31818_, p_31819_);
++            super.push(x, y, z, pushingEntity); // Paper - add push source entity param
+         }
+     }
+ 
+@@ -159,20 +_,32 @@
+     }
+ 
+     @Override
+-    public boolean hurtServer(ServerLevel p_376559_, DamageSource p_376904_, float p_376420_) {
++    public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
+         if (!this.fixed) {
+-            if (this.isInvulnerableToBase(p_376904_)) {
++            if (this.isInvulnerableToBase(damageSource)) {
+                 return false;
+-            } else if (this.shouldDamageDropItem(p_376904_)) {
+-                this.dropItem(p_376559_, p_376904_.getEntity(), false);
+-                this.gameEvent(GameEvent.BLOCK_CHANGE, p_376904_.getEntity());
++            } else if (this.shouldDamageDropItem(damageSource)) {
++                // CraftBukkit start - fire EntityDamageEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, damageSource, amount, false) || this.isRemoved()) {
++                    return true;
++                }
++                // CraftBukkit end
++                // Paper start - Add PlayerItemFrameChangeEvent
++                if (damageSource.getEntity() instanceof Player player) {
++                    var event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), this.getItem().asBukkitCopy(), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.REMOVE);
++                    if (!event.callEvent()) return true; // return true here because you aren't cancelling the damage, just the change
++                    this.setItem(ItemStack.fromBukkitCopy(event.getItemStack()), false);
++                }
++                // Paper end - Add PlayerItemFrameChangeEvent
++                this.dropItem(level, damageSource.getEntity(), false);
++                this.gameEvent(GameEvent.BLOCK_CHANGE, damageSource.getEntity());
+                 this.playSound(this.getRemoveItemSound(), 1.0F, 1.0F);
+                 return true;
+             } else {
+-                return super.hurtServer(p_376559_, p_376904_, p_376420_);
++                return super.hurtServer(level, damageSource, amount);
+             }
+         } else {
+-            return canHurtWhenFixed(p_376904_) && super.hurtServer(p_376559_, p_376904_, p_376420_);
++            return canHurtWhenFixed(damageSource) && super.hurtServer(level, damageSource, amount);
+         }
+     }
+ 
 @@ -236,7 +_,7 @@
      private void removeFramedMap(ItemStack p_31811_) {
          MapId mapid = this.getFramedMapId(p_31811_);
@@ -9,3 +97,111 @@
              if (mapitemsaveddata != null) {
                  mapitemsaveddata.removedFromFrame(this.pos, this.getId());
              }
+@@ -249,6 +_,14 @@
+         return this.getEntityData().get(DATA_ITEM);
+     }
+ 
++    // Paper start - Fix MC-123848 (spawn item frame drops above block)
++    @Nullable
++    @Override
++    public net.minecraft.world.entity.item.ItemEntity spawnAtLocation(ServerLevel serverLevel, ItemStack stack) {
++        return this.spawnAtLocation(serverLevel, stack, this.getDirection() == Direction.DOWN ? -0.6F : 0.0F);
++    }
++    // Paper end
++
+     @Nullable
+     public MapId getFramedMapId(ItemStack p_353029_) {
+         return p_353029_.get(DataComponents.MAP_ID);
+@@ -263,17 +_,23 @@
+     }
+ 
+     public void setItem(ItemStack p_31790_, boolean p_31791_) {
+-        if (!p_31790_.isEmpty()) {
+-            p_31790_ = p_31790_.copyWithCount(1);
++        // CraftBukkit start
++        this.setItem(p_31790_, p_31791_, true);
++    }
++
++    public void setItem(ItemStack stack, boolean updateNeighbours, boolean playSound) {
++        // CraftBukkit end
++        if (!stack.isEmpty()) {
++            stack = stack.copyWithCount(1);
+         }
+ 
+-        this.onItemChanged(p_31790_);
+-        this.getEntityData().set(DATA_ITEM, p_31790_);
+-        if (!p_31790_.isEmpty()) {
++        this.onItemChanged(stack);
++        this.getEntityData().set(DATA_ITEM, stack);
++        if (!stack.isEmpty() && updateNeighbours && playSound) { // CraftBukkit // Paper - only play sound when update flag is set
+             this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
+         }
+ 
+-        if (p_31791_ && this.pos != null) {
++        if (updateNeighbours && this.pos != null) {
+             this.level().updateNeighbourForOutputSignal(this.pos, Blocks.AIR);
+         }
+     }
+@@ -296,6 +_,7 @@
+     }
+ 
+     private void onItemChanged(ItemStack p_218866_) {
++        this.cachedMapId = p_218866_.getComponents().get(net.minecraft.core.component.DataComponents.MAP_ID); // Paper - Perf: Cache map ids on p_218866_ frames
+         if (!p_218866_.isEmpty() && p_218866_.getFrame() != this) {
+             p_218866_.setEntityRepresentation(this);
+         }
+@@ -351,31 +_,44 @@
+     }
+ 
+     @Override
+-    public InteractionResult interact(Player p_31787_, InteractionHand p_31788_) {
+-        ItemStack itemstack = p_31787_.getItemInHand(p_31788_);
++    public InteractionResult interact(Player player, InteractionHand hand) {
++        ItemStack itemInHand = player.getItemInHand(hand);
+         boolean flag = !this.getItem().isEmpty();
+-        boolean flag1 = !itemstack.isEmpty();
++        boolean flag1 = !itemInHand.isEmpty();
+         if (this.fixed) {
+             return InteractionResult.PASS;
+-        } else if (!p_31787_.level().isClientSide) {
++        } else if (!player.level().isClientSide) {
+             if (!flag) {
+                 if (flag1 && !this.isRemoved()) {
+-                    MapItemSavedData mapitemsaveddata = MapItem.getSavedData(itemstack, this.level());
+-                    if (mapitemsaveddata != null && mapitemsaveddata.isTrackedCountOverLimit(256)) {
++                    MapItemSavedData savedData = MapItem.getSavedData(itemInHand, this.level());
++                    if (savedData != null && savedData.isTrackedCountOverLimit(256)) {
+                         return InteractionResult.FAIL;
+                     } else {
+-                        this.setItem(itemstack);
+-                        this.gameEvent(GameEvent.BLOCK_CHANGE, p_31787_);
+-                        itemstack.consume(1, p_31787_);
++                        // Paper start - Add PlayerItemFrameChangeEvent
++                        io.papermc.paper.event.player.PlayerItemFrameChangeEvent event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), itemInHand.asBukkitCopy(), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.PLACE);
++                        if (!event.callEvent()) {
++                            return InteractionResult.FAIL;
++                        }
++                        this.setItem(ItemStack.fromBukkitCopy(event.getItemStack()));
++                        // Paper end - Add PlayerItemFrameChangeEvent
++                        this.gameEvent(GameEvent.BLOCK_CHANGE, player);
++                        itemInHand.consume(1, player);
+                         return InteractionResult.SUCCESS;
+                     }
+                 } else {
+                     return InteractionResult.PASS;
+                 }
+             } else {
++                // Paper start - Add PlayerItemFrameChangeEvent
++                io.papermc.paper.event.player.PlayerItemFrameChangeEvent event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), this.getItem().asBukkitCopy(), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.ROTATE);
++                if (!event.callEvent()) {
++                    return InteractionResult.FAIL;
++                }
++                setItem(ItemStack.fromBukkitCopy(event.getItemStack()), false, false);
++                // Paper end - Add PlayerItemFrameChangeEvent
+                 this.playSound(this.getRotateItemSound(), 1.0F, 1.0F);
+                 this.setRotation(this.getRotation() + 1);
+-                this.gameEvent(GameEvent.BLOCK_CHANGE, p_31787_);
++                this.gameEvent(GameEvent.BLOCK_CHANGE, player);
+                 return InteractionResult.SUCCESS;
+             }
+         } else {

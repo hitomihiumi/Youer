@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/MappedRegistry.java
 +++ b/net/minecraft/core/MappedRegistry.java
-@@ -29,7 +_,7 @@
+@@ -29,26 +_,37 @@
  import net.minecraft.tags.TagLoader;
  import net.minecraft.util.RandomSource;
  
@@ -8,7 +8,42 @@
 +public class MappedRegistry<T> extends net.neoforged.neoforge.registries.BaseMappedRegistry<T> implements WritableRegistry<T> {
      private final ResourceKey<? extends Registry<T>> key;
      private final ObjectList<Holder.Reference<T>> byId = new ObjectArrayList<>(256);
-     private final Reference2IntMap<T> toId = Util.make(new Reference2IntOpenHashMap<>(), p_304142_ -> p_304142_.defaultReturnValue(-1));
+-    private final Reference2IntMap<T> toId = Util.make(new Reference2IntOpenHashMap<>(), p_304142_ -> p_304142_.defaultReturnValue(-1));
+-    private final Map<ResourceLocation, Holder.Reference<T>> byLocation = new HashMap<>();
+-    private final Map<ResourceKey<T>, Holder.Reference<T>> byKey = new HashMap<>();
+-    private final Map<T, Holder.Reference<T>> byValue = new IdentityHashMap<>();
+-    private final Map<ResourceKey<T>, RegistrationInfo> registrationInfos = new IdentityHashMap<>();
++    private final Reference2IntMap<T> toId = Util.make(new Reference2IntOpenHashMap<>(2048), map -> map.defaultReturnValue(-1)); // Paper - Perf: Use bigger expected size to reduce collisions
++    private final Map<ResourceLocation, Holder.Reference<T>> byLocation = new HashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
++    private final Map<ResourceKey<T>, Holder.Reference<T>> byKey = new HashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
++    private final Map<T, Holder.Reference<T>> byValue = new IdentityHashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
++    private final Map<ResourceKey<T>, RegistrationInfo> registrationInfos = new IdentityHashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
+     private Lifecycle registryLifecycle;
+     private final Map<TagKey<T>, HolderSet.Named<T>> frozenTags = new IdentityHashMap<>();
+     MappedRegistry.TagSet<T> allTags = MappedRegistry.TagSet.unbound();
+     private boolean frozen;
+     @Nullable
+     private Map<T, Holder.Reference<T>> unregisteredIntrusiveHolders;
++    // Paper start - support pre-filling in registry mod API
++    private final Map<ResourceLocation, T> temporaryUnfrozenMap = new HashMap<>();
++
++    @Override
++    public Optional<T> getValueForCopying(final ResourceKey<T> resourceKey) {
++        return this.frozen ? this.getOptional(resourceKey) : Optional.ofNullable(this.temporaryUnfrozenMap.get(resourceKey.location()));
++    }
++    // Paper end - support pre-filling in registry mod API
+ 
+     @Override
+     public Stream<HolderSet.Named<T>> listTags() {
+         return this.getTags();
+     }
+ 
++    // Paper - fluid method optimisations: injectFluidRegister() stripped, Moonrise's fluid patch
++    // (moonrise.patches.fluid.FluidFluidState) is out of scope for this merge.
++
+     public MappedRegistry(ResourceKey<? extends Registry<T>> p_249899_, Lifecycle p_252249_) {
+         this(p_249899_, p_252249_, false);
+     }
 @@ -85,9 +_,17 @@
  
      @Override
@@ -27,7 +62,7 @@
          if (this.byLocation.containsKey(p_256252_.location())) {
              throw (IllegalStateException)Util.pauseInIde(new IllegalStateException("Adding duplicate key '" + p_256252_ + "' to registry"));
          } else if (this.byValue.containsKey(p_256591_)) {
-@@ -103,16 +_,18 @@
+@@ -103,16 +_,19 @@
                  reference.bindKey(p_256252_);
              } else {
                  reference = this.byKey.computeIfAbsent(p_256252_, p_367800_ -> Holder.Reference.createStandAlone(this, (ResourceKey<T>)p_367800_));
@@ -44,6 +79,7 @@
              this.registrationInfos.put(p_256252_, p_326235_);
              this.registryLifecycle = this.registryLifecycle.add(p_326235_.lifecycle());
 +            this.addCallbacks.forEach(addCallback -> addCallback.onAdd(this, i, p_256252_, p_256591_));
++            this.temporaryUnfrozenMap.put(p_256252_.location(), p_256591_); // Paper - support pre-filling in registry mod API
              return reference;
          }
      }
@@ -96,7 +132,7 @@
          return getValueFromNullable(reference);
      }
  
-@@ -268,13 +_,23 @@
+@@ -268,13 +_,24 @@
          return this.byKey.containsKey(p_175392_);
      }
  
@@ -118,6 +154,7 @@
          } else {
              this.frozen = true;
 -            this.byValue.forEach((p_247989_, p_247990_) -> p_247990_.bindValue((T)p_247989_));
++            this.temporaryUnfrozenMap.clear(); // Paper - support pre-filling in registry mod API
              List<ResourceLocation> list = this.byKey
                  .entrySet()
                  .stream()
@@ -139,12 +176,10 @@
                  } else {
                      List<ResourceLocation> list1 = this.frozenTags
                          .entrySet()
-@@ -449,6 +_,55 @@
-                 }
-             };
+@@ -451,6 +_,55 @@
          }
-+    }
-+
+     }
+ 
 +    @Override
 +    protected void clear(boolean full) {
 +        this.validateWrite();
@@ -192,6 +227,22 @@
 +    @Override
 +    public boolean containsValue(T value) {
 +        return byValue.containsKey(value);
-     }
- 
++    }
++
      interface TagSet<T> {
+         static <T> MappedRegistry.TagSet<T> unbound() {
+             return new MappedRegistry.TagSet<T>() {
+@@ -508,4 +_,13 @@
+ 
+         Stream<HolderSet.Named<T>> getTags();
+     }
++
++    // Paper start
++    // used to clear intrusive holders from GameEvent, Item, Block, EntityType, and Fluid from unused instances of those types
++    public void clearIntrusiveHolder(final T instance) {
++        if (this.unregisteredIntrusiveHolders != null) {
++            this.unregisteredIntrusiveHolders.remove(instance);
++        }
++    }
++    // Paper end
+ }

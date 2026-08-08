@@ -42,14 +42,141 @@
          this.factory = p_273268_;
          this.category = p_272918_;
          this.canSpawnFarFromPlayer = p_272654_;
-@@ -1143,6 +_,10 @@
+@@ -1143,26 +_,46 @@
          this.descriptionId = p_368582_;
          this.lootTable = p_368696_;
          this.requiredFeatures = p_273518_;
+-    }
+-
+-    @Nullable
+-    public T spawn(
+-        ServerLevel p_20593_,
+-        @Nullable ItemStack p_20594_,
+-        @Nullable LivingEntity p_393729_,
+-        BlockPos p_20596_,
+-        EntitySpawnReason p_361023_,
+-        boolean p_20598_,
+-        boolean p_20599_
+-    ) {
 +        this.trackDeltasSupplier = trackDeltasSupplier;
 +        this.trackingRangeSupplier = trackingRangeSupplier;
 +        this.updateIntervalSupplier = updateIntervalSupplier;
 +        this.onlyOpCanSetNbt = onlyOpCanSetNbt;
++    }
++
++    @Nullable
++    public T spawn(
++        ServerLevel level,
++        @Nullable ItemStack spawnedFrom,
++        @Nullable LivingEntity owner,
++        BlockPos pos,
++        EntitySpawnReason reason,
++        boolean shouldOffsetY,
++        boolean shouldOffsetYMore
++    ) {
++        // CraftBukkit start
++        return this.spawn(level, spawnedFrom, owner, pos, reason, shouldOffsetY, shouldOffsetYMore, reason == EntitySpawnReason.DISPENSER ? org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DISPENSE_EGG : org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG); // Paper - use correct spawn reason for dispenser spawn eggs
++    }
++
++    @Nullable
++    public T spawn(
++        ServerLevel level,
++        @Nullable ItemStack spawnedFrom,
++        @Nullable LivingEntity owner,
++        BlockPos pos,
++        EntitySpawnReason reason,
++        boolean shouldOffsetY,
++        boolean shouldOffsetYMore,
++        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason createSpawnReason
++    ) {
++        // CraftBukkit end
+         Consumer<T> consumer;
+-        if (p_20594_ != null) {
+-            consumer = createDefaultStackConfig(p_20593_, p_20594_, p_393729_);
++        if (spawnedFrom != null) {
++            consumer = createDefaultStackConfig(level, spawnedFrom, owner);
+         } else {
+             consumer = p_263563_ -> {};
+         }
+ 
+-        return this.spawn(p_20593_, consumer, p_20596_, p_361023_, p_20598_, p_20599_);
++        return this.spawn(level, consumer, pos, reason, shouldOffsetY, shouldOffsetYMore, createSpawnReason); // CraftBukkit
+     }
+ 
+     public static <T extends Entity> Consumer<T> createDefaultStackConfig(Level p_366618_, ItemStack p_263568_, @Nullable LivingEntity p_393794_) {
+@@ -1183,27 +_,62 @@
+         Consumer<T> p_263579_, Level p_366735_, ItemStack p_263582_, @Nullable LivingEntity p_394266_
+     ) {
+         CustomData customdata = p_263582_.getOrDefault(DataComponents.ENTITY_DATA, CustomData.EMPTY);
+-        return !customdata.isEmpty() ? p_263579_.andThen(p_392975_ -> updateCustomEntityTag(p_366735_, p_394266_, p_392975_, customdata)) : p_263579_;
++        // CraftBukkit start - SPIGOT-5665
++        return !customdata.isEmpty() ? p_263579_.andThen(entity -> {
++            try {
++                updateCustomEntityTag(p_366735_, p_394266_, entity, customdata);
++            } catch (Throwable t) {
++                EntityType.LOGGER.warn("Error loading spawn egg NBT", t);
++            }
++        }) : p_263579_;
++        // CraftBukkit end
+     }
+ 
+     @Nullable
+     public T spawn(ServerLevel p_262704_, BlockPos p_262672_, EntitySpawnReason p_363697_) {
+-        return this.spawn(p_262704_, null, p_262672_, p_363697_, false, false);
+-    }
+-
+-    @Nullable
+-    public T spawn(
+-        ServerLevel p_262634_, @Nullable Consumer<T> p_365118_, BlockPos p_262707_, EntitySpawnReason p_362115_, boolean p_361504_, boolean p_362006_
+-    ) {
+-        T t = this.create(p_262634_, p_365118_, p_262707_, p_362115_, p_361504_, p_362006_);
+-        if (t != null) {
+-            p_262634_.addFreshEntityWithPassengers(t);
+-            if (t instanceof Mob mob) {
++        // CraftBukkit start
++        return this.spawn(p_262704_, p_262672_, p_363697_, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    @Nullable
++    public T spawn(ServerLevel level, BlockPos pos, EntitySpawnReason reason, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason creatureSpawnReason) {
++        return this.spawn(level, null, pos, reason, false, false, creatureSpawnReason);
++        // CraftBukkit End
++    }
++
++    @Nullable
++    public T spawn(ServerLevel level, @Nullable Consumer<T> consumer, BlockPos pos, EntitySpawnReason reason, boolean shouldOffsetY, boolean shouldOffsetYMore) {
++        // CraftBukkit start
++        return this.spawn(level, consumer, pos, reason, shouldOffsetY, shouldOffsetYMore, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    @Nullable
++    public T spawn(ServerLevel level, @Nullable Consumer<T> consumer, BlockPos pos, EntitySpawnReason reason, boolean shouldOffsetY, boolean shouldOffsetYMore, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason creatureSpawnReason) {
++        // CraftBukkit end
++        // Paper start - PreCreatureSpawnEvent
++        com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
++            org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level),
++            org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(this),
++            creatureSpawnReason
++        );
++        if (!event.callEvent()) {
++            return null;
++        }
++        // Paper end - PreCreatureSpawnEvent
++        T entity = this.create(level, consumer, pos, reason, shouldOffsetY, shouldOffsetYMore);
++        if (entity != null) {
++            // CraftBukkit start
++            level.addFreshEntityWithPassengers(entity, creatureSpawnReason);
++            if (entity.isRemoved()) {
++                return null; // Don't return an entity when CreatureSpawnEvent is canceled
++            }
++            // CraftBukkit end
++            if (entity instanceof Mob mob) {
+                 mob.playAmbientSound();
+             }
+         }
+ 
+-        return t;
++        return entity;
      }
  
      @Nullable
@@ -67,6 +194,73 @@
              }
  
              if (p_262629_ != null) {
+@@ -1255,6 +_,15 @@
+                 if (p_20621_.isClientSide
+                     || !p_20623_.getType().onlyOpCanSetNbt()
+                     || p_394374_ instanceof Player player && minecraftserver.getPlayerList().isOp(player.getGameProfile())) {
++                    // Paper start - filter out protected tags
++                    if (p_394374_ == null || !p_394374_.getBukkitEntity().hasPermission("minecraft.nbt.place")) {
++                        p_331752_ = p_331752_.update((compound) -> {
++                            for (net.minecraft.commands.arguments.NbtPathArgument.NbtPath tag : p_20621_.paperConfig().entities.spawning.filteredEntityTagNbtPaths) {
++                                tag.remove(compound);
++                            }
++                        });
++                    }
++                    // Paper end - filter out protected tags
+                     p_331752_.loadInto(p_20623_);
+                 }
+             }
+@@ -1326,10 +_,21 @@
+     }
+ 
+     public static Optional<Entity> create(ValueInput p_422014_, Level p_20644_, EntitySpawnReason p_360780_) {
++        // Paper start - Don't fire sync event during generation
++        return create(p_422014_, p_20644_, p_360780_, false);
++    }
++
++    public static Optional<Entity> create(ValueInput input, Level level, EntitySpawnReason spawnReason, boolean generation) {
++        // Paper end - Don't fire sync event during generation
+         return Util.ifElse(
+-            by(p_422014_).map(p_359692_ -> p_359692_.create(p_20644_, p_360780_)),
+-            p_421348_ -> p_421348_.load(p_422014_),
+-            () -> LOGGER.warn("Skipping Entity with id {}", p_422014_.getStringOr("id", "[invalid]"))
++            by(input).map(entityType -> entityType.create(level, spawnReason)),
++            // Paper start - Don't fire sync event during generation
++            entity -> {
++                if (generation) entity.generation = true; // Paper - Don't fire sync event during generation
++                entity.load(input);
++            },
++            // Paper end - Don't fire sync event during generation
++            () -> LOGGER.warn("Skipping Entity with id {}", input.getStringOr("id", "[invalid]"))
+         );
+     }
+ 
+@@ -1383,10 +_,21 @@
+         }).orElse(null);
+     }
+ 
+-    public static Stream<Entity> loadEntitiesRecursive(ValueInput.ValueInputList p_422664_, Level p_147047_, EntitySpawnReason p_360400_) {
+-        return p_422664_.stream().mapMulti((p_421351_, p_421352_) -> loadEntityRecursive(p_421351_, p_147047_, p_360400_, p_404267_ -> {
+-            p_421352_.accept(p_404267_);
+-            return p_404267_;
++    public static Stream<Entity> loadEntitiesRecursive(ValueInput.ValueInputList input, Level level, EntitySpawnReason spawnReason) {
++        final java.util.Map<EntityType<?>, Integer> loadedEntityCounts = new java.util.HashMap<>(); // Paper - Entity load/save limit per chunk
++        return input.stream().mapMulti((valueInput, consumer) -> loadEntityRecursive(valueInput, level, spawnReason, entity -> {
++            // Paper start - Entity load/save limit per chunk
++            final EntityType<?> entityType = entity.getType();
++            final int saveLimit = level.paperConfig().chunks.entityPerChunkSaveLimit.getOrDefault(entityType, -1);
++            if (saveLimit > -1) {
++                if (loadedEntityCounts.getOrDefault(entityType, 0) >= saveLimit) {
++                    return null;
++                }
++                loadedEntityCounts.merge(entityType, 1, Integer::sum);
++            }
++            // Paper end - Entity load/save limit per chunk
++            consumer.accept(entity);
++            return entity;
+         }));
+     }
+ 
 @@ -1400,14 +_,23 @@
      }
  

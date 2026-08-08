@@ -1,24 +1,189 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -159,7 +_,7 @@
-             if (this.level() instanceof ServerLevel serverlevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
-                 BlockPos blockpos = this.blockPosition();
+@@ -73,6 +_,7 @@
+     public CompoundTag blockData;
+     public boolean forceTickAfterTeleportToDuplicate;
+     protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
++    public boolean autoExpire = true; // Paper - Expand FallingBlock API
+ 
+     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> p_31950_, Level p_31951_) {
+         super(p_31950_, p_31951_);
+@@ -98,6 +_,7 @@
+             p_201973_.getZ() + 0.5,
+             p_201974_.hasProperty(BlockStateProperties.WATERLOGGED) ? p_201974_.setValue(BlockStateProperties.WATERLOGGED, false) : p_201974_
+         );
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(fallingblockentity, p_201973_, p_201974_.getFluidState().createLegacyBlock())) return fallingblockentity; // CraftBukkit
+         p_201972_.setBlock(p_201973_, p_201974_.getFluidState().createLegacyBlock(), 3);
+         p_201972_.addFreshEntity(fallingblockentity);
+         return fallingblockentity;
+@@ -148,110 +_,124 @@
+     @Override
+     public void tick() {
+         if (this.blockState.isAir()) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         } else {
+             Block block = this.blockState.getBlock();
+             this.time++;
+             this.applyGravity();
+             this.move(MoverType.SELF, this.getDeltaMovement());
+             this.applyEffectsFromBlocks();
++            // Paper start - Configurable falling blocks height nerf
++            if (this.level().paperConfig().fixes.fallingBlockHeightNerf.test(v -> this.getY() > v)) {
++                if (this.dropItem && this.level() instanceof final ServerLevel serverLevel && serverLevel.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                    this.spawnAtLocation(serverLevel, block);
++                }
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                return;
++            }
++            // Paper end - Configurable falling blocks height nerf
+             this.handlePortal();
+-            if (this.level() instanceof ServerLevel serverlevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
+-                BlockPos blockpos = this.blockPosition();
++            if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
++                BlockPos blockPos = this.blockPosition();
                  boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
 -                boolean flag1 = flag && this.level().getFluidState(blockpos).is(FluidTags.WATER);
-+                boolean flag1 = flag && this.blockState.canBeHydrated(this.level(), blockpos, this.level().getFluidState(blockpos), blockpos);
-                 double d0 = this.getDeltaMovement().lengthSqr();
-                 if (flag && d0 > 1.0) {
-                     BlockHitResult blockhitresult = this.level()
-@@ -168,7 +_,7 @@
+-                double d0 = this.getDeltaMovement().lengthSqr();
+-                if (flag && d0 > 1.0) {
+-                    BlockHitResult blockhitresult = this.level()
++                boolean flag1 = flag && this.blockState.canBeHydrated(this.level(), blockPos, this.level().getFluidState(blockPos), blockPos); // Forge: mod-extensible hydration check
++                double d = this.getDeltaMovement().lengthSqr();
++                if (flag && d > 1.0) {
++                    BlockHitResult blockHitResult = this.level()
+                         .clip(
+                             new ClipContext(
                                  new Vec3(this.xo, this.yo, this.zo), this.position(), ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, this
                              )
                          );
 -                    if (blockhitresult.getType() != HitResult.Type.MISS && this.level().getFluidState(blockhitresult.getBlockPos()).is(FluidTags.WATER)) {
-+                    if (blockhitresult.getType() != HitResult.Type.MISS && this.blockState.canBeHydrated(this.level(), blockpos, this.level().getFluidState(blockhitresult.getBlockPos()), blockhitresult.getBlockPos())) {
-                         blockpos = blockhitresult.getBlockPos();
+-                        blockpos = blockhitresult.getBlockPos();
++                    if (blockHitResult.getType() != HitResult.Type.MISS && this.blockState.canBeHydrated(this.level(), blockHitResult.getBlockPos(), this.level().getFluidState(blockHitResult.getBlockPos()), blockHitResult.getBlockPos())) { // Forge: mod-extensible hydration check
++                        blockPos = blockHitResult.getBlockPos();
                          flag1 = true;
                      }
-@@ -252,6 +_,9 @@
+                 }
+ 
+                 if (!this.onGround() && !flag1) {
+-                    if (this.time > 100 && (blockpos.getY() <= this.level().getMinY() || blockpos.getY() > this.level().getMaxY()) || this.time > 600) {
+-                        if (this.dropItem && serverlevel.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+-                            this.spawnAtLocation(serverlevel, block);
++                    if ((this.time > 100 && autoExpire) && (blockPos.getY() <= this.level().getMinY() || blockPos.getY() > this.level().getMaxY()) || (this.time > 600 && autoExpire)) { // Paper - Expand FallingBlock API
++                        if (this.dropItem && serverLevel.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                            this.spawnAtLocation(serverLevel, block);
+                         }
+ 
+-                        this.discard();
++                        this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                     }
+                 } else {
+-                    BlockState blockstate = this.level().getBlockState(blockpos);
++                    BlockState blockState = this.level().getBlockState(blockPos);
+                     this.setDeltaMovement(this.getDeltaMovement().multiply(0.7, -0.5, 0.7));
+-                    if (!blockstate.is(Blocks.MOVING_PISTON)) {
++                    if (!blockState.is(Blocks.MOVING_PISTON)) {
+                         if (!this.cancelDrop) {
+-                            boolean flag2 = blockstate.canBeReplaced(
+-                                new DirectionalPlaceContext(this.level(), blockpos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
++                            boolean canBeReplaced = blockState.canBeReplaced(
++                                new DirectionalPlaceContext(this.level(), blockPos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
+                             );
+-                            boolean flag3 = FallingBlock.isFree(this.level().getBlockState(blockpos.below())) && (!flag || !flag1);
+-                            boolean flag4 = this.blockState.canSurvive(this.level(), blockpos) && !flag3;
+-                            if (flag2 && flag4) {
++                            boolean flag2 = FallingBlock.isFree(this.level().getBlockState(blockPos.below())) && (!flag || !flag1);
++                            boolean flag3 = this.blockState.canSurvive(this.level(), blockPos) && !flag2;
++                            if (canBeReplaced && flag3) {
+                                 if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED)
+-                                    && this.level().getFluidState(blockpos).getType() == Fluids.WATER) {
++                                    && this.level().getFluidState(blockPos).getType() == Fluids.WATER) {
+                                     this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
+                                 }
+ 
+-                                if (this.level().setBlock(blockpos, this.blockState, 3)) {
++                                // CraftBukkit start
++                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this, blockPos, this.blockState)) {
++                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // SPIGOT-6586 called before the event in previous versions
++                                    return;
++                                }
++                                // CraftBukkit end
++                                if (this.level().setBlock(blockPos, this.blockState, 3)) {
+                                     ((ServerLevel)this.level())
+                                         .getChunkSource()
+                                         .chunkMap
+-                                        .broadcast(this, new ClientboundBlockUpdatePacket(blockpos, this.level().getBlockState(blockpos)));
+-                                    this.discard();
++                                        .broadcast(this, new ClientboundBlockUpdatePacket(blockPos, this.level().getBlockState(blockPos)));
++                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                                     if (block instanceof Fallable) {
+-                                        ((Fallable)block).onLand(this.level(), blockpos, this.blockState, blockstate, this);
++                                        ((Fallable)block).onLand(this.level(), blockPos, this.blockState, blockState, this);
+                                     }
+ 
+                                     if (this.blockData != null && this.blockState.hasBlockEntity()) {
+-                                        BlockEntity blockentity = this.level().getBlockEntity(blockpos);
+-                                        if (blockentity != null) {
+-                                            try (ProblemReporter.ScopedCollector problemreporter$scopedcollector = new ProblemReporter.ScopedCollector(
+-                                                    blockentity.problemPath(), LOGGER
++                                        BlockEntity blockEntity = this.level().getBlockEntity(blockPos);
++                                        if (blockEntity != null) {
++                                            try (ProblemReporter.ScopedCollector scopedCollector = new ProblemReporter.ScopedCollector(
++                                                    blockEntity.problemPath(), LOGGER
+                                                 )) {
+-                                                RegistryAccess registryaccess = this.level().registryAccess();
+-                                                TagValueOutput tagvalueoutput = TagValueOutput.createWithContext(
+-                                                    problemreporter$scopedcollector, registryaccess
+-                                                );
+-                                                blockentity.saveWithoutMetadata(tagvalueoutput);
+-                                                CompoundTag compoundtag = tagvalueoutput.buildResult();
+-                                                this.blockData.forEach((p_409356_, p_409357_) -> compoundtag.put(p_409356_, p_409357_.copy()));
+-                                                blockentity.loadWithComponents(
+-                                                    TagValueInput.create(problemreporter$scopedcollector, registryaccess, compoundtag)
+-                                                );
+-                                            } catch (Exception exception) {
+-                                                LOGGER.error("Failed to load block entity from falling block", (Throwable)exception);
++                                                RegistryAccess registryAccess = this.level().registryAccess();
++                                                TagValueOutput tagValueOutput = TagValueOutput.createWithContext(scopedCollector, registryAccess);
++                                                blockEntity.saveWithoutMetadata(tagValueOutput);
++                                                CompoundTag compoundTag = tagValueOutput.buildResult();
++                                                this.blockData.forEach((string, tag) -> compoundTag.put(string, tag.copy()));
++                                                blockEntity.loadWithComponents(TagValueInput.create(scopedCollector, registryAccess, compoundTag));
++                                            } catch (Exception var19) {
++                                                LOGGER.error("Failed to load block entity from falling block", (Throwable)var19);
+                                             }
+ 
+-                                            blockentity.setChanged();
++                                            blockEntity.setChanged();
+                                         }
+                                     }
+-                                } else if (this.dropItem && serverlevel.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+-                                    this.discard();
+-                                    this.callOnBrokenAfterFall(block, blockpos);
+-                                    this.spawnAtLocation(serverlevel, block);
++                                } else if (this.dropItem && serverLevel.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                                    this.callOnBrokenAfterFall(block, blockPos);
++                                    this.spawnAtLocation(serverLevel, block);
+                                 }
+                             } else {
+-                                this.discard();
+-                                if (this.dropItem && serverlevel.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+-                                    this.callOnBrokenAfterFall(block, blockpos);
+-                                    this.spawnAtLocation(serverlevel, block);
++                                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                                if (this.dropItem && serverLevel.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                                    this.callOnBrokenAfterFall(block, blockPos);
++                                    this.spawnAtLocation(serverLevel, block);
+                                 }
+                             }
+                         } else {
+-                            this.discard();
+-                            this.callOnBrokenAfterFall(block, blockpos);
++                            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                            this.callOnBrokenAfterFall(block, blockPos);
+                         }
+                     }
+                 }
              }
  
              this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
@@ -28,3 +193,31 @@
          }
      }
  
+@@ -304,6 +_,7 @@
+         }
+ 
+         p_421897_.putBoolean("CancelDrop", this.cancelDrop);
++        if (!this.autoExpire) p_421897_.putBoolean("Paper.AutoExpire", false); // Paper - Expand FallingBlock API
+     }
+ 
+     @Override
+@@ -315,8 +_,9 @@
+         this.fallDamagePerDistance = p_422622_.getFloatOr("FallHurtAmount", 0.0F);
+         this.fallDamageMax = p_422622_.getIntOr("FallHurtMax", 40);
+         this.dropItem = p_422622_.getBooleanOr("DropItem", true);
+-        this.blockData = p_422622_.read("TileEntityData", CompoundTag.CODEC).orElse(null);
++        this.blockData = p_422622_.read("TileEntityData", CompoundTag.CODEC).map(blockData -> this.level().paperConfig().entities.spawning.filterBadTileEntityNbtFromFallingBlocks && this.blockState.getBlock() instanceof net.minecraft.world.level.block.GameMasterBlock ? null : blockData).map(CompoundTag::copy).orElse(null); // Paper - Filter bad block entity nbt data from falling blocks
+         this.cancelDrop = p_422622_.getBooleanOr("CancelDrop", false);
++        this.autoExpire = p_422622_.getBooleanOr("Paper.AutoExpire", true); // Paper - Expand FallingBlock API
+     }
+ 
+     public void setHurtsEntities(float p_149657_, int p_149658_) {
+@@ -373,7 +_,7 @@
+         ResourceKey<Level> resourcekey1 = this.level().dimension();
+         boolean flag = (resourcekey1 == Level.END || resourcekey == Level.END) && resourcekey1 != resourcekey;
+         Entity entity = super.teleport(p_379492_);
+-        this.forceTickAfterTeleportToDuplicate = entity != null && flag;
++        this.forceTickAfterTeleportToDuplicate = entity != null && flag && io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowUnsafeEndPortalTeleportation; // Paper
+         return entity;
+     }
+ }

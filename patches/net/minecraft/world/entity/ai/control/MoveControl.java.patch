@@ -1,0 +1,60 @@
+--- a/net/minecraft/world/entity/ai/control/MoveControl.java
++++ b/net/minecraft/world/entity/ai/control/MoveControl.java
+@@ -25,8 +_,8 @@
+     protected float strafeRight;
+     protected MoveControl.Operation operation = MoveControl.Operation.WAIT;
+ 
+-    public MoveControl(Mob p_24983_) {
+-        this.mob = p_24983_;
++    public MoveControl(Mob mob) {
++        this.mob = mob;
+     }
+ 
+     public boolean hasWanted() {
+@@ -37,8 +_,8 @@
+         return this.speedModifier;
+     }
+ 
+-    public void setWantedPosition(double p_24984_, double p_24985_, double p_24986_, double p_24987_) {
+-        this.wantedX = p_24984_;
++    public void setWantedPosition(double x, double p_24985_, double p_24986_, double p_24987_) {
++        this.wantedX = x;
+         this.wantedY = p_24985_;
+         this.wantedZ = p_24986_;
+         this.speedModifier = p_24987_;
+@@ -47,10 +_,10 @@
+         }
+     }
+ 
+-    public void strafe(float p_24989_, float p_24990_) {
++    public void strafe(float forward, float strafe) {
+         this.operation = MoveControl.Operation.STRAFE;
+-        this.strafeForwards = p_24989_;
+-        this.strafeRight = p_24990_;
++        this.strafeForwards = forward;
++        this.strafeRight = strafe;
+         this.speedModifier = 0.25;
+     }
+ 
+@@ -116,8 +_,8 @@
+         }
+     }
+ 
+-    private boolean isWalkable(float p_24997_, float p_24998_) {
+-        PathNavigation pathnavigation = this.mob.getNavigation();
++    private boolean isWalkable(float relativeX, float relativeZ) {
++        PathNavigation navigation = this.mob.getNavigation();
+         if (pathnavigation != null) {
+             NodeEvaluator nodeevaluator = pathnavigation.getNodeEvaluator();
+             if (nodeevaluator != null
+@@ -130,8 +_,8 @@
+         return true;
+     }
+ 
+-    protected float rotlerp(float p_24992_, float p_24993_, float p_24994_) {
+-        float f = Mth.wrapDegrees(p_24993_ - p_24992_);
++    protected float rotlerp(float sourceAngle, float targetAngle, float maximumChange) {
++        float f = Mth.wrapDegrees(targetAngle - p_24992_);
+         if (f > p_24994_) {
+             f = p_24994_;
+         }

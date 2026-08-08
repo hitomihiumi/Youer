@@ -168,9 +168,9 @@
 -            this.setX(p_122179_);
 -            this.setY(p_122180_);
 -            this.setZ(p_122181_);
-+            this.p_122179_ = p_122179_; // Paper - Perf: Manually inline methods in BlockPosition
-+            this.p_122180_ = p_122180_; // Paper - Perf: Manually inline methods in BlockPosition
-+            this.p_122181_ = p_122181_; // Paper - Perf: Manually inline methods in BlockPosition
++            this.x = p_122179_; // Paper - Perf: Manually inline methods in BlockPosition
++            this.y = p_122180_; // Paper - Perf: Manually inline methods in BlockPosition
++            this.z = p_122181_; // Paper - Perf: Manually inline methods in BlockPosition
              return this;
          }
  
@@ -179,19 +179,19 @@
  
          public BlockPos.MutableBlockPos setX(int p_175341_) {
 -            super.setX(p_175341_);
-+            this.p_175341_ = p_175341_; // Paper - Perf: Manually inline methods in BlockPosition
++            this.x = p_175341_; // Paper - Perf: Manually inline methods in BlockPosition
              return this;
          }
  
          public BlockPos.MutableBlockPos setY(int p_175343_) {
 -            super.setY(p_175343_);
-+            this.p_175343_ = p_175343_; // Paper - Perf: Manually inline methods in BlockPosition
++            this.y = p_175343_; // Paper - Perf: Manually inline methods in BlockPosition
              return this;
          }
  
          public BlockPos.MutableBlockPos setZ(int p_175345_) {
 -            super.setZ(p_175345_);
-+            this.p_175345_ = p_175345_; // Paper - Perf: Manually inline methods in BlockPosition
++            this.z = p_175345_; // Paper - Perf: Manually inline methods in BlockPosition
              return this;
          }
  

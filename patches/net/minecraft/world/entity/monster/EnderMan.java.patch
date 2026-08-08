@@ -1,34 +1,86 @@
 --- a/net/minecraft/world/entity/monster/EnderMan.java
 +++ b/net/minecraft/world/entity/monster/EnderMan.java
-@@ -116,7 +_,6 @@
+@@ -114,22 +_,38 @@
+             .add(Attributes.STEP_HEIGHT, 1.0);
+     }
  
++    // Paper start - EndermanEscapeEvent
++    private boolean tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason reason) {
++        return new com.destroystokyo.paper.event.entity.EndermanEscapeEvent((org.bukkit.craftbukkit.entity.CraftEnderman) this.getBukkitEntity(), reason).callEvent();
++    }
++    // Paper end - EndermanEscapeEvent
++
      @Override
-     public void setTarget(@Nullable LivingEntity p_32537_) {
+-    public void setTarget(@Nullable LivingEntity p_32537_) {
 -        super.setTarget(p_32537_);
-         AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);
-         if (p_32537_ == null) {
+-        AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);
+-        if (p_32537_ == null) {
++    // CraftBukkit start - fire event
++    // Note: NeoForge moved the super.setTarget() call to the end of this method (instead of the start) so that
++    // LivingChangeTargetEvent listeners would see the updated DATA_CREEPY/attribute state. Paper's architecture
++    // requires calling super first to get the Bukkit/NeoForge-resolved target back via this.getTarget(), so that
++    // ordering couldn't be preserved; kept Paper's call-first order since it's required for correctness.
++    public boolean setTarget(@Nullable LivingEntity livingEntity, @Nullable org.bukkit.event.entity.EntityTargetEvent.TargetReason reason) {
++        if (!super.setTarget(livingEntity, reason)) {
++            return false;
++        }
++        livingEntity = this.getTarget();
++        // CraftBukkit end
++        AttributeInstance attribute = this.getAttribute(Attributes.MOVEMENT_SPEED);
++        if (livingEntity == null) {
              this.targetChangeTime = 0;
-@@ -130,6 +_,7 @@
-                 attributeinstance.addTransientModifier(SPEED_MODIFIER_ATTACKING);
+             this.entityData.set(DATA_CREEPY, false);
+             this.entityData.set(DATA_STARED_AT, false);
+-            attributeinstance.removeModifier(SPEED_MODIFIER_ATTACKING_ID);
++            attribute.removeModifier(SPEED_MODIFIER_ATTACKING_ID);
+         } else {
+             this.targetChangeTime = this.tickCount;
+             this.entityData.set(DATA_CREEPY, true);
+-            if (!attributeinstance.hasModifier(SPEED_MODIFIER_ATTACKING_ID)) {
+-                attributeinstance.addTransientModifier(SPEED_MODIFIER_ATTACKING);
++            if (!attribute.hasModifier(SPEED_MODIFIER_ATTACKING_ID)) {
++                attribute.addTransientModifier(SPEED_MODIFIER_ATTACKING);
              }
          }
-+        super.setTarget(p_32537_); //Forge: Moved down to allow event handlers to write data manager values.
++        return true; // CraftBukkit
      }
  
      @Override
-@@ -203,9 +_,10 @@
+@@ -202,10 +_,20 @@
+         this.readPersistentAngerSaveData(this.level(), p_421502_);
      }
  
-     boolean isBeingStaredBy(Player p_380267_) {
+-    boolean isBeingStaredBy(Player p_380267_) {
 -        return !LivingEntity.PLAYER_NOT_WEARING_DISGUISE_ITEM.test(p_380267_)
-+        return !LivingEntity.PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET.test(p_380267_, this)
++    boolean isBeingStaredBy(Player player) {
++        // Paper start - EndermanAttackPlayerEvent
++        final boolean shouldAttack = this.isBeingStaredBy0(player);
++        final com.destroystokyo.paper.event.entity.EndermanAttackPlayerEvent event = new com.destroystokyo.paper.event.entity.EndermanAttackPlayerEvent((org.bukkit.entity.Enderman) getBukkitEntity(), (org.bukkit.entity.Player) player.getBukkitEntity());
++        event.setCancelled(!shouldAttack);
++        return event.callEvent();
++    }
++
++    boolean isBeingStaredBy0(Player player) {
++        // Paper end - EndermanAttackPlayerEvent
++        return !LivingEntity.PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET.test(player, this)
              ? false
 -            : this.isLookingAtMe(p_380267_, 0.025, true, false, new double[]{this.getEyeY()});
-+            : this.isLookingAtMe(p_380267_, 0.025, true, false, new double[]{this.getEyeY()}) &&
-+                !net.neoforged.neoforge.common.CommonHooks.shouldSuppressEnderManAnger(this, p_380267_);
++            : this.isLookingAtMe(player, 0.025, true, false, new double[]{this.getEyeY()}) &&
++                !net.neoforged.neoforge.common.CommonHooks.shouldSuppressEnderManAnger(this, player);
      }
  
      @Override
+@@ -242,7 +_,9 @@
+     protected void customServerAiStep(ServerLevel p_376787_) {
+         if (p_376787_.isBrightOutside() && this.tickCount >= this.targetChangeTime + 600) {
+             float f = this.getLightLevelDependentMagicValue();
+-            if (f > 0.5F && p_376787_.canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F) {
++            if (f > 0.5F
++                && p_376787_.canSeeSky(this.blockPosition())
++                && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F && this.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.RUNAWAY)) { // Paper - EndermanEscapeEvent
+                 this.setTarget(null);
+                 this.teleport();
+             }
 @@ -283,8 +_,10 @@
          boolean flag = blockstate.blocksMotion();
          boolean flag1 = blockstate.getFluidState().is(FluidTags.WATER);
@@ -41,6 +93,50 @@
              if (flag2) {
                  this.level().gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(this));
                  if (!this.isSilent()) {
+@@ -355,21 +_,25 @@
+             AbstractThrownPotion abstractthrownpotion = p_376597_.getDirectEntity() instanceof AbstractThrownPotion abstractthrownpotion1
+                 ? abstractthrownpotion1
+                 : null;
+-            if (!p_376597_.is(DamageTypeTags.IS_PROJECTILE) && abstractthrownpotion == null) {
++            if (!p_376597_.is(DamageTypeTags.IS_PROJECTILE) && abstractthrownpotion == null) { // Paper - EndermanEscapeEvent - diff on change - below logic relies on this path covering non-projectile damage.
+                 boolean flag1 = super.hurtServer(p_376680_, p_376597_, p_376796_);
+                 if (!(p_376597_.getEntity() instanceof LivingEntity) && this.random.nextInt(10) != 0) {
++                    if (this.tryEscape(p_376597_.is(net.minecraft.tags.DamageTypeTags.IS_DROWNING) ? com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.DROWN : com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.CRITICAL_HIT)) { // Paper - EndermanEscapeEvent
+                     this.teleport();
++                    } // Paper - EndermanEscapeEvent
+                 }
+ 
+                 return flag1;
+             } else {
+                 boolean flag = abstractthrownpotion != null && this.hurtWithCleanWater(p_376680_, p_376597_, abstractthrownpotion, p_376796_);
+ 
++                if (this.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.INDIRECT)) { // Paper - EndermanEscapeEvent
+                 for (int i = 0; i < 64; i++) {
+                     if (this.teleport()) {
+                         return true;
+                     }
+                 }
++                } // Paper - EndermanEscapeEvent
+ 
+                 return flag;
+             }
+@@ -394,6 +_,16 @@
+         this.entityData.set(DATA_STARED_AT, true);
+     }
+ 
++    // Paper start
++    public void setCreepy(boolean creepy) {
++        this.entityData.set(DATA_CREEPY, creepy);
++    }
++
++    public void setHasBeenStaredAt(boolean hasBeenStaredAt) {
++        this.entityData.set(DATA_STARED_AT, hasBeenStaredAt);
++    }
++    // Paper end
++
+     @Override
+     public boolean requiresCustomPersistence() {
+         return super.requiresCustomPersistence() || this.getCarriedBlock() != null;
 @@ -443,7 +_,7 @@
              if (this.enderman.getCarriedBlock() == null) {
                  return false;
@@ -50,15 +146,28 @@
                      ? false
                      : this.enderman.getRandom().nextInt(reducedTickDelay(2000)) == 0;
              }
-@@ -463,7 +_,7 @@
+@@ -457,16 +_,19 @@
+             int j = Mth.floor(this.enderman.getY() + randomsource.nextDouble() * 2.0);
+             int k = Mth.floor(this.enderman.getZ() - 1.0 + randomsource.nextDouble() * 2.0);
+             BlockPos blockpos = new BlockPos(i, j, k);
+-            BlockState blockstate = level.getBlockState(blockpos);
++            BlockState blockstate = level.getBlockStateIfLoaded(blockpos); // Paper - Prevent endermen from loading chunks
++            if (blockstate == null) return; // Paper - Prevent endermen from loading chunks
+             BlockPos blockpos1 = blockpos.below();
+             BlockState blockstate1 = level.getBlockState(blockpos1);
              BlockState blockstate2 = this.enderman.getCarriedBlock();
              if (blockstate2 != null) {
                  blockstate2 = Block.updateFromNeighbourShapes(blockstate2, this.enderman.level(), blockpos);
 -                if (this.canPlaceBlock(level, blockpos, blockstate2, blockstate, blockstate1, blockpos1)) {
 +                if (this.canPlaceBlock(level, blockpos, blockstate2, blockstate, blockstate1, blockpos1) && !net.neoforged.neoforge.event.EventHooks.onBlockPlace(enderman, net.neoforged.neoforge.common.util.BlockSnapshot.create(level.dimension(), level, blockpos1), net.minecraft.core.Direction.UP)) {
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.enderman, blockpos, blockstate2)) { // CraftBukkit - Place event
                      level.setBlock(blockpos, blockstate2, 3);
                      level.gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(this.enderman, blockstate2));
                      this.enderman.setCarriedBlock(null);
++                    } // CraftBukkit
+                 }
+             }
+         }
 @@ -475,6 +_,7 @@
              return p_32562_.isAir()
                  && !p_32563_.isAir()
@@ -67,6 +176,15 @@
                  && p_32563_.isCollisionShapeFullBlock(p_32559_, p_32564_)
                  && p_32561_.canSurvive(p_32559_, p_32560_)
                  && p_32559_.getEntities(this.enderman, AABB.unitCubeFromLowerCorner(Vec3.atLowerCornerOf(p_32560_))).isEmpty();
+@@ -557,7 +_,7 @@
+             } else {
+                 if (this.target != null && !this.enderman.isPassenger()) {
+                     if (this.enderman.isBeingStaredBy((Player)this.target)) {
+-                        if (this.target.distanceToSqr(this.enderman) < 16.0) {
++                        if (this.target.distanceToSqr(this.enderman) < 16.0 && this.enderman.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.STARE)) { // Paper - EndermanEscapeEvent
+                             this.enderman.teleport();
+                         }
+ 
 @@ -586,7 +_,7 @@
              if (this.enderman.getCarriedBlock() != null) {
                  return false;
@@ -76,3 +194,23 @@
                      ? false
                      : this.enderman.getRandom().nextInt(reducedTickDelay(20)) == 0;
              }
+@@ -600,15 +_,18 @@
+             int j = Mth.floor(this.enderman.getY() + randomsource.nextDouble() * 3.0);
+             int k = Mth.floor(this.enderman.getZ() - 2.0 + randomsource.nextDouble() * 4.0);
+             BlockPos blockpos = new BlockPos(i, j, k);
+-            BlockState blockstate = level.getBlockState(blockpos);
++            BlockState blockstate = level.getBlockStateIfLoaded(blockpos); // Paper - Prevent endermen from loading chunks
++            if (blockstate == null) return; // Paper - Prevent endermen from loading chunks
+             Vec3 vec3 = new Vec3(this.enderman.getBlockX() + 0.5, j + 0.5, this.enderman.getBlockZ() + 0.5);
+             Vec3 vec31 = new Vec3(i + 0.5, j + 0.5, k + 0.5);
+             BlockHitResult blockhitresult = level.clip(new ClipContext(vec3, vec31, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, this.enderman));
+             boolean flag = blockhitresult.getBlockPos().equals(blockpos);
+             if (blockstate.is(BlockTags.ENDERMAN_HOLDABLE) && flag) {
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.enderman, blockpos, blockstate.getFluidState().createLegacyBlock())) { // CraftBukkit - Place event // Paper - fix wrong block state
+                 level.removeBlock(blockpos, false);
+                 level.gameEvent(GameEvent.BLOCK_DESTROY, blockpos, GameEvent.Context.of(this.enderman, blockstate));
+                 this.enderman.setCarriedBlock(blockstate.getBlock().defaultBlockState());
++                } // CraftBukkit
+             }
+         }
+     }

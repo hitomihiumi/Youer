@@ -1,17 +1,285 @@
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
-@@ -103,9 +_,9 @@
+@@ -69,49 +_,74 @@
+     private Vec3 lastSentMovement;
+     private int tickCount;
+     private int teleportDelay;
+-    private List<Entity> lastPassengers = Collections.emptyList();
++    private List<Entity> lastPassengers = com.google.common.collect.ImmutableList.of(); // Paper - optimize passenger checks
+     private boolean wasRiding;
+     private boolean wasOnGround;
+     @Nullable
+     private List<SynchedEntityData.DataValue<?>> trackedDataValues;
++    private final Set<net.minecraft.server.network.ServerPlayerConnection> trackedPlayers; // Paper
  
-         if (this.entity instanceof ItemFrame itemframe && this.tickCount % 10 == 0) {
-             ItemStack itemstack = itemframe.getItem();
+     public ServerEntity(
+-        ServerLevel p_8528_, Entity p_8529_, int p_8530_, boolean p_8531_, Consumer<Packet<?>> p_8532_, BiConsumer<Packet<?>, List<UUID>> p_394447_
++        ServerLevel level,
++        Entity entity,
++        int updateInterval,
++        boolean trackDelta,
++        Consumer<Packet<?>> broadcast,
++        // Paper start
++        BiConsumer<Packet<?>, List<UUID>> broadcastWithIgnore,
++        final Set<net.minecraft.server.network.ServerPlayerConnection> trackedPlayers
++        // Paper end
+     ) {
+-        this.level = p_8528_;
+-        this.broadcast = p_8532_;
+-        this.entity = p_8529_;
+-        this.updateInterval = p_8530_;
+-        this.trackDelta = p_8531_;
+-        this.broadcastWithIgnore = p_394447_;
+-        this.positionCodec.setBase(p_8529_.trackingPosition());
+-        this.lastSentMovement = p_8529_.getDeltaMovement();
+-        this.lastSentYRot = Mth.packDegrees(p_8529_.getYRot());
+-        this.lastSentXRot = Mth.packDegrees(p_8529_.getXRot());
+-        this.lastSentYHeadRot = Mth.packDegrees(p_8529_.getYHeadRot());
+-        this.wasOnGround = p_8529_.onGround();
+-        this.trackedDataValues = p_8529_.getEntityData().getNonDefaultValues();
+-    }
++        this.trackedPlayers = trackedPlayers; // Paper
++        this.level = level;
++        this.broadcast = broadcast;
++        this.entity = entity;
++        this.updateInterval = updateInterval;
++        this.trackDelta = trackDelta;
++        this.broadcastWithIgnore = broadcastWithIgnore;
++        this.positionCodec.setBase(entity.trackingPosition());
++        this.lastSentMovement = entity.getDeltaMovement();
++        this.lastSentYRot = Mth.packDegrees(entity.getYRot());
++        this.lastSentXRot = Mth.packDegrees(entity.getXRot());
++        this.lastSentYHeadRot = Mth.packDegrees(entity.getYHeadRot());
++        this.wasOnGround = entity.onGround();
++        this.trackedDataValues = entity.getEntityData().getNonDefaultValues();
++    }
++
++    // Paper start - fix desync when a player is added to the tracker
++    private boolean forceStateResync;
++    public void onPlayerAdd() {
++        this.forceStateResync = true;
++    }
++    // Paper end - fix desync when a player is added to the tracker
+ 
+     public void sendChanges() {
+-        List<Entity> list = this.entity.getPassengers();
+-        if (!list.equals(this.lastPassengers)) {
+-            List<UUID> list1 = this.mountedOrDismounted(list).map(Entity::getUUID).toList();
+-            this.broadcastWithIgnore.accept(new ClientboundSetPassengersPacket(this.entity), list1);
+-            this.lastPassengers = list;
++        // Paper - optimise collisions: moonrise$isHardColliding() teleportDelay heuristic stripped, depends on
++        // Entity implementing Moonrise's chunk_system ChunkSystemEntity interface, which is out of scope for this merge.
++        List<Entity> passengers = this.entity.getPassengers();
++        if (!passengers.equals(this.lastPassengers)) {
++            List<UUID> list = this.mountedOrDismounted(passengers).map(Entity::getUUID).toList();
++            this.broadcastWithIgnore.accept(new ClientboundSetPassengersPacket(this.entity), list);
++            // Paper start - Allow riding players
++            if (this.entity instanceof ServerPlayer player) {
++                player.connection.send(new ClientboundSetPassengersPacket(this.entity));
++            }
++            // Paper end - Allow riding players
++            this.lastPassengers = passengers;
+         }
+ 
+-        if (this.entity instanceof ItemFrame itemframe && this.tickCount % 10 == 0) {
+-            ItemStack itemstack = itemframe.getItem();
 -            if (itemstack.getItem() instanceof MapItem) {
-+            if (true) {
-                 MapId mapid = itemstack.get(DataComponents.MAP_ID);
+-                MapId mapid = itemstack.get(DataComponents.MAP_ID);
 -                MapItemSavedData mapitemsaveddata = MapItem.getSavedData(mapid, this.level);
-+                MapItemSavedData mapitemsaveddata = MapItem.getSavedData(itemstack, this.level);
-                 if (mapitemsaveddata != null) {
-                     for (ServerPlayer serverplayer : this.level.players()) {
-                         mapitemsaveddata.tickCarriedBy(serverplayer, itemstack);
+-                if (mapitemsaveddata != null) {
+-                    for (ServerPlayer serverplayer : this.level.players()) {
+-                        mapitemsaveddata.tickCarriedBy(serverplayer, itemstack);
+-                        Packet<?> packet = mapitemsaveddata.getUpdatePacket(mapid, serverplayer);
+-                        if (packet != null) {
+-                            serverplayer.connection.send(packet);
++        if (!this.trackedPlayers.isEmpty() && this.entity instanceof ItemFrame itemFrame /*&& this.tickCount % 10 == 0*/) { // CraftBukkit - moved tickCount below // Paper - Perf: Only tick item frames if players can see it
++            ItemStack item = itemFrame.getItem();
++            if (this.level.paperConfig().maps.itemFrameCursorUpdateInterval > 0 && this.tickCount % this.level.paperConfig().maps.itemFrameCursorUpdateInterval == 0 && item.getItem() instanceof MapItem) { // CraftBukkit - Moved this.tickCounter % 10 logic here so item frames do not enter the other blocks // Paper - Make item frame map cursor update interval configurable
++                MapId mapId = itemFrame.cachedMapId; // Paper - Perf: Cache map ids on item frames
++                MapItemSavedData savedData = MapItem.getSavedData(item, this.level); // Neo: use itemstack overload so modded map items can provide custom data
++                if (savedData != null) {
++                    for (final net.minecraft.server.network.ServerPlayerConnection connection : this.trackedPlayers) { // Paper
++                        final ServerPlayer serverPlayer = connection.getPlayer(); // Paper
++                        savedData.tickCarriedBy(serverPlayer, item);
++                        Packet<?> updatePacket = savedData.getUpdatePacket(mapId, serverPlayer);
++                        if (updatePacket != null) {
++                            serverPlayer.connection.send(updatePacket);
+                         }
+                     }
+                 }
+@@ -120,71 +_,77 @@
+             this.sendDirtyEntityData();
+         }
+ 
+-        if (this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) {
+-            byte b0 = Mth.packDegrees(this.entity.getYRot());
++        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
++            byte b = Mth.packDegrees(this.entity.getYRot());
+             byte b1 = Mth.packDegrees(this.entity.getXRot());
+-            boolean flag4 = Math.abs(b0 - this.lastSentYRot) >= 1 || Math.abs(b1 - this.lastSentXRot) >= 1;
++            boolean flag = Math.abs(b - this.lastSentYRot) >= 1 || Math.abs(b1 - this.lastSentXRot) >= 1;
+             if (this.entity.isPassenger()) {
+-                if (flag4) {
+-                    this.broadcast.accept(new ClientboundMoveEntityPacket.Rot(this.entity.getId(), b0, b1, this.entity.onGround()));
+-                    this.lastSentYRot = b0;
++                if (flag) {
++                    this.broadcast.accept(new ClientboundMoveEntityPacket.Rot(this.entity.getId(), b, b1, this.entity.onGround()));
++                    this.lastSentYRot = b;
+                     this.lastSentXRot = b1;
+                 }
+ 
+                 this.positionCodec.setBase(this.entity.trackingPosition());
+                 this.sendDirtyEntityData();
+                 this.wasRiding = true;
+-            } else if (this.entity instanceof AbstractMinecart abstractminecart
+-                && abstractminecart.getBehavior() instanceof NewMinecartBehavior newminecartbehavior) {
+-                this.handleMinecartPosRot(newminecartbehavior, b0, b1, flag4);
++            } else if (this.entity instanceof AbstractMinecart abstractMinecart
++                && abstractMinecart.getBehavior() instanceof NewMinecartBehavior newMinecartBehavior) {
++                this.handleMinecartPosRot(newMinecartBehavior, b, b1, flag);
+             } else {
+                 this.teleportDelay++;
+-                Vec3 vec31 = this.entity.trackingPosition();
+-                boolean flag5 = this.positionCodec.delta(vec31).lengthSqr() >= 7.6293945E-6F;
+-                Packet<?> packet1 = null;
+-                boolean flag = flag5 || this.tickCount % 60 == 0;
+-                boolean flag1 = false;
+-                boolean flag2 = false;
+-                long i = this.positionCodec.encodeX(vec31);
+-                long j = this.positionCodec.encodeY(vec31);
+-                long k = this.positionCodec.encodeZ(vec31);
+-                boolean flag3 = i < -32768L || i > 32767L || j < -32768L || j > 32767L || k < -32768L || k > 32767L;
+-                if (this.entity.getRequiresPrecisePosition()
+-                    || flag3
++                Vec3 vec3 = this.entity.trackingPosition();
++                // Paper start - reduce allocation of Vec3D here
++                Vec3 base = this.positionCodec.base;
++                double vec3_dx = vec3.x - base.x;
++                double vec3_dy = vec3.y - base.y;
++                double vec3_dz = vec3.z - base.z;
++                boolean flag1 = (vec3_dx * vec3_dx + vec3_dy * vec3_dy + vec3_dz * vec3_dz) >= 7.62939453125E-6D;
++                // Paper end - reduce allocation of Vec3D here
++                Packet<?> packet = null;
++                boolean flag2 = flag1 || this.tickCount % 60 == 0;
++                boolean flag3 = false;
++                boolean flag4 = false;
++                long l = this.positionCodec.encodeX(vec3);
++                long l1 = this.positionCodec.encodeY(vec3);
++                long l2 = this.positionCodec.encodeZ(vec3);
++                boolean flag5 = l < -32768L || l > 32767L || l1 < -32768L || l1 > 32767L || l2 < -32768L || l2 > 32767L;
++                if (this.forceStateResync || this.entity.getRequiresPrecisePosition() // Paper - fix desync when a player is added to the tracker
++                    || flag5
+                     || this.teleportDelay > 400
+                     || this.wasRiding
+                     || this.wasOnGround != this.entity.onGround()) {
+                     this.wasOnGround = this.entity.onGround();
+                     this.teleportDelay = 0;
+-                    packet1 = ClientboundEntityPositionSyncPacket.of(this.entity);
+-                    flag1 = true;
+-                    flag2 = true;
+-                } else if ((!flag || !flag4) && !(this.entity instanceof AbstractArrow)) {
+-                    if (flag) {
+-                        packet1 = new ClientboundMoveEntityPacket.Pos(this.entity.getId(), (short)i, (short)j, (short)k, this.entity.onGround());
+-                        flag1 = true;
+-                    } else if (flag4) {
+-                        packet1 = new ClientboundMoveEntityPacket.Rot(this.entity.getId(), b0, b1, this.entity.onGround());
+-                        flag2 = true;
++                    packet = ClientboundEntityPositionSyncPacket.of(this.entity);
++                    flag3 = true;
++                    flag4 = true;
++                } else if ((!flag2 || !flag) && !(this.entity instanceof AbstractArrow)) {
++                    if (flag2) {
++                        packet = new ClientboundMoveEntityPacket.Pos(this.entity.getId(), (short)l, (short)l1, (short)l2, this.entity.onGround());
++                        flag3 = true;
++                    } else if (flag) {
++                        packet = new ClientboundMoveEntityPacket.Rot(this.entity.getId(), b, b1, this.entity.onGround());
++                        flag4 = true;
+                     }
+                 } else {
+-                    packet1 = new ClientboundMoveEntityPacket.PosRot(this.entity.getId(), (short)i, (short)j, (short)k, b0, b1, this.entity.onGround());
+-                    flag1 = true;
+-                    flag2 = true;
++                    packet = new ClientboundMoveEntityPacket.PosRot(this.entity.getId(), (short)l, (short)l1, (short)l2, b, b1, this.entity.onGround());
++                    flag3 = true;
++                    flag4 = true;
+                 }
+ 
+                 if (this.entity.hasImpulse || this.trackDelta || this.entity instanceof LivingEntity && ((LivingEntity)this.entity).isFallFlying()) {
+-                    Vec3 vec3 = this.entity.getDeltaMovement();
+-                    double d0 = vec3.distanceToSqr(this.lastSentMovement);
+-                    if (d0 > 1.0E-7 || d0 > 0.0 && vec3.lengthSqr() == 0.0) {
+-                        this.lastSentMovement = vec3;
+-                        if (this.entity instanceof AbstractHurtingProjectile abstracthurtingprojectile) {
++                    Vec3 deltaMovement = this.entity.getDeltaMovement();
++                    double d = deltaMovement.distanceToSqr(this.lastSentMovement);
++                    if (d > 1.0E-7 || d > 0.0 && deltaMovement.lengthSqr() == 0.0) {
++                        this.lastSentMovement = deltaMovement;
++                        if (this.entity instanceof AbstractHurtingProjectile abstractHurtingProjectile) {
+                             this.broadcast
+                                 .accept(
+                                     new ClientboundBundlePacket(
+                                         List.of(
+                                             new ClientboundSetEntityMotionPacket(this.entity.getId(), this.lastSentMovement),
+-                                            new ClientboundProjectilePowerPacket(abstracthurtingprojectile.getId(), abstracthurtingprojectile.accelerationPower)
++                                            new ClientboundProjectilePowerPacket(abstractHurtingProjectile.getId(), abstractHurtingProjectile.accelerationPower)
+                                         )
+                                     )
+                                 );
+@@ -194,17 +_,17 @@
+                     }
+                 }
+ 
+-                if (packet1 != null) {
+-                    this.broadcast.accept(packet1);
++                if (packet != null) {
++                    this.broadcast.accept(packet);
+                 }
+ 
+                 this.sendDirtyEntityData();
+-                if (flag1) {
+-                    this.positionCodec.setBase(vec31);
++                if (flag3) {
++                    this.positionCodec.setBase(vec3);
+                 }
+ 
+-                if (flag2) {
+-                    this.lastSentYRot = b0;
++                if (flag4) {
++                    this.lastSentYRot = b;
+                     this.lastSentXRot = b1;
+                 }
+ 
+@@ -218,10 +_,30 @@
+             }
+ 
+             this.entity.hasImpulse = false;
++            this.forceStateResync = false; // Paper - fix desync when a player is added to the tracker
+         }
+ 
+         this.tickCount++;
+         if (this.entity.hurtMarked) {
++            // CraftBukkit start - Create PlayerVelocity event
++            boolean cancelled = false;
++
++            if (this.entity instanceof ServerPlayer) {
++                org.bukkit.entity.Player player = (org.bukkit.entity.Player) this.entity.getBukkitEntity();
++                org.bukkit.util.Vector velocity = player.getVelocity();
++
++                org.bukkit.event.player.PlayerVelocityEvent event = new org.bukkit.event.player.PlayerVelocityEvent(player, velocity.clone());
++                if (!event.callEvent()) {
++                    cancelled = true;
++                } else if (!velocity.equals(event.getVelocity())) {
++                    player.setVelocity(event.getVelocity());
++                }
++            }
++
++            if (cancelled) {
++                return;
++            }
++            // CraftBukkit end
+             this.entity.hurtMarked = false;
+             this.broadcastAndSend(new ClientboundSetEntityMotionPacket(this.entity));
+         }
 @@ -268,6 +_,7 @@
      public void removePairing(ServerPlayer p_8535_) {
          this.entity.stopSeenByPlayer(p_8535_);
@@ -20,7 +288,7 @@
      }
  
      public void addPairing(ServerPlayer p_8542_) {
-@@ -275,15 +_,17 @@
+@@ -275,21 +_,31 @@
          this.sendPairingData(p_8542_, list::add);
          p_8542_.connection.send(new ClientboundBundlePacket(list));
          this.entity.startSeenByPlayer(p_8542_);
@@ -30,7 +298,11 @@
 -    public void sendPairingData(ServerPlayer p_289562_, Consumer<Packet<ClientGamePacketListener>> p_289563_) {
 +    public void sendPairingData(ServerPlayer p_289562_, Consumer<Packet<? super ClientGamePacketListener>> p_289563_) {
          if (this.entity.isRemoved()) {
-             LOGGER.warn("Fetching packet for removed entity {}", this.entity);
+-            LOGGER.warn("Fetching packet for removed entity {}", this.entity);
++            // CraftBukkit start - Remove useless error spam, just return
++            // LOGGER.warn("Fetching packet for removed entity {}", this.entity);
++            return;
++            // CraftBukkit end
          }
  
          Packet<ClientGamePacketListener> packet = this.entity.getAddEntityPacket(this);
@@ -39,6 +311,28 @@
          if (this.trackedDataValues != null) {
              p_289563_.accept(new ClientboundSetEntityDataPacket(this.entity.getId(), this.trackedDataValues));
          }
+ 
+         if (this.entity instanceof LivingEntity livingentity) {
+             Collection<AttributeInstance> collection = livingentity.getAttributes().getSyncableAttributes();
++            // CraftBukkit start - If sending own attributes send scaled health instead of current maximum health
++            if (this.entity.getId() == p_289562_.getId()) {
++                ((ServerPlayer) this.entity).getBukkitEntity().injectScaledMaxHealth(collection, false);
++            }
++            // CraftBukkit end
+             if (!collection.isEmpty()) {
+                 p_289563_.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), collection));
+             }
+@@ -306,8 +_,9 @@
+             }
+ 
+             if (!list.isEmpty()) {
+-                p_289563_.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list));
++                p_289563_.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list, true)); // Paper - data sanitization
+             }
++            ((LivingEntity) this.entity).detectEquipmentUpdates(); // CraftBukkit - SPIGOT-3789: sync again immediately after sending
+         }
+ 
+         if (!this.entity.getPassengers().isEmpty()) {
 @@ -321,6 +_,8 @@
          if (this.entity instanceof Leashable leashable && leashable.isLeashed()) {
              p_289563_.accept(new ClientboundSetEntityLinkPacket(this.entity, leashable.getLeashHolder()));
@@ -48,3 +342,36 @@
      }
  
      public Vec3 getPositionBase() {
+@@ -344,20 +_,25 @@
+     }
+ 
+     private void sendDirtyEntityData() {
+-        SynchedEntityData synchedentitydata = this.entity.getEntityData();
+-        List<SynchedEntityData.DataValue<?>> list = synchedentitydata.packDirty();
++        SynchedEntityData entityData = this.entity.getEntityData();
++        List<SynchedEntityData.DataValue<?>> list = entityData.packDirty();
+         if (list != null) {
+-            this.trackedDataValues = synchedentitydata.getNonDefaultValues();
++            this.trackedDataValues = entityData.getNonDefaultValues();
+             this.broadcastAndSend(new ClientboundSetEntityDataPacket(this.entity.getId(), list));
+         }
+ 
+         if (this.entity instanceof LivingEntity) {
+-            Set<AttributeInstance> set = ((LivingEntity)this.entity).getAttributes().getAttributesToSync();
+-            if (!set.isEmpty()) {
+-                this.broadcastAndSend(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
++            Set<AttributeInstance> attributesToSync = ((LivingEntity)this.entity).getAttributes().getAttributesToSync();
++            if (!attributesToSync.isEmpty()) {
++                // CraftBukkit start - Send scaled max health
++                if (this.entity instanceof ServerPlayer serverPlayer) {
++                    serverPlayer.getBukkitEntity().injectScaledMaxHealth(attributesToSync, false);
++                }
++                // CraftBukkit end
++                this.broadcastAndSend(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributesToSync));
+             }
+ 
+-            set.clear();
++            attributesToSync.clear();
+         }
+     }
+ 

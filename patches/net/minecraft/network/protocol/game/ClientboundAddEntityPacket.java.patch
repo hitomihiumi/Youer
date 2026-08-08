@@ -1,0 +1,103 @@
+--- a/net/minecraft/network/protocol/game/ClientboundAddEntityPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundAddEntityPacket.java
+@@ -42,9 +_,11 @@
+         this(
+             p_131481_.getId(),
+             p_131481_.getUUID(),
+-            p_352292_.getPositionBase().x(),
+-            p_352292_.getPositionBase().y(),
+-            p_352292_.getPositionBase().z(),
++            // Paper start - fix p_131481_ tracker desync
++            p_131481_.trackingPosition().x(),
++            p_131481_.trackingPosition().y(),
++            p_131481_.trackingPosition().z(),
++            // Paper end - fix p_131481_ tracker desync
+             p_352292_.getLastSentXRot(),
+             p_352292_.getLastSentYRot(),
+             p_131481_.getType(),
+@@ -54,7 +_,7 @@
+         );
+     }
+ 
+-    public ClientboundAddEntityPacket(Entity p_237558_, int p_237559_, BlockPos p_237560_) {
++    public ClientboundAddEntityPacket(Entity p_131481_, int data, BlockPos p_237560_) {
+         this(
+             p_237558_.getId(),
+             p_237558_.getUUID(),
+@@ -98,36 +_,36 @@
+         this.za = (int)(Mth.clamp(p_237555_.z, -3.9, 3.9) * 8000.0);
+     }
+ 
+-    private ClientboundAddEntityPacket(RegistryFriendlyByteBuf p_319919_) {
+-        this.id = p_319919_.readVarInt();
+-        this.uuid = p_319919_.readUUID();
+-        this.type = ByteBufCodecs.registry(Registries.ENTITY_TYPE).decode(p_319919_);
+-        this.x = p_319919_.readDouble();
+-        this.y = p_319919_.readDouble();
+-        this.z = p_319919_.readDouble();
+-        this.xRot = p_319919_.readByte();
+-        this.yRot = p_319919_.readByte();
+-        this.yHeadRot = p_319919_.readByte();
+-        this.data = p_319919_.readVarInt();
+-        this.xa = p_319919_.readShort();
+-        this.ya = p_319919_.readShort();
+-        this.za = p_319919_.readShort();
++    private ClientboundAddEntityPacket(RegistryFriendlyByteBuf buffer) {
++        this.id = buffer.readVarInt();
++        this.uuid = buffer.readUUID();
++        this.type = ByteBufCodecs.registry(Registries.ENTITY_TYPE).decode(buffer);
++        this.x = buffer.readDouble();
++        this.y = buffer.readDouble();
++        this.z = buffer.readDouble();
++        this.xRot = buffer.readByte();
++        this.yRot = buffer.readByte();
++        this.yHeadRot = buffer.readByte();
++        this.data = buffer.readVarInt();
++        this.xa = buffer.readShort();
++        this.ya = buffer.readShort();
++        this.za = buffer.readShort();
+     }
+ 
+-    private void write(RegistryFriendlyByteBuf p_320192_) {
+-        p_320192_.writeVarInt(this.id);
+-        p_320192_.writeUUID(this.uuid);
+-        ByteBufCodecs.registry(Registries.ENTITY_TYPE).encode(p_320192_, this.type);
+-        p_320192_.writeDouble(this.x);
+-        p_320192_.writeDouble(this.y);
+-        p_320192_.writeDouble(this.z);
+-        p_320192_.writeByte(this.xRot);
+-        p_320192_.writeByte(this.yRot);
+-        p_320192_.writeByte(this.yHeadRot);
+-        p_320192_.writeVarInt(this.data);
+-        p_320192_.writeShort(this.xa);
+-        p_320192_.writeShort(this.ya);
+-        p_320192_.writeShort(this.za);
++    private void write(RegistryFriendlyByteBuf p_319919_) {
++        p_319919_.writeVarInt(this.id);
++        p_319919_.writeUUID(this.uuid);
++        ByteBufCodecs.registry(Registries.ENTITY_TYPE).encode(p_319919_, this.type);
++        p_319919_.writeDouble(this.x);
++        p_319919_.writeDouble(this.y);
++        p_319919_.writeDouble(this.z);
++        p_319919_.writeByte(this.xRot);
++        p_319919_.writeByte(this.yRot);
++        p_319919_.writeByte(this.yHeadRot);
++        p_319919_.writeVarInt(this.data);
++        p_319919_.writeShort(this.xa);
++        p_319919_.writeShort(this.ya);
++        p_319919_.writeShort(this.za);
+     }
+ 
+     @Override
+@@ -135,8 +_,9 @@
+         return GamePacketTypes.CLIENTBOUND_ADD_ENTITY;
+     }
+ 
+-    public void handle(ClientGamePacketListener p_131495_) {
+-        p_131495_.handleAddEntity(this);
++    @Override
++    public void handle(ClientGamePacketListener handler) {
++        handler.handleAddEntity(this);
+     }
+ 
+     public int getId() {

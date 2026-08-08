@@ -1,6 +1,6 @@
 --- a/net/minecraft/resources/ResourceLocation.java
 +++ b/net/minecraft/resources/ResourceLocation.java
-@@ -23,14 +_,22 @@
+@@ -23,16 +_,24 @@
      public static final char NAMESPACE_SEPARATOR = ':';
      public static final String DEFAULT_NAMESPACE = "minecraft";
      public static final String REALMS_NAMESPACE = "realms";
@@ -13,6 +13,8 @@
 -
 -        assert isValidPath(p_135812_);
 -
+-        this.namespace = p_135811_;
+-        this.path = p_135812_;
 +    private ResourceLocation(String namespace, String path) {
 +        assert isValidNamespace(namespace);
 +
@@ -20,14 +22,16 @@
 +
 +        // Paper start - Validate ResourceLocation
 +        // Check for the max network string length (capped at Short.MAX_VALUE) as well as the max bytes of a StringTag (length written as an unsigned short)
-+        final String resourceLocation = p_135811_ + ":" + p_135812_;
++        final String resourceLocation = namespace + ":" + path;
 +        if (resourceLocation.length() > Short.MAX_VALUE || io.netty.buffer.ByteBufUtil.utf8MaxBytes(resourceLocation) > 2 * Short.MAX_VALUE + 1) {
 +            throw new ResourceLocationException("Resource location too long: " + resourceLocation);
 +        }
 +        // Paper end - Validate ResourceLocation
-         this.namespace = p_135811_;
-         this.path = p_135812_;
++        this.namespace = namespace;
++        this.path = path;
      }
+ 
+     private static ResourceLocation createUntrusted(String p_352179_, String p_352115_) {
 @@ -156,6 +_,12 @@
          return i;
      }

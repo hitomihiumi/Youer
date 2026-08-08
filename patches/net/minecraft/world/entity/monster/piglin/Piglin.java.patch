@@ -93,8 +93,8 @@
 -            } else {
 -                return !flag && flag1 ? false : super.canReplaceCurrentItem(p_34712_, p_34713_, p_371356_);
 -            }
-+            boolean flag = PiglinAi.isLovedItem(p_34712_) || tagkey != null && p_34712_.is(tagkey); // TODO: restore isLovedItem(item, this) CraftBukkit overload once PiglinAi.java is merged
-+            boolean flag1 = PiglinAi.isLovedItem(p_34713_) || tagkey != null && p_34713_.is(tagkey); // TODO: restore isLovedItem(item, this) CraftBukkit overload once PiglinAi.java is merged
++            boolean flag = PiglinAi.isLovedItem(p_34712_, this) || tagkey != null && p_34712_.is(tagkey); // CraftBukkit
++            boolean flag1 = PiglinAi.isLovedItem(p_34713_, this) || tagkey != null && p_34713_.is(tagkey); // CraftBukkit
 +            return flag && !flag1 || (flag || !flag1) && super.canReplaceCurrentItem(p_34712_, p_34713_, p_371356_);
          }
      }

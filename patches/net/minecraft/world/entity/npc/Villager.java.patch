@@ -1,5 +1,86 @@
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
+@@ -269,12 +_,36 @@
+         return this.assignProfessionWhenSpawned;
+     }
+ 
+-    @Override
+-    protected void customServerAiStep(ServerLevel p_376753_) {
+-        ProfilerFiller profilerfiller = Profiler.get();
+-        profilerfiller.push("villagerBrain");
+-        this.getBrain().tick(p_376753_, this);
+-        profilerfiller.pop();
++    // Paper start - EAR 2
++    @Override
++    public void inactiveTick() {
++        // SPIGOT-3874, SPIGOT-3894, SPIGOT-3846, SPIGOT-5286 :(
++        if (this.getUnhappyCounter() > 0) {
++            this.setUnhappyCounter(this.getUnhappyCounter() - 1);
++        }
++        if (this.isEffectiveAi()) {
++            if (this.level().spigotConfig.tickInactiveVillagers) {
++                this.customServerAiStep(this.level().getMinecraftWorld());
++            } else {
++                this.customServerAiStep(this.level().getMinecraftWorld(), true);
++            }
++        }
++        this.maybeDecayGossip();
++        super.inactiveTick();
++    }
++    // Paper end - EAR 2
++
++    @Override
++    protected void customServerAiStep(ServerLevel level) {
++        // Paper start - EAR 2
++        this.customServerAiStep(level, false);
++    }
++    protected void customServerAiStep(ServerLevel level, final boolean inactive) {
++        // Paper end - EAR 2
++        ProfilerFiller profilerFiller = Profiler.get();
++        profilerFiller.push("villagerBrain");
++        if (!inactive) this.getBrain().tick(level, this); // Paper - EAR 2
++        profilerFiller.pop();
+         if (this.assignProfessionWhenSpawned) {
+             this.assignProfessionWhenSpawned = false;
+         }
+@@ -287,20 +_,20 @@
+                     this.increaseProfessionLevelOnUpdate = false;
+                 }
+ 
+-                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
++                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.VILLAGER_TRADE); // CraftBukkit
+             }
+         }
+ 
+         if (this.lastTradedPlayer != null) {
+-            p_376753_.onReputationEvent(ReputationEventType.TRADE, this.lastTradedPlayer, this);
+-            p_376753_.broadcastEntityEvent(this, (byte)14);
++            level.onReputationEvent(ReputationEventType.TRADE, this.lastTradedPlayer, this);
++            level.broadcastEntityEvent(this, (byte)14);
+             this.lastTradedPlayer = null;
+         }
+ 
+-        if (!this.isNoAi() && this.random.nextInt(100) == 0) {
+-            Raid raid = p_376753_.getRaidAt(this.blockPosition());
+-            if (raid != null && raid.isActive() && !raid.isOver()) {
+-                p_376753_.broadcastEntityEvent(this, (byte)42);
++        if (!inactive && !this.isNoAi() && this.random.nextInt(100) == 0) { // Paper - EAR 2
++            Raid raidAt = level.getRaidAt(this.blockPosition());
++            if (raidAt != null && raidAt.isActive() && !raidAt.isOver()) {
++                level.broadcastEntityEvent(this, (byte)42);
+             }
+         }
+ 
+@@ -308,7 +_,8 @@
+             this.stopTrading();
+         }
+ 
+-        super.customServerAiStep(p_376753_);
++        if (inactive) return; // Paper - EAR 2
++        super.customServerAiStep(level);
+     }
+ 
+     @Override
 @@ -324,7 +_,7 @@
      @Override
      public InteractionResult mobInteract(Player p_35472_, InteractionHand p_35473_) {
@@ -9,19 +90,105 @@
              return super.mobInteract(p_35472_, p_35473_);
          } else if (this.isBaby()) {
              this.setUnhappy();
-@@ -779,10 +_,11 @@
+@@ -395,8 +_,13 @@
+     public void restock() {
+         this.updateDemand();
+ 
+-        for (MerchantOffer merchantoffer : this.getOffers()) {
+-            merchantoffer.resetUses();
++        for (MerchantOffer merchantOffer : this.getOffers()) {
++            // CraftBukkit start
++            org.bukkit.event.entity.VillagerReplenishTradeEvent event = new org.bukkit.event.entity.VillagerReplenishTradeEvent((org.bukkit.entity.Villager) this.getBukkitEntity(), merchantOffer.asBukkit());
++            if (event.callEvent()) {
++                merchantOffer.resetUses();
++            }
++            // CraftBukkit end
+         }
+ 
+         this.resendOffersToTradingPlayer();
+@@ -456,12 +_,17 @@
+     private void catchUpDemand() {
+         int i = 2 - this.numberOfRestocksToday;
+         if (i > 0) {
+-            for (MerchantOffer merchantoffer : this.getOffers()) {
+-                merchantoffer.resetUses();
++            for (MerchantOffer merchantOffer : this.getOffers()) {
++                // CraftBukkit start
++                org.bukkit.event.entity.VillagerReplenishTradeEvent event = new org.bukkit.event.entity.VillagerReplenishTradeEvent((org.bukkit.entity.Villager) this.getBukkitEntity(), merchantOffer.asBukkit());
++                if (event.callEvent()) {
++                    merchantOffer.resetUses();
++                }
++                // CraftBukkit end
+             }
+         }
+ 
+-        for (int j = 0; j < i; j++) {
++        for (int i1 = 0; i1 < i; i1++) {
+             this.updateDemand();
+         }
+ 
+@@ -478,6 +_,7 @@
+         int i = this.getPlayerReputation(p_35541_);
+         if (i != 0) {
+             for (MerchantOffer merchantoffer : this.getOffers()) {
++                if (merchantoffer.ignoreDiscounts) continue; // Paper - Add ignore discounts API
+                 merchantoffer.addToSpecialPriceDiff(-Mth.floor(i * merchantoffer.getPriceMultiplier()));
+             }
+         }
+@@ -487,6 +_,7 @@
+             int k = mobeffectinstance.getAmplifier();
+ 
+             for (MerchantOffer merchantoffer1 : this.getOffers()) {
++                if (merchantoffer1.ignoreDiscounts) continue; // Paper - Add ignore discounts API
+                 double d0 = 0.3 + 0.0625 * k;
+                 int j = (int)Math.floor(d0 * merchantoffer1.getBaseCostA().getCount());
+                 merchantoffer1.addToSpecialPriceDiff(-Math.max(j, 1));
+@@ -595,7 +_,7 @@
+         }
+ 
+         if (p_35475_.shouldRewardExp()) {
+-            this.level().addFreshEntity(new ExperienceOrb(this.level(), this.getX(), this.getY() + 0.5, this.getZ(), i));
++            this.level().addFreshEntity(new ExperienceOrb(this.level(), this.getX(), this.getY() + 0.5, this.getZ(), i, org.bukkit.entity.ExperienceOrb.SpawnReason.VILLAGER_TRADE, this.getTradingPlayer(), this)); // Paper
+         }
+     }
+ 
+@@ -613,7 +_,7 @@
+ 
+     @Override
+     public void die(DamageSource p_35419_) {
+-        LOGGER.info("Villager {} died, message: '{}'", this, p_35419_.getLocalizedDeathMessage(this).getString());
++        if (org.spigotmc.SpigotConfig.logVillagerDeaths) LOGGER.info("Villager {} died, message: '{}'", this, p_35419_.getLocalizedDeathMessage(this).getString()); // Spigot
+         Entity entity = p_35419_.getEntity();
+         if (entity != null) {
+             this.tellWitnessesThatIWasMurdered(entity);
+@@ -779,13 +_,21 @@
  
      @Override
      public void thunderHit(ServerLevel p_35409_, LightningBolt p_35410_) {
 -        if (p_35409_.getDifficulty() != Difficulty.PEACEFUL) {
+-            LOGGER.info("Villager {} was struck by lightning {}.", this, p_35410_);
+-            Witch witch = this.convertTo(EntityType.WITCH, ConversionParams.single(this, false, false), p_427125_ -> {
+-                p_427125_.finalizeSpawn(p_35409_, p_35409_.getCurrentDifficultyAt(p_427125_.blockPosition()), EntitySpawnReason.CONVERSION, null);
+-                p_427125_.setPersistenceRequired();
 +        if (p_35409_.getDifficulty() != Difficulty.PEACEFUL && net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.WITCH, (timer) -> {})) {
-             LOGGER.info("Villager {} was struck by lightning {}.", this, p_35410_);
-             Witch witch = this.convertTo(EntityType.WITCH, ConversionParams.single(this, false, false), p_427125_ -> {
-                 p_427125_.finalizeSpawn(p_35409_, p_35409_.getCurrentDifficultyAt(p_427125_.blockPosition()), EntitySpawnReason.CONVERSION, null);
-+                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, p_427125_);
-                 p_427125_.setPersistenceRequired();
++            // Paper - Add EntityZapEvent; move log down, event can cancel
++            Witch witch = this.convertTo(EntityType.WITCH, ConversionParams.single(this, false, false), witch1 -> {
++                // Paper start - Add EntityZapEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityZapEvent(this, p_35410_, witch1).isCancelled()) {
++                    return false;
++                }
++                if (org.spigotmc.SpigotConfig.logVillagerDeaths) LOGGER.info("Villager {} was struck by p_35410_ {}.", this, p_35410_); // Move down
++                // Paper end - Add EntityZapEvent
++                witch1.finalizeSpawn(p_35409_, p_35409_.getCurrentDifficultyAt(witch1.blockPosition()), EntitySpawnReason.CONVERSION, null);
++                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, witch1);
++                witch1.setPersistenceRequired();
                  this.releaseAllPois();
-             });
+-            });
++                return true; // Paper start - Add EntityZapEvent
++            }, org.bukkit.event.entity.EntityTransformEvent.TransformReason.LIGHTNING, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
+             if (witch == null) {
+                 super.thunderHit(p_35409_, p_35410_);
+             }
 @@ -802,7 +_,10 @@
      @Override
      public boolean wantsToPickUp(ServerLevel p_376823_, ItemStack p_35543_) {
@@ -34,3 +201,72 @@
              && this.getInventory().canAddItem(p_35543_);
      }
  
+@@ -825,25 +_,33 @@
+ 
+     @Override
+     protected void updateTrades() {
+-        VillagerData villagerdata = this.getVillagerData();
+-        ResourceKey<VillagerProfession> resourcekey = villagerdata.profession().unwrapKey().orElse(null);
+-        if (resourcekey != null) {
+-            Int2ObjectMap<VillagerTrades.ItemListing[]> int2objectmap;
++        // Paper start - More vanilla friendly methods to update trades
++        this.updateTrades(TRADES_PER_LEVEL);
++    }
++
++    public boolean updateTrades(int amount) {
++        // Paper end - More vanilla friendly methods to update trades
++        VillagerData villagerData = this.getVillagerData();
++        ResourceKey<VillagerProfession> resourceKey = villagerData.profession().unwrapKey().orElse(null);
++        if (resourceKey != null) {
++            Int2ObjectMap<VillagerTrades.ItemListing[]> map1;
+             if (this.level().enabledFeatures().contains(FeatureFlags.TRADE_REBALANCE)) {
+-                Int2ObjectMap<VillagerTrades.ItemListing[]> int2objectmap1 = VillagerTrades.EXPERIMENTAL_TRADES.get(resourcekey);
+-                int2objectmap = int2objectmap1 != null ? int2objectmap1 : VillagerTrades.TRADES.get(resourcekey);
++                Int2ObjectMap<VillagerTrades.ItemListing[]> map = VillagerTrades.EXPERIMENTAL_TRADES.get(resourceKey);
++                map1 = map != null ? map : VillagerTrades.TRADES.get(resourceKey);
+             } else {
+-                int2objectmap = VillagerTrades.TRADES.get(resourcekey);
++                map1 = VillagerTrades.TRADES.get(resourceKey);
+             }
+ 
+-            if (int2objectmap != null && !int2objectmap.isEmpty()) {
+-                VillagerTrades.ItemListing[] avillagertrades$itemlisting = int2objectmap.get(villagerdata.level());
+-                if (avillagertrades$itemlisting != null) {
+-                    MerchantOffers merchantoffers = this.getOffers();
+-                    this.addOffersFromItemListings(merchantoffers, avillagertrades$itemlisting, 2);
++            if (map1 != null && !map1.isEmpty()) {
++                VillagerTrades.ItemListing[] itemListings = map1.get(villagerData.level());
++                if (itemListings != null) {
++                    MerchantOffers offers = this.getOffers();
++                    this.addOffersFromItemListings(offers, itemListings, amount); // Paper - More vanilla friendly methods to update trades
++                    return true; // Paper - More vanilla friendly methods to update trades
+                 }
+             }
+         }
++        return false; // Paper - More vanilla friendly methods to update trades
+     }
+ 
+     public void gossip(ServerLevel p_35412_, Villager p_35413_, long p_35414_) {
+@@ -872,7 +_,7 @@
+             List<Villager> list = p_35398_.getEntitiesOfClass(Villager.class, aabb);
+             List<Villager> list1 = list.stream().filter(p_186293_ -> p_186293_.wantsToSpawnGolem(p_35399_)).limit(5L).toList();
+             if (list1.size() >= p_35400_) {
+-                if (!SpawnUtil.trySpawnMob(
++                if (SpawnUtil.trySpawnMob( // Paper - Set Golem Last Seen to stop it from spawning another one - switch to isPresent
+                         EntityType.IRON_GOLEM,
+                         EntitySpawnReason.MOB_SUMMONED,
+                         p_35398_,
+@@ -881,9 +_,11 @@
+                         8,
+                         6,
+                         SpawnUtil.Strategy.LEGACY_IRON_GOLEM,
+-                        false
++                        false,
++                        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_DEFENSE, // CraftBukkit,
++                        () -> {GolemSensor.golemDetected(this);} // Paper - Set Golem Last Seen to stop it from spawning another one
+                     )
+-                    .isEmpty()) {
++                    .isPresent()) { // Paper - Set Golem Last Seen to stop it from spawning another one - switch to isPresent
+                     list.forEach(GolemSensor::golemDetected);
+                 }
+             }
