@@ -1,40 +1,59 @@
 --- a/net/minecraft/world/entity/ai/behavior/HarvestFarmland.java
 +++ b/net/minecraft/world/entity/ai/behavior/HarvestFarmland.java
-@@ -47,7 +_,7 @@
+@@ -32,6 +_,7 @@
+     private long nextOkStartTime;
+     private int timeWorkedSoFar;
+     private final List<BlockPos> validFarmlandAroundVillager = Lists.newArrayList();
++    private boolean clericWartFarmer = false; // Purpur - Option for Villager Clerics to farm Nether Wart
+ 
+     public HarvestFarmland() {
+         super(
+@@ -47,11 +_,13 @@
      }
  
      protected boolean checkExtraStartConditions(ServerLevel p_23174_, Villager p_23175_) {
 -        if (!p_23174_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+        if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_23174_, p_23175_)) {
++        Boolean mobGriefingOverride = p_23174_.purpurConfig.villagerMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++        if (!(mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_23174_, p_23175_))) {
              return false;
-         } else if (!p_23175_.getVillagerData().profession().is(VillagerProfession.FARMER)) {
+-        } else if (!p_23175_.getVillagerData().profession().is(VillagerProfession.FARMER)) {
++        } else if (!p_23175_.getVillagerData().profession().is(VillagerProfession.FARMER) && !(p_23174_.purpurConfig.villagerClericsFarmWarts && p_23175_.getVillagerData().profession().is(VillagerProfession.CLERIC))) { // Purpur - Option for Villager Clerics to farm Nether Wart
              return false;
-@@ -82,7 +_,7 @@
+         } else {
++            if (!this.clericWartFarmer && p_23175_.getVillagerData().profession().is(VillagerProfession.CLERIC)) this.clericWartFarmer = true; // Purpur - Option for Villager Clerics to farm Nether Wart
+             BlockPos.MutableBlockPos blockpos$mutableblockpos = p_23175_.blockPosition().mutable();
+             this.validFarmlandAroundVillager.clear();
+ 
+@@ -82,7 +_,8 @@
          BlockState blockstate = p_23182_.getBlockState(p_23181_);
          Block block = blockstate.getBlock();
          Block block1 = p_23182_.getBlockState(p_23181_.below()).getBlock();
 -        return block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate) || blockstate.isAir() && block1 instanceof FarmBlock;
++        if (this.clericWartFarmer) return block == net.minecraft.world.level.block.Blocks.NETHER_WART && blockstate.getValue(net.minecraft.world.level.block.NetherWartBlock.AGE) == 3 || blockstate.isAir() && block1 == net.minecraft.world.level.block.Blocks.SOUL_SAND; // Purpur - Option for Villager Clerics to farm Nether Wart
 +        return block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate) || blockstate.isAir() && (block1 instanceof FarmBlock || block1.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS));
      }
  
      protected void start(ServerLevel p_23177_, Villager p_23178_, long p_23179_) {
-@@ -106,10 +_,12 @@
+@@ -105,21 +_,30 @@
+                 BlockState blockstate = p_23196_.getBlockState(this.aboveFarmlandPos);
                  Block block = blockstate.getBlock();
                  Block block1 = p_23196_.getBlockState(this.aboveFarmlandPos.below()).getBlock();
-                 if (block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate)) {
+-                if (block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate)) {
++                if (block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate) && !this.clericWartFarmer || this.clericWartFarmer && block == net.minecraft.world.level.block.Blocks.NETHER_WART && blockstate.getValue(net.minecraft.world.level.block.NetherWartBlock.AGE) == 3) { // Purpur - Option for Villager Clerics to farm Nether Wart
 +                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_23197_, this.aboveFarmlandPos, blockstate.getFluidState().createLegacyBlock())) { // CraftBukkit // Paper - fix wrong block state
                      p_23196_.destroyBlock(this.aboveFarmlandPos, true, p_23197_);
 +                    } // CraftBukkit
                  }
  
 -                if (blockstate.isAir() && block1 instanceof FarmBlock && p_23197_.hasFarmSeeds()) {
-+                if (blockstate.isAir() && (block1 instanceof FarmBlock || block1.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS)) && p_23197_.hasFarmSeeds()) {
++                if (blockstate.isAir() && (block1 instanceof FarmBlock || block1.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS)) && !this.clericWartFarmer || this.clericWartFarmer && block1 == net.minecraft.world.level.block.Blocks.SOUL_SAND && p_23197_.hasFarmSeeds()) { // Purpur - Option for Villager Clerics to farm Nether Wart
                      SimpleContainer simplecontainer = p_23197_.getInventory();
  
                      for (int i = 0; i < simplecontainer.getContainerSize(); i++) {
-@@ -117,9 +_,16 @@
+                         ItemStack itemstack = simplecontainer.getItem(i);
                          boolean flag = false;
-                         if (!itemstack.isEmpty() && itemstack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) && itemstack.getItem() instanceof BlockItem blockitem) {
+-                        if (!itemstack.isEmpty() && itemstack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) && itemstack.getItem() instanceof BlockItem blockitem) {
++                        if (!itemstack.isEmpty() && (itemstack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) || this.clericWartFarmer && itemstack.getItem() == net.minecraft.world.item.Items.NETHER_WART) && itemstack.getItem() instanceof BlockItem blockitem) { // Purpur - Option for Villager Clerics to farm Nether Wart
                              BlockState blockstate1 = blockitem.getBlock().defaultBlockState();
 +                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_23197_, this.aboveFarmlandPos, blockstate1)) { // CraftBukkit
                              p_23196_.setBlockAndUpdate(this.aboveFarmlandPos, blockstate1);
@@ -49,3 +68,12 @@
                          }
  
                          if (flag) {
+@@ -128,7 +_,7 @@
+                                 this.aboveFarmlandPos.getX(),
+                                 this.aboveFarmlandPos.getY(),
+                                 this.aboveFarmlandPos.getZ(),
+-                                SoundEvents.CROP_PLANTED,
++                                this.clericWartFarmer ? SoundEvents.NETHER_WART_PLANTED : SoundEvents.CROP_PLANTED, // Purpur - Option for Villager Clerics to farm Nether Wart
+                                 SoundSource.BLOCKS,
+                                 1.0F,
+                                 1.0F

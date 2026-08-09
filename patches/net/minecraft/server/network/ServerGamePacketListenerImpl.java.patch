@@ -83,7 +83,7 @@
  
      public ServerGamePacketListenerImpl(MinecraftServer p_9770_, Connection p_9771_, ServerPlayer p_9772_, CommonListenerCookie p_301978_) {
          super(p_9770_, p_9771_, p_301978_);
-@@ -268,8 +_,22 @@
+@@ -268,8 +_,36 @@
          p_9772_.connection = this;
          p_9772_.getTextFilter().join();
          this.signedMessageDecoder = SignedMessageChain.Decoder.unsigned(p_9772_.getUUID(), p_9770_::enforceSecureProfile);
@@ -105,6 +105,20 @@
 +        return this.getCraftPlayer();
 +    }
 +    // Paper end - configuration phase API
++
++    // Purpur start - AFK API
++    private final com.google.common.cache.LoadingCache<org.bukkit.craftbukkit.entity.CraftPlayer, Boolean> kickPermissionCache = com.google.common.cache.CacheBuilder.newBuilder()
++        .maximumSize(1000)
++        .expireAfterWrite(1, java.util.concurrent.TimeUnit.MINUTES)
++        .build(
++            new com.google.common.cache.CacheLoader<>() {
++                @Override
++                public Boolean load(org.bukkit.craftbukkit.entity.CraftPlayer player) {
++                    return player.hasPermission("purpur.bypassIdleKick");
++                }
++            }
++        );
++    // Purpur end - AFK API
  
      @Override
      public void tick() {
@@ -130,7 +144,7 @@
                      return;
                  }
              } else {
-@@ -324,11 +_,20 @@
+@@ -324,11 +_,26 @@
          this.keepConnectionAlive();
          this.chatSpamThrottler.tick();
          this.dropSpamThrottler.tick();
@@ -142,6 +156,12 @@
 -            this.disconnect(Component.translatable("multiplayer.disconnect.idling"));
 -        }
 +            && Util.getMillis() - this.player.getLastActionTime() > this.server.getPlayerIdleTimeout() * 1000L * 60L && !this.player.wonGame) { // Paper - Prevent AFK kick while watching end credits
++            // Purpur start - AFK API
++            this.player.setAfk(true);
++            if (!this.player.level().purpurConfig.idleTimeoutKick || (!Boolean.parseBoolean(System.getenv("PURPUR_FORCE_IDLE_KICK")) && kickPermissionCache.getUnchecked(this.player.getBukkitEntity()))) {
++                return;
++            }
++            // Purpur end - AFK API
 +            this.player.resetLastActionTime(); // CraftBukkit - SPIGOT-854
 +            this.disconnect(Component.translatable("multiplayer.disconnect.idling"), org.bukkit.event.player.PlayerKickEvent.Cause.IDLING); // Paper - kick event cause
 +        }
@@ -199,7 +219,7 @@
      }
  
      private static boolean containsInvalidValues(double p_143664_, double p_143665_, double p_143666_, float p_143667_, float p_143668_) {
-@@ -409,89 +_,253 @@
+@@ -409,89 +_,255 @@
      }
  
      @Override
@@ -413,6 +433,8 @@
 +                    this.lastYaw = to.getYaw();
 +                    this.lastPitch = to.getPitch();
 +
++                    if (!to.getWorld().getUID().equals(from.getWorld().getUID()) || to.getBlockX() != from.getBlockX() || to.getBlockY() != from.getBlockY() || to.getBlockZ() != from.getBlockZ() || to.getYaw() != from.getYaw() || to.getPitch() != from.getPitch()) this.player.resetLastActionTime(); // Purpur - AFK API
++
 +                    Location oldTo = to.clone();
 +                    PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
 +                    this.cserver.getPluginManager().callEvent(event);
@@ -524,11 +546,12 @@
      }
  
      @Override
-@@ -499,12 +_,12 @@
+@@ -499,12 +_,13 @@
          PacketUtils.ensureRunningOnSameThread(p_9835_, this, this.player.level());
          if (p_9835_.getId() == this.awaitingTeleport) {
              if (this.awaitingPositionFromClient == null) {
 -                this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
++                ServerGamePacketListenerImpl.LOGGER.warn("Disconnected on accept teleport p_9835_. Was not expecting position data from client at this time"); // Purpur - Add more logger output for invalid movement kicks
 +                this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
                  return;
              }
@@ -779,7 +802,7 @@
          }
      }
  
-@@ -894,40 +_,96 @@
+@@ -894,54 +_,130 @@
      }
  
      @Override
@@ -825,6 +848,10 @@
 +            final int maxBookPageSize = pageMax.intValue();
 +            final double multiplier = Math.clamp(io.papermc.paper.configuration.GlobalConfiguration.get().itemValidation.bookSize.totalMultiplier, 0.3D, 1D);
 +            long byteAllowed = maxBookPageSize;
++            // Purpur start - PlayerBookTooLargeEvent
++            int slot = packet.slot();
++            ItemStack itemstack = Inventory.isHotbarSlot(slot) || slot == Inventory.SLOT_OFFHAND ? this.player.getInventory().getItem(slot) : ItemStack.EMPTY;
++            // Purpur end - PlayerBookTooLargeEvent
 +            for (final String page : pageList) {
 +                final int byteLength = page.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
 +                byteTotal += byteLength;
@@ -849,7 +876,8 @@
 +            }
 +
 +            if (byteTotal > byteAllowed) {
-+                ServerGamePacketListenerImpl.LOGGER.warn("{} tried to send a book too large. Book size: {} - Allowed: {} - Pages: {}", this.player.getScoreboardName(), byteTotal, byteAllowed, pageList.size());
++                ServerGamePacketListenerImpl.LOGGER.warn("{} tried to send too large of a book. Book size: {} - Allowed: {} - Pages: {}", this.player.getScoreboardName(), byteTotal, byteAllowed, pageList.size());
++                org.purpurmc.purpur.event.player.PlayerBookTooLargeEvent event = new org.purpurmc.purpur.event.player.PlayerBookTooLargeEvent(player.getBukkitEntity(), itemstack.asBukkitCopy()); if (event.shouldKickPlayer()) // Purpur - PlayerBookTooLargeEvent
 +                this.disconnectAsync(Component.literal("Book too large!"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - kick event cause // Paper - add proper async disconnect
 +                return;
 +            }
@@ -870,11 +898,15 @@
              optional.ifPresent(list::add);
 -            list.addAll(p_9862_.pages());
 +            list.addAll(packet.pages());
++            // Purpur start - Allow color codes in books
++            boolean hasEditPerm = getCraftPlayer().hasPermission("purpur.book.color.edit");
++            boolean hasSignPerm = hasEditPerm || getCraftPlayer().hasPermission("purpur.book.color.sign");
++            // Purpur end - Allow color codes in books
              Consumer<List<FilteredText>> consumer = optional.isPresent()
 -                ? p_238198_ -> this.signBook(p_238198_.get(0), p_238198_.subList(1, p_238198_.size()), i)
 -                : p_143627_ -> this.updateBookContents(p_143627_, i);
-+                ? texts -> this.signBook(texts.get(0), texts.subList(1, texts.size()), slot)
-+                : list1 -> this.updateBookContents(list1, slot);
++                ? texts -> this.signBook(texts.get(0), texts.subList(1, texts.size()), slot, hasSignPerm) // Purpur - Allow color codes in books
++                : list1 -> this.updateBookContents(list1, slot, hasEditPerm); // Purpur - Allow color codes in books
              this.filterTextPacket(list).thenAcceptAsync(consumer, this.server);
          }
      }
@@ -885,28 +917,69 @@
 -            List<Filterable<String>> list = p_9813_.stream().map(this::filterableFromOutgoing).toList();
 -            itemstack.set(DataComponents.WRITABLE_BOOK_CONTENT, new WritableBookContent(list));
 +    private void updateBookContents(List<FilteredText> pages, int index) {
++    // Purpur start - Allow color codes in books
++        updateBookContents(pages, index, false);
++    }
++    private void updateBookContents(List<FilteredText> pages, int index, boolean hasPerm) {
++    // Purpur end - Allow color codes in books
 +        // CraftBukkit start
 +        ItemStack handItem = this.player.getInventory().getItem(index);
 +        ItemStack item = handItem.copy();
 +        // CraftBukkit end
 +        if (item.has(DataComponents.WRITABLE_BOOK_CONTENT)) {
-+            List<Filterable<String>> list = pages.stream().map(this::filterableFromOutgoing).toList();
++            List<Filterable<String>> list = pages.stream().map(filteredText -> filterableFromOutgoing(filteredText).map(s -> color(s, hasPerm))).toList(); // Purpur - Allow color codes in books
 +            item.set(DataComponents.WRITABLE_BOOK_CONTENT, new WritableBookContent(list));
 +            this.player.getInventory().setItem(index, CraftEventFactory.handleEditBookEvent(this.player, index, handItem, item)); // CraftBukkit // Paper - Don't ignore result (see other callsite for handleEditBookEvent)
          }
      }
  
-@@ -941,7 +_,8 @@
+-    private void signBook(FilteredText p_215209_, List<FilteredText> p_215210_, int p_215211_) {
+-        ItemStack itemstack = this.player.getInventory().getItem(p_215211_);
+-        if (itemstack.has(DataComponents.WRITABLE_BOOK_CONTENT)) {
+-            ItemStack itemstack1 = itemstack.transmuteCopy(Items.WRITTEN_BOOK);
+-            itemstack1.remove(DataComponents.WRITABLE_BOOK_CONTENT);
+-            List<Filterable<Component>> list = p_215210_.stream().map(p_329965_ -> this.filterableFromOutgoing(p_329965_).<Component>map(Component::literal)).toList();
+-            itemstack1.set(
++    private void signBook(FilteredText title, List<FilteredText> pages, int index) {
++        // Purpur start - Allow color codes in books
++        signBook(title, pages, index, false);
++    }
++    private void signBook(FilteredText title, List<FilteredText> pages, int index, boolean hasPerm) {
++        // Purpur end - Allow color codes in books
++        ItemStack item = this.player.getInventory().getItem(index);
++        if (item.has(DataComponents.WRITABLE_BOOK_CONTENT)) {
++            ItemStack itemStack = item.transmuteCopy(Items.WRITTEN_BOOK);
++            itemStack.remove(DataComponents.WRITABLE_BOOK_CONTENT);
++            List<Filterable<Component>> list = pages.stream().map((filteredText) -> this.filterableFromOutgoing(filteredText).map(s -> hexColor(s, hasPerm))).toList(); // Purpur - Allow color codes in books
++            itemStack.set(
                  DataComponents.WRITTEN_BOOK_CONTENT,
-                 new WrittenBookContent(this.filterableFromOutgoing(p_215209_), this.player.getName().getString(), 0, list, true)
+-                new WrittenBookContent(this.filterableFromOutgoing(p_215209_), this.player.getName().getString(), 0, list, true)
++                new WrittenBookContent(this.filterableFromOutgoing(title), this.player.getName().getString(), 0, list, true)
              );
 -            this.player.getInventory().setItem(p_215211_, itemstack1);
-+            CraftEventFactory.handleEditBookEvent(this.player, p_215211_, itemstack, itemstack1); // CraftBukkit
-+            this.player.getInventory().setItem(p_215211_, itemstack); // CraftBukkit - event factory updates the hand book
++            CraftEventFactory.handleEditBookEvent(this.player, index, item, itemStack); // CraftBukkit
++            this.player.getInventory().setItem(index, item); // CraftBukkit - event factory updates the hand book
          }
      }
  
-@@ -986,137 +_,317 @@
+@@ -949,6 +_,16 @@
+         return this.player.isTextFilteringEnabled() ? Filterable.passThrough(p_332041_.filteredOrEmpty()) : Filterable.from(p_332041_);
+     }
+ 
++    // Purpur start - Allow color codes in books
++    private Component hexColor(String str, boolean hasPerm) {
++        return hasPerm ? PaperAdventure.asVanilla(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand().deserialize(str)) : Component.literal(str);
++    }
++
++    private String color(String str, boolean hasPerm) {
++        return hasPerm ? org.bukkit.ChatColor.color(str, false) : str;
++    }
++    // Purpur end - Allow color codes in books
++
+     @Override
+     public void handleEntityTagQuery(ServerboundEntityTagQueryPacket p_320066_) {
+         PacketUtils.ensureRunningOnSameThread(p_320066_, this, this.player.level());
+@@ -986,137 +_,334 @@
      }
  
      @Override
@@ -916,7 +989,15 @@
 -            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
 +    public void handleMovePlayer(ServerboundMovePlayerPacket packet) {
 +        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
-+        if (containsInvalidValues(packet.getX(0.0), packet.getY(0.0), packet.getZ(0.0), packet.getYRot(0.0F), packet.getXRot(0.0F))) {
++        // Purpur start - Add more logger output for invalid movement kicks
++        boolean invalidX = Double.isNaN(packet.getX(0.0));
++        boolean invalidY = Double.isNaN(packet.getY(0.0));
++        boolean invalidZ = Double.isNaN(packet.getZ(0.0));
++        boolean invalidYaw = !Floats.isFinite(packet.getYRot(0.0F));
++        boolean invalidPitch = !Floats.isFinite(packet.getXRot(0.0F));
++        if (invalidX || invalidY || invalidZ || invalidYaw || invalidPitch) {
++            ServerGamePacketListenerImpl.LOGGER.warn(String.format("Disconnected on move player packet. Invalid data: x=%b, y=%b, z=%b, yaw=%b, pitch=%b", invalidX, invalidY, invalidZ, invalidYaw, invalidPitch));
++        // Purpur end - Add more logger output for invalid movement kicks
 +            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
          } else {
 -            ServerLevel serverlevel = this.player.level();
@@ -1136,14 +1217,7 @@
                                      && !this.player.isCreative()
                                      && !this.player.isSpectator()) {
 -                                    flag2 = true;
-+                                    // Paper start - Add fail move event
-+                                    io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_WRONGLY,
-+                                            toX, toY, toZ, toYaw, toPitch, true);
-+                                    if (!event.isAllowed()) {
-+                                        movedWrongly = true;
-+                                        if (event.getLogWarning())
-+                                     // Paper end
-                                     LOGGER.warn("{} moved wrongly!", this.player.getName().getString());
+-                                    LOGGER.warn("{} moved wrongly!", this.player.getName().getString());
 -                                }
 -
 -                                if (this.player.noPhysics
@@ -1153,6 +1227,14 @@
 -                                    this.player.absSnapTo(d0, d1, d2, f, f1);
 -                                    boolean flag3 = this.player.isAutoSpinAttack();
 -                                    this.clientIsFloating = d11 >= -0.03125
++                                    // Paper start - Add fail move event
++                                    io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_WRONGLY,
++                                            toX, toY, toZ, toYaw, toPitch, true);
++                                    if (!event.isAllowed()) {
++                                        movedWrongly = true;
++                                        if (event.getLogWarning())
++                                     // Paper end
++                                    LOGGER.warn("{} moved wrongly!, ({})", this.player.getName().getString(), verticalDelta); // Purpur - AFK API
 +                                    } // Paper
 +                                }
 +
@@ -1216,6 +1298,8 @@
 +                                        this.lastPosZ = to.getZ();
 +                                        this.lastYaw = to.getYaw();
 +                                        this.lastPitch = to.getPitch();
++
++                                        if (!to.getWorld().getUID().equals(from.getWorld().getUID()) || to.getBlockX() != from.getBlockX() || to.getBlockY() != from.getBlockY() || to.getBlockZ() != from.getBlockZ() || to.getYaw() != from.getYaw() || to.getPitch() != from.getPitch()) this.player.resetLastActionTime(); // Purpur - AFK API
 +
 +                                        Location oldTo = to.clone();
 +                                        PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
@@ -1283,6 +1367,13 @@
                                      }
  
 -                                    this.player.checkMovementStatistics(this.player.getX() - d3, this.player.getY() - d4, this.player.getZ() - d5);
++                                    // Purpur start - Dont run with scissors!
++                                    if (this.player.level().purpurConfig.dontRunWithScissors && this.player.isSprinting() && !(this.player.level().purpurConfig.ignoreScissorsInWater && this.player.isInWater()) && !(this.player.level().purpurConfig.ignoreScissorsInLava && this.player.isInLava()) && (isScissors(this.player.getItemInHand(InteractionHand.MAIN_HAND)) || isScissors(this.player.getItemInHand(InteractionHand.OFF_HAND))) && (int) (Math.random() * 10) == 0) {
++                                        this.player.hurtServer(this.player.level(), this.player.damageSources().scissors(), (float) this.player.level().purpurConfig.scissorsRunningDamage);
++                                        if (!org.purpurmc.purpur.PurpurConfig.dontRunWithScissors.isBlank()) this.player.sendActionBarMessage(org.purpurmc.purpur.PurpurConfig.dontRunWithScissors);
++                                    }
++                                    // Purpur end - Dont run with scissors!
++
 +                                    this.player.checkMovementStatistics(this.player.getX() - x, this.player.getY() - y, this.player.getZ() - z);
                                      this.lastGoodX = this.player.getX();
                                      this.lastGoodY = this.player.getY();
@@ -1296,6 +1387,24 @@
                                      this.player.removeLatestMovementRecording();
                                  }
                              }
+@@ -1127,6 +_,17 @@
+         }
+     }
+ 
++    // Purpur start - Dont run with scissors!
++    public boolean isScissors(ItemStack stack) {
++        if (!stack.is(Items.SHEARS)) return false;
++
++        ResourceLocation itemModelReference = stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
++        if (itemModelReference != null && itemModelReference.equals(this.player.level().purpurConfig.dontRunWithScissorsItemModelReference)) return true;
++
++        return stack.getOrDefault(DataComponents.CUSTOM_MODEL_DATA, net.minecraft.world.item.component.CustomModelData.EMPTY).equals(net.minecraft.world.item.component.CustomModelData.EMPTY);
++    }
++    // Purpur end - Dont run with scissors!
++
+     private boolean shouldCheckPlayerMovement(boolean p_381012_) {
+         if (this.isSingleplayerOwner()) {
+             return false;
 @@ -1142,7 +_,7 @@
  
      private boolean updateAwaitingTeleport() {
@@ -1641,7 +1750,7 @@
                      }
                  }
              }
-@@ -1308,24 +_,68 @@
+@@ -1308,24 +_,69 @@
      }
  
      @Override
@@ -1693,6 +1802,7 @@
 +
 +                boolean cancelled;
 +                if (hitResult == null || hitResult.getType() != HitResult.Type.BLOCK) {
++                    if (this.player.gameMode.shiftClickMended(itemInHand)) return; // Purpur - Shift right click to use exp for mending
 +                    org.bukkit.event.player.PlayerInteractEvent event = CraftEventFactory.callPlayerInteractEvent(this.player, Action.RIGHT_CLICK_AIR, itemInHand, hand);
 +                    cancelled = event.useItemInHand() == Event.Result.DENY;
 +                } else {
@@ -2266,30 +2376,43 @@
      public void switchToConfig() {
          this.waitingForSwitchToConfig = true;
          this.removePlayerFromWorld();
-@@ -1706,9 +_,16 @@
+@@ -1704,33 +_,81 @@
+     }
+ 
      @Override
-     public void handleInteract(ServerboundInteractPacket p_9866_) {
-         PacketUtils.ensureRunningOnSameThread(p_9866_, this, this.player.level());
+-    public void handleInteract(ServerboundInteractPacket p_9866_) {
+-        PacketUtils.ensureRunningOnSameThread(p_9866_, this, this.player.level());
++    public void handleInteract(ServerboundInteractPacket packet) {
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
          if (this.player.hasClientLoaded()) {
-             final ServerLevel serverlevel = this.player.level();
-             final Entity entity = p_9866_.getTarget(serverlevel);
+-            final ServerLevel serverlevel = this.player.level();
+-            final Entity entity = p_9866_.getTarget(serverlevel);
++            final ServerLevel serverLevel = this.player.level();
++            final Entity target = packet.getTarget(serverLevel);
 +            // Spigot start
-+            if (entity == this.player && !this.player.isSpectator()) {
++            if (target == this.player && !this.player.isSpectator()) {
 +                this.disconnect(Component.literal("Cannot interact with self!"), org.bukkit.event.player.PlayerKickEvent.Cause.SELF_INTERACTION); // Paper - kick event cause
 +                return;
 +            }
 +            // Spigot end
              this.player.resetLastActionTime();
-             this.player.setShiftKeyDown(p_9866_.isUsingSecondaryAction());
-             if (entity != null) {
-@@ -1717,20 +_,58 @@
+-            this.player.setShiftKeyDown(p_9866_.isUsingSecondaryAction());
+-            if (entity != null) {
+-                if (!serverlevel.getWorldBorder().isWithinBounds(entity.blockPosition())) {
++            this.player.setShiftKeyDown(packet.isUsingSecondaryAction());
++            if (target != null) {
++                if (!serverLevel.getWorldBorder().isWithinBounds(target.blockPosition())) {
+                     return;
                  }
  
-                 AABB aabb = entity.getBoundingBox();
+-                AABB aabb = entity.getBoundingBox();
 -                if (this.player.canInteractWithEntity(aabb, 3.0)) {
-+                if (this.player.canInteractWithEntity(aabb, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(3.0))) { // Paper - configurable lenience value for interact range
-                     p_9866_.dispatch(
+-                    p_9866_.dispatch(
++                AABB boundingBox = target.getBoundingBox();
++                if (this.player.canInteractWithEntity(boundingBox, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(3.0))) { // Paper - configurable lenience value for interact range
++                    if (target instanceof net.minecraft.world.entity.Mob mob) mob.ticksSinceLastInteraction = 0; // Purpur - Entity lifespan
++                    packet.dispatch(
                          new ServerboundInteractPacket.Handler() {
 -                            private void performInteraction(InteractionHand p_143679_, ServerGamePacketListenerImpl.EntityInteraction p_143680_) {
 -                                ItemStack itemstack = ServerGamePacketListenerImpl.this.player.getItemInHand(p_143679_);
@@ -2304,34 +2427,36 @@
 -                                            ServerGamePacketListenerImpl.this.player.swing(p_143679_, true);
 +                            private void performInteraction(InteractionHand hand, ServerGamePacketListenerImpl.EntityInteraction entityInteraction, PlayerInteractEntityEvent event) { // CraftBukkit
 +                                ItemStack itemInHand = ServerGamePacketListenerImpl.this.player.getItemInHand(hand);
-+                                if (itemInHand.isItemEnabled(serverlevel.enabledFeatures())) {
++                                if (itemInHand.isItemEnabled(serverLevel.enabledFeatures())) {
 +                                    ItemStack itemStack = itemInHand.copy();
 +                                    // CraftBukkit start
 +                                    final Item itemType = itemInHand.getItem();
-+                                    boolean triggerLeashUpdate = itemStack.is(Items.LEAD) && entity instanceof net.minecraft.world.entity.Leashable;
++                                    boolean triggerLeashUpdate = itemStack.is(Items.LEAD) && target instanceof net.minecraft.world.entity.Leashable;
 +
 +                                    ServerGamePacketListenerImpl.this.cserver.getPluginManager().callEvent(event);
 +                                    final boolean resendData = event.isCancelled() || !ServerGamePacketListenerImpl.this.player.getItemInHand(hand).is(itemType);
 +
++                                    player.processClick(hand); // Purpur - Ridables
++
 +                                    // Entity in bucket - SPIGOT-4048 and SPIGOT-6859
-+                                    if (itemType == Items.WATER_BUCKET && entity instanceof net.minecraft.world.entity.animal.Bucketable && entity instanceof LivingEntity && resendData) {
-+                                        entity.resendPossiblyDesyncedEntityData(ServerGamePacketListenerImpl.this.player); // Paper - The entire mob gets deleted, so resend it
++                                    if (itemType == Items.WATER_BUCKET && target instanceof net.minecraft.world.entity.animal.Bucketable && target instanceof LivingEntity && resendData) {
++                                        target.resendPossiblyDesyncedEntityData(ServerGamePacketListenerImpl.this.player); // Paper - The entire mob gets deleted, so resend it
 +                                        ServerGamePacketListenerImpl.this.player.containerMenu.sendAllDataToRemote();
 +                                    }
 +
 +                                    if (triggerLeashUpdate && resendData) {
 +                                        // Refresh the current leash state
-+                                        ServerGamePacketListenerImpl.this.send(new net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket(entity, ((net.minecraft.world.entity.Leashable) entity).getLeashHolder()));
++                                        ServerGamePacketListenerImpl.this.send(new net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket(target, ((net.minecraft.world.entity.Leashable) target).getLeashHolder()));
 +                                    }
 +
 +                                    if (resendData) {
 +                                        // Refresh the current entity metadata
-+                                        entity.refreshEntityData(ServerGamePacketListenerImpl.this.player);
++                                        target.refreshEntityData(ServerGamePacketListenerImpl.this.player);
 +                                        // SPIGOT-7136 - Allays
-+                                        if (entity instanceof net.minecraft.world.entity.animal.allay.Allay || entity instanceof net.minecraft.world.entity.animal.horse.AbstractHorse) { // Paper - Fix horse armor desync
++                                        if (target instanceof net.minecraft.world.entity.animal.allay.Allay || target instanceof net.minecraft.world.entity.animal.horse.AbstractHorse) { // Paper - Fix horse armor desync
 +                                            ServerGamePacketListenerImpl.this.send(new net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket(
-+                                                entity.getId(), java.util.Arrays.stream(net.minecraft.world.entity.EquipmentSlot.values())
-+                                                .map((slot) -> com.mojang.datafixers.util.Pair.of(slot, ((LivingEntity) entity).getItemBySlot(slot).copy()))
++                                                target.getId(), java.util.Arrays.stream(net.minecraft.world.entity.EquipmentSlot.values())
++                                                .map((slot) -> com.mojang.datafixers.util.Pair.of(slot, ((LivingEntity) target).getItemBySlot(slot).copy()))
 +                                                .collect(Collectors.toList()), true)); // Paper - sanitize
 +                                            player.containerMenu.sendAllDataToRemote();
 +                                        } else {
@@ -2343,12 +2468,12 @@
 +                                        return;
 +                                    }
 +                                    // CraftBukkit end
-+                                    InteractionResult result = entityInteraction.run(ServerGamePacketListenerImpl.this.player, entity, hand);
++                                    InteractionResult result = entityInteraction.run(ServerGamePacketListenerImpl.this.player, target, hand);
 +
 +                                    if (result instanceof InteractionResult.Success success // CraftBukkit
 +                                    ) {
 +                                        ItemStack itemStack1 = success.wasItemInteraction() ? itemStack : ItemStack.EMPTY;
-+                                        CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(ServerGamePacketListenerImpl.this.player, itemStack1, entity);
++                                        CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(ServerGamePacketListenerImpl.this.player, itemStack1, target);
 +                                        if (success.swingSource() == InteractionResult.SwingSource.SERVER) {
 +                                            ServerGamePacketListenerImpl.this.player.swing(hand, true);
                                          }
@@ -2359,7 +2484,7 @@
                              @Override
                              public void onInteraction(InteractionHand p_143677_) {
 -                                this.performInteraction(p_143677_, Player::interactOn);
-+                                this.performInteraction(p_143677_, Player::interactOn, new PlayerInteractEntityEvent(ServerGamePacketListenerImpl.this.getCraftPlayer(), entity.getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_143677_))); // CraftBukkit
++                                this.performInteraction(p_143677_, Player::interactOn, new PlayerInteractEntityEvent(ServerGamePacketListenerImpl.this.getCraftPlayer(), target.getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_143677_))); // CraftBukkit
                              }
  
                              @Override
@@ -2370,20 +2495,25 @@
 +                                        InteractionResult onInteractEntityAtResult = net.neoforged.neoforge.common.CommonHooks.onInteractEntityAt(player, entity, p_143683_, interactionHand); // Forge: mod-extensible pre-interact hook
 +                                        if (onInteractEntityAtResult != null) return onInteractEntityAtResult;
 +                                        return entity.interactAt(player, p_143683_, interactionHand);
-+                                    }, new PlayerInteractAtEntityEvent(ServerGamePacketListenerImpl.this.getCraftPlayer(), entity.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftVector.toBukkit(p_143683_), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_143682_)) // CraftBukkit
++                                    }, new PlayerInteractAtEntityEvent(ServerGamePacketListenerImpl.this.getCraftPlayer(), target.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftVector.toBukkit(p_143683_), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_143682_)) // CraftBukkit
 +                                );
                              }
  
                              @Override
                              public void onAttack() {
-                                 if (!(entity instanceof ItemEntity)
-                                     && !(entity instanceof ExperienceOrb)
+-                                if (!(entity instanceof ItemEntity)
+-                                    && !(entity instanceof ExperienceOrb)
 -                                    && entity != ServerGamePacketListenerImpl.this.player
-+                                    && (entity != ServerGamePacketListenerImpl.this.player || ServerGamePacketListenerImpl.this.player.isSpectator()) // CraftBukkit
-                                     && !(entity instanceof AbstractArrow abstractarrow && !abstractarrow.isAttackable())) {
+-                                    && !(entity instanceof AbstractArrow abstractarrow && !abstractarrow.isAttackable())) {
++                                if (!(target instanceof ItemEntity)
++                                    && !(target instanceof ExperienceOrb)
++                                    && (target != ServerGamePacketListenerImpl.this.player || ServerGamePacketListenerImpl.this.player.isSpectator()) // CraftBukkit
++                                    && !(target instanceof AbstractArrow abstractarrow && !abstractarrow.isAttackable())) {
                                      ItemStack itemstack = ServerGamePacketListenerImpl.this.player.getItemInHand(InteractionHand.MAIN_HAND);
-                                     if (itemstack.isItemEnabled(serverlevel.enabledFeatures())) {
-                                         ServerGamePacketListenerImpl.this.player.attack(entity);
+-                                    if (itemstack.isItemEnabled(serverlevel.enabledFeatures())) {
+-                                        ServerGamePacketListenerImpl.this.player.attack(entity);
++                                    if (itemstack.isItemEnabled(serverLevel.enabledFeatures())) {
++                                        ServerGamePacketListenerImpl.this.player.attack(target);
                                      }
                                  } else {
 -                                    ServerGamePacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.invalid_entity_attacked"));
@@ -2397,20 +2527,20 @@
              }
 +            // Paper start - PlayerUseUnknownEntityEvent
 +            else {
-+                p_9866_.dispatch(new net.minecraft.network.protocol.game.ServerboundInteractPacket.Handler() {
++                packet.dispatch(new net.minecraft.network.protocol.game.ServerboundInteractPacket.Handler() {
 +                    @Override
 +                    public void onInteraction(net.minecraft.world.InteractionHand hand) {
-+                        CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, p_9866_, hand, null);
++                        CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, packet, hand, null);
 +                    }
 +
 +                    @Override
 +                    public void onInteraction(net.minecraft.world.InteractionHand hand, net.minecraft.world.phys.Vec3 pos) {
-+                        CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, p_9866_, hand, pos);
++                        CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, packet, hand, pos);
 +                    }
 +
 +                    @Override
 +                    public void onAttack() {
-+                        CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, p_9866_, net.minecraft.world.InteractionHand.MAIN_HAND, null);
++                        CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, packet, net.minecraft.world.InteractionHand.MAIN_HAND, null);
 +                    }
 +                });
 +            }
@@ -3060,7 +3190,7 @@
          if (this.player.isModelPartShown(PlayerModelPart.HAT) != flag) {
              this.server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_HAT, this.player));
          }
-@@ -1964,7 +_,7 @@
+@@ -1964,14 +_,14 @@
                  p_9839_.difficulty().getDisplayName()
              );
          } else {
@@ -3069,6 +3199,14 @@
          }
      }
  
+     @Override
+     public void handleChangeGameMode(ServerboundChangeGameModePacket p_425880_) {
+         PacketUtils.ensureRunningOnSameThread(p_425880_, this, this.player.level());
+-        if (!this.player.hasPermissions(2)) {
++        if (!this.player.hasPermissions(2) && !player.getBukkitEntity().hasPermission("purpur.debug.f3n")) { // Purpur - Add permission for F3+N debug
+             LOGGER.warn(
+                 "Player {} tried to change game mode to {} without required permissions",
+                 this.player.getGameProfile().getName(),
 @@ -1998,7 +_,7 @@
          ProfilePublicKey.Data profilepublickey$data1 = remotechatsession$data.profilePublicKey();
          if (!Objects.equals(profilepublickey$data, profilepublickey$data1)) {
