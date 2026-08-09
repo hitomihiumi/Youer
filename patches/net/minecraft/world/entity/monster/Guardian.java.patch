@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/Guardian.java
 +++ b/net/minecraft/world/entity/monster/Guardian.java
-@@ -59,6 +_,7 @@
+@@ -59,21 +_,65 @@
      private boolean clientSideTouchedGround;
      @Nullable
      public RandomStrollGoal randomStrollGoal;
@@ -8,12 +8,163 @@
  
      public Guardian(EntityType<? extends Guardian> p_32810_, Level p_32811_) {
          super(p_32810_, p_32811_);
-@@ -73,7 +_,7 @@
+         this.xpReward = 10;
+         this.setPathfindingMalus(PathType.WATER, 0.0F);
+         this.moveControl = new Guardian.GuardianMoveControl(this);
++        // Purpur start - Ridables
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this) {
++            @Override
++            public void setYawPitch(float yaw, float pitch) {
++                super.setYawPitch(yaw, pitch * 0.35F);
++            }
++        };
++        // Purpur end - Ridables
+         this.clientSideTailAnimation = this.random.nextFloat();
+         this.clientSideTailAnimationO = this.clientSideTailAnimation;
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.guardianRidable;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.guardianControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.guardianMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.guardianScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.guardianTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.guardianAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
      protected void registerGoals() {
          MoveTowardsRestrictionGoal movetowardsrestrictiongoal = new MoveTowardsRestrictionGoal(this, 1.0);
          this.randomStrollGoal = new RandomStrollGoal(this, 1.0, 80);
 -        this.goalSelector.addGoal(4, new Guardian.GuardianAttackGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
 +        this.goalSelector.addGoal(4, this.guardianAttackGoal = new Guardian.GuardianAttackGoal(this)); // CraftBukkit - assign field
          this.goalSelector.addGoal(5, movetowardsrestrictiongoal);
          this.goalSelector.addGoal(7, this.randomStrollGoal);
          this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
+@@ -81,6 +_,7 @@
+         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
+         this.randomStrollGoal.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
+         movetowardsrestrictiongoal.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false, new Guardian.GuardianAttackSelector(this)));
+     }
+ 
+@@ -337,7 +_,7 @@
+     @Override
+     public void travel(Vec3 p_32858_) {
+         if (this.isInWater()) {
+-            this.moveRelative(0.1F, p_32858_);
++            this.moveRelative(getRider() != null && this.isControllable() ? getSpeed() : 0.1F, p_32858_); // Purpur - Ridables
+             this.move(MoverType.SELF, this.getDeltaMovement());
+             this.setDeltaMovement(this.getDeltaMovement().scale(0.9));
+             if (!this.isMoving() && this.getTarget() == null) {
+@@ -445,7 +_,7 @@
+         }
+     }
+ 
+-    static class GuardianMoveControl extends MoveControl {
++    static class GuardianMoveControl extends org.purpurmc.purpur.controller.WaterMoveControllerWASD { // Purpur - Ridables
+         private final Guardian guardian;
+ 
+         public GuardianMoveControl(Guardian p_32886_) {
+@@ -453,39 +_,50 @@
+             this.guardian = p_32886_;
+         }
+ 
+-        @Override
+-        public void tick() {
++        // Purpur start - Ridables
++        @Override
++        public void purpurTick(Player rider) {
++            super.purpurTick(rider);
++            guardian.setDeltaMovement(guardian.getDeltaMovement().add(0.0D, 0.005D, 0.0D));
++            guardian.setMoving(guardian.getForwardMot() > 0.0F); // control tail speed
++        }
++        // Purpur end - Ridables
++
++        @Override
++        public void vanillaTick() { // Purpur - Ridables
+             if (this.operation == MoveControl.Operation.MOVE_TO && !this.guardian.getNavigation().isDone()) {
+                 Vec3 vec3 = new Vec3(this.wantedX - this.guardian.getX(), this.wantedY - this.guardian.getY(), this.wantedZ - this.guardian.getZ());
+-                double d0 = vec3.length();
+-                double d1 = vec3.x / d0;
+-                double d2 = vec3.y / d0;
+-                double d3 = vec3.z / d0;
++                double len = vec3.length();
++                double d = vec3.x / len;
++                double d1 = vec3.y / len;
++                double d2 = vec3.z / len;
+                 float f = (float)(Mth.atan2(vec3.z, vec3.x) * 180.0F / (float)Math.PI) - 90.0F;
+                 this.guardian.setYRot(this.rotlerp(this.guardian.getYRot(), f, 90.0F));
+                 this.guardian.yBodyRot = this.guardian.getYRot();
+-                float f1 = (float)(this.speedModifier * this.guardian.getAttributeValue(Attributes.MOVEMENT_SPEED));
++                float f1 = (float)(this.getSpeedModifier() * this.guardian.getAttributeValue(Attributes.MOVEMENT_SPEED)); // Purpur - Ridables
+                 float f2 = Mth.lerp(0.125F, this.guardian.getSpeed(), f1);
+                 this.guardian.setSpeed(f2);
+-                double d4 = Math.sin((this.guardian.tickCount + this.guardian.getId()) * 0.5) * 0.05;
+-                double d5 = Math.cos(this.guardian.getYRot() * (float) (Math.PI / 180.0));
+-                double d6 = Math.sin(this.guardian.getYRot() * (float) (Math.PI / 180.0));
+-                double d7 = Math.sin((this.guardian.tickCount + this.guardian.getId()) * 0.75) * 0.05;
+-                this.guardian.setDeltaMovement(this.guardian.getDeltaMovement().add(d4 * d5, d7 * (d6 + d5) * 0.25 + f2 * d2 * 0.1, d4 * d6));
+-                LookControl lookcontrol = this.guardian.getLookControl();
+-                double d8 = this.guardian.getX() + d1 * 2.0;
+-                double d9 = this.guardian.getEyeY() + d2 / d0;
+-                double d10 = this.guardian.getZ() + d3 * 2.0;
+-                double d11 = lookcontrol.getWantedX();
+-                double d12 = lookcontrol.getWantedY();
+-                double d13 = lookcontrol.getWantedZ();
+-                if (!lookcontrol.isLookingAtTarget()) {
+-                    d11 = d8;
+-                    d12 = d9;
+-                    d13 = d10;
++                double d3 = Math.sin((this.guardian.tickCount + this.guardian.getId()) * 0.5) * 0.05;
++                double cos = Math.cos(this.guardian.getYRot() * (float) (Math.PI / 180.0));
++                double sin = Math.sin(this.guardian.getYRot() * (float) (Math.PI / 180.0));
++                double d4 = Math.sin((this.guardian.tickCount + this.guardian.getId()) * 0.75) * 0.05;
++                this.guardian.setDeltaMovement(this.guardian.getDeltaMovement().add(d3 * cos, d4 * (sin + cos) * 0.25 + f2 * d1 * 0.1, d3 * sin));
++                LookControl lookControl = this.guardian.getLookControl();
++                double d5 = this.guardian.getX() + d * 2.0;
++                double d6 = this.guardian.getEyeY() + d1 / len;
++                double d7 = this.guardian.getZ() + d2 * 2.0;
++                double wantedX = lookControl.getWantedX();
++                double wantedY = lookControl.getWantedY();
++                double wantedZ = lookControl.getWantedZ();
++                if (!lookControl.isLookingAtTarget()) {
++                    wantedX = d5;
++                    wantedY = d6;
++                    wantedZ = d7;
+                 }
+ 
+-                this.guardian.getLookControl().setLookAt(Mth.lerp(0.125, d11, d8), Mth.lerp(0.125, d12, d9), Mth.lerp(0.125, d13, d10), 10.0F, 40.0F);
++                this.guardian
++                    .getLookControl()
++                    .setLookAt(Mth.lerp(0.125, wantedX, d5), Mth.lerp(0.125, wantedY, d6), Mth.lerp(0.125, wantedZ, d7), 10.0F, 40.0F);
+                 this.guardian.setMoving(true);
+             } else {
+                 this.guardian.setSpeed(0.0F);

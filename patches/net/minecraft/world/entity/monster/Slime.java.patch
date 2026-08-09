@@ -1,13 +1,122 @@
 --- a/net/minecraft/world/entity/monster/Slime.java
 +++ b/net/minecraft/world/entity/monster/Slime.java
-@@ -58,6 +_,7 @@
+@@ -58,6 +_,8 @@
      public float squish;
      public float oSquish;
      private boolean wasOnGround = false;
 +    private boolean canWander = true; // Paper - Slime pathfinder events
++    protected boolean actualJump; // Purpur - Ridables
  
      public Slime(EntityType<? extends Slime> p_33588_, Level p_33589_) {
          super(p_33588_, p_33589_);
+@@ -65,12 +_,95 @@
+         this.moveControl = new Slime.SlimeMoveControl(this);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.slimeRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.slimeRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.slimeControllable;
++    }
++
++    @Override
++    public float getJumpPower() {
++        float height = super.getJumpPower();
++        return getRider() != null && this.isControllable() && actualJump ? height * 1.5F : height;
++    }
++
++    @Override
++    public boolean onSpacebar() {
++        if (onGround && getRider() != null && this.isControllable()) {
++            actualJump = true;
++            if (getRider().getForwardMot() == 0 || getRider().getStrafeMot() == 0) {
++                jumpFromGround(); // jump() here if not moving
++            }
++        }
++        return true; // do not jump() in wasd controller, let vanilla controller handle
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    protected String getMaxHealthEquation() {
++        return level().purpurConfig.slimeMaxHealth;
++    }
++
++    protected String getAttackDamageEquation() {
++        return level().purpurConfig.slimeAttackDamage;
++    }
++
++    protected java.util.Map<Integer, Double> getMaxHealthCache() {
++        return level().purpurConfig.slimeMaxHealthCache;
++    }
++
++    protected java.util.Map<Integer, Double> getAttackDamageCache() {
++        return level().purpurConfig.slimeAttackDamageCache;
++    }
++
++    protected double getFromCache(java.util.function.Supplier<String> equation, java.util.function.Supplier<java.util.Map<Integer, Double>> cache, java.util.function.Supplier<Double> defaultValue) {
++        int size = getSize();
++        Double value = cache.get().get(size);
++        if (value == null) {
++            try {
++                value = ((Number) scriptEngine.eval("let size = " + size + "; " + equation.get())).doubleValue();
++            } catch (javax.script.ScriptException e) {
++                e.printStackTrace();
++                value = defaultValue.get();
++            }
++            cache.get().put(size, value);
++        }
++        return value;
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.slimeTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.slimeAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new Slime.SlimeFloatGoal(this));
+         this.goalSelector.addGoal(2, new Slime.SlimeAttackGoal(this));
+         this.goalSelector.addGoal(3, new Slime.SlimeRandomDirectionGoal(this));
+         this.goalSelector.addGoal(5, new Slime.SlimeKeepOnJumpingGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector
+             .addGoal(
+                 1,
+@@ -98,9 +_,9 @@
+         this.entityData.set(ID_SIZE, i);
+         this.reapplyPosition();
+         this.refreshDimensions();
+-        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(i * i);
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(getFromCache(this::getMaxHealthEquation, this::getMaxHealthCache, () -> (double) (p_33594_ * p_33594_))); // Purpur - Configurable entity base attributes
+         this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.2F + 0.1F * i);
+-        this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(i);
++        this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(getFromCache(this::getAttackDamageEquation, this::getAttackDamageCache, () -> (double) i)); // Purpur - Configurable entity base attributes
+         if (p_33595_) {
+             this.setHealth(this.getMaxHealth());
+         }
 @@ -117,6 +_,7 @@
          super.addAdditionalSaveData(p_422317_);
          p_422317_.putInt("Size", this.getSize() - 1);
@@ -169,11 +278,12 @@
              }
          }
  
-@@ -329,6 +_,7 @@
+@@ -329,6 +_,8 @@
          Vec3 vec3 = this.getDeltaMovement();
          this.setDeltaMovement(vec3.x, this.getJumpPower(), vec3.z);
          this.hasImpulse = true;
 +        net.neoforged.neoforge.common.CommonHooks.onLivingJump(this);
++        this.actualJump = false; // Purpur - Ridables
      }
  
      @Nullable
@@ -276,6 +386,61 @@
          }
  
          @Override
+@@ -466,7 +_,7 @@
+         }
+     }
+ 
+-    static class SlimeMoveControl extends MoveControl {
++    static class SlimeMoveControl extends org.purpurmc.purpur.controller.MoveControllerWASD { // Purpur - Ridables
+         private float yRot;
+         private int jumpDelay;
+         private final Slime slime;
+@@ -484,21 +_,33 @@
+         }
+ 
+         public void setWantedMovement(double p_33671_) {
+-            this.speedModifier = p_33671_;
++            this.setSpeedModifier(p_33671_); // Purpur - Ridables
+             this.operation = MoveControl.Operation.MOVE_TO;
+         }
+ 
+         @Override
+         public void tick() {
++            // Purpur start - Ridables
++            if (slime.getRider() != null && slime.isControllable()) {
++                purpurTick(slime.getRider());
++                if (slime.getForwardMot() != 0 || slime.getStrafeMot() != 0) {
++                    if (jumpDelay > 10) {
++                        jumpDelay = 6;
++                    }
++                } else {
++                    jumpDelay = 20;
++                }
++            } else {
++            // Purpur end - Ridables
+             this.mob.setYRot(this.rotlerp(this.mob.getYRot(), this.yRot, 90.0F));
+             this.mob.yHeadRot = this.mob.getYRot();
+             this.mob.yBodyRot = this.mob.getYRot();
+-            if (this.operation != MoveControl.Operation.MOVE_TO) {
++            } if ((slime.getRider() == null || !slime.isControllable()) && this.operation != MoveControl.Operation.MOVE_TO) { // Purpur - Ridables
+                 this.mob.setZza(0.0F);
+             } else {
+                 this.operation = MoveControl.Operation.WAIT;
+                 if (this.mob.onGround()) {
+-                    this.mob.setSpeed((float)(this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
++                    this.mob.setSpeed((float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED) * (slime.getRider() != null && slime.isControllable() && (slime.getRider().getForwardMot() != 0 || slime.getRider().getStrafeMot() != 0) ? 2.0D : 1.0D))); // Purpur - Ridables
+                     if (this.jumpDelay-- <= 0) {
+                         this.jumpDelay = this.slime.getJumpDelay();
+                         if (this.isAggressive) {
+@@ -515,7 +_,7 @@
+                         this.mob.setSpeed(0.0F);
+                     }
+                 } else {
+-                    this.mob.setSpeed((float)(this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
++                    this.mob.setSpeed((float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED) * (slime.getRider() != null && slime.isControllable() && (slime.getRider().getForwardMot() != 0 || slime.getRider().getStrafeMot() != 0) ? 2.0D : 1.0D))); // Purpur - Ridables
+                 }
+             }
+         }
 @@ -533,7 +_,7 @@
  
          @Override

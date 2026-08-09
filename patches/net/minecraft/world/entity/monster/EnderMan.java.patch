@@ -1,5 +1,65 @@
 --- a/net/minecraft/world/entity/monster/EnderMan.java
 +++ b/net/minecraft/world/entity/monster/EnderMan.java
+@@ -86,12 +_,45 @@
+ 
+     public EnderMan(EntityType<? extends EnderMan> p_32485_, Level p_32486_) {
+         super(p_32485_, p_32486_);
+-        this.setPathfindingMalus(PathType.WATER, -1.0F);
+-    }
++        if (isSensitiveToWater()) this.setPathfindingMalus(PathType.WATER, -1.0F); // Purpur - Toggle for water sensitive mob damage
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.endermanRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.endermanRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.endermanControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.endermanMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.endermanScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.endermanAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
+ 
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new FloatGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new EnderMan.EndermanFreezeWhenLookedAt(this));
+         this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.0, false));
+         this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0, 0.0F));
+@@ -99,9 +_,10 @@
+         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
+         this.goalSelector.addGoal(10, new EnderMan.EndermanLeaveBlockGoal(this));
+         this.goalSelector.addGoal(11, new EnderMan.EndermanTakeBlockGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new EnderMan.EndermanLookForPlayerGoal(this, this::isAngryAt));
+         this.targetSelector.addGoal(2, new HurtByTargetGoal(this));
+-        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Endermite.class, true, false));
++        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Endermite.class, 10, true, false, (entityliving, ignored) -> entityliving.level().purpurConfig.endermanAggroEndermites && entityliving instanceof Endermite endermite && (!entityliving.level().purpurConfig.endermanAggroEndermitesOnlyIfPlayerSpawned || endermite.isPlayerSpawned()))); // Purpur
+         this.targetSelector.addGoal(4, new ResetUniversalAngerTargetGoal<>(this, false));
+     }
+ 
 @@ -114,22 +_,38 @@
              .add(Attributes.STEP_HEIGHT, 1.0);
      }
@@ -54,7 +114,7 @@
 -        return !LivingEntity.PLAYER_NOT_WEARING_DISGUISE_ITEM.test(p_380267_)
 +    boolean isBeingStaredBy(Player player) {
 +        // Paper start - EndermanAttackPlayerEvent
-+        final boolean shouldAttack = this.isBeingStaredBy0(player);
++        final boolean shouldAttack = !this.level().purpurConfig.endermanDisableStareAggro && this.isBeingStaredBy0(player); // Purpur - Config to ignore Dragon Head wearers and stare aggro
 +        final com.destroystokyo.paper.event.entity.EndermanAttackPlayerEvent event = new com.destroystokyo.paper.event.entity.EndermanAttackPlayerEvent((org.bukkit.entity.Enderman) getBukkitEntity(), (org.bukkit.entity.Player) player.getBukkitEntity());
 +        event.setCancelled(!shouldAttack);
 +        return event.callEvent();
@@ -70,9 +130,18 @@
      }
  
      @Override
-@@ -242,7 +_,9 @@
+@@ -235,14 +_,16 @@
+ 
+     @Override
+     public boolean isSensitiveToWater() {
+-        return true;
++        return this.level().purpurConfig.endermanTakeDamageFromWater; // Purpur - Toggle for water sensitive mob damage
+     }
+ 
+     @Override
      protected void customServerAiStep(ServerLevel p_376787_) {
-         if (p_376787_.isBrightOutside() && this.tickCount >= this.targetChangeTime + 600) {
+-        if (p_376787_.isBrightOutside() && this.tickCount >= this.targetChangeTime + 600) {
++        if ((getRider() == null || !this.isControllable()) && p_376787_.isBrightOutside() && this.tickCount >= this.targetChangeTime + 600) { // Purpur - Ridables - no random teleporting
              float f = this.getLightLevelDependentMagicValue();
 -            if (f > 0.5F && p_376787_.canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F) {
 +            if (f > 0.5F
@@ -93,7 +162,13 @@
              if (flag2) {
                  this.level().gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(this));
                  if (!this.isSilent()) {
-@@ -355,21 +_,25 @@
+@@ -351,25 +_,32 @@
+     public boolean hurtServer(ServerLevel p_376680_, DamageSource p_376597_, float p_376796_) {
+         if (this.isInvulnerableTo(p_376680_, p_376597_)) {
+             return false;
++        } else if (getRider() != null && this.isControllable()) { return super.hurtServer(p_376680_, p_376597_, p_376796_); // Purpur - no teleporting on damage
++        } else if (org.purpurmc.purpur.PurpurConfig.endermanShortHeight && p_376597_.is(net.minecraft.world.damagesource.DamageTypes.IN_WALL)) { return false; // Purpur - no suffocation damage if short height - Short enderman height
+         } else {
              AbstractThrownPotion abstractthrownpotion = p_376597_.getDirectEntity() instanceof AbstractThrownPotion abstractthrownpotion1
                  ? abstractthrownpotion1
                  : null;
@@ -110,6 +185,7 @@
              } else {
                  boolean flag = abstractthrownpotion != null && this.hurtWithCleanWater(p_376680_, p_376597_, abstractthrownpotion, p_376796_);
  
++                if (!flag1 && p_376680_.purpurConfig.endermanIgnoreProjectiles) return super.hurtServer(p_376680_, p_376597_, p_376796_); // Purpur - Config to disable Enderman teleport on projectile hit
 +                if (this.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.INDIRECT)) { // Paper - EndermanEscapeEvent
                  for (int i = 0; i < 64; i++) {
                      if (this.teleport()) {
@@ -120,7 +196,7 @@
  
                  return flag;
              }
-@@ -394,6 +_,16 @@
+@@ -394,9 +_,19 @@
          this.entityData.set(DATA_STARED_AT, true);
      }
  
@@ -136,13 +212,22 @@
 +
      @Override
      public boolean requiresCustomPersistence() {
-         return super.requiresCustomPersistence() || this.getCarriedBlock() != null;
-@@ -443,7 +_,7 @@
+-        return super.requiresCustomPersistence() || this.getCarriedBlock() != null;
++        return super.requiresCustomPersistence() || (!this.level().purpurConfig.endermanDespawnEvenWithBlock && this.getCarriedBlock() != null); // Purpur - Add config for allowing Endermen to despawn even while holding a block
+     }
+ 
+     static class EndermanFreezeWhenLookedAt extends Goal {
+@@ -440,10 +_,12 @@
+ 
+         @Override
+         public boolean canUse() {
++            if (!enderman.level().purpurConfig.endermanAllowGriefing) return false; // Purpur - Add enderman and creeper griefing controls
              if (this.enderman.getCarriedBlock() == null) {
                  return false;
              } else {
 -                return !getServerLevel(this.enderman).getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
-+                return !net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.enderman.level()), this.enderman)
++                Boolean mobGriefingOverride = this.enderman.level().purpurConfig.endermanMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++                return !(mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.enderman.level()), this.enderman))
                      ? false
                      : this.enderman.getRandom().nextInt(reducedTickDelay(2000)) == 0;
              }
@@ -185,12 +270,17 @@
                              this.enderman.teleport();
                          }
  
-@@ -586,7 +_,7 @@
+@@ -583,10 +_,12 @@
+ 
+         @Override
+         public boolean canUse() {
++            if (!enderman.level().purpurConfig.endermanAllowGriefing) return false; // Purpur - Add enderman and creeper griefing controls
              if (this.enderman.getCarriedBlock() != null) {
                  return false;
              } else {
 -                return !getServerLevel(this.enderman).getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
-+                return !net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.enderman.level()), this.enderman)
++                Boolean mobGriefingOverride = this.enderman.level().purpurConfig.endermanMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++                return !(mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.enderman.level()), this.enderman))
                      ? false
                      : this.enderman.getRandom().nextInt(reducedTickDelay(20)) == 0;
              }
