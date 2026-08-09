@@ -1,14 +1,18 @@
 --- a/net/minecraft/world/entity/animal/Bee.java
 +++ b/net/minecraft/world/entity/animal/Bee.java
-@@ -147,10 +_,26 @@
+@@ -147,18 +_,82 @@
      Bee.BeeGoToHiveGoal goToHiveGoal;
      private Bee.BeeGoToKnownFlowerGoal goToKnownFlowerGoal;
      private int underWaterTicks;
-+    public net.kyori.adventure.util.TriState rollingOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Rolling override
- 
-     public Bee(EntityType<? extends Bee> p_27717_, Level p_27718_) {
-         super(p_27717_, p_27718_);
+-
+-    public Bee(EntityType<? extends Bee> p_27717_, Level p_27718_) {
+-        super(p_27717_, p_27718_);
 -        this.moveControl = new FlyingMoveControl(this, 20, true);
++    public net.kyori.adventure.util.TriState rollingOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Rolling override
++
++    public Bee(EntityType<? extends Bee> entityType, Level level) {
++        super(entityType, level);
++        final org.purpurmc.purpur.controller.FlyingMoveControllerWASD flyingController = new org.purpurmc.purpur.controller.FlyingMoveControllerWASD(this, 0.25F, 1.0F, false); // Purpur - Ridables
 +        // Paper start - Fix MC-167279
 +        class BeeFlyingMoveControl extends FlyingMoveControl {
 +            public BeeFlyingMoveControl(final Mob entity, final int maxPitchChange, final boolean noGravity) {
@@ -17,17 +21,89 @@
 +
 +            @Override
 +            public void tick() {
++                // Purpur start - Ridables
++                if (mob.getRider() != null && mob.isControllable()) {
++                    flyingController.purpurTick(mob.getRider());
++                    return;
++                }
++                // Purpur end - Ridables
 +                if (this.mob.getY() <= Bee.this.level().getMinY()) {
 +                    this.mob.setNoGravity(false);
 +                }
 +                super.tick();
 +            }
++
++            // Purpur start - Ridables
++            @Override
++            public boolean hasWanted() {
++                return mob.getRider() != null || !mob.isControllable() || super.hasWanted();
++            }
++            // Purpur end - Ridables
 +        }
 +        this.moveControl = new BeeFlyingMoveControl(this, 20, true);
 +        // Paper end - Fix MC-167279
          this.lookControl = new Bee.BeeLookControl(this);
          this.setPathfindingMalus(PathType.DANGER_FIRE, -1.0F);
-         this.setPathfindingMalus(PathType.WATER, -1.0F);
+-        this.setPathfindingMalus(PathType.WATER, -1.0F);
++        if (this.level().purpurConfig.beeCanInstantlyStartDrowning || isSensitiveToWater()) this.setPathfindingMalus(PathType.WATER, -1.0F); // Purpur - bee can instantly start drowning in water option // Purpur - Toggle for water sensitive mob damage
+         this.setPathfindingMalus(PathType.WATER_BORDER, 16.0F);
+         this.setPathfindingMalus(PathType.COCOA, -1.0F);
+         this.setPathfindingMalus(PathType.FENCE, -1.0F);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.beeRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.beeRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.beeControllable;
++    }
++
++    @Override
++    public double getMaxY() {
++        return level().purpurConfig.beeMaxY;
++    }
++
++    @Override
++    public void travel(Vec3 vec3) {
++        super.travel(vec3);
++        if (getRider() != null && this.isControllable() && !onGround) {
++            float speed = (float) getAttributeValue(Attributes.FLYING_SPEED) * 2;
++            setSpeed(speed);
++            Vec3 mot = getDeltaMovement();
++            move(net.minecraft.world.entity.MoverType.SELF, mot.multiply(speed, speed, speed));
++            setDeltaMovement(mot.scale(0.9D));
++        }
++    }
++    // Purpur end - Ridables
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder p_326248_) {
+         super.defineSynchedData(p_326248_);
+@@ -173,6 +_,7 @@
+ 
+     @Override
+     protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(0, new Bee.BeeAttackGoal(this, 1.4F, true));
+         this.goalSelector.addGoal(1, new Bee.BeeEnterHiveGoal());
+         this.goalSelector.addGoal(2, new BreedGoal(this, 1.0));
+@@ -190,6 +_,7 @@
+         this.goalSelector.addGoal(7, new Bee.BeeGrowCropGoal());
+         this.goalSelector.addGoal(8, new Bee.BeeWanderGoal());
+         this.goalSelector.addGoal(9, new FloatGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new Bee.BeeHurtByOtherGoal(this).setAlertOthers(new Class[0]));
+         this.targetSelector.addGoal(2, new Bee.BeeBecomeAngryTargetGoal(this));
+         this.targetSelector.addGoal(3, new ResetUniversalAngerTargetGoal<>(this, true));
 @@ -197,15 +_,24 @@
  
      @Override
@@ -71,6 +147,68 @@
                  }
              }
  
+@@ -350,7 +_,7 @@
+     }
+ 
+     public static boolean isNightOrRaining(Level p_368571_) {
+-        return p_368571_.dimensionType().hasSkyLight() && (p_368571_.isDarkOutside() || p_368571_.isRaining());
++        return p_368571_.dimensionType().hasSkyLight() && (p_368571_.isDarkOutside() && !p_368571_.purpurConfig.beeCanWorkAtNight || p_368571_.isRaining() && !p_368571_.purpurConfig.beeCanWorkInRain); // Purpur - Bee can work when raining or at night
+     }
+ 
+     public void setStayOutOfHiveCountdown(int p_27916_) {
+@@ -373,7 +_,7 @@
+     @Override
+     protected void customServerAiStep(ServerLevel p_376178_) {
+         boolean flag = this.hasStung();
+-        if (this.isInWater()) {
++        if (this.level().purpurConfig.beeCanInstantlyStartDrowning && this.isInWater()) { // Purpur - bee can instantly start drowning in water option
+             this.underWaterTicks++;
+         } else {
+             this.underWaterTicks = 0;
+@@ -383,6 +_,7 @@
+             this.hurtServer(p_376178_, this.damageSources().drown(), 1.0F);
+         }
+ 
++        if (flag && !this.level().purpurConfig.beeDiesAfterSting) setHasStung(false); else // Purpur - Stop bees from dying after stinging
+         if (flag) {
+             this.timeSinceSting++;
+             if (this.timeSinceSting % 5 == 0 && this.random.nextInt(Mth.clamp(1200 - this.timeSinceSting, 1, 1200)) == 0) {
+@@ -406,6 +_,35 @@
+         return beehiveblockentity != null && beehiveblockentity.isFireNearby();
+     }
+ 
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.beeMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.beeScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.beeBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.beeTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.beeAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     public int getRemainingPersistentAngerTime() {
+         return this.entityData.get(DATA_REMAINING_ANGER_TIME);
 @@ -500,7 +_,11 @@
          if (this.hivePos == null) {
              return null;
@@ -149,6 +287,42 @@
              }
          }
      }
+@@ -1067,15 +_,15 @@
+         }
+     }
+ 
+-    class BeeLookControl extends LookControl {
+-        BeeLookControl(Mob p_28059_) {
++    class BeeLookControl extends org.purpurmc.purpur.controller.LookControllerWASD { // Purpur - Ridables
++        BeeLookControl(final Mob p_28059_) {
+             super(p_28059_);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (!Bee.this.isAngry()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+ 
+@@ -1120,6 +_,7 @@
+                     Bee.this.savedFlowerPos = optional.get();
+                     Bee.this.navigation
+                         .moveTo(Bee.this.savedFlowerPos.getX() + 0.5, Bee.this.savedFlowerPos.getY() + 0.5, Bee.this.savedFlowerPos.getZ() + 0.5, 1.2F);
++                    new org.purpurmc.purpur.event.entity.BeeFoundFlowerEvent((org.bukkit.entity.Bee) Bee.this.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftLocation.toBukkit(Bee.this.savedFlowerPos, Bee.this.level())).callEvent(); // Purpur - Bee API
+                     return true;
+                 } else {
+                     Bee.this.remainingCooldownBeforeLocatingNewFlower = Mth.nextInt(Bee.this.random, 20, 60);
+@@ -1171,6 +_,7 @@
+             this.pollinating = false;
+             Bee.this.navigation.stop();
+             Bee.this.remainingCooldownBeforeLocatingNewFlower = 200;
++            new org.purpurmc.purpur.event.entity.BeeStopPollinatingEvent((org.bukkit.entity.Bee) Bee.this.getBukkitEntity(), Bee.this.savedFlowerPos == null ? null : org.bukkit.craftbukkit.util.CraftLocation.toBukkit(Bee.this.savedFlowerPos, Bee.this.level()), Bee.this.hasNectar()).callEvent(); // Purpur - Bee API
+         }
+ 
+         @Override
 @@ -1186,7 +_,7 @@
                      Bee.this.dropFlower();
                      this.pollinating = false;
@@ -158,3 +332,11 @@
                      Vec3 vec3 = Vec3.atBottomCenterOf(Bee.this.savedFlowerPos).add(0.0, 0.6F, 0.0);
                      if (vec3.distanceTo(Bee.this.position()) > 1.0) {
                          this.hoverPos = vec3;
+@@ -1217,6 +_,7 @@
+                                 this.setWantedPos();
+                             }
+ 
++                            if (this.successfulPollinatingTicks == 0) new org.purpurmc.purpur.event.entity.BeeStartedPollinatingEvent((org.bukkit.entity.Bee) Bee.this.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftLocation.toBukkit(Bee.this.savedFlowerPos, Bee.this.level())).callEvent(); // Purpur - Bee API
+                             this.successfulPollinatingTicks++;
+                             if (Bee.this.random.nextFloat() < 0.05F && this.successfulPollinatingTicks > this.lastSoundPlayedTick + 60) {
+                                 this.lastSoundPlayedTick = this.successfulPollinatingTicks;

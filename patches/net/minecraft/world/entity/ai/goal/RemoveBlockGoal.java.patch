@@ -1,11 +1,12 @@
 --- a/net/minecraft/world/entity/ai/goal/RemoveBlockGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/RemoveBlockGoal.java
-@@ -35,7 +_,7 @@
+@@ -35,7 +_,8 @@
  
      @Override
      public boolean canUse() {
 -        if (!getServerLevel(this.removerMob).getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+        if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.removerMob.level()), this.removerMob)) {
++        Boolean mobGriefingOverride = getServerLevel(this.removerMob).purpurConfig.zombieMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++        if (!(mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.removerMob.level()), this.removerMob))) {
              return false;
          } else if (this.nextStartTick > 0) {
              this.nextStartTick--;

@@ -21,7 +21,7 @@
 +                        // CraftBukkit - move down
                      && p_405326_.mayInteract(serverlevel, blockpos)) {
 +                    // CraftBukkit start
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_405326_, p_154265_, Blocks.AIR.defaultBlockState(), !(serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) || p_405326_ instanceof Player))) {
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_405326_, p_154265_, Blocks.AIR.defaultBlockState(), !(serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING, serverlevel.purpurConfig.powderSnowMobGriefingOverride) || p_405326_ instanceof Player))) { // Purpur - Add mobGriefing override to everything affected
 +                        return;
 +                    }
 +                    // CraftBukkit end

@@ -1,0 +1,146 @@
+--- a/net/minecraft/world/entity/animal/PolarBear.java
++++ b/net/minecraft/world/entity/animal/PolarBear.java
+@@ -61,11 +_,92 @@
+     private int remainingPersistentAngerTime;
+     @Nullable
+     private UUID persistentAngerTarget;
++    private int standTimer = 0; // Purpur - Ridables
+ 
+     public PolarBear(EntityType<? extends PolarBear> p_29519_, Level p_29520_) {
+         super(p_29519_, p_29520_);
+     }
+ 
++    // Purpur start - Breedable Polar Bears
++    public boolean canMate(Animal other) {
++        if (other == this) {
++            return false;
++        } else if (this.isStanding()) {
++            return false;
++        } else if (this.getTarget() != null) {
++            return false;
++        } else if (!(other instanceof PolarBear)) {
++            return false;
++        } else {
++            PolarBear bear = (PolarBear) other;
++            if (bear.isStanding()) {
++                return false;
++            }
++            if (bear.getTarget() != null) {
++                return false;
++            }
++            return this.isInLove() && bear.isInLove();
++        }
++    }
++    // Purpur end - Breedable Polar Bears
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.polarBearRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.polarBearRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.polarBearControllable;
++    }
++
++    @Override
++    public boolean onSpacebar() {
++        if (!isStanding()) {
++            if (getRider() != null && getRider().getForwardMot() == 0 && getRider().getStrafeMot() == 0) {
++                setStanding(true);
++                playSound(SoundEvents.POLAR_BEAR_WARNING, 1.0F, 1.0F);
++            }
++        }
++        return false;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.polarBearMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.polarBearScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.polarBearBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.polarBearTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.polarBearAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Nullable
+     @Override
+     public AgeableMob getBreedOffspring(ServerLevel p_149005_, AgeableMob p_149006_) {
+@@ -74,20 +_,28 @@
+ 
+     @Override
+     public boolean isFood(ItemStack p_29565_) {
+-        return false;
++        return level().purpurConfig.polarBearBreedableItem != null && p_29565_.getItem() == level().purpurConfig.polarBearBreedableItem; // Purpur - Breedable Polar Bears
+     }
+ 
+     @Override
+     protected void registerGoals() {
+         super.registerGoals();
+         this.goalSelector.addGoal(0, new FloatGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new PolarBear.PolarBearMeleeAttackGoal());
+         this.goalSelector
+             .addGoal(1, new PanicGoal(this, 2.0, p_425376_ -> p_425376_.isBaby() ? DamageTypeTags.PANIC_CAUSES : DamageTypeTags.PANIC_ENVIRONMENTAL_CAUSES));
++        // Purpur start - Breedable Polar Bears
++        if (level().purpurConfig.polarBearBreedableItem != null) {
++            this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.BreedGoal(this, 1.0D));
++            this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.TemptGoal(this, 1.0D, net.minecraft.world.item.crafting.Ingredient.of(level().purpurConfig.polarBearBreedableItem), false));
++        }
++        // Purpur end - Breedable Polar Bears
+         this.goalSelector.addGoal(4, new FollowParentGoal(this, 1.25));
+         this.goalSelector.addGoal(5, new RandomStrollGoal(this, 1.0));
+         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 6.0F));
+         this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new PolarBear.PolarBearHurtByTargetGoal());
+         this.targetSelector.addGoal(2, new PolarBear.PolarBearAttackPlayersGoal());
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
+@@ -206,6 +_,12 @@
+         if (!this.level().isClientSide) {
+             this.updatePersistentAnger((ServerLevel)this.level(), true);
+         }
++
++        // Purpur start - Ridables
++        if (isStanding() && --standTimer <= 0) {
++            setStanding(false);
++        }
++        // Purpur end - Ridables
+     }
+ 
+     @Override
+@@ -225,6 +_,7 @@
+ 
+     public void setStanding(boolean p_29568_) {
+         this.entityData.set(DATA_STANDING_ID, p_29568_);
++        standTimer = p_29568_ ? 20 : -1; // Purpur - Ridables
+     }
+ 
+     public float getStandingAnimationScale(float p_29570_) {

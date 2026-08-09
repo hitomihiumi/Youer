@@ -10,7 +10,7 @@
 +        super(EntityType.SMALL_FIREBALL, owner, movement, level);
 +        // CraftBukkit start
 +        if (this.getOwner() != null && this.getOwner() instanceof Mob) {
-+            this.isIncendiary = (level instanceof ServerLevel serverLevel) && net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, this.getOwner());
++            this.isIncendiary = (level instanceof ServerLevel serverLevel) && (serverLevel.purpurConfig.fireballsMobGriefingOverride != null ? serverLevel.purpurConfig.fireballsMobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, this.getOwner())); // Purpur - Add mobGriefing override to everything affected
 +        }
 +        // CraftBukkit end
      }

@@ -1,5 +1,122 @@
 --- a/net/minecraft/world/entity/animal/Dolphin.java
 +++ b/net/minecraft/world/entity/animal/Dolphin.java
+@@ -73,15 +_,106 @@
+     public static final float BABY_SCALE = 0.65F;
+     private static final boolean DEFAULT_GOT_FISH = false;
+     @Nullable
+-    BlockPos treasurePos;
++    public BlockPos treasurePos;
++    private boolean isNaturallyAggressiveToPlayers; // Purpur - Dolphins naturally aggressive to players chance
++    private int spitCooldown; // Purpur - Ridables
+ 
+     public Dolphin(EntityType<? extends Dolphin> p_28316_, Level p_28317_) {
+         super(p_28316_, p_28317_);
+-        this.moveControl = new SmoothSwimmingMoveControl(this, 85, 10, 0.02F, 0.1F, true);
++        // Purpur start - Ridables
++        class DolphinMoveControl extends SmoothSwimmingMoveControl {
++            private final org.purpurmc.purpur.controller.WaterMoveControllerWASD waterMoveControllerWASD;
++            private final Dolphin dolphin;
++
++            public DolphinMoveControl(Dolphin dolphin, int pitchChange, int yawChange, float speedInWater, float speedInAir, boolean buoyant) {
++                super(dolphin, pitchChange, yawChange, speedInWater, speedInAir, buoyant);
++                this.dolphin = dolphin;
++                this.waterMoveControllerWASD = new org.purpurmc.purpur.controller.WaterMoveControllerWASD(dolphin);
++            }
++
++            @Override
++            public void tick() {
++                if (dolphin.getRider() != null && dolphin.isControllable()) {
++                    purpurTick(dolphin.getRider());
++                } else {
++                    super.tick();
++                }
++            }
++
++            public void purpurTick(Player rider) {
++                if (dolphin.getAirSupply() < 150) {
++                    // if drowning override player WASD controls to find air
++                    super.tick();
++                } else {
++                    waterMoveControllerWASD.purpurTick(rider);
++                    dolphin.setDeltaMovement(dolphin.getDeltaMovement().add(0.0D, 0.005D, 0.0D));
++                }
++            }
++        };
++        this.moveControl = new DolphinMoveControl(this, 85, 10, 0.02F, 0.1F, true);
++        // Purpur end - Ridables
+         this.lookControl = new SmoothSwimmingLookControl(this, 10);
+         this.setCanPickUpLoot(true);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.dolphinRidable;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.dolphinControllable;
++    }
++
++    @Override
++    public boolean onSpacebar() {
++        if (spitCooldown == 0 && getRider() != null) {
++            spitCooldown = level().purpurConfig.dolphinSpitCooldown;
++
++            org.bukkit.craftbukkit.entity.CraftPlayer player = (org.bukkit.craftbukkit.entity.CraftPlayer) getRider().getBukkitEntity();
++            if (!player.hasPermission("allow.special.dolphin")) {
++                return false;
++            }
++
++            org.bukkit.Location loc = player.getEyeLocation();
++            loc.setPitch(loc.getPitch() - 10);
++            org.bukkit.util.Vector target = loc.getDirection().normalize().multiply(10).add(loc.toVector());
++
++            org.purpurmc.purpur.entity.projectile.DolphinSpit spit = new org.purpurmc.purpur.entity.projectile.DolphinSpit(level(), this);
++            spit.shoot(target.getX() - getX(), target.getY() - getY(), target.getZ() - getZ(), level().purpurConfig.dolphinSpitSpeed, 5.0F);
++
++            level().addFreshEntity(spit);
++            playSound(SoundEvents.DOLPHIN_ATTACK, 1.0F, 1.0F + (random.nextFloat() - random.nextFloat()) * 0.2F);
++            return true;
++        }
++        return false;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.dolphinMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.dolphinScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.dolphinTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.dolphinAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Nullable
+     @Override
+     public SpawnGroupData finalizeSpawn(
+@@ -90,6 +_,7 @@
+         this.setAirSupply(this.getMaxAirSupply());
+         this.setXRot(0.0F);
+         SpawnGroupData spawngroupdata = Objects.requireNonNullElseGet(p_28335_, () -> new AgeableMob.AgeableMobGroupData(0.1F));
++        this.isNaturallyAggressiveToPlayers = p_28332_.getLevel().purpurConfig.dolphinNaturallyAggressiveToPlayersChance > 0.0D && random.nextDouble() <= p_28332_.getLevel().purpurConfig.dolphinNaturallyAggressiveToPlayersChance; // Purpur - Dolphins naturally aggressive to players chance
+         return super.finalizeSpawn(p_28332_, p_28333_, p_364784_, spawngroupdata);
+     }
+ 
 @@ -98,6 +_,13 @@
          return EntityType.DOLPHIN.create(p_361393_, EntitySpawnReason.BREEDING);
      }
@@ -14,12 +131,44 @@
      @Override
      public float getAgeScale() {
          return this.isBaby() ? 0.65F : 1.0F;
+@@ -148,17 +_,21 @@
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new BreathAirGoal(this));
+         this.goalSelector.addGoal(0, new TryFindWaterGoal(this));
++        this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.2000000476837158D, true)); // Purpur - Dolphins naturally aggressive to players chance
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new Dolphin.DolphinSwimToTreasureGoal(this));
+         this.goalSelector.addGoal(2, new Dolphin.DolphinSwimWithPlayerGoal(this, 4.0));
+         this.goalSelector.addGoal(4, new RandomSwimmingGoal(this, 1.0, 10));
+         this.goalSelector.addGoal(4, new RandomLookAroundGoal(this));
+         this.goalSelector.addGoal(5, new LookAtPlayerGoal(this, Player.class, 6.0F));
+         this.goalSelector.addGoal(5, new DolphinJumpGoal(this, 10));
+-        this.goalSelector.addGoal(6, new MeleeAttackGoal(this, 1.2F, true));
++        //this.goalSelector.addGoal(6, new MeleeAttackGoal(this, 1.2F, true)); // Purpur - moved up - Dolphins naturally aggressive to players chance
+         this.goalSelector.addGoal(8, new Dolphin.PlayWithItemsGoal());
+         this.goalSelector.addGoal(8, new FollowBoatGoal(this));
+         this.goalSelector.addGoal(9, new AvoidEntityGoal<>(this, Guardian.class, 8.0F, 1.0, 1.0));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this, Guardian.class).setAlertOthers());
++        this.targetSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, (ignored, ignored2) -> isNaturallyAggressiveToPlayers)); // Purpur - Dolphins naturally aggressive to players chance
+     }
+ 
+     public static AttributeSupplier.Builder createAttributes() {
 @@ -182,7 +_,7 @@
  
      @Override
      public int getMaxAirSupply() {
 -        return 4800;
 +        return this.maxAirTicks; // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
+     }
+ 
+     @Override
+@@ -202,7 +_,7 @@
+ 
+     @Override
+     protected boolean canRide(Entity p_28391_) {
+-        return true;
++        return boardingCooldown <= 0; // Purpur - make dolphin honor ride cooldown like all other non-boss mobs;
      }
  
      @Override
@@ -40,6 +189,26 @@
              }
          }
      }
+@@ -227,6 +_,11 @@
+     @Override
+     public void tick() {
+         super.tick();
++        // Purpur start - Ridables
++        if (spitCooldown > 0) {
++            spitCooldown--;
++        }
++        // Purpur end - Ridables
+         if (this.isNoAi()) {
+             this.setAirSupply(this.getMaxAirSupply());
+         } else {
+@@ -371,6 +_,7 @@
+ 
+         @Override
+         public boolean canUse() {
++            if (this.dolphin.level().purpurConfig.dolphinDisableTreasureSearching) return false; // Purpur - Add option to disable dolphin treasure searching
+             return this.dolphin.gotFish() && this.dolphin.getAirSupply() >= 100;
+         }
+ 
 @@ -469,7 +_,7 @@
  
          @Override

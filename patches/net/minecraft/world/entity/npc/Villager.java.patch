@@ -1,6 +1,136 @@
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
-@@ -269,12 +_,36 @@
+@@ -179,6 +_,8 @@
+         MemoryModuleType.MEETING_POINT,
+         (p_219616_, p_219617_) -> p_219617_.is(PoiTypes.MEETING)
+     );
++    private boolean isLobotomized = false; public boolean isLobotomized() { return this.isLobotomized; } // Purpur - Lobotomize stuck villagers
++    private int notLobotomizedCount = 0; // Purpur - Lobotomize stuck villagers
+ 
+     public Villager(EntityType<? extends Villager> p_35381_, Level p_35382_) {
+         this(p_35381_, p_35382_, VillagerType.PLAINS);
+@@ -197,6 +_,103 @@
+         this.setVillagerData(this.getVillagerData().withType(p_397796_).withProfession(p_35385_.registryAccess(), VillagerProfession.NONE));
+     }
+ 
++    // Purpur start - Allow leashing villagers
++    @Override
++    public boolean canBeLeashed() {
++        return level().purpurConfig.villagerCanBeLeashed;
++    }
++    // Purpur end - Allow leashing villagers
++
++    // Purpur start - Lobotomize stuck villagers
++    private boolean checkLobotomized() {
++        int interval = this.level().purpurConfig.villagerLobotomizeCheckInterval;
++        boolean shouldCheckForTradeLocked = this.level().purpurConfig.villagerLobotomizeWaitUntilTradeLocked;
++        if (this.notLobotomizedCount > 3) {
++            // check half as often if not lobotomized for the last 3+ consecutive checks
++            interval *= 2;
++        }
++        if (this.level().getGameTime() % interval == 0) {
++            // offset Y for short blocks like dirt_path/farmland
++            this.isLobotomized = !(shouldCheckForTradeLocked && this.getVillagerXp() == 0) && !canTravelFrom(BlockPos.containing(this.position().x, this.getBoundingBox().minY + 0.0625D, this.position().z));
++
++            if (this.isLobotomized) {
++                this.notLobotomizedCount = 0;
++            } else {
++                this.notLobotomizedCount++;
++            }
++        }
++        return this.isLobotomized;
++    }
++
++    private boolean canTravelFrom(BlockPos pos) {
++        return canTravelTo(pos.east()) || canTravelTo(pos.west()) || canTravelTo(pos.north()) || canTravelTo(pos.south());
++    }
++
++    private boolean canTravelTo(BlockPos pos) {
++        net.minecraft.world.level.block.state.BlockState state = this.level().getBlockStateIfLoaded(pos);
++        if (state == null) {
++            // chunk not loaded
++            return false;
++        }
++        net.minecraft.world.level.block.Block bottom = state.getBlock();
++        if (bottom instanceof net.minecraft.world.level.block.FenceBlock ||
++            bottom instanceof net.minecraft.world.level.block.FenceGateBlock ||
++            bottom instanceof net.minecraft.world.level.block.WallBlock) {
++            // bottom block is too tall to get over
++            return false;
++        }
++        net.minecraft.world.level.block.Block top = level().getBlockState(pos.above()).getBlock();
++        // only if both blocks have no collision
++        return !bottom.hasCollision && !top.hasCollision;
++    }
++    // Purpur end - Lobotomize stuck villagers
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.villagerRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.villagerRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.villagerControllable;
++    }
++
++    @Override
++    protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this));
++        if (level().purpurConfig.villagerFollowEmeraldBlock) this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.TemptGoal(this, 1.0D, TEMPT_ITEMS, false)); // Purpur - Villagers follow emerald blocks
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.villagerMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.villagerScale);
++        this.getAttribute(Attributes.TEMPT_RANGE).setBaseValue(this.level().purpurConfig.villagerTemptRange); // Purpur - Villagers follow emerald blocks
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.villagerTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.villagerAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     public Brain<Villager> getBrain() {
+         return (Brain<Villager>)super.getBrain();
+@@ -230,7 +_,7 @@
+             p_35425_.setSchedule(Schedule.VILLAGER_DEFAULT);
+             p_35425_.addActivityWithConditions(
+                 Activity.WORK,
+-                VillagerGoalPackages.getWorkPackage(holder, 0.5F),
++                VillagerGoalPackages.getWorkPackage(holder, 0.5F, this.level().purpurConfig.villagerClericsFarmWarts), // Purpur - Option for Villager Clerics to farm Nether Wart
+                 ImmutableSet.of(Pair.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT))
+             );
+         }
+@@ -262,19 +_,54 @@
+     }
+ 
+     public static AttributeSupplier.Builder createAttributes() {
+-        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5);
++        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5).add(Attributes.TEMPT_RANGE, 10.0D); // Purpur - Villagers follow emerald blocks
+     }
+ 
+     public boolean assignProfessionWhenSpawned() {
          return this.assignProfessionWhenSpawned;
      }
  
@@ -34,11 +164,22 @@
 +        // Paper start - EAR 2
 +        this.customServerAiStep(level, false);
 +    }
-+    protected void customServerAiStep(ServerLevel level, final boolean inactive) {
++    protected void customServerAiStep(ServerLevel level, boolean inactive) { // Purpur - Lobotomize stuck villagers - not final
 +        // Paper end - EAR 2
 +        ProfilerFiller profilerFiller = Profiler.get();
 +        profilerFiller.push("villagerBrain");
-+        if (!inactive) this.getBrain().tick(level, this); // Paper - EAR 2
++        // Purpur start - Lobotomize stuck villagers
++        if (this.level().purpurConfig.villagerLobotomizeEnabled) {
++            // treat as inactive if lobotomized
++            inactive = inactive || checkLobotomized();
++        } else {
++            this.isLobotomized = false;
++        }
++        // Purpur end - Lobotomize stuck villagers
++        if (!inactive && (getRider() == null || !this.isControllable())) { // Purpur - Ridables
++            this.getBrain().tick(level, this); // Paper - EAR 2
++        }
++        else if (this.isLobotomized && shouldRestock()) restock(); // Purpur - Lobotomize stuck villagers
 +        profilerFiller.pop();
          if (this.assignProfessionWhenSpawned) {
              this.assignProfessionWhenSpawned = false;
@@ -81,7 +222,7 @@
      }
  
      @Override
-@@ -324,7 +_,7 @@
+@@ -324,11 +_,11 @@
      @Override
      public InteractionResult mobInteract(Player p_35472_, InteractionHand p_35473_) {
          ItemStack itemstack = p_35472_.getItemInHand(p_35473_);
@@ -90,6 +231,25 @@
              return super.mobInteract(p_35472_, p_35473_);
          } else if (this.isBaby()) {
              this.setUnhappy();
+-            return InteractionResult.SUCCESS;
++            return tryRide(p_35472_, p_35473_, InteractionResult.SUCCESS); // Purpur - Ridables
+         } else {
+             if (!this.level().isClientSide) {
+                 boolean flag = this.getOffers().isEmpty();
+@@ -341,9 +_,12 @@
+                 }
+ 
+                 if (flag) {
+-                    return InteractionResult.CONSUME;
++                    return tryRide(p_35472_, p_35473_, InteractionResult.CONSUME); // Purpur - Ridables
+                 }
+ 
++                if (level().purpurConfig.villagerRidable && itemstack.isEmpty()) return tryRide(p_35472_, p_35473_); // Purpur - Ridables
++
++                if (this.level().purpurConfig.villagerAllowTrading) // Purpur - Add config for villager trading
+                 this.startTrading(p_35472_);
+             }
+ 
 @@ -395,8 +_,13 @@
      public void restock() {
          this.updateDemand();
@@ -127,6 +287,15 @@
              this.updateDemand();
          }
  
+@@ -470,7 +_,7 @@
+ 
+     private void updateDemand() {
+         for (MerchantOffer merchantoffer : this.getOffers()) {
+-            merchantoffer.updateDemand();
++            merchantoffer.updateDemand(this.level().purpurConfig.villagerMinimumDemand); // Purpur - Configurable minimum demand for trades
+         }
+     }
+ 
 @@ -478,6 +_,7 @@
          int i = this.getPlayerReputation(p_35541_);
          if (i != 0) {
@@ -161,6 +330,15 @@
          Entity entity = p_35419_.getEntity();
          if (entity != null) {
              this.tellWitnessesThatIWasMurdered(entity);
+@@ -661,7 +_,7 @@
+ 
+     @Override
+     public boolean canBreed() {
+-        return this.foodLevel + this.countFoodPointsInInventory() >= 12 && !this.isSleeping() && this.getAge() == 0;
++        return this.level().purpurConfig.villagerCanBreed && this.foodLevel + this.countFoodPointsInInventory() >= 12 && !this.isSleeping() && this.getAge() == 0; // Purpur - Configurable villager breeding
+     }
+ 
+     private boolean hungry() {
 @@ -779,13 +_,21 @@
  
      @Override
@@ -201,7 +379,13 @@
              && this.getInventory().canAddItem(p_35543_);
      }
  
-@@ -825,25 +_,33 @@
+@@ -820,30 +_,38 @@
+     }
+ 
+     public boolean hasFarmSeeds() {
+-        return this.getInventory().hasAnyMatching(p_281096_ -> p_281096_.is(ItemTags.VILLAGER_PLANTABLE_SEEDS));
++        return this.getInventory().hasAnyMatching(stack -> this.level().purpurConfig.villagerClericsFarmWarts && this.getVillagerData().profession().is(VillagerProfession.CLERIC) ? stack.is(Items.NETHER_WART) : stack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS)); // Purpur - Option for Villager Clerics to farm Nether Wart
+     }
  
      @Override
      protected void updateTrades() {
@@ -247,7 +431,13 @@
      }
  
      public void gossip(ServerLevel p_35412_, Villager p_35413_, long p_35414_) {
-@@ -872,7 +_,7 @@
+@@ -867,12 +_,13 @@
+     }
+ 
+     public void spawnGolemIfNeeded(ServerLevel p_35398_, long p_35399_, int p_35400_) {
++        if (p_35398_.purpurConfig.villagerSpawnIronGolemRadius > 0 && p_35398_.getEntitiesOfClass(net.minecraft.world.entity.animal.IronGolem.class, getBoundingBox().inflate(p_35398_.purpurConfig.villagerSpawnIronGolemRadius)).size() > p_35398_.purpurConfig.villagerSpawnIronGolemLimit) return; // Purpur - Implement configurable search radius for villagers to spawn iron golems
+         if (this.wantsToSpawnGolem(p_35399_)) {
+             AABB aabb = this.getBoundingBox().inflate(10.0, 10.0, 10.0);
              List<Villager> list = p_35398_.getEntitiesOfClass(Villager.class, aabb);
              List<Villager> list1 = list.stream().filter(p_186293_ -> p_186293_.wantsToSpawnGolem(p_35399_)).limit(5L).toList();
              if (list1.size() >= p_35400_) {
@@ -270,3 +460,16 @@
                      list.forEach(GolemSensor::golemDetected);
                  }
              }
+@@ -938,6 +_,12 @@
+ 
+     @Override
+     public void startSleeping(BlockPos p_35479_) {
++        // Purpur start - Option for beds to explode on villager sleep
++        if (level().purpurConfig.bedExplodeOnVillagerSleep && this.level().getBlockState(p_35479_).getBlock() instanceof net.minecraft.world.level.block.BedBlock) {
++            this.level().explode(null, (double) p_35479_.getX() + 0.5D, (double) p_35479_.getY() + 0.5D, (double) p_35479_.getZ() + 0.5D, (float) this.level().purpurConfig.bedExplosionPower, this.level().purpurConfig.bedExplosionFire, this.level().purpurConfig.bedExplosionEffect);
++            return;
++        }
++        // Purpur end - Option for beds to explode on villager sleep
+         super.startSleeping(p_35479_);
+         this.brain.setMemory(MemoryModuleType.LAST_SLEPT, this.level().getGameTime());
+         this.brain.eraseMemory(MemoryModuleType.WALK_TARGET);

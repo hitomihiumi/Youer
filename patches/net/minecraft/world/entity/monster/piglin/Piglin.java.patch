@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/piglin/Piglin.java
 +++ b/net/minecraft/world/entity/monster/piglin/Piglin.java
-@@ -125,6 +_,12 @@
+@@ -125,18 +_,67 @@
          MemoryModuleType.ATE_RECENTLY,
          MemoryModuleType.NEAREST_REPELLENT
      );
@@ -13,7 +13,51 @@
  
      public Piglin(EntityType<? extends AbstractPiglin> p_34683_, Level p_34684_) {
          super(p_34683_, p_34684_);
-@@ -137,6 +_,10 @@
+         this.xpReward = 5;
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.piglinRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.piglinRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.piglinControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.piglinMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.piglinScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.piglinTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.piglinAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void addAdditionalSaveData(ValueOutput p_422421_) {
+         super.addAdditionalSaveData(p_422421_);
          p_422421_.putBoolean("IsBaby", this.isBaby());
          p_422421_.putBoolean("CannotHunt", this.cannotHunt);
          this.writeInventoryToTag(p_422421_);
@@ -35,6 +79,14 @@
      }
  
      @VisibleForDebug
+@@ -308,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel p_376739_) {
+         ProfilerFiller profilerfiller = Profiler.get();
+         profilerfiller.push("piglinBrain");
++        if ((getRider() == null || !this.isControllable())) // Purpur - only use brain if no rider
+         this.getBrain().tick(p_376739_, this);
+         profilerfiller.pop();
+         PiglinAi.updateActivity(this);
 @@ -322,7 +_,9 @@
      @Override
      protected void finishConversion(ServerLevel p_34756_) {
@@ -78,7 +130,7 @@
      @Override
      public boolean wantsToPickUp(ServerLevel p_376232_, ItemStack p_34777_) {
 -        return p_376232_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);
-+        return net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_376232_, this) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);
++        return (p_376232_.purpurConfig.piglinMobGriefingOverride != null ? p_376232_.purpurConfig.piglinMobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_376232_, this)) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_); // Purpur - Add mobGriefing override to everything affected
      }
  
      protected boolean canReplaceCurrentItem(ItemStack p_34788_) {

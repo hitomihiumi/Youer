@@ -1,11 +1,157 @@
 --- a/net/minecraft/world/entity/monster/Drowned.java
 +++ b/net/minecraft/world/entity/monster/Drowned.java
-@@ -87,7 +_,7 @@
+@@ -71,11 +_,72 @@
+         return Zombie.createAttributes().add(Attributes.STEP_HEIGHT, 1.0);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.drownedRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.drownedRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.drownedControllable;
++    }
++    // Purpur end - Ridables
++
+     @Override
+     protected PathNavigation createNavigation(Level p_415632_) {
+         return new AmphibiousPathNavigation(this, p_415632_);
+     }
+ 
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.drownedMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.drownedScale);
++    }
++
++    @Override
++    protected void randomizeReinforcementsChance() {
++        this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).setBaseValue(this.random.nextDouble() * this.level().purpurConfig.drownedSpawnReinforcements);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Configurable jockey options
++    @Override
++    public boolean jockeyOnlyBaby() {
++        return level().purpurConfig.drownedJockeyOnlyBaby;
++    }
++
++    @Override
++    public double jockeyChance() {
++        return level().purpurConfig.drownedJockeyChance;
++    }
++
++    @Override
++    public boolean jockeyTryExistingChickens() {
++        return level().purpurConfig.drownedJockeyTryExistingChickens;
++    }
++    // Purpur end - Configurable jockey options
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.drownedTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.drownedAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void addBehaviourGoals() {
+         this.goalSelector.addGoal(1, new Drowned.DrownedGoToWaterGoal(this, 1.0));
+@@ -83,11 +_,23 @@
+         this.goalSelector.addGoal(2, new Drowned.DrownedAttackGoal(this, 1.0, false));
+         this.goalSelector.addGoal(5, new Drowned.DrownedGoToBeachGoal(this, 1.0));
+         this.goalSelector.addGoal(6, new Drowned.DrownedSwimUpGoal(this, 1.0, this.level().getSeaLevel()));
++        if (level().purpurConfig.drownedBreakDoors) this.goalSelector.addGoal(6, new net.minecraft.world.entity.ai.goal.MoveThroughVillageGoal(this, 1.0D, true, 4, this::canBreakDoors)); // Purpur - Option to make drowned break doors
+         this.goalSelector.addGoal(7, new RandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this, Drowned.class).setAlertOthers(ZombifiedPiglin.class));
-         this.targetSelector
-             .addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, (p_376613_, p_376137_) -> this.okTarget(p_376613_)));
+-        this.targetSelector
+-            .addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, (p_376613_, p_376137_) -> this.okTarget(p_376613_)));
 -        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false));
-+        if (this.level().spigotConfig.zombieAggressiveTowardsVillager) this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false)); // Paper - Check drowned for villager aggression config
++        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, (entity, level) -> this.okTarget(entity)));
++        // Purpur start - Add option to disable zombie aggressiveness towards villagers
++        if (this.level().spigotConfig.zombieAggressiveTowardsVillager) this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false) { // Paper - Check drowned for villager aggression config
++            @Override
++            public boolean canUse() {
++                return (level().purpurConfig.zombieAggressiveTowardsVillagerWhenLagging || !level().getServer().server.isLagging()) && super.canUse();
++            }
++
++            @Override
++            public boolean canContinueToUse() {
++                return (level().purpurConfig.zombieAggressiveTowardsVillagerWhenLagging || !level().getServer().server.isLagging()) && super.canContinueToUse();
++            }
++        });
++        // Purpur end - Add option to disable zombie aggressiveness towards villagers
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Axolotl.class, true, false));
          this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
+@@ -395,7 +_,7 @@
+         }
+     }
+ 
+-    static class DrownedMoveControl extends MoveControl {
++    static class DrownedMoveControl extends org.purpurmc.purpur.controller.MoveControllerWASD { // Purpur - Ridables
+         private final Drowned drowned;
+ 
+         public DrownedMoveControl(Drowned p_32433_) {
+@@ -404,10 +_,10 @@
+         }
+ 
+         @Override
+-        public void tick() {
+-            LivingEntity livingentity = this.drowned.getTarget();
++        public void vanillaTick() { // Purpur - Ridables
++            LivingEntity target = this.drowned.getTarget();
+             if (this.drowned.wantsToSwim() && this.drowned.isInWater()) {
+-                if (livingentity != null && livingentity.getY() > this.drowned.getY() || this.drowned.searchingForLand) {
++                if (target != null && target.getY() > this.drowned.getY() || this.drowned.searchingForLand) {
+                     this.drowned.setDeltaMovement(this.drowned.getDeltaMovement().add(0.0, 0.002, 0.0));
+                 }
+ 
+@@ -416,24 +_,24 @@
+                     return;
+                 }
+ 
+-                double d0 = this.wantedX - this.drowned.getX();
++                double d = this.wantedX - this.drowned.getX();
+                 double d1 = this.wantedY - this.drowned.getY();
+                 double d2 = this.wantedZ - this.drowned.getZ();
+-                double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+-                d1 /= d3;
+-                float f = (float)(Mth.atan2(d2, d0) * 180.0F / (float)Math.PI) - 90.0F;
++                double squareRoot = Math.sqrt(d * d + d1 * d1 + d2 * d2);
++                d1 /= squareRoot;
++                float f = (float)(Mth.atan2(d2, d) * 180.0F / (float)Math.PI) - 90.0F;
+                 this.drowned.setYRot(this.rotlerp(this.drowned.getYRot(), f, 90.0F));
+                 this.drowned.yBodyRot = this.drowned.getYRot();
+-                float f1 = (float)(this.speedModifier * this.drowned.getAttributeValue(Attributes.MOVEMENT_SPEED));
++                float f1 = (float)(this.getSpeedModifier() * this.drowned.getAttributeValue(Attributes.MOVEMENT_SPEED)); // Purpur - Ridables
+                 float f2 = Mth.lerp(0.125F, this.drowned.getSpeed(), f1);
+                 this.drowned.setSpeed(f2);
+-                this.drowned.setDeltaMovement(this.drowned.getDeltaMovement().add(f2 * d0 * 0.005, f2 * d1 * 0.1, f2 * d2 * 0.005));
++                this.drowned.setDeltaMovement(this.drowned.getDeltaMovement().add(f2 * d * 0.005, f2 * d1 * 0.1, f2 * d2 * 0.005));
+             } else {
+                 if (!this.drowned.onGround()) {
+                     this.drowned.setDeltaMovement(this.drowned.getDeltaMovement().add(0.0, -0.008, 0.0));
+                 }
+ 
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+     }

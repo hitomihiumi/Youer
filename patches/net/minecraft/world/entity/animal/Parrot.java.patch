@@ -13,15 +13,139 @@
      static final Map<EntityType<?>, SoundEvent> MOB_SOUND_MAP = Util.make(Maps.newHashMap(), p_415269_ -> {
          p_415269_.put(EntityType.BLAZE, SoundEvents.PARROT_IMITATE_BLAZE);
          p_415269_.put(EntityType.BOGGED, SoundEvents.PARROT_IMITATE_BOGGED);
+@@ -129,14 +_,99 @@
+     @Nullable
+     private BlockPos jukebox;
+ 
+-    public Parrot(EntityType<? extends Parrot> p_29362_, Level p_29363_) {
+-        super(p_29362_, p_29363_);
+-        this.moveControl = new FlyingMoveControl(this, 10, false);
++    public Parrot(EntityType<? extends Parrot> entityType, Level level) {
++        super(entityType, level);
++        // Purpur start - Ridables
++        final org.purpurmc.purpur.controller.FlyingWithSpacebarMoveControllerWASD flyingController = new org.purpurmc.purpur.controller.FlyingWithSpacebarMoveControllerWASD(this, 0.3F);
++        class ParrotMoveControl extends FlyingMoveControl {
++            public ParrotMoveControl(Mob entity, int maxPitchChange, boolean noGravity) {
++                super(entity, maxPitchChange, noGravity);
++            }
++
++            @Override
++            public void tick() {
++                if (mob.getRider() != null && mob.isControllable()) {
++                    flyingController.purpurTick(mob.getRider());
++                } else {
++                    super.tick();
++                }
++            }
++
++            @Override
++            public boolean hasWanted() {
++                return mob.getRider() != null && mob.isControllable() ? getForwardMot() != 0 || getStrafeMot() != 0 : super.hasWanted();
++            }
++        }
++        this.moveControl = new ParrotMoveControl(this, 10, false);
++        // Purpur end - Ridables
+         this.setPathfindingMalus(PathType.DANGER_FIRE, -1.0F);
+         this.setPathfindingMalus(PathType.DAMAGE_FIRE, -1.0F);
+         this.setPathfindingMalus(PathType.COCOA, -1.0F);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.parrotRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.parrotRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.parrotControllable;
++    }
++
++    @Override
++    public double getMaxY() {
++        return level().purpurConfig.parrotMaxY;
++    }
++
++    @Override
++    public void travel(Vec3 vec3) {
++        super.travel(vec3);
++        if (getRider() != null && this.isControllable() && !onGround) {
++            float speed = (float) getAttributeValue(Attributes.FLYING_SPEED) * 2;
++            setSpeed(speed);
++            Vec3 mot = getDeltaMovement();
++            move(net.minecraft.world.entity.MoverType.SELF, mot.multiply(speed, 0.25, speed));
++            setDeltaMovement(mot.scale(0.9D));
++        }
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.parrotMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.parrotScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return 6000;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.parrotTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.parrotAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Nullable
+     @Override
+     public SpawnGroupData finalizeSpawn(
+@@ -157,8 +_,11 @@
+ 
+     @Override
+     protected void registerGoals() {
+-        this.goalSelector.addGoal(0, new TamableAnimal.TamableAnimalPanicGoal(1.25));
++        //this.goalSelector.addGoal(0, new TamableAnimal.TamableAnimalPanicGoal(1.25)); // Purpur - move down
+         this.goalSelector.addGoal(0, new FloatGoal(this));
++        if (this.level().purpurConfig.parrotBreedable) this.goalSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.BreedGoal(this, 1.0D)); // Purpur - Breedable parrots
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++        this.goalSelector.addGoal(1, new TamableAnimal.TamableAnimalPanicGoal(1.25D)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new LookAtPlayerGoal(this, Player.class, 8.0F));
+         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
+         this.goalSelector.addGoal(2, new FollowOwnerGoal(this, 1.0, 5.0F, 1.0F));
 @@ -266,7 +_,7 @@
              }
  
              if (!this.level().isClientSide) {
 -                if (this.random.nextInt(10) == 0) {
-+                if (this.random.nextInt(10) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_29414_) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, p_29414_).isCancelled()) { // CraftBukkit
++                if (((this.level().purpurConfig.alwaysTameInCreative && p_29414_.hasInfiniteMaterials()) || this.random.nextInt(10) == 0) && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_29414_) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, p_29414_).isCancelled()) { // CraftBukkit // Purpur - Config to always tame in Creative
                      this.tame(p_29414_);
                      this.level().broadcastEntityEvent(this, (byte)7);
                  } else {
+@@ -274,6 +_,7 @@
+                 }
+             }
+ 
++            if (this.level().purpurConfig.parrotBreedable) return super.mobInteract(p_29414_, p_29415_); // Purpur - Breedable parrots
+             return InteractionResult.SUCCESS;
+         } else if (!itemstack.is(ItemTags.PARROT_POISONOUS_FOOD)) {
+             if (!this.isFlying() && this.isTame() && this.isOwnedBy(p_29414_)) {
 @@ -287,7 +_,7 @@
              }
          } else {
@@ -31,6 +155,31 @@
              if (p_29414_.isCreative() || !this.isInvulnerable()) {
                  this.hurt(this.damageSources().playerAttack(p_29414_), Float.MAX_VALUE);
              }
+@@ -298,7 +_,7 @@
+ 
+     @Override
+     public boolean isFood(ItemStack p_29446_) {
+-        return false;
++        return this.level().purpurConfig.parrotBreedable && p_29446_.is(ItemTags.PARROT_FOOD); // Purpur - Breedable parrots
+     }
+ 
+     public static boolean checkParrotSpawnRules(
+@@ -313,13 +_,13 @@
+ 
+     @Override
+     public boolean canMate(Animal p_29381_) {
+-        return false;
++        return super.canMate(p_29381_); // Purpur - Breedable parrots
+     }
+ 
+     @Nullable
+     @Override
+     public AgeableMob getBreedOffspring(ServerLevel p_148993_, AgeableMob p_148994_) {
+-        return null;
++        return p_148993_.purpurConfig.parrotBreedable ? EntityType.PARROT.create(p_148993_, EntitySpawnReason.BREEDING) : null; // Purpur - Breedable parrots
+     }
+ 
+     @Nullable
 @@ -330,7 +_,10 @@
  
      public static SoundEvent getAmbient(Level p_218239_, RandomSource p_218240_) {

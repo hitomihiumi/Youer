@@ -1,5 +1,86 @@
 --- a/net/minecraft/world/entity/monster/Husk.java
 +++ b/net/minecraft/world/entity/monster/Husk.java
+@@ -19,7 +_,68 @@
+ public class Husk extends Zombie {
+     public Husk(EntityType<? extends Husk> p_32889_, Level p_32890_) {
+         super(p_32889_, p_32890_);
+-    }
++        this.setShouldBurnInDay(false); // Purpur - API for any mob to burn daylight
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.huskRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.huskRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.huskControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.huskMaxHealth);
++    }
++
++    @Override
++    protected void randomizeReinforcementsChance() {
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SPAWN_REINFORCEMENTS_CHANCE).setBaseValue(this.random.nextDouble() * this.level().purpurConfig.huskSpawnReinforcements);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Configurable jockey options
++    @Override
++    public boolean jockeyOnlyBaby() {
++        return level().purpurConfig.huskJockeyOnlyBaby;
++    }
++
++    @Override
++    public double jockeyChance() {
++        return level().purpurConfig.huskJockeyChance;
++    }
++
++    @Override
++    public boolean jockeyTryExistingChickens() {
++        return level().purpurConfig.huskJockeyTryExistingChickens;
++    }
++    // Purpur end - Configurable jockey options
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.huskTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.huskAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
+ 
+     public static boolean checkHuskSpawnRules(
+         EntityType<Husk> p_218997_, ServerLevelAccessor p_218998_, EntitySpawnReason p_363377_, BlockPos p_219000_, RandomSource p_219001_
+@@ -29,8 +_,8 @@
+     }
+ 
+     @Override
+-    protected boolean isSunSensitive() {
+-        return false;
++    public boolean isSunSensitive() {
++        return this.shouldBurnInDay; // Purpur - moved to LivingEntity; keep methods for ABI compatibility - API for any mob to burn daylight
+     }
+ 
+     @Override
 @@ -58,7 +_,7 @@
          boolean flag = super.doHurtTarget(p_376715_, p_32892_);
          if (flag && this.getMainHandItem().isEmpty() && p_32892_ instanceof LivingEntity) {
