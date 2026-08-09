@@ -23,7 +23,7 @@
      public GoalSelector targetSelector;
      @Nullable
      private LivingEntity target;
-@@ -129,6 +_,13 @@
+@@ -129,13 +_,21 @@
      private Leashable.LeashData leashData;
      private BlockPos homePosition = BlockPos.ZERO;
      private int homeRadius = -1;
@@ -34,9 +34,19 @@
 +    protected boolean preventConversionSpawns = false;
 +    public boolean aware = true; // CraftBukkit
 +    public net.kyori.adventure.util.TriState despawnInPeacefulOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - allow changing despawnInPeaceful
++    public int ticksSinceLastInteraction; // Purpur - Entity lifespan
  
      protected Mob(EntityType<? extends Mob> p_21368_, Level p_21369_) {
          super(p_21368_, p_21369_);
+         this.goalSelector = new GoalSelector();
+         this.targetSelector = new GoalSelector();
+-        this.lookControl = new LookControl(this);
+-        this.moveControl = new MoveControl(this);
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this); // Purpur - Ridables
++        this.moveControl = new org.purpurmc.purpur.controller.MoveControllerWASD(this); // Purpur - Ridables
+         this.jumpControl = new JumpControl(this);
+         this.bodyRotationControl = this.createBodyControl();
+         this.navigation = this.createNavigation(p_21369_);
 @@ -145,6 +_,12 @@
          }
      }
@@ -70,7 +80,7 @@
      public MoveControl getMoveControl() {
          return this.getControlledVehicle() instanceof Mob mob ? mob.getMoveControl() : this.moveControl;
      }
-@@ -225,7 +_,43 @@
+@@ -225,7 +_,44 @@
      }
  
      public void setTarget(@Nullable LivingEntity p_21544_) {
@@ -110,11 +120,41 @@
 +            return false;
 +        }
 +        this.target = changeTargetEvent.getNewAboutToBeSetTarget();
++        if (this.target instanceof net.minecraft.server.level.ServerPlayer) this.ticksSinceLastInteraction = 0; // Purpur - Entity lifespan
 +        return true;
 +        // CraftBukkit end
      }
  
      @Override
+@@ -266,7 +_,27 @@
+         }
+ 
+         profilerfiller.pop();
+-    }
++        incrementTicksSinceLastInteraction(); // Purpur - Entity lifespan
++    }
++
++    // Purpur start - Entity lifespan
++    private void incrementTicksSinceLastInteraction() {
++        ++this.ticksSinceLastInteraction;
++        if (getRider() != null) {
++            this.ticksSinceLastInteraction = 0;
++            return;
++        }
++        if (this.level().purpurConfig.entityLifeSpan <= 0) {
++            return; // feature disabled
++        }
++        if (!this.removeWhenFarAway(0) || isPersistenceRequired() || requiresCustomPersistence() || hasCustomName()) {
++            return; // mob persistent
++        }
++        if (this.ticksSinceLastInteraction > this.level().purpurConfig.entityLifeSpan) {
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++        }
++    }
++    // Purpur end - Entity lifespan
+ 
+     @Override
+     protected void playHurtSound(DamageSource p_21493_) {
 @@ -321,6 +_,12 @@
          if (!this.level().isClientSide && this.tickCount % 5 == 0) {
              this.updateControlFlags();
@@ -128,7 +168,7 @@
      }
  
      protected void updateControlFlags() {
-@@ -365,24 +_,51 @@
+@@ -365,24 +_,53 @@
          if (this.isNoAi()) {
              p_421640_.putBoolean("NoAI", this.isNoAi());
          }
@@ -141,6 +181,7 @@
 +            p_421640_.putString("Paper.DespawnInPeacefulOverride", this.despawnInPeacefulOverride.name());
 +        }
 +        // Paper end - allow changing despawnInPeaceful
++        p_421640_.putInt("Purpur.ticksSinceLastInteraction", this.ticksSinceLastInteraction); // Purpur - Entity lifespan
      }
  
      @Override
@@ -189,6 +230,7 @@
 +                });
 +        this.aware = input.getBooleanOr("Bukkit.Aware", true); // CraftBukkit
 +        this.despawnInPeacefulOverride = input.read("Paper.DespawnInPeacefulOverride", io.papermc.paper.util.PaperCodecs.TRI_STATE_CODEC).orElse(net.kyori.adventure.util.TriState.NOT_SET); // Paper - allow changing despawnInPeaceful
++        this.ticksSinceLastInteraction = input.getIntOr("Purpur.ticksSinceLastInteraction", 0); // Purpur- Entity lifespan
      }
  
      @Override
@@ -197,7 +239,7 @@
              && this.isAlive()
              && !this.dead
 -            && serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+            && net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, this)) {
++            && (serverlevel.purpurConfig.entitiesPickUpLootMobGriefingOverride != null ? serverlevel.purpurConfig.entitiesPickUpLootMobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, this))) { // Purpur - Add mobGriefing override to everything affected
              Vec3i vec3i = this.getPickupReach();
  
              for (ItemEntity itementity : this.level()
@@ -475,14 +517,25 @@
      @Nullable
      public SpawnGroupData finalizeSpawn(
          ServerLevelAccessor p_21434_, DifficultyInstance p_21435_, EntitySpawnReason p_363352_, @Nullable SpawnGroupData p_21437_
-@@ -1018,6 +_,7 @@
+@@ -1017,7 +_,8 @@
+             );
          }
  
-         this.setLeftHanded(randomsource.nextFloat() < 0.05F);
+-        this.setLeftHanded(randomsource.nextFloat() < 0.05F);
++        this.setLeftHanded(randomsource.nextFloat() < p_21434_.getLevel().purpurConfig.entityLeftHandedChance); // Purpur - Changeable Mob Left Handed Chance
 +        this.spawnType = p_363352_;
          return p_21437_;
      }
  
+@@ -1105,7 +_,7 @@
+     }
+ 
+     protected InteractionResult mobInteract(Player p_21472_, InteractionHand p_21473_) {
+-        return InteractionResult.PASS;
++        return tryRide(p_21472_, p_21473_); // Purpur - Ridables
+     }
+ 
+     public boolean isWithinHome() {
 @@ -1143,33 +_,70 @@
  
      @Nullable
@@ -607,7 +660,31 @@
                  this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
              }
  
-@@ -1326,14 +_,24 @@
+@@ -1306,34 +_,37 @@
+             this.playAttackSound();
+         }
+ 
++        if (target instanceof net.minecraft.server.level.ServerPlayer) this.ticksSinceLastInteraction = 0; // Purpur - Entity lifespan
+         return flag;
+     }
+ 
+     protected void playAttackSound() {
+     }
+ 
+-    protected boolean isSunBurnTick() {
+-        if (this.level().isBrightOutside() && !this.level().isClientSide) {
+-            float f = this.getLightLevelDependentMagicValue();
+-            BlockPos blockpos = BlockPos.containing(this.getX(), this.getEyeY(), this.getZ());
+-            boolean flag = this.isInWaterOrRain() || this.isInPowderSnow || this.wasInPowderSnow;
+-            if (f > 0.5F && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F && !flag && this.level().canSeeSky(blockpos)) {
+-                return true;
+-            }
+-        }
+-
+-        return false;
++    public boolean isSunBurnTick() {
++        // Purpur - implemented in Entity - API for any mob to burn daylight
++        return super.isSunBurnTick();
      }
  
      @Override
@@ -633,11 +710,10 @@
      @VisibleForTesting
      public void removeFreeWill() {
          this.removeAllGoals(p_351790_ -> true);
-@@ -1369,5 +_,40 @@
-         if (p_363635_.is(Attributes.FOLLOW_RANGE) || p_363635_.is(Attributes.TEMPT_RANGE)) {
+@@ -1370,4 +_,93 @@
              this.getNavigation().updatePathfinderMaxVisitedNodes();
          }
-+    }
+     }
 +
 +    /**
 +     * Returns the type of spawn that created this mob, if applicable.
@@ -672,5 +748,59 @@
 +            throw new UnsupportedOperationException("Late invocations of Mob#setSpawnCancelled are not permitted.");
 +        }
 +        this.spawnCancelled = cancel;
-     }
++    }
++
++    // Purpur start - Ridables
++    public double getMaxY() {
++        return level().getHeight();
++    }
++
++    public InteractionResult tryRide(Player player, InteractionHand hand) {
++        return tryRide(player, hand, InteractionResult.PASS);
++    }
++
++    public InteractionResult tryRide(Player player, InteractionHand hand, InteractionResult result) {
++        if (!isRidable()) {
++            return result;
++        }
++        if (hand != InteractionHand.MAIN_HAND) {
++            return InteractionResult.PASS;
++        }
++        if (player.isShiftKeyDown()) {
++            return InteractionResult.PASS;
++        }
++        if (!player.getItemInHand(hand).isEmpty()) {
++            return InteractionResult.PASS;
++        }
++        if (!passengers.isEmpty() || player.isPassenger()) {
++            return InteractionResult.PASS;
++        }
++        if (this instanceof TamableAnimal tamable) {
++            if (tamable.isTame() && !tamable.isOwnedBy(player)) {
++                return InteractionResult.PASS;
++            }
++            if (!tamable.isTame() && !level().purpurConfig.untamedTamablesAreRidable) {
++                return InteractionResult.PASS;
++            }
++        }
++        if (this instanceof AgeableMob ageable) {
++            if (ageable.isBaby() && !level().purpurConfig.babiesAreRidable) {
++                return InteractionResult.PASS;
++            }
++        }
++        if (!player.getBukkitEntity().hasPermission("allow.ride." + net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(getType()).getPath())) {
++            if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
++                serverPlayer.sendMiniMessage(org.purpurmc.purpur.PurpurConfig.cannotRideMob);
++            }
++            return InteractionResult.PASS;
++        }
++        player.setYRot(this.getYRot());
++        player.setXRot(this.getXRot());
++        if (player.startRiding(this)) {
++            return InteractionResult.SUCCESS;
++        } else {
++            return InteractionResult.PASS;
++        }
++    }
++    // Purpur end - Ridables
  }
