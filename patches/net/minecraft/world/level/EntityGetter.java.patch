@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/EntityGetter.java
++++ b/net/minecraft/world/level/EntityGetter.java
+@@ -124,4 +_,11 @@
+ 
+         return null;
+     }
++
++    // Paper start - check global player list where appropriate
++    @Nullable
++    default Player getGlobalPlayerByUUID(UUID uuid) {
++        return this.getPlayerByUUID(uuid);
++    }
++    // Paper end - check global player list where appropriate
+ }
