@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
-@@ -88,6 +_,10 @@
+@@ -88,6 +_,11 @@
      private final Node[] nodes = new Node[24];
      private final int[] nodeAdjacency = new int[24];
      private final BinaryHeap openSet = new BinaryHeap();
@@ -8,15 +8,36 @@
 +    private final net.minecraft.world.level.Explosion explosionSource; // Paper - reusable source for CraftTNTPrimed.getSource()
 +    @Nullable private BlockPos podium;
 +    // Paper end
++    private boolean hadRider; // Purpur - Ridables
  
      public EnderDragon(EntityType<? extends EnderDragon> p_31096_, Level p_31097_) {
          super(EntityType.ENDER_DRAGON, p_31097_);
-@@ -103,6 +_,15 @@
+@@ -103,6 +_,46 @@
          this.setHealth(this.getMaxHealth());
          this.noPhysics = true;
          this.phaseManager = new EnderDragonPhaseManager(this);
 +        this.explosionSource = new net.minecraft.world.level.ServerExplosion(p_31097_.getMinecraftWorld(), this, null, null, new Vec3(Double.NaN, Double.NaN, Double.NaN), Float.NaN, true, net.minecraft.world.level.Explosion.BlockInteraction.DESTROY); // Paper
 +        this.setId(ENTITY_COUNTER.getAndAdd(this.subEntities.length + 1) + 1); // Forge: Fix MC-158205: Make sure part ids are successors of parent mob id
++
++        // Purpur start - Ridables
++        this.moveControl = new org.purpurmc.purpur.controller.FlyingMoveControllerWASD(this) {
++            @Override
++            public void vanillaTick() {
++                // dragon doesn't use the controller. do nothing
++            }
++        };
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this) {
++            @Override
++            public void vanillaTick() {
++                // dragon doesn't use the controller. do nothing
++            }
++
++            @Override
++            public void purpurTick(Player rider) {
++                setYawPitch(rider.getYRot() - 180F, rider.xRotO * 0.5F);
++            }
++        };
++        // Purpur end - Ridables
 +    }
 +
 +    @Override
@@ -24,10 +45,50 @@
 +        super.setId(id);
 +        for (int i = 0; i < this.subEntities.length; i++) // Forge: Fix MC-158205: Set part ids to successors of parent mob id
 +            this.subEntities[i].setId(id + i + 1);
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.enderDragonRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.enderDragonRidableInWater;
      }
  
      public void setDragonFight(EndDragonFight p_287736_) {
-@@ -121,6 +_,19 @@
+@@ -117,10 +_,48 @@
+         return this.fightOrigin;
+     }
+ 
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.enderDragonControllable;
++    }
++
++    @Override
++    public double getMaxY() {
++        return level().purpurConfig.enderDragonMaxY;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.enderDragonMaxHealth);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.enderDragonTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
+     public static AttributeSupplier.Builder createAttributes() {
          return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 200.0).add(Attributes.CAMERA_DISTANCE, 16.0);
      }
  
@@ -47,7 +108,7 @@
      @Override
      public boolean isFlapping() {
          float f = Mth.cos(this.flapTime * (float) (Math.PI * 2));
-@@ -151,8 +_,20 @@
+@@ -151,8 +_,51 @@
          p_326491_.define(DATA_PHASE, EnderDragonPhase.HOVERING.getId());
      }
  
@@ -65,9 +126,70 @@
 +            }
 +        }
 +
++        // Purpur start - Ridables
++        boolean hasRider = getRider() != null && this.isControllable();
++        if (hasRider) {
++            if (!hadRider) {
++                hadRider = true;
++                noPhysics = false;
++                this.dimensions = net.minecraft.world.entity.EntityDimensions.scalable(4.0F, 2.0F);
++            }
++
++            // dragon doesn't use controllers, so must tick manually
++            moveControl.tick();
++            lookControl.tick();
++
++            moveRelative((float) getAttributeValue(Attributes.MOVEMENT_SPEED) * 0.1F, new Vec3(-getStrafeMot(), getVerticalMot(), -getForwardMot()));
++            Vec3 mot = getDeltaMovement();
++            setDeltaMovement(mot);
++            move(MoverType.PLAYER, mot);
++
++            mot = mot.multiply(0.9F, 0.9F, 0.9F);
++            setDeltaMovement(mot);
++
++            // control wing flap speed on client
++            phaseManager.setPhase(mot.x() * mot.x() + mot.z() * mot.z() < 0.005F ? EnderDragonPhase.HOVERING : EnderDragonPhase.HOLDING_PATTERN);
++        } else if (hadRider) {
++            hadRider = false;
++            noPhysics = true;
++            this.dimensions = net.minecraft.world.entity.EntityDimensions.scalable(16.0F, 8.0F);
++            phaseManager.setPhase(EnderDragonPhase.HOLDING_PATTERN); // HoldingPattern
++        }
++        // Purpur end - Ridables
++
          this.processFlappingMovement();
          if (this.level().isClientSide) {
              this.setHealth(this.getHealth());
+@@ -181,6 +_,8 @@
+ 
+         this.oFlapTime = this.flapTime;
+         if (this.isDeadOrDying()) {
++            if (hasRider) ejectPassengers(); // Purpur - Ridables
++
+             float f6 = (this.random.nextFloat() - 0.5F) * 8.0F;
+             float f8 = (this.random.nextFloat() - 0.5F) * 4.0F;
+             float f9 = (this.random.nextFloat() - 0.5F) * 8.0F;
+@@ -190,9 +_,9 @@
+             Vec3 vec34 = this.getDeltaMovement();
+             float f7 = 0.2F / ((float)vec34.horizontalDistance() * 10.0F + 1.0F);
+             f7 *= (float)Math.pow(2.0, vec34.y);
+-            if (this.phaseManager.getCurrentPhase().isSitting()) {
++            if (!hasRider && this.phaseManager.getCurrentPhase().isSitting()) { // Purpur - Ridables
+                 this.flapTime += 0.1F;
+-            } else if (this.inWall) {
++            } else if (!hasRider && this.inWall) { // Purpur - Ridables
+                 this.flapTime += f7 * 0.5F;
+             } else {
+                 this.flapTime += f7;
+@@ -203,7 +_,7 @@
+                 this.flapTime = 0.5F;
+             } else {
+                 this.flightHistory.record(this.getY(), this.getYRot());
+-                if (this.level() instanceof ServerLevel serverlevel1) {
++                if (this.level() instanceof ServerLevel serverlevel1 && !hasRider) { // Purpur - Ridables
+                     DragonPhaseInstance dragonphaseinstance = this.phaseManager.getCurrentPhase();
+                     dragonphaseinstance.doServerTick(serverlevel1);
+                     if (this.phaseManager.getCurrentPhase() != dragonphaseinstance) {
 @@ -212,7 +_,7 @@
                      }
  
@@ -77,6 +199,27 @@
                          double d0 = vec3.x - this.getX();
                          double d1 = vec3.y - this.getY();
                          double d2 = vec3.z - this.getZ();
+@@ -278,7 +_,7 @@
+                 this.tickPart(this.body, f13 * 0.5F, 0.0, -f1 * 0.5F);
+                 this.tickPart(this.wing1, f1 * 4.5F, 2.0, f13 * 4.5F);
+                 this.tickPart(this.wing2, f1 * -4.5F, 2.0, f13 * -4.5F);
+-                if (this.level() instanceof ServerLevel serverlevel2 && this.hurtTime == 0) {
++                if (this.level() instanceof ServerLevel serverlevel2 && this.hurtTime == 0 && !hasRider) { // Purpur - Ridables
+                     this.knockBack(
+                         serverlevel2,
+                         serverlevel2.getEntities(
+@@ -332,9 +_,9 @@
+                 }
+ 
+                 if (this.level() instanceof ServerLevel serverlevel3) {
+-                    this.inWall = this.checkWalls(serverlevel3, this.head.getBoundingBox())
++                    this.inWall = !hasRider && this.checkWalls(serverlevel3, this.head.getBoundingBox())
+                         | this.checkWalls(serverlevel3, this.neck.getBoundingBox())
+-                        | this.checkWalls(serverlevel3, this.body.getBoundingBox());
++                        | this.checkWalls(serverlevel3, this.body.getBoundingBox()); // Purpur - Ridables
+                     if (this.dragonFight != null) {
+                         this.dragonFight.updateDragon(this);
+                     }
 @@ -371,24 +_,29 @@
              if (this.nearestCrystal.isRemoved()) {
                  this.nearestCrystal = null;
@@ -126,7 +269,7 @@
                  if (!this.phaseManager.getCurrentPhase().isSitting() && livingentity.getLastHurtByMobTimestamp() < entity.tickCount - 2) {
                      DamageSource damagesource = this.damageSources().mobAttack(this);
                      entity.hurtServer(p_345435_, damagesource, 5.0F);
-@@ -425,24 +_,29 @@
+@@ -425,24 +_,30 @@
          return (float)Mth.wrapDegrees(p_31165_);
      }
  
@@ -162,7 +305,8 @@
 +                    BlockPos blockPos = new BlockPos(i, i1, i2);
 +                    BlockState blockState = level.getBlockState(blockPos);
 +                    if (!blockState.isAir() && !blockState.is(BlockTags.DRAGON_TRANSPARENT)) {
-+                        if (net.neoforged.neoforge.common.CommonHooks.canEntityDestroy(level, blockPos, this) && !blockState.is(BlockTags.DRAGON_IMMUNE)) { // Forge: mod-extensible canEntityDestroy replaces raw mobGriefing gamerule check (still gated on mobGriefing internally)
++                        Boolean mobGriefingOverride = level.purpurConfig.enderDragonMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++                        if ((mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.common.CommonHooks.canEntityDestroy(level, blockPos, this)) && !blockState.is(BlockTags.DRAGON_IMMUNE)) { // Forge: mod-extensible canEntityDestroy replaces raw mobGriefing gamerule check (still gated on mobGriefing internally)
 +                            // CraftBukkit start - Add blocks to list rather than destroying them
 +                            //flag1 = level.removeBlock(blockPos, false) || flag1;
 +                            flag1 = true;
@@ -363,6 +507,14 @@
              float f3 = this.getXRot();
              float f4 = 1.5F;
              this.setXRot(-f2 * 1.5F * 5.0F);
+@@ -848,6 +_,7 @@
+ 
+     @Override
+     protected boolean canRide(Entity p_31169_) {
++        if (this.level().purpurConfig.enderDragonCanRideVehicles) return this.boardingCooldown <= 0; // Purpur - Configs for if Wither/Ender Dragon can ride vehicles
+         return false;
+     }
+ 
 @@ -857,8 +_,19 @@
      }
  
@@ -383,10 +535,14 @@
          EnderDragonPart[] aenderdragonpart = this.getSubEntities();
  
          for (int i = 0; i < aenderdragonpart.length; i++) {
-@@ -875,4 +_,19 @@
+@@ -873,6 +_,21 @@
+ 
+     @Override
      protected float sanitizeScale(float p_341615_) {
-         return 1.0F;
-     }
+-        return 1.0F;
+-    }
++        return 1.0F; // Purpur - Configurable entity base attributes
++    }
 +
 +    // CraftBukkit start - SPIGOT-2420: Special case, the ender dragon drops 12000 xp for the first kill and 500 xp for every other kill and this over time.
 +    @Override
@@ -395,7 +551,7 @@
 +        boolean flag = level.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT);
 +        int i = 500;
 +
-+        if (this.dragonFight != null && !this.dragonFight.hasPreviouslyKilledDragon()) {
++        if (this.dragonFight != null && (level().purpurConfig.enderDragonAlwaysDropsFullExp || !this.dragonFight.hasPreviouslyKilledDragon())) { // Purpur - Ender dragon always drop full exp
 +            i = 12000;
 +        }
 +
