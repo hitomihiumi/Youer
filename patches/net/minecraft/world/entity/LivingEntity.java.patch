@@ -69,7 +69,14 @@
      protected InterpolationHandler interpolation = new InterpolationHandler(this);
      protected double lerpYHeadRot;
      protected int lerpHeadSteps;
-@@ -265,11 +_,35 @@
+@@ -259,17 +_,41 @@
+     private float swimAmount;
+     private float swimAmountO;
+     protected Brain<?> brain;
+-    private boolean skipDropExperience;
++    protected boolean skipDropExperience; // Youer - fix: widen visibility to match Paper (used by ServerPlayer)
+     private final EnumMap<EquipmentSlot, Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>>> activeLocationDependentEnchantments = new EnumMap<>(
+         EquipmentSlot.class
      );
      protected final EntityEquipment equipment;
      private Waypoint.Icon locatorBarIcon = new Waypoint.Icon();

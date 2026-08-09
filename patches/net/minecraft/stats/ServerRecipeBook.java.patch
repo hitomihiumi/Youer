@@ -1,5 +1,14 @@
 --- a/net/minecraft/stats/ServerRecipeBook.java
 +++ b/net/minecraft/stats/ServerRecipeBook.java
+@@ -30,7 +_,7 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final ServerRecipeBook.DisplayResolver displayResolver;
+     @VisibleForTesting
+-    protected final Set<ResourceKey<Recipe<?>>> known = Sets.newIdentityHashSet();
++    public final Set<ResourceKey<Recipe<?>>> known = Sets.newIdentityHashSet(); // Youer - fix: widen visibility to match Paper (used by CraftPlayer)
+     @VisibleForTesting
+     protected final Set<ResourceKey<Recipe<?>>> highlight = Sets.newIdentityHashSet();
+ 
 @@ -59,24 +_,28 @@
          this.highlight.add(p_379380_);
      }

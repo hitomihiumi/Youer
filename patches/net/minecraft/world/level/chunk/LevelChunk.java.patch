@@ -8,6 +8,25 @@
          for (Entry<Heightmap.Types, Heightmap> entry : p_196851_.getHeightmaps()) {
              if (ChunkStatus.FULL.heightmapsAfter().contains(entry.getKey())) {
                  this.setHeightmap(entry.getKey(), entry.getValue().getRawData());
+@@ -239,6 +_,18 @@
+         return this.getFluidState(p_62895_.getX(), p_62895_.getY(), p_62895_.getZ());
+     }
+ 
++    // Youer - fix: BlockGetter#getFluidIfLoaded(BlockPos)/getBlockStateIfLoaded(BlockPos) were never merged
++    // onto LevelChunk - matches Paper's real implementation
++    @Override
++    public final FluidState getFluidIfLoaded(BlockPos pos) {
++        return this.getFluidState(pos);
++    }
++
++    @Override
++    public final BlockState getBlockStateIfLoaded(BlockPos pos) {
++        return this.getBlockState(pos);
++    }
++
+     public FluidState getFluidState(int p_62815_, int p_62816_, int p_62817_) {
+         try {
+             int i = this.getSectionIndex(p_62816_);
 @@ -285,7 +_,7 @@
                      this.level.getChunkSource().onSectionEmptinessChanged(this.chunkPos.x, SectionPos.blockToSectionCoord(i), this.chunkPos.z, flag1);
                  }

@@ -1,5 +1,19 @@
 --- a/net/minecraft/world/level/EntityGetter.java
 +++ b/net/minecraft/world/level/EntityGetter.java
+@@ -71,6 +_,13 @@
+         }
+     }
+ 
++    // Paper start - Affects Spawning API
++    @Nullable
++    default Player findNearbyPlayer(Entity entity, double maxDistance, @Nullable Predicate<Entity> predicate) {
++        return this.getNearestPlayer(entity.getX(), entity.getY(), entity.getZ(), maxDistance, predicate);
++    }
++    // Paper end - Affects Spawning API
++
+     @Nullable
+     default Player getNearestPlayer(double p_45919_, double p_45920_, double p_45921_, double p_45922_, @Nullable Predicate<Entity> p_45923_) {
+         double d0 = -1.0;
 @@ -124,4 +_,11 @@
  
          return null;

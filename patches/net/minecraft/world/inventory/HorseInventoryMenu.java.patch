@@ -1,6 +1,11 @@
 --- a/net/minecraft/world/inventory/HorseInventoryMenu.java
 +++ b/net/minecraft/world/inventory/HorseInventoryMenu.java
-@@ -19,9 +_,23 @@
+@@ -15,13 +_,27 @@
+     private static final ResourceLocation LLAMA_ARMOR_SLOT_SPRITE = ResourceLocation.withDefaultNamespace("container/slot/llama_armor");
+     private static final ResourceLocation ARMOR_SLOT_SPRITE = ResourceLocation.withDefaultNamespace("container/slot/horse_armor");
+     private final Container horseContainer;
+-    private final AbstractHorse horse;
++    public final AbstractHorse horse; // Youer - fix: widen visibility to match Paper (used by CraftHumanEntity)
      private static final int SLOT_SADDLE = 0;
      public static final int SLOT_BODY_ARMOR = 1;
      private static final int SLOT_HORSE_INVENTORY_START = 2;

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/SkullBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/SkullBlockEntity.java
-@@ -41,8 +_,8 @@
+@@ -41,11 +_,11 @@
      @Nullable
      private static LoadingCache<String, CompletableFuture<Optional<GameProfile>>> profileCacheByName;
      @Nullable
@@ -10,7 +10,11 @@
 +    public static final Executor CHECKED_MAIN_THREAD_EXECUTOR = runnable -> {
          Executor executor = mainThreadExecutor;
          if (executor != null) {
-             executor.execute(p_294078_);
+-            executor.execute(p_294078_);
++            executor.execute(runnable); // Youer - fix: tree-D corruption (was `p_294078_`)
+         }
+     };
+     @Nullable
 @@ -75,9 +_,10 @@
          profileCacheById = CacheBuilder.newBuilder()
              .expireAfterAccess(Duration.ofMinutes(10L))

@@ -2128,6 +2128,15 @@
                  return Optional.empty();
              }
  
+@@ -1556,7 +_,7 @@
+         }
+     }
+ 
+-    private static boolean isChatMessageIllegal(String p_215215_) {
++    public static boolean isChatMessageIllegal(String p_215215_) { // Youer - fix: widen visibility to match Paper (used by CraftPlayer)
+         for (int i = 0; i < p_215215_.length(); i++) {
+             if (!StringUtil.isAllowedChatCharacter(p_215215_.charAt(i))) {
+                 return true;
 @@ -1566,22 +_,81 @@
          return false;
      }

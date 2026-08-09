@@ -1,5 +1,47 @@
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -34,6 +_,41 @@
+     private static final int[][] CACHED_SLOTS = new int[54][];
+     private static final int NO_COOLDOWN_TIME = -1;
+     private NonNullList<ItemStack> items = NonNullList.withSize(5, ItemStack.EMPTY);
++    // Youer - fix: Container#setMaxStackSize(int) was never merged onto HopperBlockEntity - matches Paper's real implementation
++    // CraftBukkit start - add fields and methods
++    private int maxStack = MAX_STACK;
++    public java.util.List<org.bukkit.entity.HumanEntity> transaction = new java.util.ArrayList<>();
++
++    @Override
++    public void onOpen(org.bukkit.craftbukkit.entity.CraftHumanEntity player) {
++        this.transaction.add(player);
++    }
++
++    @Override
++    public void onClose(org.bukkit.craftbukkit.entity.CraftHumanEntity player) {
++        this.transaction.remove(player);
++    }
++
++    @Override
++    public java.util.List<org.bukkit.entity.HumanEntity> getViewers() {
++        return this.transaction;
++    }
++
++    @Override
++    public java.util.List<ItemStack> getContents() {
++        return this.items;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return this.maxStack;
++    }
++
++    @Override
++    public void setMaxStackSize(int size) {
++        this.maxStack = size;
++    }
++    // CraftBukkit end
+     public int cooldownTime = -1;
+     private long tickedGameTime;
+     public Direction facing;
 @@ -138,10 +_,11 @@
      }
  

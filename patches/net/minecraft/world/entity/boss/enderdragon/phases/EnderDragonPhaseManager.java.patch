@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhaseManager.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhaseManager.java
-@@ -17,15 +_,27 @@
+@@ -17,18 +_,30 @@
          this.setPhase(EnderDragonPhase.HOVERING);
      }
  
@@ -31,4 +31,8 @@
 +                this.dragon.getEntityData().set(EnderDragon.DATA_PHASE, phase.getId());
              }
  
-             LOGGER.debug("Dragon is now in phase {} on the {}", p_31417_, this.dragon.level().isClientSide ? "client" : "server");
+-            LOGGER.debug("Dragon is now in phase {} on the {}", p_31417_, this.dragon.level().isClientSide ? "client" : "server");
++            LOGGER.debug("Dragon is now in phase {} on the {}", phase, this.dragon.level().isClientSide ? "client" : "server"); // Youer - fix: tree-D corruption (was `p_31417_`)
+             this.currentPhase.begin();
+         }
+     }

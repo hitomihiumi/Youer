@@ -240,6 +240,21 @@
      }
  
      @Override
+@@ -203,12 +_,12 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_33152_) {
++    public SoundEvent getHurtSound(DamageSource p_33152_) { // Youer - fix: LivingEntity.getHurtSound is public, can't narrow to protected in override
+         return SoundEvents.PHANTOM_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() { // Youer - fix: LivingEntity.getDeathSound is public, can't narrow to protected in override
+         return SoundEvents.PHANTOM_DEATH;
+     }
+ 
 @@ -250,14 +_,19 @@
              } else {
                  this.nextScanTick = reducedTickDelay(60);
@@ -381,11 +396,11 @@
 +            if (phantom.moveTargetPoint.distanceToSqr(phantom.getX(), phantom.getY(), phantom.getZ()) < 4.0D) {
 +                updateOffset();
 +            }
-+            if (phantom.moveTargetPoint.y < phantom.getY() && !phantom.level().isEmptyBlock(new BlockPos(phantom).below(1))) {
++            if (phantom.moveTargetPoint.y < phantom.getY() && !phantom.level().isEmptyBlock(phantom.blockPosition().below(1))) { // Youer - fix: BlockPos(Vec3i) ctor cannot take an Entity; use its blockPosition()
 +                this.verticalChange = Math.max(1.0F, this.verticalChange);
 +                updateOffset();
 +            }
-+            if (phantom.moveTargetPoint.y > phantom.getY() && !phantom.level().isEmptyBlock(new BlockPos(phantom).above(1))) {
++            if (phantom.moveTargetPoint.y > phantom.getY() && !phantom.level().isEmptyBlock(phantom.blockPosition().above(1))) { // Youer - fix: BlockPos(Vec3i) ctor cannot take an Entity; use its blockPosition()
 +                this.verticalChange = Math.min(-1.0F, this.verticalChange);
 +                updateOffset();
 +            }
@@ -488,7 +503,7 @@
              } else if (!livingentity.isAlive()) {
                  return false;
 +            // Purpur start - Phantoms burn in light
-+            } else if (level().purpurConfig.phantomBurnInLight > 0 && level().getLightEmission(new BlockPos(Phantom.this)) >= level().purpurConfig.phantomBurnInLight) {
++            } else if (level().purpurConfig.phantomBurnInLight > 0 && level().getLightEmission(Phantom.this.blockPosition()) >= level().purpurConfig.phantomBurnInLight) { // Youer - fix: BlockPos(Vec3i) ctor cannot take an Entity; use its blockPosition()
 +                return false;
 +            } else if (level().purpurConfig.phantomIgnorePlayersWithTorch && (TORCH.test(livingentity.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND)) || TORCH.test(livingentity.getItemInHand(net.minecraft.world.InteractionHand.OFF_HAND)))) {
 +                return false;

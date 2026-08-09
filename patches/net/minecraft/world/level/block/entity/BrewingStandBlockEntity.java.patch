@@ -1,5 +1,47 @@
 --- a/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
+@@ -37,6 +_,41 @@
+     private static final short DEFAULT_BREW_TIME = 0;
+     private static final byte DEFAULT_FUEL = 0;
+     private NonNullList<ItemStack> items = NonNullList.withSize(5, ItemStack.EMPTY);
++    // Youer - fix: Container#setMaxStackSize(int) was never merged onto BrewingStandBlockEntity - matches Paper's real implementation
++    // CraftBukkit start - add fields and methods
++    private int maxStack = MAX_STACK;
++    public java.util.List<org.bukkit.entity.HumanEntity> transaction = new java.util.ArrayList<>();
++
++    @Override
++    public void onOpen(org.bukkit.craftbukkit.entity.CraftHumanEntity player) {
++        this.transaction.add(player);
++    }
++
++    @Override
++    public void onClose(org.bukkit.craftbukkit.entity.CraftHumanEntity player) {
++        this.transaction.remove(player);
++    }
++
++    @Override
++    public java.util.List<org.bukkit.entity.HumanEntity> getViewers() {
++        return this.transaction;
++    }
++
++    @Override
++    public java.util.List<ItemStack> getContents() {
++        return this.items;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return this.maxStack;
++    }
++
++    @Override
++    public void setMaxStackSize(int size) {
++        this.maxStack = size;
++    }
++    // CraftBukkit end
+     public int brewTime;
+     private boolean[] lastPotionCount;
+     private Item ingredient;
 @@ -167,6 +_,7 @@
      }
  

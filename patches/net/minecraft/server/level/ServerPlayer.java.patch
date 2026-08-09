@@ -8,6 +8,15 @@
      private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_XZ = 32;
      private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_Y = 10;
      private static final int FLY_STAT_RECORDING_SPEED = 25;
+@@ -235,7 +_,7 @@
+     private boolean lastFoodSaturationZero = true;
+     public int lastSentExp = -99999999;
+     private ChatVisiblity chatVisibility = ChatVisiblity.FULL;
+-    private ParticleStatus particleStatus = ParticleStatus.ALL;
++    public ParticleStatus particleStatus = ParticleStatus.ALL; // Youer - fix: widen visibility to match Paper (used by CraftPlayer)
+     private boolean canChatColor = true;
+     private long lastActionTime = Util.getMillis();
+     @Nullable
 @@ -248,7 +_,8 @@
      private int levitationStartTime;
      private boolean disconnected;

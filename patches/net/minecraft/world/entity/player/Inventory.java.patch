@@ -1,8 +1,11 @@
 --- a/net/minecraft/world/entity/player/Inventory.java
 +++ b/net/minecraft/world/entity/player/Inventory.java
-@@ -56,6 +_,80 @@
+@@ -54,8 +_,82 @@
+     private final NonNullList<ItemStack> items = NonNullList.withSize(36, ItemStack.EMPTY);
+     private int selected;
      public final Player player;
-     private final EntityEquipment equipment;
+-    private final EntityEquipment equipment;
++    public final EntityEquipment equipment; // Youer - fix: widen visibility to match Paper (used by CraftInventoryPlayer/ServerPlayer/CraftHumanEntity)
      private int timesChanged;
 +    // Paper start - add fields and methods
 +    public static final EquipmentSlot[] EQUIPMENT_SLOTS_SORTED_BY_INDEX = EQUIPMENT_SLOT_MAPPING.int2ObjectEntrySet()

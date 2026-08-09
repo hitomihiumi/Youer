@@ -66,12 +66,10 @@
      }
  
      public void preRemoveSideEffects(BlockPos p_394577_, BlockState p_394161_) {
-@@ -271,6 +_,32 @@
- 
-     public BlockEntityType<?> getType() {
+@@ -273,6 +_,32 @@
          return this.type;
-+    }
-+
+     }
+ 
 +    @Override
 +    public CompoundTag getPersistentData() {
 +        if (this.customPersistentData == null)
@@ -96,6 +94,30 @@
 +    @Override
 +    public final void syncData(net.neoforged.neoforge.attachment.AttachmentType<?> type) {
 +        net.neoforged.neoforge.attachment.AttachmentSync.syncBlockEntityUpdate(this, type);
-     }
- 
++    }
++
      @Deprecated
+     public void setBlockState(BlockState p_155251_) {
+         this.validateBlockState(p_155251_);
+@@ -339,6 +_,21 @@
+     public ProblemReporter.PathElement problemPath() {
+         return new BlockEntity.BlockEntityPathElement(this);
+     }
++
++    // Youer - fix: Container#getOwner()/getOwner(boolean) were never merged onto BlockEntity, breaking every
++    // BaseContainerBlockEntity subclass (Chest/Barrel/Furnace/Hopper/etc) - matches Paper's real implementation
++    // CraftBukkit start - add method
++    public org.bukkit.inventory.InventoryHolder getOwner() {
++        return getOwner(true);
++    }
++
++    public org.bukkit.inventory.InventoryHolder getOwner(boolean useSnapshot) {
++        if (this.level == null) return null;
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.worldPosition);
++        org.bukkit.block.BlockState state = block.getState(useSnapshot);
++        return state instanceof final org.bukkit.inventory.InventoryHolder inventoryHolder ? inventoryHolder : null;
++    }
++    // CraftBukkit end
+ 
+     record BlockEntityPathElement(BlockEntity blockEntity) implements ProblemReporter.PathElement {
+         @Override

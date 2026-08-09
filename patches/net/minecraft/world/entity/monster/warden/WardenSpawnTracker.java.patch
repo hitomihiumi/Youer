@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/entity/monster/warden/WardenSpawnTracker.java
++++ b/net/minecraft/world/entity/monster/warden/WardenSpawnTracker.java
+@@ -29,9 +_,9 @@
+     private static final int WARNING_CHECK_DIAMETER = 48;
+     private static final int DECREASE_WARNING_LEVEL_EVERY_INTERVAL = 12000;
+     private static final int WARNING_LEVEL_INCREASE_COOLDOWN = 200;
+-    private int ticksSinceLastWarning;
++    public int ticksSinceLastWarning; // Youer - fix: widen visibility to match Paper (used by CraftPlayer)
+     private int warningLevel;
+-    private int cooldownTicks;
++    public int cooldownTicks; // Youer - fix: widen visibility to match Paper (used by CraftPlayer)
+ 
+     public WardenSpawnTracker(int p_219568_, int p_219569_, int p_219570_) {
+         this.ticksSinceLastWarning = p_219568_;
+@@ -103,7 +_,7 @@
+         return p_219595_.getPlayers(p_427123_ -> !p_427123_.isSpectator() && p_427123_.position().closerThan(vec3, 16.0) && p_427123_.isAlive());
+     }
+ 
+-    private void increaseWarningLevel() {
++    public void increaseWarningLevel() { // Youer - fix: widen visibility to match Paper (used by CraftPlayer)
+         if (!this.onCooldown()) {
+             this.ticksSinceLastWarning = 0;
+             this.cooldownTicks = 200;

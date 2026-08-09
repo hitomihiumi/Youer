@@ -82,7 +82,7 @@
 +                }
 +            }
 +        } else {
-+            setBeamTarget(new BlockPos(targetPhantom).offset(0, -2, 0));
++            setBeamTarget(targetPhantom.blockPosition().offset(0, -2, 0)); // Youer - fix: BlockPos(Vec3i) ctor cannot take an Entity; use its blockPosition()
 +            if (--phantomBeamTicks > 0 && targetPhantom.isAlive()) {
 +                phantomDamageCooldown--;
 +                if (targetPhantom.hasLineOfSight(this)) {
