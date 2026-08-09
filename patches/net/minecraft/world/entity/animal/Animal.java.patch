@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/entity/animal/Animal.java
 +++ b/net/minecraft/world/entity/animal/Animal.java
-@@ -41,6 +_,7 @@
+@@ -41,6 +_,8 @@
      public int inLove = 0;
      @Nullable
      public EntityReference<ServerPlayer> loveCause;
 +    public @Nullable ItemStack breedItem; // CraftBukkit - Add breedItem variable
++    public abstract int getPurpurBreedTime(); // Purpur - Make entity breeding times configurable
  
      protected Animal(EntityType<? extends Animal> p_27557_, Level p_27558_) {
          super(p_27557_, p_27558_);
@@ -39,7 +40,7 @@
 +        ItemStack itemInHand = player.getItemInHand(hand);
 +        if (this.isFood(itemInHand)) {
 +            int age = this.getAge();
-+            if (player instanceof ServerPlayer serverPlayer && age == 0 && this.canFallInLove()) {
++            if (player instanceof ServerPlayer serverPlayer && age == 0 && this.canFallInLove() && (this.level().purpurConfig.animalBreedingCooldownSeconds <= 0 || !this.level().hasBreedingCooldown(player.getUUID(), this.getClass()))) { // Purpur - Add adjustable breeding cooldown to config
 +                final ItemStack breedCopy = itemInHand.copy(); // Paper - Fix EntityBreedEvent copying
 +                this.usePlayerItem(player, hand, itemInHand);
 +                this.setInLove(serverPlayer, breedCopy); // Paper - Fix EntityBreedEvent copying
@@ -94,7 +95,7 @@
          }
  
          this.level().broadcastEntityEvent(this, (byte)18);
-@@ -214,28 +_,61 @@
+@@ -214,28 +_,73 @@
          }
      }
  
@@ -119,10 +120,20 @@
 +            return;
 +        }
 +        if (breedOffspring != null) {
-+            breedOffspring.setBaby(true);
-+            breedOffspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
++            //breedOffspring.setBaby(true); // Purpur - Add adjustable breeding cooldown to config - moved down
++            //breedOffspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F); // Purpur - Add adjustable breeding cooldown to config - moved down
 +            // CraftBukkit start - Call EntityBreedEvent
 +            ServerPlayer breeder = Optional.ofNullable(this.getLoveCause()).or(() -> Optional.ofNullable(mate.getLoveCause())).orElse(null);
++            // Purpur start - Add adjustable breeding cooldown to config
++            if (breeder != null && level.purpurConfig.animalBreedingCooldownSeconds > 0) {
++                if (level.hasBreedingCooldown(breeder.getUUID(), this.getClass())) {
++                    return;
++                }
++                level.addBreedingCooldown(breeder.getUUID(), this.getClass());
++            }
++            breedOffspring.setBaby(true);
++            breedOffspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
++            // Purpur end - Add adjustable breeding cooldown to config
 +            int experience = this.getRandom().nextInt(7) + 1;
 +            org.bukkit.event.entity.EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(breedOffspring, this, mate, breeder, this.breedItem, experience);
 +            if (entityBreedEvent.isCancelled()) {
@@ -143,6 +154,8 @@
 -            p_277486_.awardStat(Stats.ANIMALS_BRED);
 -            CriteriaTriggers.BRED_ANIMALS.trigger(p_277486_, this, p_277357_, p_277516_);
 -        });
+-        this.setAge(6000);
+-        p_277357_.setAge(6000);
 +        // CraftBukkit start - Call EntityBreedEvent
 +        this.finalizeSpawnChildFromBreeding(p_277963_, p_277357_, p_277516_, this.getRandom().nextInt(7) + 1);
 +    }
@@ -157,9 +170,10 @@
 +            player.awardStat(Stats.ANIMALS_BRED);
 +            CriteriaTriggers.BRED_ANIMALS.trigger(player, this, animal, baby);
 +        } // Paper - Call EntityBreedEvent
-         this.setAge(6000);
--        p_277357_.setAge(6000);
-+        animal.setAge(6000);
++        // Purpur start - Make entity breeding times configurable
++        this.setAge(this.getPurpurBreedTime());
++        animal.setAge(animal.getPurpurBreedTime());
++        // Purpur end - Make entity breeding times configurable
          this.resetLove();
 -        p_277357_.resetLove();
 -        p_277963_.broadcastEntityEvent(this, (byte)18);

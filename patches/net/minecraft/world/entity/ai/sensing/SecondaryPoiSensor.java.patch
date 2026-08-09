@@ -1,0 +1,51 @@
+--- a/net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.java
++++ b/net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.java
+@@ -21,27 +_,34 @@
+     }
+ 
+     protected void doTick(ServerLevel p_26754_, Villager p_26755_) {
+-        ResourceKey<Level> resourcekey = p_26754_.dimension();
+-        BlockPos blockpos = p_26755_.blockPosition();
+-        List<GlobalPos> list = Lists.newArrayList();
+-        int i = 4;
++        // Purpur start - Option for Villager Clerics to farm Nether Wart - make sure clerics don't wander to soul sand when the option is off
++        Brain<?> resourcekey = p_26755_.getBrain();
++        if (!p_26754_.purpurConfig.villagerClericsFarmWarts && p_26755_.getVillagerData().profession().is(net.minecraft.world.p_26755_.npc.VillagerProfession.CLERIC)) {
++            resourcekey.eraseMemory(MemoryModuleType.SECONDARY_JOB_SITE);
++            return;
++        }
++        // Purpur end - Option for Villager Clerics to farm Nether Wart
++        ResourceKey<Level> blockpos = p_26754_.dimension();
++        BlockPos list = p_26755_.blockPosition();
++        List<GlobalPos> i = Lists.newArrayList();
++        int j = 4;
+ 
+-        for (int j = -4; j <= 4; j++) {
+-            for (int k = -2; k <= 2; k++) {
+-                for (int l = -4; l <= 4; l++) {
+-                    BlockPos blockpos1 = blockpos.offset(j, k, l);
+-                    if (p_26755_.getVillagerData().profession().value().secondaryPoi().contains(p_26754_.getBlockState(blockpos1).getBlock())) {
+-                        list.add(GlobalPos.of(resourcekey, blockpos1));
++        for (int k = -4; k <= 4; k++) {
++            for (int l = -2; l <= 2; l++) {
++                for (int blockpos1 = -4; blockpos1 <= 4; blockpos1++) {
++                    BlockPos brain = list.offset(k, l, blockpos1);
++                    if (p_26755_.getVillagerData().profession().value().secondaryPoi().contains(p_26754_.getBlockState(brain).getBlock())) {
++                        i.add(GlobalPos.of(blockpos, brain));
+                     }
+                 }
+             }
+         }
+ 
+-        Brain<?> brain = p_26755_.getBrain();
+-        if (!list.isEmpty()) {
+-            brain.setMemory(MemoryModuleType.SECONDARY_JOB_SITE, list);
++        //Brain<?> resourcekey = p_26755_.getBrain(); // Purpur - Option for Villager Clerics to farm Nether Wart - moved up
++        if (!i.isEmpty()) {
++            resourcekey.setMemory(MemoryModuleType.SECONDARY_JOB_SITE, i);
+         } else {
+-            brain.eraseMemory(MemoryModuleType.SECONDARY_JOB_SITE);
++            resourcekey.eraseMemory(MemoryModuleType.SECONDARY_JOB_SITE);
+         }
+     }
+ 

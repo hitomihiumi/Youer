@@ -1,5 +1,66 @@
 --- a/net/minecraft/world/entity/animal/Turtle.java
 +++ b/net/minecraft/world/entity/animal/Turtle.java
+@@ -87,6 +_,52 @@
+         this.moveControl = new Turtle.TurtleMoveControl(this);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.turtleRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.turtleRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.turtleControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.turtleMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.turtleScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.turtleBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.turtleTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.turtleAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public void setHomePos(BlockPos p_30220_) {
+         this.homePos = p_30220_;
+     }
+@@ -146,6 +_,7 @@
+ 
+     @Override
+     protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(0, new Turtle.TurtlePanicGoal(this, 1.2));
+         this.goalSelector.addGoal(1, new Turtle.TurtleBreedGoal(this, 1.0));
+         this.goalSelector.addGoal(1, new Turtle.TurtleLayEggGoal(this, 1.0));
 @@ -261,7 +_,9 @@
      protected void ageBoundaryReached() {
          super.ageBoundaryReached();
@@ -19,7 +80,7 @@
      }
  
      @Override
-@@ -309,14 +_,18 @@
+@@ -309,25 +_,30 @@
  
          @Override
          protected void breed() {
@@ -44,8 +105,12 @@
              }
  
              this.turtle.setHasEgg(true);
-@@ -324,10 +_,9 @@
-             this.partner.setAge(6000);
+-            this.animal.setAge(6000);
+-            this.partner.setAge(6000);
++            // Purpur start - Make entity breeding times configurable
++            this.animal.setAge(this.animal.getPurpurBreedTime());
++            this.partner.setAge(this.partner.getPurpurBreedTime());
++            // Purpur end - Make entity breeding times configurable
              this.animal.resetLove();
              this.partner.resetLove();
 -            RandomSource randomsource = this.animal.getRandom();
@@ -109,3 +174,48 @@
                      this.turtle.setHasEgg(false);
                      this.turtle.setLayingEgg(false);
                      this.turtle.setInLoveTime(600);
+@@ -489,12 +_,14 @@
+         }
+     }
+ 
+-    static class TurtleMoveControl extends MoveControl {
++    static class TurtleMoveControl extends org.purpurmc.purpur.controller.MoveControllerWASD { // Purpur - Ridables
+         private final Turtle turtle;
++        private final org.purpurmc.purpur.controller.WaterMoveControllerWASD waterController; // Purpur - Ridables
+ 
+         TurtleMoveControl(Turtle p_30286_) {
+             super(p_30286_);
+             this.turtle = p_30286_;
++            waterController = new org.purpurmc.purpur.controller.WaterMoveControllerWASD(turtle, 0.25D); // Purpur - Ridables
+         }
+ 
+         private void updateSpeed() {
+@@ -513,21 +_,21 @@
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             this.updateSpeed();
+             if (this.operation == MoveControl.Operation.MOVE_TO && !this.turtle.getNavigation().isDone()) {
+-                double d0 = this.wantedX - this.turtle.getX();
++                double d = this.wantedX - this.turtle.getX();
+                 double d1 = this.wantedY - this.turtle.getY();
+                 double d2 = this.wantedZ - this.turtle.getZ();
+-                double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+-                if (d3 < 1.0E-5F) {
++                double squareRoot = Math.sqrt(d * d + d1 * d1 + d2 * d2);
++                if (squareRoot < 1.0E-5F) {
+                     this.mob.setSpeed(0.0F);
+                 } else {
+-                    d1 /= d3;
+-                    float f = (float)(Mth.atan2(d2, d0) * 180.0F / (float)Math.PI) - 90.0F;
++                    d1 /= squareRoot;
++                    float f = (float)(Mth.atan2(d2, d) * 180.0F / (float)Math.PI) - 90.0F;
+                     this.turtle.setYRot(this.rotlerp(this.turtle.getYRot(), f, 90.0F));
+                     this.turtle.yBodyRot = this.turtle.getYRot();
+-                    float f1 = (float)(this.speedModifier * this.turtle.getAttributeValue(Attributes.MOVEMENT_SPEED));
++                    float f1 = (float)(this.getSpeedModifier() * this.turtle.getAttributeValue(Attributes.MOVEMENT_SPEED)); // Purpur - Ridables
+                     this.turtle.setSpeed(Mth.lerp(0.125F, this.turtle.getSpeed(), f1));
+                     this.turtle.setDeltaMovement(this.turtle.getDeltaMovement().add(0.0, this.turtle.getSpeed() * d1 * 0.1, 0.0));
+                 }

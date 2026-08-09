@@ -1,5 +1,44 @@
 --- a/net/minecraft/world/entity/animal/sniffer/Sniffer.java
 +++ b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
+@@ -89,6 +_,38 @@
+         this.setPathfindingMalus(PathType.DAMAGE_CAUTIOUS, -1.0F);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.snifferRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.snifferRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.snifferControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.snifferMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.snifferScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.snifferBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder p_326082_) {
+         super.defineSynchedData(p_326082_);
 @@ -278,6 +_,13 @@
              this.dropFromGiftLootTable(serverlevel, BuiltInLootTables.SNIFFER_DIGGING, (p_423317_, p_423318_) -> {
                  ItemEntity itementity = new ItemEntity(this.level(), blockpos.getX(), blockpos.getY(), blockpos.getZ(), p_423318_);
@@ -48,3 +87,11 @@
      }
  
      @Override
+@@ -455,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel p_376484_) {
+         ProfilerFiller profilerfiller = Profiler.get();
+         profilerfiller.push("snifferBrain");
++        if ((getRider() == null || !this.isControllable())) // Purpur - only use brain if no rider
+         this.getBrain().tick(p_376484_, this);
+         profilerfiller.popPush("snifferActivityUpdate");
+         SnifferAi.updateActivity(this);

@@ -17,7 +17,7 @@
      public final InventoryMenu inventoryMenu;
      public AbstractContainerMenu containerMenu;
      protected FoodData foodData = new FoodData();
-@@ -218,6 +_,23 @@
+@@ -218,6 +_,46 @@
      public Entity currentExplosionCause;
      private boolean ignoreFallDamageFromCurrentImpulse = false;
      private int currentImpulseContextResetGraceTime = 0;
@@ -28,16 +28,39 @@
 +    private long lastDayTimeTick = -1L; // Neo: Used to limit TIME_SINCE_REST increases when day length is non-standard. No need to persist, at most Phantoms will spawn one tick too early for each save/load cycle.
 +    public boolean affectsSpawning = true; // Paper - Affects Spawning API
 +    public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET; // Paper - flying fall damage
++    public int burpDelay = 0; // Purpur - Burp delay
++    public boolean canPortalInstant = false; // Purpur - Add portal permission bypass
++    public int sixRowEnderchestSlotCount = -1; // Purpur - Barrels and enderchests 6 rows
 +
 +    // CraftBukkit start
 +    public boolean fauxSleeping;
 +    public int oldLevel = -1;
 +
++    // Purpur start - AFK API
++    public abstract void setAfk(boolean afk);
++
++    public boolean isAfk() {
++        return false;
++    }
++    // Purpur end - AFK API
 +    @Override
 +    public org.bukkit.craftbukkit.entity.CraftHumanEntity getBukkitEntity() {
 +        return (org.bukkit.craftbukkit.entity.CraftHumanEntity) super.getBukkitEntity();
 +    }
 +    // CraftBukkit end
++
++    // Purpur start - Ridables
++    public abstract void resetLastActionTime();
++
++    @Override
++    public boolean processClick(InteractionHand hand) {
++        Entity vehicle = getRootVehicle();
++        if (vehicle != null && vehicle.getRider() == this) {
++            return vehicle.onClick(hand);
++        }
++        return false;
++    }
++    // Purpur end - Ridables
  
      public Player(Level p_250508_, GameProfile p_252153_) {
          super(EntityType.PLAYER, p_250508_);
@@ -51,11 +74,17 @@
      }
  
      @Override
-@@ -276,6 +_,7 @@
+@@ -276,6 +_,13 @@
  
      @Override
      public void tick() {
 +        net.neoforged.neoforge.event.EventHooks.firePlayerTickPre(this);
++        // Purpur start - Burp delay
++        if (this.burpDelay > 0 && --this.burpDelay == 0) {
++            this.level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 1.0F, this.level().random.nextFloat() * 0.1F + 0.9F);
++        }
++        // Purpur end - Burp delay
++
          this.noPhysics = this.isSpectator();
          if (this.isSpectator() || this.isPassenger()) {
              this.setOnGround(false);
@@ -101,7 +130,23 @@
              }
          }
  
-@@ -352,6 +_,7 @@
+@@ -347,11 +_,23 @@
+             this.turtleHelmetTick();
+         }
+ 
++        // Purpur start - Full netherite armor grants fire resistance
++        if (this.level().purpurConfig.playerNetheriteFireResistanceDuration > 0 && this.level().getGameTime() % 20 == 0) {
++            if (this.getItemBySlot(EquipmentSlot.HEAD).is(Items.NETHERITE_HELMET)
++                && this.getItemBySlot(EquipmentSlot.CHEST).is(Items.NETHERITE_CHESTPLATE)
++                && this.getItemBySlot(EquipmentSlot.LEGS).is(Items.NETHERITE_LEGGINGS)
++                && this.getItemBySlot(EquipmentSlot.FEET).is(Items.NETHERITE_BOOTS)) {
++                this.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, this.level().purpurConfig.playerNetheriteFireResistanceDuration, this.level().purpurConfig.playerNetheriteFireResistanceAmplifier, this.level().purpurConfig.playerNetheriteFireResistanceAmbient, this.level().purpurConfig.playerNetheriteFireResistanceShowParticles, this.level().purpurConfig.playerNetheriteFireResistanceShowIcon), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.NETHERITE_ARMOR);
++            }
++        }
++        // Purpur end - Full netherite armor grants fire resistance
++
+         this.cooldowns.tick();
+         this.updatePlayerPose();
          if (this.currentImpulseContextResetGraceTime > 0) {
              this.currentImpulseContextResetGraceTime--;
          }
@@ -195,6 +240,15 @@
              super.rideTick();
              this.oBob = this.bob;
              this.bob = 0.0F;
+@@ -594,7 +_,7 @@
+             List<Entity> list1 = Lists.newArrayList();
+ 
+             for (Entity entity : list) {
+-                if (entity.getType() == EntityType.EXPERIENCE_ORB) {
++                if (entity.getType() == EntityType.EXPERIENCE_ORB && entity.level().purpurConfig.playerExpPickupDelay >= 0) { // Purpur - Configurable player pickup exp delay
+                     list1.add(entity);
+                 } else if (!entity.isRemoved()) {
+                     this.touch(entity);
 @@ -609,6 +_,7 @@
          this.playShoulderEntityAmbientSound(this.getShoulderEntityLeft());
          this.playShoulderEntityAmbientSound(this.getShoulderEntityRight());
@@ -580,7 +634,7 @@
 -                            f *= 1.5F;
 +                        flag2 = flag2 && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
 +                        // Neo: Fire the critical hit event and override the critical hit status and damage multiplier based on the event.
-+                        var critEvent = net.neoforged.neoforge.common.CommonHooks.fireCriticalHit(this, target, flag2, flag2 ? 1.5F : 1.0F);
++                        var critEvent = net.neoforged.neoforge.common.CommonHooks.fireCriticalHit(this, target, flag2, flag2 ? (float) this.level().purpurConfig.playerCriticalDamageMultiplier : 1.0F); // Purpur - Add config change multiplier critical damage value
 +                        flag2 = critEvent.isCriticalHit();
 +                        if (flag2) {
 +                            damageSource = damageSource.critical(); // Paper - critical damage API
@@ -864,6 +918,15 @@
          super.stopSleeping();
          if (this.level() instanceof ServerLevel && p_36227_) {
              ((ServerLevel)this.level()).updateSleepingPlayerList();
+@@ -1461,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected boolean canGlide() {
++    public boolean canGlide() {
+         return !this.abilities.flying && super.canGlide();
+     }
+ 
 @@ -1485,7 +_,8 @@
  
      @Override
@@ -976,6 +1039,47 @@
              }
          }
      }
+@@ -1676,8 +_,24 @@
+     }
+ 
+     @Override
+-    protected int getBaseExperienceReward(ServerLevel p_376359_) {
+-        return !p_376359_.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && !this.isSpectator() ? Math.min(this.experienceLevel * 7, 100) : 0;
++    protected int getBaseExperienceReward(ServerLevel level) {
++        // Purpur start - Add player death exp control options
++        if (!level.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && !this.isSpectator()) {
++            int toDrop;
++            try {
++                toDrop = Math.round(((Number) scriptEngine.eval("let expLevel = " + experienceLevel + "; " +
++                    "let expTotal = " + totalExperience + "; " +
++                    "let exp = " + experienceProgress + "; " +
++                    level().purpurConfig.playerDeathExpDropEquation)).floatValue());
++            } catch (javax.script.ScriptException e) {
++                e.printStackTrace();
++                toDrop = experienceLevel * 7;
++            }
++            return Math.min(toDrop, level().purpurConfig.playerDeathExpDropMax);
++        } else {
++            return 0;
++        }
++        // Purpur end - Add player death exp control options
+     }
+ 
+     @Override
+@@ -1716,6 +_,13 @@
+         return this.inventory.add(p_36357_);
+     }
+ 
++    // Purpur start - Player ridable in water option
++    @Override
++    public boolean dismountsUnderwater() {
++        return !level().purpurConfig.playerRidableInWater;
++    }
++    // Purpur end - Player ridable in water option
++
+     public boolean setEntityOnShoulder(CompoundTag p_36361_) {
+         if (this.isPassenger() || !this.onGround() || this.isInWater() || this.isInPowderSnow) {
+             return false;
 @@ -1734,31 +_,60 @@
  
      protected void removeEntitiesOnShoulder() {

@@ -1,17 +1,108 @@
 --- a/net/minecraft/world/entity/animal/horse/Llama.java
 +++ b/net/minecraft/world/entity/animal/horse/Llama.java
-@@ -77,17 +_,23 @@
+@@ -77,17 +_,113 @@
      @Nullable
      private Llama caravanHead;
      @Nullable
 -    private Llama caravanTail;
 +    public Llama caravanTail; // Paper
++    public boolean shouldJoinCaravan = true; // Purpur - Llama API
  
      public Llama(EntityType<? extends Llama> p_30750_, Level p_30751_) {
          super(p_30750_, p_30751_);
          this.getNavigation().setRequiredPathLength(40.0F);
+-    }
 +        this.maxDomestication = 30; // Paper - Missing entity API; configure max temper instead of a hardcoded value
-     }
++        // Purpur start - Ridables
++        this.moveControl = new org.purpurmc.purpur.controller.MoveControllerWASD(this) {
++            @Override
++            public void tick() {
++                if (entity.getRider() != null && entity.isControllable() && isSaddled()) {
++                    purpurTick(entity.getRider());
++                } else {
++                    vanillaTick();
++                }
++            }
++        };
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this) {
++            @Override
++            public void tick() {
++                if (entity.getRider() != null && entity.isControllable() && isSaddled()) {
++                    purpurTick(entity.getRider());
++                } else {
++                    vanillaTick();
++                }
++            }
++        };
++        // Purpur end - Ridables
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.llamaRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.llamaRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.llamaControllable;
++    }
++
++    @Override
++    public boolean isSaddled() {
++        return super.isWearingBodyArmor() || this.isTamed();
++    }
++
++    @Nullable
++    @Override
++    public LivingEntity getControllingPassenger() {
++        Entity firstPassenger = this.getFirstPassenger();
++        return !this.isNoAi() && firstPassenger instanceof net.minecraft.world.entity.Mob mob && firstPassenger.canControlVehicle() ? mob : null;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public float generateMaxHealth(RandomSource random) {
++        return (float) generateMaxHealth(this.level().purpurConfig.llamaMaxHealthMin, this.level().purpurConfig.llamaMaxHealthMax);
++    }
++
++    @Override
++    public double generateJumpStrength(RandomSource random) {
++        return generateJumpStrength(this.level().purpurConfig.llamaJumpStrengthMin, this.level().purpurConfig.llamaJumpStrengthMax);
++    }
++
++    @Override
++    public double generateSpeed(RandomSource random) {
++        return generateSpeed(this.level().purpurConfig.llamaMovementSpeedMin, this.level().purpurConfig.llamaMovementSpeedMax);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.llamaBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.llamaTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.llamaAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
  
      public boolean isTraderLlama() {
          return false;
@@ -24,6 +115,36 @@
 +    // CraftBukkit end
      private void setStrength(int p_30841_) {
          this.entityData.set(DATA_STRENGTH_ID, Math.max(1, Math.min(5, p_30841_)));
+     }
+@@ -106,6 +_,7 @@
+         super.addAdditionalSaveData(p_421699_);
+         p_421699_.store("Variant", Llama.Variant.LEGACY_CODEC, this.getVariant());
+         p_421699_.putInt("Strength", this.getStrength());
++        p_421699_.putBoolean("Purpur.ShouldJoinCaravan", shouldJoinCaravan); // Purpur - Llama API
+     }
+ 
+     @Override
+@@ -113,11 +_,13 @@
+         this.setStrength(p_421549_.getIntOr("Strength", 0));
+         super.readAdditionalSaveData(p_421549_);
+         this.setVariant(p_421549_.read("Variant", Llama.Variant.LEGACY_CODEC).orElse(Llama.Variant.DEFAULT));
++        this.shouldJoinCaravan = p_421549_.getBooleanOr("Purpur.ShouldJoinCaravan", true); // Purpur - Llama API
+     }
+ 
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new FloatGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.LlamaHasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new RunAroundLikeCrazyGoal(this, 1.2));
+         this.goalSelector.addGoal(2, new LlamaFollowCaravanGoal(this, 2.1F));
+         this.goalSelector.addGoal(3, new RangedAttackGoal(this, 1.25, 40, 20.0F));
+@@ -128,6 +_,7 @@
+         this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 0.7));
+         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 6.0F));
+         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.LlamaHasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new Llama.LlamaHurtByTargetGoal(this));
+         this.targetSelector.addGoal(2, new Llama.LlamaAttackWolfGoal(this));
      }
 @@ -194,12 +_,12 @@
              f = 10.0F;
@@ -49,3 +170,19 @@
      }
  
      @Override
+@@ -393,6 +_,7 @@
+ 
+     public void leaveCaravan() {
+         if (this.caravanHead != null) {
++            new org.purpurmc.purpur.event.entity.LlamaLeaveCaravanEvent((org.bukkit.entity.Llama) getBukkitEntity()).callEvent(); // Purpur - Llama API
+             this.caravanHead.caravanTail = null;
+         }
+ 
+@@ -400,6 +_,7 @@
+     }
+ 
+     public void joinCaravan(Llama p_30767_) {
++        if (!this.level().purpurConfig.llamaJoinCaravans || !shouldJoinCaravan || !new org.purpurmc.purpur.event.entity.LlamaJoinCaravanEvent((org.bukkit.entity.Llama) getBukkitEntity(), (org.bukkit.entity.Llama) p_30767_.getBukkitEntity()).callEvent()) return; // Purpur - Llama API // Purpur - Config to disable Llama caravans
+         this.caravanHead = p_30767_;
+         this.caravanHead.caravanTail = this;
+     }

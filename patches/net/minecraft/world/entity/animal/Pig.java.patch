@@ -1,5 +1,109 @@
 --- a/net/minecraft/world/entity/animal/Pig.java
 +++ b/net/minecraft/world/entity/animal/Pig.java
+@@ -66,9 +_,56 @@
+         super(p_29462_, p_29463_);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.pigRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.pigRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.pigControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.pigMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.pigScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.pigBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.pigTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.pigAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new FloatGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new PanicGoal(this, 1.25));
+         this.goalSelector.addGoal(3, new BreedGoal(this, 1.0));
+         this.goalSelector.addGoal(4, new TemptGoal(this, 1.2, p_336182_ -> p_336182_.is(Items.CARROT_ON_A_STICK), false));
+@@ -140,23 +_,36 @@
+     }
+ 
+     @Override
+-    public InteractionResult mobInteract(Player p_29489_, InteractionHand p_29490_) {
+-        boolean flag = this.isFood(p_29489_.getItemInHand(p_29490_));
+-        if (!flag && this.isSaddled() && !this.isVehicle() && !p_29489_.isSecondaryUseActive()) {
++    public InteractionResult mobInteract(Player player, InteractionHand hand) {
++        boolean isFood = this.isFood(player.getItemInHand(hand));
++        // Purpur start - Pigs give saddle back
++        if (level().purpurConfig.pigGiveSaddleBack && player.isSecondaryUseActive() && !isFood && isSaddled() && !isVehicle()) {
++            this.setItemSlot(EquipmentSlot.SADDLE, ItemStack.EMPTY);
++            if (!player.getAbilities().instabuild) {
++                ItemStack saddle = new ItemStack(Items.SADDLE);
++                if (!player.getInventory().add(saddle)) {
++                    player.drop(saddle, false);
++                }
++            }
++            return InteractionResult.SUCCESS;
++        }
++        // Purpur end - Pigs give saddle back
++
++        if (!isFood && this.isSaddled() && !this.isVehicle() && !player.isSecondaryUseActive()) {
+             if (!this.level().isClientSide) {
+-                p_29489_.startRiding(this);
++                player.startRiding(this);
+             }
+ 
+             return InteractionResult.SUCCESS;
+         } else {
+-            InteractionResult interactionresult = super.mobInteract(p_29489_, p_29490_);
+-            if (!interactionresult.consumesAction()) {
+-                ItemStack itemstack = p_29489_.getItemInHand(p_29490_);
+-                return (InteractionResult)(this.isEquippableInSlot(itemstack, EquipmentSlot.SADDLE)
+-                    ? itemstack.interactLivingEntity(p_29489_, this, p_29490_)
++            InteractionResult interactionResult = super.mobInteract(player, hand);
++            if (!interactionResult.consumesAction()) {
++                ItemStack itemInHand = player.getItemInHand(hand);
++                return (InteractionResult)(this.isEquippableInSlot(itemInHand, EquipmentSlot.SADDLE)
++                    ? itemInHand.interactLivingEntity(player, this, hand)
+                     : InteractionResult.PASS);
+             } else {
+-                return interactionresult;
++                return interactionResult;
+             }
+         }
+     }
 @@ -208,14 +_,22 @@
  
      @Override

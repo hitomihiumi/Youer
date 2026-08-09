@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/vehicle/AbstractBoat.java
 +++ b/net/minecraft/world/entity/vehicle/AbstractBoat.java
+@@ -398,6 +_,7 @@
+             float f = this.getGroundFriction();
+             if (f > 0.0F) {
+                 this.landFriction = f;
++                if (level().purpurConfig.boatEjectPlayersOnLand) ejectPassengers(); // Purpur - Add option for boats to eject players on land
+                 return AbstractBoat.Status.ON_LAND;
+             } else {
+                 return AbstractBoat.Status.IN_AIR;
 @@ -423,7 +_,7 @@
                  for (int i2 = i1; i2 < j1; i2++) {
                      blockpos$mutableblockpos.set(l1, k1, i2);
@@ -54,3 +62,18 @@
      }
  
      protected int getMaxPassengers() {
+@@ -786,7 +_,13 @@
+ 
+     @Override
+     public final ItemStack getPickResult() {
+-        return new ItemStack(this.dropItem.get());
++        // Purpur start - Apply display names from item forms of entities to entities and vice versa
++        final ItemStack boat = new ItemStack(this.dropItem.get());
++        if (!this.level().purpurConfig.persistentDroppableEntityDisplayNames) {
++            boat.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, null);
++        }
++        return boat;
++        // Purpur end - Apply display names from item forms of entities to entities and vice versa
+     }
+ 
+     public static enum Status {

@@ -19,10 +19,46 @@
 +                playerenderchestcontainer.setActiveChest(enderchestblockentity); // Needs to happen before ChestMenu.threeRows as it is required for opening animations
 +                if (p_53138_ instanceof ServerLevel serverlevel && p_53140_.openMenu(
 +                    new SimpleMenuProvider(
-+                        (p_53124_, p_53125_, p_53126_) -> ChestMenu.threeRows(p_53124_, p_53125_, playerenderchestcontainer), CONTAINER_TITLE
-+                    )
++                        (p_53124_, p_53125_, p_53126_) -> org.purpurmc.purpur.PurpurConfig.enderChestSixRows ? getEnderChestSixRows(p_53124_, p_53125_, p_53140_, playerenderchestcontainer) : ChestMenu.threeRows(p_53124_, p_53125_, playerenderchestcontainer), CONTAINER_TITLE
++                    ) // Purpur - Barrels and enderchests 6 rows
 +                ).isPresent()) {
 +                // Paper end - Fix InventoryOpenEvent cancellation - moved up;
                      p_53140_.awardStat(Stats.OPEN_ENDERCHEST);
                      PiglinAi.angerNearbyPiglins(serverlevel, p_53140_, true);
                  }
+@@ -101,6 +_,35 @@
+             return InteractionResult.SUCCESS;
+         }
+     }
++
++    // Purpur start - Barrels and enderchests 6 rows
++    private ChestMenu getEnderChestSixRows(int syncId, net.minecraft.world.entity.player.Inventory inventory, Player player, PlayerEnderChestContainer playerEnderChestContainer) {
++        if (org.purpurmc.purpur.PurpurConfig.enderChestPermissionRows) {
++            org.bukkit.craftbukkit.entity.CraftHumanEntity bukkitPlayer = player.getBukkitEntity();
++            if (bukkitPlayer.hasPermission("purpur.enderchest.rows.six")) {
++                player.sixRowEnderchestSlotCount = 54;
++                return ChestMenu.sixRows(syncId, inventory, playerEnderChestContainer);
++            } else if (bukkitPlayer.hasPermission("purpur.enderchest.rows.five")) {
++                player.sixRowEnderchestSlotCount = 45;
++                return ChestMenu.fiveRows(syncId, inventory, playerEnderChestContainer);
++            } else if (bukkitPlayer.hasPermission("purpur.enderchest.rows.four")) {
++                player.sixRowEnderchestSlotCount = 36;
++                return ChestMenu.fourRows(syncId, inventory, playerEnderChestContainer);
++            } else if (bukkitPlayer.hasPermission("purpur.enderchest.rows.three")) {
++                player.sixRowEnderchestSlotCount = 27;
++                return ChestMenu.threeRows(syncId, inventory, playerEnderChestContainer);
++            } else if (bukkitPlayer.hasPermission("purpur.enderchest.rows.two")) {
++                player.sixRowEnderchestSlotCount = 18;
++                return ChestMenu.twoRows(syncId, inventory, playerEnderChestContainer);
++            } else if (bukkitPlayer.hasPermission("purpur.enderchest.rows.one")) {
++                player.sixRowEnderchestSlotCount = 9;
++                return ChestMenu.oneRow(syncId, inventory, playerEnderChestContainer);
++            }
++        }
++        player.sixRowEnderchestSlotCount = -1;
++        return ChestMenu.sixRows(syncId, inventory, playerEnderChestContainer);
++    }
++    // Purpur end - Barrels and enderchests 6 rows
+ 
+     @Override
+     public BlockEntity newBlockEntity(BlockPos p_153208_, BlockState p_153209_) {

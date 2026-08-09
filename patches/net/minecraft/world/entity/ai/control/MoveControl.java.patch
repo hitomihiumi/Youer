@@ -1,16 +1,32 @@
 --- a/net/minecraft/world/entity/ai/control/MoveControl.java
 +++ b/net/minecraft/world/entity/ai/control/MoveControl.java
-@@ -25,8 +_,8 @@
+@@ -25,9 +_,23 @@
      protected float strafeRight;
      protected MoveControl.Operation operation = MoveControl.Operation.WAIT;
  
 -    public MoveControl(Mob p_24983_) {
 -        this.mob = p_24983_;
+-    }
 +    public MoveControl(Mob mob) {
 +        this.mob = mob;
-     }
++    }
++
++    // Purpur start - Ridables
++    public void setSpeedModifier(double speed) {
++        this.speedModifier = speed;
++    }
++
++    public void setForward(float forward) {
++        this.strafeForwards = forward;
++    }
++
++    public void setStrafe(float strafe) {
++        this.strafeRight = strafe;
++    }
++    // Purpur end - Ridables
  
      public boolean hasWanted() {
+         return this.operation == MoveControl.Operation.MOVE_TO;
 @@ -37,8 +_,8 @@
          return this.speedModifier;
      }

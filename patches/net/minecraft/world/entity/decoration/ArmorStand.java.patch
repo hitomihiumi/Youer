@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/decoration/ArmorStand.java
 +++ b/net/minecraft/world/entity/decoration/ArmorStand.java
-@@ -87,9 +_,16 @@
+@@ -87,9 +_,19 @@
      private boolean invisible = false;
      public long lastHit;
      public int disabledSlots = 0;
@@ -10,10 +10,13 @@
 +    public boolean canTickSetByAPI = false;
 +    private boolean noTickEquipmentDirty = false;
 +    // Paper end - Allow ArmorStands not to tick
++    public boolean canMovementTick = true; // Purpur - Movement options for armor stands
  
      public ArmorStand(EntityType<? extends ArmorStand> p_31553_, Level p_31554_) {
          super(p_31553_, p_31554_);
 +        if (p_31554_ != null) this.canTick = p_31554_.paperConfig().entities.armorStands.tick; // Paper - Allow ArmorStands not to tick
++        if (p_31554_ != null) this.canMovementTick = p_31554_.purpurConfig.armorstandMovement; // Purpur - Movement options for armor stands
++        this.setShowArms(p_31554_ != null && p_31554_.purpurConfig.armorstandPlaceWithArms); // Purpur - Config to show Armor Stand arms on spawn
      }
  
      public ArmorStand(Level p_31556_, double p_31557_, double p_31558_, double p_31559_) {
@@ -252,7 +255,7 @@
                  }
  
                  return true;
-@@ -357,35 +_,46 @@
+@@ -357,35 +_,47 @@
          }
      }
  
@@ -281,6 +284,7 @@
 -    private void brokenByPlayer(ServerLevel p_348677_, DamageSource p_31647_) {
 +    private org.bukkit.event.entity.EntityDeathEvent brokenByPlayer(ServerLevel p_348677_, DamageSource p_31647_) { // Paper
          ItemStack itemstack = new ItemStack(Items.ARMOR_STAND);
++        if (p_348677_.purpurConfig.persistentDroppableEntityDisplayNames) // Purpur - Apply display names from item forms of entities to entities and vice versa
          itemstack.set(DataComponents.CUSTOM_NAME, this.getCustomName());
 -        Block.popResource(this.level(), this.blockPosition(), itemstack);
 -        this.brokenByAnything(p_348677_, p_31647_);
@@ -318,13 +322,14 @@
      }
  
      private void playBrokenSound() {
-@@ -433,9 +_,40 @@
+@@ -433,9 +_,41 @@
          return this.isSmall();
      }
  
 +    // Paper start - Allow ArmorStands not to tick
 +    @Override
 +    public void tick() {
++        maxUpStep = level().purpurConfig.armorstandStepHeight; // Purpur - Add option to set armorstand step height
 +        if (!this.canTick) {
 +            if (this.noTickEquipmentDirty) {
 +                this.noTickEquipmentDirty = false;
@@ -360,7 +365,7 @@
          this.gameEvent(GameEvent.ENTITY_DIE);
      }
  
-@@ -686,4 +_,13 @@
+@@ -686,4 +_,27 @@
                  .apply(p_421686_, ArmorStand.ArmorStandPose::new)
          );
      }
@@ -373,4 +378,18 @@
 +        }
 +    }
 +    // Paper end
++
++    // Purpur start - Movement options for armor stands
++    @Override
++    public void updateInWaterStateAndDoWaterCurrentPushing() {
++        if (this.level().purpurConfig.armorstandWaterMovement &&
++            (this.level().purpurConfig.armorstandWaterFence || !(level().getBlockState(blockPosition().below()).getBlock() instanceof net.minecraft.world.level.block.FenceBlock)))
++            super.updateInWaterStateAndDoWaterCurrentPushing();
++    }
++
++    @Override
++    public void aiStep() {
++        if (this.canMovementTick && this.canMove) super.aiStep();
++    }
++    // Purpur end - Movement options for armor stands
  }

@@ -1,5 +1,66 @@
 --- a/net/minecraft/world/entity/monster/Strider.java
 +++ b/net/minecraft/world/entity/monster/Strider.java
+@@ -86,12 +_,51 @@
+     public Strider(EntityType<? extends Strider> p_33862_, Level p_33863_) {
+         super(p_33862_, p_33863_);
+         this.blocksBuilding = true;
+-        this.setPathfindingMalus(PathType.WATER, -1.0F);
++        if (isSensitiveToWater()) this.setPathfindingMalus(PathType.WATER, -1.0F); // Purpur - Toggle for water sensitive mob damage
+         this.setPathfindingMalus(PathType.LAVA, 0.0F);
+         this.setPathfindingMalus(PathType.DANGER_FIRE, 0.0F);
+         this.setPathfindingMalus(PathType.DAMAGE_FIRE, 0.0F);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.striderRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.striderRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.striderControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.striderMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.striderScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.striderBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.striderAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public static boolean checkStriderSpawnRules(
+         EntityType<Strider> p_219129_, LevelAccessor p_219130_, EntitySpawnReason p_365524_, BlockPos p_219132_, RandomSource p_219133_
+     ) {
+@@ -138,6 +_,7 @@
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(1, new PanicGoal(this, 1.65));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(2, new BreedGoal(this, 1.0));
+         this.temptGoal = new TemptGoal(this, 1.4, p_335880_ -> p_335880_.is(ItemTags.STRIDER_TEMPT_ITEMS), false);
+         this.goalSelector.addGoal(3, this.temptGoal);
 @@ -289,13 +_,20 @@
          }
  
@@ -26,3 +87,69 @@
          }
  
          super.tick();
+@@ -349,7 +_,7 @@
+ 
+     @Override
+     public boolean isSensitiveToWater() {
+-        return true;
++        return this.level().purpurConfig.striderTakeDamageFromWater; // Purpur - Toggle for water sensitive mob damage
+     }
+ 
+     @Override
+@@ -382,23 +_,36 @@
+     }
+ 
+     @Override
+-    public InteractionResult mobInteract(Player p_33910_, InteractionHand p_33911_) {
+-        boolean flag = this.isFood(p_33910_.getItemInHand(p_33911_));
+-        if (!flag && this.isSaddled() && !this.isVehicle() && !p_33910_.isSecondaryUseActive()) {
++    public InteractionResult mobInteract(Player player, InteractionHand hand) {
++        boolean isFood = this.isFood(player.getItemInHand(hand));
++        // Purpur start
++        if (level().purpurConfig.striderGiveSaddleBack && player.isSecondaryUseActive() && !isFood && isSaddled() && !isVehicle()) {
++            this.setItemSlot(EquipmentSlot.SADDLE, ItemStack.EMPTY);
++            if (!player.getAbilities().instabuild) {
++                ItemStack saddle = new ItemStack(Items.SADDLE);
++                if (!player.getInventory().add(saddle)) {
++                    player.drop(saddle, false);
++                }
++            }
++            return InteractionResult.SUCCESS;
++        }
++        // Purpur end
++
++        if (!isFood && this.isSaddled() && !this.isVehicle() && !player.isSecondaryUseActive()) {
+             if (!this.level().isClientSide) {
+-                p_33910_.startRiding(this);
++                player.startRiding(this);
+             }
+ 
+             return InteractionResult.SUCCESS;
+         } else {
+-            InteractionResult interactionresult = super.mobInteract(p_33910_, p_33911_);
+-            if (!interactionresult.consumesAction()) {
+-                ItemStack itemstack = p_33910_.getItemInHand(p_33911_);
+-                return (InteractionResult)(this.isEquippableInSlot(itemstack, EquipmentSlot.SADDLE)
+-                    ? itemstack.interactLivingEntity(p_33910_, this, p_33911_)
+-                    : InteractionResult.PASS);
++            InteractionResult interactionResult = super.mobInteract(player, hand);
++            if (!interactionResult.consumesAction()) {
++                ItemStack itemInHand = player.getItemInHand(hand);
++                return (InteractionResult)(this.isEquippableInSlot(itemInHand, EquipmentSlot.SADDLE)
++                    ? itemInHand.interactLivingEntity(player, this, hand)
++                    : tryRide(player, hand)); // Purpur - Ridables
+             } else {
+-                if (flag && !this.isSilent()) {
++                if (isFood && !this.isSilent()) {
+                     this.level()
+                         .playSound(
+                             null,
+@@ -412,7 +_,7 @@
+                         );
+                 }
+ 
+-                return interactionresult;
++                return interactionResult;
+             }
+         }
+     }

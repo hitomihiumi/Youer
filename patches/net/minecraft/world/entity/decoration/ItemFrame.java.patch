@@ -88,6 +88,50 @@
          }
      }
  
+@@ -207,26 +_,30 @@
+         return SoundEvents.ITEM_FRAME_PLACE;
+     }
+ 
+-    private void dropItem(ServerLevel p_376284_, @Nullable Entity p_31779_, boolean p_376524_) {
++    private void dropItem(ServerLevel level, @Nullable Entity entity, boolean dropItem) {
+         if (!this.fixed) {
+-            ItemStack itemstack = this.getItem();
++            ItemStack item = this.getItem();
+             this.setItem(ItemStack.EMPTY);
+-            if (!p_376284_.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+-                if (p_31779_ == null) {
+-                    this.removeFramedMap(itemstack);
++            if (!level.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                if (entity == null) {
++                    this.removeFramedMap(item);
+                 }
+-            } else if (p_31779_ instanceof Player player && player.hasInfiniteMaterials()) {
+-                this.removeFramedMap(itemstack);
++            } else if (entity instanceof Player player && player.hasInfiniteMaterials()) {
++                this.removeFramedMap(item);
+             } else {
+-                if (p_376524_) {
+-                    this.spawnAtLocation(p_376284_, this.getFrameItemStack());
++                if (dropItem) {
++                    // Purpur start - Apply display names from item forms of entities to entities and vice versa
++                    final ItemStack itemFrame = this.getFrameItemStack();
++                    if (!level.purpurConfig.persistentDroppableEntityDisplayNames) itemFrame.set(DataComponents.CUSTOM_NAME, null);
++                    this.spawnAtLocation(level, itemFrame);
++                    // Purpur end - Apply display names from item forms of entities to entities and vice versa
+                 }
+ 
+-                if (!itemstack.isEmpty()) {
+-                    itemstack = itemstack.copy();
+-                    this.removeFramedMap(itemstack);
++                if (!item.isEmpty()) {
++                    item = item.copy();
++                    this.removeFramedMap(item);
+                     if (this.random.nextFloat() < this.dropChance) {
+-                        this.spawnAtLocation(p_376284_, itemstack);
++                        this.spawnAtLocation(level, item);
+                     }
+                 }
+             }
 @@ -236,7 +_,7 @@
      private void removeFramedMap(ItemStack p_31811_) {
          MapId mapid = this.getFramedMapId(p_31811_);

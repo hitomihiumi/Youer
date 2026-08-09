@@ -1,5 +1,115 @@
 --- a/net/minecraft/world/entity/animal/Fox.java
 +++ b/net/minecraft/world/entity/animal/Fox.java
+@@ -142,6 +_,73 @@
+         this.getNavigation().setRequiredPathLength(32.0F);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.foxRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.foxRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.foxControllable;
++    }
++
++    @Override
++    public float getJumpPower() {
++        return getRider() != null && this.isControllable() ? 0.5F : super.getJumpPower();
++    }
++
++    @Override
++    public void onMount(Player rider) {
++        super.onMount(rider);
++        setCanPickUpLoot(false);
++        clearStates();
++        setIsPouncing(false);
++        spitOutItem(getItemBySlot(EquipmentSlot.MAINHAND));
++        setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
++    }
++
++    @Override
++    public void onDismount(Player rider) {
++        super.onDismount(rider);
++        setCanPickUpLoot(true);
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.foxMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.foxScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.foxBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.foxTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.foxAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder p_326335_) {
+         super.defineSynchedData(p_326335_);
+@@ -161,6 +_,7 @@
+             this, AbstractFish.class, 20, false, false, (p_28600_, p_376887_) -> p_28600_ instanceof AbstractSchoolingFish
+         );
+         this.goalSelector.addGoal(0, new Fox.FoxFloatGoal());
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(0, new ClimbOnTopOfPowderSnowGoal(this, this.level()));
+         this.goalSelector.addGoal(1, new Fox.FaceplantGoal());
+         this.goalSelector.addGoal(2, new Fox.FoxPanicGoal(2.2));
+@@ -187,6 +_,7 @@
+         this.goalSelector.addGoal(11, new Fox.FoxSearchForItemsGoal());
+         this.goalSelector.addGoal(12, new Fox.FoxLookAtPlayerGoal(this, Player.class, 24.0F));
+         this.goalSelector.addGoal(13, new Fox.PerchAndSearchGoal());
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector
+             .addGoal(
+                 3,
+@@ -348,6 +_,11 @@
+     }
+ 
+     private void setTargetGoals() {
++        // Purpur start - Tulips change fox type - do not add duplicate goals
++        this.targetSelector.removeGoal(this.landTargetGoal);
++        this.targetSelector.removeGoal(this.turtleEggTargetGoal);
++        this.targetSelector.removeGoal(this.fishTargetGoal);
++        // Purpur end - Tulips change fox type
+         if (this.getVariant() == Fox.Variant.RED) {
+             this.targetSelector.addGoal(4, this.landTargetGoal);
+             this.targetSelector.addGoal(4, this.turtleEggTargetGoal);
+@@ -375,6 +_,7 @@
+ 
+     private void setVariant(Fox.Variant p_364650_) {
+         this.entityData.set(DATA_TYPE_ID, p_364650_.getId());
++        this.setTargetGoals(); // Purpur - Tulips change fox type - fix API bug not updating pathfinders on type change
+     }
+ 
+     @Nullable
 @@ -432,7 +_,7 @@
          p_422367_.read("Trusted", TRUSTED_LIST_CODEC).orElse(List.of()).forEach(this::addTrustedEntity);
          this.setSleeping(p_422367_.getBooleanOr("Sleeping", false));
@@ -73,16 +183,47 @@
      }
  
      void wakeUp() {
-@@ -691,15 +_,25 @@
+@@ -691,15 +_,55 @@
          return this.getTrustedEntities().anyMatch(p_393132_ -> p_393132_.matches(p_394151_));
      }
  
-+    // Paper start - handle the bitten item separately like vanilla
-     @Override
+-    @Override
 -    protected void dropAllDeathLoot(ServerLevel p_348640_, DamageSource p_28536_) {
 -        ItemStack itemstack = this.getItemBySlot(EquipmentSlot.MAINHAND);
 -        if (!itemstack.isEmpty()) {
 -            this.spawnAtLocation(p_348640_, itemstack);
++    // Paper start - handle the bitten item separately like vanilla
++    @Override
++    protected boolean shouldSkipLoot(EquipmentSlot slot) {
++        return slot == EquipmentSlot.MAINHAND;
++    }
++    // Paper end
++
++    // Purpur start - Tulips change fox type
++    @Override
++    public net.minecraft.world.InteractionResult mobInteract(Player player, net.minecraft.world.InteractionHand hand) {
++        if (level().purpurConfig.foxTypeChangesWithTulips) {
++            ItemStack itemstack = player.getItemInHand(hand);
++            if (getVariant() == Variant.RED && itemstack.getItem() == Items.WHITE_TULIP) {
++                setVariant(Variant.SNOW);
++                if (!player.getAbilities().instabuild) {
++                    itemstack.shrink(1);
++                }
++                return net.minecraft.world.InteractionResult.SUCCESS;
++            } else if (getVariant() == Variant.SNOW && itemstack.getItem() == Items.ORANGE_TULIP) {
++                setVariant(Variant.RED);
++                if (!player.getAbilities().instabuild) {
++                    itemstack.shrink(1);
++                }
++                return net.minecraft.world.InteractionResult.SUCCESS;
++            }
++        }
++        return super.mobInteract(player, hand);
++    }
++    // Purpur end - Tulips change fox type
++
++    @Override
++    // Paper start - Cancellable death event
 +    protected org.bukkit.event.entity.EntityDeathEvent dropAllDeathLoot(ServerLevel level, DamageSource damageSource) {
 +        ItemStack itemBySlot = this.getItemBySlot(EquipmentSlot.MAINHAND);
 +        boolean releaseMouth = false;
@@ -105,37 +246,19 @@
      }
  
      public static boolean isPathClear(Fox p_28472_, LivingEntity p_28473_) {
-@@ -856,39 +_,61 @@
+@@ -856,39 +_,63 @@
  
          @Override
          protected void breed() {
 -            ServerLevel serverlevel = this.level;
 -            Fox fox = (Fox)this.animal.getBreedOffspring(serverlevel, this.partner);
-+            ServerLevel serverLevel = this.level;
-+            Fox fox = (Fox)this.animal.getBreedOffspring(serverLevel, this.partner);
-+            final net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent event = new net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent(animal, partner, fox);
-+            final boolean cancelled = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled();
-+            fox = (Fox) event.getChild();
-+            if (cancelled) {
-+                //Reset the "inLove" state for the animals
-+                this.animal.setAge(6000);
-+                this.partner.setAge(6000);
-+                this.animal.resetLove();
-+                this.partner.resetLove();
-+                return;
-+            }
-             if (fox != null) {
+-            if (fox != null) {
 -                ServerPlayer serverplayer = this.animal.getLoveCause();
 -                ServerPlayer serverplayer1 = this.partner.getLoveCause();
 -                ServerPlayer serverplayer2 = serverplayer;
 -                if (serverplayer != null) {
 -                    fox.addTrustedEntity(serverplayer);
-+                ServerPlayer loveCause = this.animal.getLoveCause();
-+                ServerPlayer loveCause1 = this.partner.getLoveCause();
-+                ServerPlayer serverPlayer = loveCause;
-+                if (loveCause != null) {
-+                    fox.addTrustedEntity(loveCause);
-                 } else {
+-                } else {
 -                    serverplayer2 = serverplayer1;
 -                }
 -
@@ -148,10 +271,26 @@
 -                    CriteriaTriggers.BRED_ANIMALS.trigger(serverplayer2, this.animal, this.partner, fox);
 -                }
 -
--                this.animal.setAge(6000);
--                this.partner.setAge(6000);
--                this.animal.resetLove();
--                this.partner.resetLove();
++            ServerLevel serverLevel = this.level;
++            Fox fox = (Fox)this.animal.getBreedOffspring(serverLevel, this.partner);
++            final net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent event = new net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent(animal, partner, fox);
++            final boolean cancelled = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled();
++            fox = (Fox) event.getChild();
++            if (cancelled) {
++                //Reset the "inLove" state for the animals
+                 this.animal.setAge(6000);
+                 this.partner.setAge(6000);
+                 this.animal.resetLove();
+                 this.partner.resetLove();
++                return;
++            }
++            if (fox != null) {
++                ServerPlayer loveCause = this.animal.getLoveCause();
++                ServerPlayer loveCause1 = this.partner.getLoveCause();
++                ServerPlayer serverPlayer = loveCause;
++                if (loveCause != null) {
++                    fox.addTrustedEntity(loveCause);
++                } else {
 +                    serverPlayer = loveCause1;
 +                }
 +
@@ -178,8 +317,10 @@
 +                    CriteriaTriggers.BRED_ANIMALS.trigger(serverPlayer, this.animal, this.partner, fox);
 +                }
 +
-+                this.animal.setAge(6000);
-+                this.partner.setAge(6000);
++                // Purpur start - Make entity breeding times configurable
++                this.animal.setAge(this.animal.getPurpurBreedTime());
++                this.partner.setAge(this.partner.getPurpurBreedTime());
++                // Purpur end - Make entity breeding times configurable
 +                this.animal.resetLove();
 +                this.partner.resetLove();
 +                serverLevel.addFreshEntityWithPassengers(fox, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - added SpawnReason
@@ -193,12 +334,13 @@
                          );
                  }
              }
-@@ -935,7 +_,7 @@
+@@ -935,7 +_,8 @@
          }
  
          protected void onReachedTarget() {
 -            if (getServerLevel(Fox.this.level()).getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+            if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(Fox.this.level()), Fox.this)) {
++            Boolean mobGriefingOverride = getServerLevel(Fox.this.level()).purpurConfig.foxMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++            if (mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(Fox.this.level()), Fox.this)) {
                  BlockState blockstate = Fox.this.level().getBlockState(this.blockPos);
                  if (blockstate.is(Blocks.SWEET_BERRY_BUSH)) {
                      this.pickSweetBerries(blockstate);
@@ -219,3 +361,41 @@
          }
      }
  
+@@ -1048,15 +_,15 @@
+         }
+     }
+ 
+-    public class FoxLookControl extends LookControl {
++    public class FoxLookControl extends org.purpurmc.purpur.controller.LookControllerWASD { // Purpur - Ridables
+         public FoxLookControl() {
+             super(Fox.this);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (!Fox.this.isSleeping()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+ 
+@@ -1092,15 +_,15 @@
+         }
+     }
+ 
+-    class FoxMoveControl extends MoveControl {
++    class FoxMoveControl extends org.purpurmc.purpur.controller.MoveControllerWASD { // Purpur - Ridables
+         public FoxMoveControl() {
+             super(Fox.this);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (Fox.this.canMove()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+     }

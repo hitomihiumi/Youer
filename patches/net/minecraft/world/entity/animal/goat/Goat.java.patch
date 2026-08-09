@@ -1,5 +1,58 @@
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
+@@ -115,6 +_,44 @@
+             .orElseGet(() -> new ItemStack(Items.GOAT_HORN));
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.goatRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.goatRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.goatControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.goatBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.goatTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.goatAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected Brain.Provider<Goat> brainProvider() {
+         return Brain.provider(MEMORY_TYPES, SENSOR_TYPES);
+@@ -191,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel p_376813_) {
+         ProfilerFiller profilerfiller = Profiler.get();
+         profilerfiller.push("goatBrain");
++        if ((getRider() == null || !this.isControllable())) // Purpur - only use brain if no rider
+         this.getBrain().tick(p_376813_, this);
+         profilerfiller.pop();
+         profilerfiller.push("goatActivityUpdate");
 @@ -231,20 +_,29 @@
      }
  
@@ -49,13 +102,14 @@
          }
      }
  
-@@ -384,4 +_,15 @@
+@@ -384,4 +_,16 @@
      ) {
          return p_218754_.getBlockState(p_218756_.below()).is(BlockTags.GOATS_SPAWNABLE_ON) && isBrightEnoughToSpawn(p_218754_, p_218756_);
      }
 +
 +    // Paper start - Goat ram API
 +    public void ram(net.minecraft.world.entity.LivingEntity entity) {
++        if(!new org.purpurmc.purpur.event.entity.GoatRamEntityEvent((org.bukkit.entity.Goat) getBukkitEntity(), entity.getBukkitLivingEntity()).callEvent()) return; // Purpur - Added goat ram event
 +        Brain<Goat> brain = this.getBrain();
 +        brain.setMemory(MemoryModuleType.RAM_TARGET, entity.position());
 +        brain.eraseMemory(MemoryModuleType.RAM_COOLDOWN_TICKS);

@@ -62,7 +62,12 @@
                      }
                  }
              }
-@@ -138,9 +_,9 @@
+@@ -134,13 +_,13 @@
+ 
+     private boolean shouldUpdateHatchLevel(Level p_57766_) {
+         float f = p_57766_.getTimeOfDay(1.0F);
+-        return f < 0.69 && f > 0.65 ? true : p_57766_.random.nextInt(500) == 0;
++        return f < 0.69 && f > 0.65 || p_57766_.random.nextInt(p_57766_.purpurConfig.turtleEggsRandomTickCrackChance) == 0; // Purpur - Turtle eggs random tick crack chance
      }
  
      @Override
@@ -75,12 +80,44 @@
      }
  
      @Override
-@@ -171,7 +_,7 @@
-         if (p_57769_ instanceof Turtle || p_57769_ instanceof Bat) {
-             return false;
-         } else {
+@@ -167,11 +_,34 @@
+         p_57799_.add(HATCH, EGGS);
+     }
+ 
+-    private boolean canDestroyEgg(ServerLevel p_376510_, Entity p_57769_) {
+-        if (p_57769_ instanceof Turtle || p_57769_ instanceof Bat) {
+-            return false;
+-        } else {
 -            return !(p_57769_ instanceof LivingEntity) ? false : p_57769_ instanceof Player || p_376510_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
-+            return !(p_57769_ instanceof LivingEntity) ? false : p_57769_ instanceof Player || net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_376510_, p_57769_);
-         }
+-        }
++    private boolean canDestroyEgg(ServerLevel level, Entity entity) {
++        // Purpur start - Add turtle egg block options
++        if (entity instanceof Turtle || entity instanceof Bat) {
++            return false;
++        }
++        if (level.purpurConfig.turtleEggsBreakFromExpOrbs && entity instanceof net.minecraft.world.entity.ExperienceOrb) {
++            return true;
++        }
++        if (level.purpurConfig.turtleEggsBreakFromItems && entity instanceof net.minecraft.world.entity.item.ItemEntity) {
++            return true;
++        }
++        if (level.purpurConfig.turtleEggsBreakFromMinecarts && entity instanceof net.minecraft.world.entity.vehicle.AbstractMinecart) {
++            return true;
++        }
++        if (!(entity instanceof LivingEntity)) {
++            return false;
++        }
++        // Purpur start - Option to disable turtle egg trampling with feather falling
++        if (level.purpurConfig.turtleEggsTramplingFeatherFalling) {
++            net.minecraft.world.item.ItemStack bootsItem = ((net.minecraft.world.entity.LivingEntity) entity).getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET);
++
++            return bootsItem != net.minecraft.world.item.ItemStack.EMPTY || net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.FEATHER_FALLING, bootsItem) < (int) entity.fallDistance;
++        }
++        // Purpur end - Option to disable turtle egg trampling with feather falling
++        if (entity instanceof Player) return true;
++
++        Boolean mobGriefingOverride = level.purpurConfig.turtleEggsMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++        return mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, entity);
++        // Purpur end - Add turtle egg block options
      }
  }

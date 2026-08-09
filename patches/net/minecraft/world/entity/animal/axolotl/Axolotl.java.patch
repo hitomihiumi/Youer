@@ -1,5 +1,58 @@
 --- a/net/minecraft/world/entity/animal/axolotl/Axolotl.java
 +++ b/net/minecraft/world/entity/animal/axolotl/Axolotl.java
+@@ -122,6 +_,52 @@
+         this.lookControl = new Axolotl.AxolotlLookControl(this, 20);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.axolotlRidable;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.axolotlControllable;
++    }
++
++    @Override
++    protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.axolotlMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.axolotlScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.axolotlBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.axolotlTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.axolotlAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     public float getWalkTargetValue(BlockPos p_149140_, LevelReader p_149141_) {
+         return 0.0F;
 @@ -235,7 +_,7 @@
  
      @Override
@@ -9,6 +62,14 @@
      }
  
      public Axolotl.Variant getVariant() {
+@@ -333,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel p_376845_) {
+         ProfilerFiller profilerfiller = Profiler.get();
+         profilerfiller.push("axolotlBrain");
++        if ((getRider() == null || !this.isControllable())) // Purpur - only use brain if no rider
+         this.getBrain().tick(p_376845_, this);
+         profilerfiller.pop();
+         profilerfiller.push("axolotlActivityUpdate");
 @@ -453,10 +_,10 @@
          if (mobeffectinstance == null || mobeffectinstance.endsWithin(2399)) {
              int i = mobeffectinstance != null ? mobeffectinstance.getDuration() : 0;
@@ -22,17 +83,51 @@
      }
  
      @Override
-@@ -548,6 +_,13 @@
-     ) {
+@@ -549,6 +_,13 @@
          return p_218439_.getBlockState(p_218441_.below()).is(BlockTags.AXOLOTLS_SPAWNABLE_ON);
      }
-+
+ 
 +    // CraftBukkit start - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
 +    @Override
 +    public int getDefaultMaxAirSupply() {
 +        return AXOLOTL_TOTAL_AIR_SUPPLY;
 +    }
 +    // CraftBukkit end
- 
++
      public static enum AnimationState {
          PLAYING_DEAD,
+         IN_WATER,
+@@ -575,23 +_,31 @@
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (!Axolotl.this.isPlayingDead()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+     }
+ 
+     static class AxolotlMoveControl extends SmoothSwimmingMoveControl {
+         private final Axolotl axolotl;
++        private final org.purpurmc.purpur.controller.WaterMoveControllerWASD waterController; // Purpur - Ridables
+ 
+         public AxolotlMoveControl(Axolotl p_149215_) {
+             super(p_149215_, 85, 10, 0.1F, 0.5F, false);
+             this.axolotl = p_149215_;
++            waterController = new org.purpurmc.purpur.controller.WaterMoveControllerWASD(p_149215_, 0.5D); // Purpur - Ridables
+         }
+ 
+         @Override
+         public void tick() {
++            // Purpur start - Ridables
++            if (axolotl.getRider() != null && axolotl.isControllable()) {
++                waterController.purpurTick(axolotl.getRider());
++                return;
++            }
++            // Purpur end - Ridables
+             if (!this.axolotl.isPlayingDead()) {
+                 super.tick();
+             }

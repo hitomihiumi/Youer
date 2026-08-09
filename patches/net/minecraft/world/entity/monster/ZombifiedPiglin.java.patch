@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/ZombifiedPiglin.java
 +++ b/net/minecraft/world/entity/monster/ZombifiedPiglin.java
-@@ -57,6 +_,7 @@
+@@ -57,12 +_,69 @@
      private static final int ALERT_RANGE_Y = 10;
      private static final UniformInt ALERT_INTERVAL = TimeUtil.rangeOfSeconds(4, 6);
      private int ticksUntilNextAlert;
@@ -8,6 +8,68 @@
  
      public ZombifiedPiglin(EntityType<? extends ZombifiedPiglin> p_34427_, Level p_34428_) {
          super(p_34427_, p_34428_);
+         this.setPathfindingMalus(PathType.LAVA, 8.0F);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.zombifiedPiglinRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.zombifiedPiglinRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.zombifiedPiglinControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.zombifiedPiglinMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.zombifiedPiglinScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Configurable jockey options
++    @Override
++    public boolean jockeyOnlyBaby() {
++        return level().purpurConfig.zombifiedPiglinJockeyOnlyBaby;
++    }
++
++    @Override
++    public double jockeyChance() {
++        return level().purpurConfig.zombifiedPiglinJockeyChance;
++    }
++
++    @Override
++    public boolean jockeyTryExistingChickens() {
++        return level().purpurConfig.zombifiedPiglinJockeyTryExistingChickens;
++    }
++    // Purpur end - Configurable jockey options
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.zombifiedPiglinTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.zombifiedPiglinAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     public void setPersistentAngerTarget(@Nullable UUID p_34444_) {
+         this.persistentAngerTarget = p_34444_;
 @@ -72,7 +_,7 @@
      protected void addBehaviourGoals() {
          this.goalSelector.addGoal(2, new ZombieAttackGoal(this, 1.0, false));
@@ -17,6 +79,19 @@
          this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
          this.targetSelector.addGoal(3, new ResetUniversalAngerTargetGoal<>(this, true));
      }
+@@ -112,6 +_,12 @@
+             this.maybeAlertOthers();
+         }
+ 
++        // Purpur start - Toggle for Zombified Piglin death always counting as player kill when angry
++        if (this.isAngry() && this.level().purpurConfig.zombifiedPiglinCountAsPlayerKillWhenAngry) {
++            this.lastHurtByPlayerMemoryTime = this.tickCount;
++        }
++        // Purpur end - Toggle for Zombified Piglin death always counting as player kill when angry
++
+         super.customServerAiStep(p_376805_);
+     }
+ 
 @@ -145,7 +_,7 @@
              .filter(p_34463_ -> p_34463_ != this)
              .filter(p_412926_ -> p_412926_.getTarget() == null)
@@ -26,7 +101,7 @@
      }
  
      private void playAngerSound() {
-@@ -153,18 +_,27 @@
+@@ -153,18 +_,33 @@
      }
  
      @Override
@@ -39,6 +114,12 @@
          }
  
 -        super.setTarget(p_34478_);
++        // Purpur start - Toggle for Zombified Piglin death always counting as player kill when angry
++        if (livingEntity instanceof Player player && this.level().purpurConfig.zombifiedPiglinCountAsPlayerKillWhenAngry) {
++            this.setLastHurtByPlayer(player, this.tickCount);
++        }
++        // Purpur end - Toggle for Zombified Piglin death always counting as player kill when angry
++
 +        return super.setTarget(livingEntity, reason); // CraftBukkit
      }
  
@@ -58,3 +139,12 @@
      }
  
      public static boolean checkZombifiedPiglinSpawnRules(
+@@ -227,7 +_,7 @@
+ 
+     @Override
+     protected void randomizeReinforcementsChance() {
+-        this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).setBaseValue(0.0);
++        this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).setBaseValue(this.random.nextDouble() * this.level().purpurConfig.zombifiedPiglinSpawnReinforcements); // Purpur - Configurable entity base attributes
+     }
+ 
+     @Nullable

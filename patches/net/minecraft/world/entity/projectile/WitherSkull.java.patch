@@ -23,7 +23,7 @@
              }
  
              if (flag && entity instanceof LivingEntity livingentity1) {
-@@ -83,18 +_,23 @@
+@@ -83,20 +_,40 @@
                  }
  
                  if (i > 0) {
@@ -43,7 +43,7 @@
 -            this.level().explode(this, this.getX(), this.getY(), this.getZ(), 1.0F, false, Level.ExplosionInteraction.MOB);
 -            this.discard();
 +            // CraftBukkit start
-+            org.bukkit.event.entity.ExplosionPrimeEvent event = new org.bukkit.event.entity.ExplosionPrimeEvent(this.getBukkitEntity(), 1.0F, false);
++            org.bukkit.event.entity.ExplosionPrimeEvent event = new org.bukkit.event.entity.ExplosionPrimeEvent(this.getBukkitEntity(), this.level().purpurConfig.witherExplosionRadius, false); // Purpur - Config for wither explosion radius
 +            if (event.callEvent()) {
 +                this.level().explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB);
 +            }
@@ -51,4 +51,21 @@
 +            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
          }
      }
++
++    // Purpur start - Add canSaveToDisk to Entity
++    @Override
++    public boolean canSaveToDisk() {
++        return false;
++    }
++    // Purpur end - Add canSaveToDisk to Entity
++
++    // Purpur start - Ridables
++    @Override
++    public boolean canHitEntity(Entity target) {
++        // do not hit rider
++        return target != this.getRider() && super.canHitEntity(target);
++    }
++    // Purpur end - Ridables
  
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder p_325939_) {

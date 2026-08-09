@@ -1,7 +1,14 @@
 --- a/net/minecraft/world/item/MinecartItem.java
 +++ b/net/minecraft/world/item/MinecartItem.java
-@@ -34,7 +_,7 @@
-         } else {
+@@ -30,11 +_,12 @@
+         BlockPos blockpos = p_42943_.getClickedPos();
+         BlockState blockstate = level.getBlockState(blockpos);
+         if (!blockstate.is(BlockTags.RAILS)) {
+-            return InteractionResult.FAIL;
+-        } else {
++            if (!level.purpurConfig.minecartPlaceAnywhere) return InteractionResult.FAIL; // Purpur - Minecart settings and WASD controls
++            if (blockstate.isSolid()) blockpos = blockpos.relative(p_42943_.getClickedFace());
++        } // else { // Purpur - Minecart settings and WASD controls
              ItemStack itemstack = p_42943_.getItemInHand();
              RailShape railshape = blockstate.getBlock() instanceof BaseRailBlock
 -                ? blockstate.getValue(((BaseRailBlock)blockstate.getBlock()).getShapeProperty())
@@ -24,3 +31,11 @@
                      serverlevel.gameEvent(
                          GameEvent.ENTITY_PLACE, blockpos, GameEvent.Context.of(p_42943_.getPlayer(), serverlevel.getBlockState(blockpos.below()))
                      );
+@@ -66,6 +_,6 @@
+                 itemstack.shrink(1);
+                 return InteractionResult.SUCCESS;
+             }
+-        }
++        // } // Purpur - Minecart settings and WASD controls
+     }
+ }

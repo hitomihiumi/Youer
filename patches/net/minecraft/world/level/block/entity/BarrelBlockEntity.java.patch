@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/level/block/entity/BarrelBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BarrelBlockEntity.java
-@@ -21,6 +_,41 @@
+@@ -21,7 +_,52 @@
  import net.minecraft.world.level.storage.ValueOutput;
  
  public class BarrelBlockEntity extends RandomizableContainerBlockEntity {
+-    private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
 +    // CraftBukkit start - add fields and methods
 +    public java.util.List<org.bukkit.entity.HumanEntity> transaction = new java.util.ArrayList<>();
 +    private int maxStack = MAX_STACK;
@@ -39,6 +40,53 @@
 +    }
 +    // CraftBukkit end
 +
-     private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
++    // Purpur start - Barrels and enderchests 6 rows
++    private NonNullList<ItemStack> items = NonNullList.withSize(switch (org.purpurmc.purpur.PurpurConfig.barrelRows) {
++        case 6 -> 54;
++        case 5 -> 45;
++        case 4 -> 36;
++        case 2 -> 18;
++        case 1 -> 9;
++        default -> 27;
++    }, ItemStack.EMPTY);
++    // Purpur end - Barrels and enderchests 6 rows
++
      public final ContainerOpenersCounter openersCounter = new ContainerOpenersCounter() {
          @Override
+         protected void onOpen(Level p_155062_, BlockPos p_155063_, BlockState p_155064_) {
+@@ -73,7 +_,16 @@
+ 
+     @Override
+     public int getContainerSize() {
+-        return 27;
++        // Purpur start - Barrels and enderchests 6 rows
++        return switch (org.purpurmc.purpur.PurpurConfig.barrelRows) {
++            case 6 -> 54;
++            case 5 -> 45;
++            case 4 -> 36;
++            case 2 -> 18;
++            case 1 -> 9;
++            default -> 27;
++        };
++        // Purpur end - Barrels and enderchests 6 rows
+     }
+ 
+     @Override
+@@ -93,7 +_,16 @@
+ 
+     @Override
+     protected AbstractContainerMenu createMenu(int p_58598_, Inventory p_58599_) {
+-        return ChestMenu.threeRows(p_58598_, p_58599_, this);
++        // Purpur start - Barrels and enderchests 6 rows
++        return switch (org.purpurmc.purpur.PurpurConfig.barrelRows) {
++            case 6 -> ChestMenu.sixRows(p_58598_, p_58599_, this);
++            case 5 -> ChestMenu.fiveRows(p_58598_, p_58599_, this);
++            case 4 -> ChestMenu.fourRows(p_58598_, p_58599_, this);
++            case 2 -> ChestMenu.twoRows(p_58598_, p_58599_, this);
++            case 1 -> ChestMenu.oneRow(p_58598_, p_58599_, this);
++            default -> ChestMenu.threeRows(p_58598_, p_58599_, this);
++        };
++        // Purpur end - Barrels and enderchests 6 rows
+     }
+ 
+     @Override

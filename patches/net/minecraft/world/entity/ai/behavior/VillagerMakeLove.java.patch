@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/ai/behavior/VillagerMakeLove.java
 +++ b/net/minecraft/world/entity/ai/behavior/VillagerMakeLove.java
-@@ -107,11 +_,19 @@
+@@ -107,11 +_,21 @@
          if (villager == null) {
              return Optional.empty();
          } else {
@@ -14,8 +14,10 @@
 +            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(villager, p_24657_, p_24658_, null, null, 0).isCancelled()) {
 +                return Optional.empty();
 +            }
-+            p_24657_.setAge(6000);
-+            p_24658_.setAge(6000);
++            // Purpur start - Make entity breeding times configurable
++            p_24657_.setAge(p_24656_.purpurConfig.villagerBreedingTicks);
++            p_24658_.setAge(p_24656_.purpurConfig.villagerBreedingTicks);
++            // Purpur end - Make entity breeding times configurable
 +            p_24656_.addFreshEntityWithPassengers(villager, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);
 +            // CraftBukkit end - call EntityBreedEvent
 +            // Neo: If villager is blocked from spawning (e.g., FinalizeSpawnEvent), then breed should be unsuccessful

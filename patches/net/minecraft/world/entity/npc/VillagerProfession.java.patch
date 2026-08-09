@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/npc/VillagerProfession.java
++++ b/net/minecraft/world/entity/npc/VillagerProfession.java
+@@ -103,7 +_,7 @@
+         register(p_398012_, ARMORER, PoiTypes.ARMORER, SoundEvents.VILLAGER_WORK_ARMORER);
+         register(p_398012_, BUTCHER, PoiTypes.BUTCHER, SoundEvents.VILLAGER_WORK_BUTCHER);
+         register(p_398012_, CARTOGRAPHER, PoiTypes.CARTOGRAPHER, SoundEvents.VILLAGER_WORK_CARTOGRAPHER);
+-        register(p_398012_, CLERIC, PoiTypes.CLERIC, SoundEvents.VILLAGER_WORK_CLERIC);
++        register(p_398012_, CLERIC, PoiTypes.CLERIC, ImmutableSet.of(Items.NETHER_WART), ImmutableSet.of(Blocks.SOUL_SAND), SoundEvents.VILLAGER_WORK_CLERIC); // Purpur - Option for Villager Clerics to farm Nether Wart
+         register(
+             p_398012_,
+             FARMER,

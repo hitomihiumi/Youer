@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/BoatItem.java
 +++ b/net/minecraft/world/item/BoatItem.java
-@@ -28,44 +_,59 @@
+@@ -28,44 +_,60 @@
      }
  
      @Override
@@ -56,6 +56,7 @@
 -                    abstractboat.setYRot(p_40623_.getYRot());
 -                    if (!p_40622_.noCollision(abstractboat, abstractboat.getBoundingBox())) {
 +                    boat.setYRot(player.getYRot());
++                    if (!level.purpurConfig.persistentDroppableEntityDisplayNames) boat.setCustomName(null); // Purpur - Apply display names from item forms of entities to entities and vice versa
 +                    if (!level.noCollision(boat, boat.getBoundingBox())) {
                          return InteractionResult.FAIL;
                      } else {

@@ -1,18 +1,63 @@
 --- a/net/minecraft/world/level/block/FarmBlock.java
 +++ b/net/minecraft/world/level/block/FarmBlock.java
-@@ -109,10 +_,7 @@
+@@ -108,15 +_,50 @@
+ 
      @Override
      public void fallOn(Level p_153227_, BlockState p_153228_, BlockPos p_153229_, Entity p_153230_, double p_397639_) {
++        super.fallOn(p_153227_, p_153228_, p_153229_, p_153230_, p_397639_); // CraftBukkit - moved here as game rules / events shouldn't affect fall damage.
          if (p_153227_ instanceof ServerLevel serverlevel
 -            && p_153227_.random.nextFloat() < p_397639_ - 0.5
 -            && p_153230_ instanceof LivingEntity
 -            && (p_153230_ instanceof Player || serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))
 -            && p_153230_.getBbWidth() * p_153230_.getBbWidth() * p_153230_.getBbHeight() > 0.512F) {
 +            && net.neoforged.neoforge.common.CommonHooks.onFarmlandTrample(serverlevel, p_153229_, Blocks.DIRT.defaultBlockState(), p_397639_, p_153230_)) { // Forge: Move logic to Entity#canTrample
++            // CraftBukkit start - Interact soil
++            org.bukkit.event.Cancellable cancellable;
++            if (p_153230_ instanceof Player) {
++                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) p_153230_, org.bukkit.event.block.Action.PHYSICAL, p_153229_, null, null, null);
++            } else {
++                cancellable = new org.bukkit.event.entity.EntityInteractEvent(p_153230_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_153227_, p_153229_));
++                p_153227_.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++            }
++
++            if (cancellable.isCancelled()) {
++                return;
++            }
++
++            if (p_153227_.purpurConfig.farmlandTramplingDisabled) return; // Purpur - Farmland trampling changes
++            if (p_153227_.purpurConfig.farmlandTramplingOnlyPlayers && !(p_153230_ instanceof Player)) return; // Purpur - Farmland trampling changes
++
++            // Purpur start - Ability to re-add farmland mechanics from Alpha
++            if (p_153227_.purpurConfig.farmlandAlpha) {
++                Block block = p_153227_.getBlockState(p_153229_.below()).getBlock();
++                if (block instanceof FenceBlock || block instanceof WallBlock) {
++                    return;
++                }
++            }
++            // Purpur end - Ability to re-add farmland mechanics from Alpha
++
++            // Purpur start - Farmland trampling changes
++            if (p_153227_.purpurConfig.farmlandTramplingFeatherFalling) {
++                net.minecraft.world.item.ItemStack bootsItem = ((net.minecraft.world.entity.LivingEntity) p_153230_).getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET);
++
++                if (bootsItem != net.minecraft.world.item.ItemStack.EMPTY && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.FEATHER_FALLING, bootsItem) >= (int) p_153230_.fallDistance) {
++                    return;
++                }
++            }
++            // Purpur end - Farmland trampling changes
++
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_153230_, p_153229_, Blocks.DIRT.defaultBlockState())) {
++                return;
++            }
++            // CraftBukkit end
              turnToDirt(p_153230_, p_153228_, p_153227_, p_153229_);
          }
+-
+-        super.fallOn(p_153227_, p_153228_, p_153229_, p_153230_, p_397639_);
+     }
  
-@@ -130,13 +_,14 @@
+     public static void turnToDirt(@Nullable Entity p_270981_, BlockState p_270402_, Level p_270568_, BlockPos p_270551_) {
+@@ -130,13 +_,16 @@
      }
  
      private static boolean isNearWater(LevelReader p_53259_, BlockPos p_53260_) {
@@ -25,7 +70,9 @@
          }
  
 -        return false;
-+        return net.neoforged.neoforge.common.FarmlandWaterManager.hasBlockWaterTicket(p_53259_, p_53260_);
++        return net.neoforged.neoforge.common.FarmlandWaterManager.hasBlockWaterTicket(p_53259_, p_53260_)
++            || ((ServerLevel) p_53259_).purpurConfig.farmlandGetsMoistFromBelow && p_53259_.getFluidState(p_53260_.relative(Direction.DOWN)).is(FluidTags.WATER); // Purpur - Allow soil to moisten from water directly under it
++        // Paper end - Perf: remove abstract block iteration
      }
  
      @Override

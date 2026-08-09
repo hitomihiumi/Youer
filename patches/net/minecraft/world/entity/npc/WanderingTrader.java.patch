@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/npc/WanderingTrader.java
 +++ b/net/minecraft/world/entity/npc/WanderingTrader.java
-@@ -46,11 +_,15 @@
+@@ -46,16 +_,72 @@
  import net.minecraft.world.phys.Vec3;
  import org.apache.commons.lang3.tuple.Pair;
  
@@ -17,6 +17,63 @@
  
      public WanderingTrader(EntityType<? extends WanderingTrader> p_35843_, Level p_35844_) {
          super(p_35843_, p_35844_);
+     }
+ 
++    // Purpur start - Allow leashing villagers
++    @Override
++    public boolean canBeLeashed() {
++        return level().purpurConfig.wanderingTraderCanBeLeashed;
++    }
++    // Purpur end - Allow leashing villagers
++
++    // Purpur - start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.wanderingTraderRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.wanderingTraderRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.wanderingTraderControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.wanderingTraderMaxHealth);
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.TEMPT_RANGE).setBaseValue(this.level().purpurConfig.wanderingTraderTemptRange); // Purpur - Villagers follow emerald blocks
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Villagers follow emerald blocks
++    public static net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder createAttributes() {
++        return Mob.createMobAttributes().add(net.minecraft.world.entity.ai.attributes.Attributes.TEMPT_RANGE, 10.0D);
++    }
++    // Purpur end - Villagers follow emerald blocks
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.wanderingTraderTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.wanderingTraderAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new FloatGoal(this));
 @@ -66,7 +_,7 @@
                      this,
                      PotionContents.createItemStack(Items.POTION, Potions.INVISIBILITY),
@@ -31,10 +88,34 @@
                      new ItemStack(Items.MILK_BUCKET),
                      SoundEvents.WANDERING_TRADER_REAPPEARED,
 -                    p_427126_ -> this.level().isBrightOutside() && p_427126_.isInvisible()
-+                    wanderingTrader -> this.canDrinkMilk && this.level().isBrightOutside() && wanderingTrader.isInvisible() // Paper - Add more WanderingTrader API
++                    wanderingTrader -> level().purpurConfig.milkClearsBeneficialEffects && this.canDrinkMilk && this.level().isBrightOutside() && wanderingTrader.isInvisible() // Paper - Add more WanderingTrader API // // Purpur - Milk Keeps Beneficial Effects
                  )
              );
          this.goalSelector.addGoal(1, new TradeWithPlayerGoal(this));
+@@ -90,6 +_,7 @@
+         this.goalSelector.addGoal(1, new PanicGoal(this, 0.5));
+         this.goalSelector.addGoal(1, new LookAtTradingPlayerGoal(this));
+         this.goalSelector.addGoal(2, new WanderingTrader.WanderToPositionGoal(this, 2.0, 0.35));
++        if (level().purpurConfig.wanderingTraderFollowEmeraldBlock) this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.TemptGoal(this, 1.0D, TEMPT_ITEMS, false)); // Purpur - Villagers follow emerald blocks
+         this.goalSelector.addGoal(4, new MoveTowardsRestrictionGoal(this, 0.35));
+         this.goalSelector.addGoal(8, new WaterAvoidingRandomStrollGoal(this, 0.35));
+         this.goalSelector.addGoal(9, new InteractGoal(this, Player.class, 3.0F, 1.0F));
+@@ -117,11 +_,14 @@
+ 
+             if (!this.level().isClientSide) {
+                 if (this.getOffers().isEmpty()) {
+-                    return InteractionResult.CONSUME;
++                    return tryRide(p_35856_, p_35857_, InteractionResult.CONSUME); // Purpur - Ridables
+                 }
++                if (level().purpurConfig.wanderingTraderRidable && itemstack.isEmpty()) return tryRide(p_35856_, p_35857_); // Purpur - Ridables
+ 
++                if (this.level().purpurConfig.wanderingTraderAllowTrading) { // Purpur - Add config for villager trading
+                 this.setTradingPlayer(p_35856_);
+                 this.openTradingScreen(p_35856_, this.getDisplayName(), 1);
++                } // Purpur - Add config for villager trading
+             }
+ 
+             return InteractionResult.SUCCESS;
 @@ -164,7 +_,7 @@
      protected void rewardTradeXp(MerchantOffer p_35859_) {
          if (p_35859_.shouldRewardExp()) {

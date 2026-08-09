@@ -1,5 +1,29 @@
 --- a/net/minecraft/world/entity/ai/attributes/DefaultAttributes.java
 +++ b/net/minecraft/world/entity/ai/attributes/DefaultAttributes.java
+@@ -129,12 +_,12 @@
+         .put(EntityType.IRON_GOLEM, IronGolem.createAttributes().build())
+         .put(EntityType.LLAMA, Llama.createAttributes().build())
+         .put(EntityType.MAGMA_CUBE, MagmaCube.createAttributes().build())
+-        .put(EntityType.MOOSHROOM, Cow.createAttributes().build())
++        .put(EntityType.MOOSHROOM, net.minecraft.world.entity.animal.AbstractCow.createAttributes().build()) // Purpur - Cows naturally aggressive to players chance
+         .put(EntityType.MULE, AbstractChestedHorse.createBaseChestedHorseAttributes().build())
+         .put(EntityType.OCELOT, Ocelot.createAttributes().build())
+         .put(EntityType.PANDA, Panda.createAttributes().build())
+         .put(EntityType.PARROT, Parrot.createAttributes().build())
+-        .put(EntityType.PHANTOM, Monster.createMonsterAttributes().build())
++        .put(EntityType.PHANTOM, net.minecraft.world.entity.monster.Phantom.createAttributes().build()) // Purpur - Ridables
+         .put(EntityType.PIG, Pig.createAttributes().build())
+         .put(EntityType.PIGLIN, Piglin.createAttributes().build())
+         .put(EntityType.PIGLIN_BRUTE, PiglinBrute.createAttributes().build())
+@@ -165,7 +_,7 @@
+         .put(EntityType.VILLAGER, Villager.createAttributes().build())
+         .put(EntityType.VINDICATOR, Vindicator.createAttributes().build())
+         .put(EntityType.WARDEN, Warden.createAttributes().build())
+-        .put(EntityType.WANDERING_TRADER, Mob.createMobAttributes().build())
++        .put(EntityType.WANDERING_TRADER, net.minecraft.world.entity.npc.WanderingTrader.createAttributes().build()) // Purpur - Villagers follow emerald blocks
+         .put(EntityType.WITCH, Witch.createAttributes().build())
+         .put(EntityType.WITHER, WitherBoss.createAttributes().build())
+         .put(EntityType.WITHER_SKELETON, AbstractSkeleton.createAttributes().build())
 @@ -178,11 +_,12 @@
          .build();
  

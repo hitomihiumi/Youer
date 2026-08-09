@@ -1,0 +1,67 @@
+--- a/net/minecraft/world/entity/animal/horse/ZombieHorse.java
++++ b/net/minecraft/world/entity/animal/horse/ZombieHorse.java
+@@ -33,6 +_,56 @@
+         super(p_30994_, p_30995_);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.zombieHorseRidableInWater;
++    }
++
++    @Override
++    public boolean isTamed() {
++        return super.isTamed() || this.level().purpurConfig.zombieHorseRidable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public float generateMaxHealth(RandomSource random) {
++        return (float) generateMaxHealth(this.level().purpurConfig.zombieHorseMaxHealthMin, this.level().purpurConfig.zombieHorseMaxHealthMax);
++    }
++
++    @Override
++    public double generateJumpStrength(RandomSource random) {
++        return generateJumpStrength(this.level().purpurConfig.zombieHorseJumpStrengthMin, this.level().purpurConfig.zombieHorseJumpStrengthMax);
++    }
++
++    @Override
++    public double generateSpeed(RandomSource random) {
++        return generateSpeed(this.level().purpurConfig.zombieHorseMovementSpeedMin, this.level().purpurConfig.zombieHorseMovementSpeedMax);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return 6000;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.zombieHorseTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.zombieHorseAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public static AttributeSupplier.Builder createAttributes() {
+         return createBaseHorseAttributes().add(Attributes.MAX_HEALTH, 15.0).add(Attributes.MOVEMENT_SPEED, 0.2F);
+     }
+@@ -78,6 +_,7 @@
+ 
+     @Override
+     protected void addBehaviourGoals() {
++        if (level().purpurConfig.zombieHorseCanSwim) goalSelector.addGoal(0, new net.minecraft.world.entity.ai.goal.FloatGoal(this)); // Purpur - Ridables
+     }
+ 
+     @Override

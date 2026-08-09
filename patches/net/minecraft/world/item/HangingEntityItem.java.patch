@@ -47,7 +47,7 @@
  
 -            EntityType.<HangingEntity>createDefaultStackConfig(level, itemstack, player).accept(hangingentity);
 -            if (hangingentity.survives()) {
-+            EntityType.<HangingEntity>createDefaultStackConfig(level, itemInHand, player).accept(hangingEntity);
++            EntityType.<HangingEntity>appendDefaultStackConfig(entity -> {if (!level.purpurConfig.persistentDroppableEntityDisplayNames) entity.setCustomName(null);}, level, itemInHand, player).accept(hangingEntity); // Purpur - Apply display names from item forms of entities to entities and vice versa
 +            if (hangingEntity.survives()) {
                  if (!level.isClientSide) {
 -                    hangingentity.playPlacementSound();

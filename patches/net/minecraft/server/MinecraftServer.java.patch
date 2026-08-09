@@ -43,7 +43,7 @@
      @Nullable
      private KeyPair keyPair;
      @Nullable
-@@ -272,10 +_,38 @@
+@@ -272,10 +_,41 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
  
@@ -53,6 +53,7 @@
 +    public joptsimple.OptionSet options;
 +    public org.bukkit.command.ConsoleCommandSender console;
 +    public static int currentTick; // Paper - improve tick loop
++    public static final long startTimeMillis = System.currentTimeMillis(); // Purpur - Add uptime command
 +    public java.util.Queue<Runnable> processQueue = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
 +    public int autosavePeriod;
 +    // Paper - don't store the vanilla dispatcher
@@ -63,7 +64,7 @@
 +    public static final int TICK_TIME = 1000000000 / MinecraftServer.TPS;
 +    private static final int SAMPLE_INTERVAL = 20; // Paper - improve server tick loop
 +    @Deprecated(forRemoval = true) // Paper
-+    public final double[] recentTps = new double[3];
++    public final double[] recentTps = new double[4]; // Purpur - Add 5 second tps average in /tps
 +    // Spigot end
 +    public volatile boolean hasFullyShutdown; // Paper - Improved watchdog support
 +    public volatile boolean abnormalExit; // Paper - Improved watchdog support
@@ -72,6 +73,8 @@
 +    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
 +    private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
 +    public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
++    public boolean lagging = false; // Purpur - Lagging threshold
++    protected boolean upnp = false; // Purpur - UPnP Port Forwarding
 +
      public static <S extends MinecraftServer> S spin(Function<Thread, S> p_129873_) {
 +        ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
@@ -811,7 +814,7 @@
              flag = this.saveAllChunks(p_195515_, p_195516_, p_195517_);
          } finally {
              this.isSaving = false;
-@@ -588,29 +_,59 @@
+@@ -588,29 +_,68 @@
          this.stopServer();
      }
  
@@ -842,6 +845,15 @@
  
          LOGGER.info("Stopping server");
 +        Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
++        // Purpur start - UPnP Port Forwarding
++        if (upnp) {
++            if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
++                LOGGER.info("[UPnP] Port {} closed", this.getPort());
++            } else {
++                LOGGER.error("[UPnP] Failed to close port {}", this.getPort());
++            }
++        }
++        // Purpur end - UPnP Port Forwarding
 +        // CraftBukkit start
 +        if (this.server != null) {
 +            this.server.spark.disable(); // Paper - spark
@@ -941,7 +953,7 @@
      }
  
      public String getLocalIp() {
-@@ -655,16 +_,75 @@
+@@ -655,16 +_,78 @@
          return this.running;
      }
  
@@ -951,6 +963,8 @@
 +        this.safeShutdown(waitForServer, false);
 +    }
 +    public void safeShutdown(boolean waitForServer, boolean isRestarting) {
++        org.purpurmc.purpur.task.BossBarTask.stopAll(); // Purpur - Implement TPSBar
++        org.purpurmc.purpur.task.BeehiveTask.instance().unregister(); // Purpur - Give bee counts in beehives to Purpur clients
 +        this.isRestarting = isRestarting;
 +        this.hasLoggedStop = true; // Paper - Debugging
 +        if (isDebugging()) io.papermc.paper.util.TraceUtil.dumpTraceForThread("Server stopped"); // Paper - Debugging
@@ -976,6 +990,7 @@
 +    private static final long MAX_CATCHUP_BUFFER = TICK_TIME * TPS * 60L;
 +    private long lastTick = 0;
 +    private long catchupTime = 0;
++    public final RollingAverage tps5s = new RollingAverage(5); // Purpur - Add 5 second tps average in /tps
 +    public final RollingAverage tps1 = new RollingAverage(60);
 +    public final RollingAverage tps5 = new RollingAverage(60 * 5);
 +    public final RollingAverage tps15 = new RollingAverage(60 * 15);
@@ -1024,7 +1039,7 @@
  
      protected void runServer() {
          try {
-@@ -672,45 +_,98 @@
+@@ -672,45 +_,119 @@
                  throw new IllegalStateException("Failed to initialize server");
              }
  
@@ -1063,6 +1078,16 @@
 +                LOGGER.info("*************************************************************************************");
 +            }
 +            // Paper end - Add onboarding message for initial server start
++
++            // Purpur start - config for startup commands
++            if (!Boolean.getBoolean("Purpur.IReallyDontWantStartupCommands") && !org.purpurmc.purpur.PurpurConfig.startupCommands.isEmpty()) {
++                LOGGER.info("Purpur: Running startup commands specified in purpur.yml.");
++                for (final String startupCommand : org.purpurmc.purpur.PurpurConfig.startupCommands) {
++                    LOGGER.info("Purpur: Running the following command: \"{}\"", startupCommand);
++                    ((net.minecraft.server.dedicated.DedicatedServer) this).handleConsoleInput(startupCommand, this.createCommandSourceStack());
++                }
++            }
++            // Purpur end - config for startup commands
  
              while (this.running) {
 -                long i;
@@ -1099,14 +1124,19 @@
 +                if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
 +                    final long diff = currentTime - tickSection;
 +                    final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
++                    tps5s.add(currentTps, diff); // Purpur - Add 5 second tps average in /tps
 +                    tps1.add(currentTps, diff);
 +                    tps5.add(currentTps, diff);
 +                    tps15.add(currentTps, diff);
 +
 +                    // Backwards compat with bad plugins
-+                    this.recentTps[0] = tps1.getAverage();
-+                    this.recentTps[1] = tps5.getAverage();
-+                    this.recentTps[2] = tps15.getAverage();
++                    // Purpur start - Add 5 second tps average in /tps
++                    this.recentTps[0] = tps5s.getAverage();
++                    this.recentTps[1] = tps1.getAverage();
++                    this.recentTps[2] = tps5.getAverage();
++                    this.recentTps[3] = tps15.getAverage();
++                    // Purpur end - Add 5 second tps average in /tps
++                    lagging = recentTps[0] < org.purpurmc.purpur.PurpurConfig.laggingThreshold; // Purpur - Lagging threshold
 +                    tickSection = currentTime;
 +                }
 +                // Paper end - further improve server tick loop
@@ -1137,6 +1167,12 @@
                      this.mayHaveDelayedTasks = true;
 -                    this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
 +                    this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + l, this.nextTickTimeNanos);
++                    // Purpur start - Configurable TPS Catchup
++                    if (!org.purpurmc.purpur.PurpurConfig.tpsCatchup) {
++                        this.nextTickTimeNanos = currentTime + l;
++                        this.delayedTasksMaxNextTickTimeNanos = nextTickTimeNanos;
++                    }
++                    // Purpur end - Configurable TPS Catchup
                      this.startMeasuringTaskExecutionTime();
                      this.waitUntilNextTick();
                      this.finishMeasuringTaskExecutionTime();
@@ -1420,7 +1456,7 @@
              ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
              int k = Mth.nextInt(this.random, 0, list.size() - j);
  
-@@ -1035,57 +_,112 @@
+@@ -1035,57 +_,113 @@
          }
      }
  
@@ -1468,7 +1504,7 @@
 +            long worldTime = level.getGameTime();
 +            final ClientboundSetTimePacket worldPacket = new ClientboundSetTimePacket(worldTime, dayTime, doDaylight);
 +            for (Player entityhuman : level.players()) {
-+                if (!(entityhuman instanceof ServerPlayer) || (tickCount + entityhuman.getId()) % 20 != 0) {
++                if (!(entityhuman instanceof ServerPlayer) || (!level.isForceTime() && (tickCount + entityhuman.getId()) % 20 != 0)) { // Purpur - Configurable daylight cycle
 +                    continue;
 +                }
 +                ServerPlayer entityplayer = (ServerPlayer) entityhuman;
@@ -1488,6 +1524,7 @@
 +            serverLevel.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
 +            serverLevel.updateLagCompensationTick(); // Paper - lag compensation
 +            net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents = serverLevel.paperConfig().hopper.disableMoveEvent || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper - Perf: Optimize Hoppers
++            serverLevel.hasRidableMoveEvent = org.purpurmc.purpur.event.entity.RidableMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Purpur - Ridables
 +            profilerFiller.push(() -> serverLevel + " " + serverLevel.dimension().location());
 +            /* Drop global time updates
              if (this.tickCount % 20 == 0) {
@@ -1612,7 +1649,7 @@
      @DontObfuscate
      public String getServerModName() {
 -        return "vanilla";
-+        return io.papermc.paper.ServerBuildInfo.buildInfo().brandName(); // Paper
++        return org.purpurmc.purpur.PurpurConfig.serverModName; // Paper // Purpur - Configurable server mod name
      }
  
      public SystemReport fillSystemReport(SystemReport p_177936_) {

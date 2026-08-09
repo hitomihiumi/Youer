@@ -1,5 +1,37 @@
 --- a/net/minecraft/world/entity/monster/Bogged.java
 +++ b/net/minecraft/world/entity/monster/Bogged.java
+@@ -43,6 +_,31 @@
+         super(p_326920_, p_326946_);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.boggedRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.boggedRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.boggedControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.boggedMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.boggedScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder p_331269_) {
+         super.defineSynchedData(p_331269_);
 @@ -72,7 +_,7 @@
      @Override
      protected InteractionResult mobInteract(Player p_330736_, InteractionHand p_331786_) {

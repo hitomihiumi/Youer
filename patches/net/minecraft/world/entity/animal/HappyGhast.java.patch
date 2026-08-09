@@ -1,0 +1,59 @@
+--- a/net/minecraft/world/entity/animal/HappyGhast.java
++++ b/net/minecraft/world/entity/animal/HappyGhast.java
+@@ -127,6 +_,47 @@
+         this.removeAllGoals(p_416715_ -> true);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.happyGhastRidableInWater;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.happyGhastMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.happyGhastScale);
++        this.getAttribute(Attributes.TEMPT_RANGE).setBaseValue(this.level().purpurConfig.happyGhastTemptRange);
++        this.getAttribute(Attributes.FLYING_SPEED).setBaseValue(this.level().purpurConfig.happyGhastFlyingSpeed);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.happyGhastMovementSpeed);
++        this.getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(this.level().purpurConfig.happyGhastFollowRange);
++        this.getAttribute(Attributes.CAMERA_DISTANCE).setBaseValue(this.level().purpurConfig.happyGhastCameraDistance);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return 6000;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.happyGhastTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.happyGhastAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void ageBoundaryReached() {
+         if (this.isBaby()) {
+@@ -150,7 +_,7 @@
+ 
+     @Override
+     protected float sanitizeScale(float p_423595_) {
+-        return Math.min(p_423595_, 1.0F);
++        return Math.min(p_423595_, 1.0F); // Purpur - Configurable entity base attributes
+     }
+ 
+     @Override

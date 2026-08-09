@@ -51,7 +51,7 @@
              }
  
              return InteractionResult.SUCCESS;
-@@ -55,17 +_,28 @@
+@@ -55,17 +_,39 @@
      }
  
      @Override
@@ -73,6 +73,17 @@
 +                    if (player.dropAllLeashConnections(null)) {
 +                        level.playSound(null, player, SoundEvents.LEAD_BREAK, SoundSource.NEUTRAL, 1.0F, 1.0F);
 +                    }
++                    // Purpur start - Implement elytra settings
++                    if (level.purpurConfig.elytraDamagePerFireworkBoost > 0) {
++                        java.util.List<net.minecraft.world.entity.EquipmentSlot> list = net.minecraft.world.entity.EquipmentSlot.VALUES.stream().filter((enumitemslot) -> net.minecraft.world.entity.LivingEntity.canGlideUsing(player.getItemBySlot(enumitemslot), enumitemslot)).toList();
++                        net.minecraft.world.entity.EquipmentSlot enumitemslot = net.minecraft.Util.getRandom(list, player.random);
++
++                        ItemStack glideItem = player.getItemBySlot(enumitemslot);
++                        if (player.canGlide()) {
++                            glideItem.hurtAndBreak(level.purpurConfig.elytraDamagePerFireworkBoost, player, enumitemslot);
++                        }
++                    }
++                    // Purpur end - Implement elytra settings
 +                    if (event.shouldConsume() && !player.hasInfiniteMaterials()) {
 +                        itemInHand.shrink(1); // Moved up from below
 +                    } else {

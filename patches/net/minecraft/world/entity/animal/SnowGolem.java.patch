@@ -1,20 +1,136 @@
 --- a/net/minecraft/world/entity/animal/SnowGolem.java
 +++ b/net/minecraft/world/entity/animal/SnowGolem.java
-@@ -95,7 +_,7 @@
+@@ -46,18 +_,64 @@
+     private static final EntityDataAccessor<Byte> DATA_PUMPKIN_ID = SynchedEntityData.defineId(SnowGolem.class, EntityDataSerializers.BYTE);
+     private static final byte PUMPKIN_FLAG = 16;
+     private static final boolean DEFAULT_PUMPKIN = true;
++    @Nullable private java.util.UUID summoner; // Purpur - Summoner API
+ 
+     public SnowGolem(EntityType<? extends SnowGolem> p_29902_, Level p_29903_) {
+         super(p_29902_, p_29903_);
+     }
+ 
++    // Purpur start - Summoner API
++    @Nullable
++    public java.util.UUID getSummoner() {
++        return summoner;
++    }
++
++    public void setSummoner(@Nullable java.util.UUID summoner) {
++        this.summoner = summoner;
++    }
++    // Purpur end - Summoner API
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.snowGolemRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.snowGolemRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.snowGolemControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.snowGolemMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.snowGolemScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.snowGolemAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+-        this.goalSelector.addGoal(1, new RangedAttackGoal(this, 1.25, 20, 10.0F));
+-        this.goalSelector.addGoal(2, new WaterAvoidingRandomStrollGoal(this, 1.0, 1.0000001E-5F));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++        this.goalSelector.addGoal(1, new RangedAttackGoal(this, level().purpurConfig.snowGolemAttackDistance, level().purpurConfig.snowGolemSnowBallMin, level().purpurConfig.snowGolemSnowBallMax, level().purpurConfig.snowGolemSnowBallModifier)); // Purpur - Snow Golem rate of fire config
++        this.goalSelector.addGoal(2, new WaterAvoidingRandomStrollGoal(this, 1.0D, 1.0000001E-5F));
+         this.goalSelector.addGoal(3, new LookAtPlayerGoal(this, Player.class, 6.0F));
+         this.goalSelector.addGoal(4, new RandomLookAroundGoal(this));
+-        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Mob.class, 10, true, false, (p_29932_, p_376341_) -> p_29932_ instanceof Enemy));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Mob.class, 10, true, false, (entity, level) -> entity instanceof Enemy));
+     }
+ 
+     public static AttributeSupplier.Builder createAttributes() {
+@@ -74,17 +_,19 @@
+     protected void addAdditionalSaveData(ValueOutput p_422457_) {
+         super.addAdditionalSaveData(p_422457_);
+         p_422457_.putBoolean("Pumpkin", this.hasPumpkin());
++        p_422457_.storeNullable("Purpur.Summoner", net.minecraft.core.UUIDUtil.CODEC, getSummoner()); // Purpur - Summoner API
+     }
+ 
+     @Override
+     protected void readAdditionalSaveData(ValueInput p_422260_) {
+         super.readAdditionalSaveData(p_422260_);
+         this.setPumpkin(p_422260_.getBooleanOr("Pumpkin", true));
++        this.setSummoner(p_422260_.read("Purpur.Summoner", net.minecraft.core.UUIDUtil.CODEC).orElse(null)); // Purpur - Summoner API
+     }
+ 
+     @Override
+     public boolean isSensitiveToWater() {
+-        return true;
++        return this.level().purpurConfig.snowGolemTakeDamageFromWater; // Purpur - Toggle for water sensitive mob damage
+     }
+ 
+     @Override
+@@ -95,10 +_,12 @@
                  this.hurtServer(serverlevel, this.damageSources().onFire(), 1.0F);
              }
  
 -            if (!serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+            if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, this)) {
++            Boolean mobGriefingOverride = serverlevel.purpurConfig.snowGolemMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++            if (!(mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, this))) {
                  return;
              }
  
-@@ -136,7 +_,7 @@
++            if (getRider() != null && this.isControllable() && !level().purpurConfig.snowGolemLeaveTrailWhenRidden) return; // Purpur - don't leave snow trail when being ridden
+             BlockState blockstate = Blocks.SNOW.defaultBlockState();
+ 
+             for (int i = 0; i < 4; i++) {
+@@ -135,17 +_,25 @@
+ 
      @Override
      protected InteractionResult mobInteract(Player p_29920_, InteractionHand p_29921_) {
-         ItemStack itemstack = p_29920_.getItemInHand(p_29921_);
+-        ItemStack itemstack = p_29920_.getItemInHand(p_29921_);
 -        if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
-+        if (false && itemstack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
++        ItemStack itemInHand = p_29920_.getItemInHand(p_29921_);
++        if (false && itemInHand.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
              if (this.level() instanceof ServerLevel serverlevel) {
-                 this.shear(serverlevel, SoundSource.PLAYERS, itemstack);
+-                this.shear(serverlevel, SoundSource.PLAYERS, itemstack);
++                this.shear(serverlevel, SoundSource.PLAYERS, itemInHand);
                  this.gameEvent(GameEvent.SHEAR, p_29920_);
+-                itemstack.hurtAndBreak(1, p_29920_, getSlotForHand(p_29921_));
++                itemInHand.hurtAndBreak(1, p_29920_, getSlotForHand(p_29921_));
+             }
+ 
+             return InteractionResult.SUCCESS;
++        // Purpur start - Snowman drop and put back pumpkin
++        } else if (level().purpurConfig.snowGolemPutPumpkinBack && !hasPumpkin() && itemInHand.getItem() == Blocks.CARVED_PUMPKIN.asItem()) {
++            setPumpkin(true);
++            if (!player.getAbilities().instabuild) {
++                itemInHand.shrink(1);
++            }
++            return InteractionResult.SUCCESS;
++        // Purpur end - Snowman drop and put back pumpkin
+         } else {
+-            return InteractionResult.PASS;
++            return tryRide(player, hand); // Purpur - Ridables
+         }
+     }
+ 

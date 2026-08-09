@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/decoration/Painting.java
 +++ b/net/minecraft/world/entity/decoration/Painting.java
-@@ -148,22 +_,32 @@
+@@ -148,31 +_,45 @@
      }
  
      @Override
@@ -45,3 +45,20 @@
          return p_345028_ % 2 == 0 ? 0.5 : 0.0;
      }
  
+     @Override
+-    public void dropItem(ServerLevel p_376289_, @Nullable Entity p_31925_) {
+-        if (p_376289_.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++    public void dropItem(ServerLevel level, @Nullable Entity entity) {
++        if (level.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+             this.playSound(SoundEvents.PAINTING_BREAK, 1.0F, 1.0F);
+-            if (!(p_31925_ instanceof Player player && player.hasInfiniteMaterials())) {
+-                this.spawnAtLocation(p_376289_, Items.PAINTING);
++            if (!(entity instanceof Player player && player.hasInfiniteMaterials())) {
++                // Purpur start - Apply display names from item forms of entities to entities and vice versa
++                final ItemStack painting = new ItemStack(Items.PAINTING);
++                if (!this.level().purpurConfig.persistentDroppableEntityDisplayNames) painting.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, null);
++                this.spawnAtLocation(level, painting);
++                // Purpur end - Apply display names from item forms of entities to entities and vice versa
+             }
+         }
+     }

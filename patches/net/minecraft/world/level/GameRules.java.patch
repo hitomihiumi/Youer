@@ -126,22 +126,31 @@
          if (t == null) {
              throw new IllegalArgumentException("Tried to access invalid game rule");
          } else {
-@@ -326,13 +_,13 @@
+@@ -326,13 +_,20 @@
          }
      }
  
 -    public void assignFrom(GameRules p_46177_, @Nullable MinecraftServer p_46178_) {
 -        p_46177_.rules.keySet().forEach(p_46182_ -> this.assignCap((GameRules.Key<?>)p_46182_, p_46177_, p_46178_));
-+    public void assignFrom(GameRules rules, @Nullable ServerLevel level) { // CraftBukkit - per-world
-+        rules.rules.keySet().forEach(key -> this.assignCap((GameRules.Key<?>)key, rules, level)); // CraftBukkit - per-world
-     }
- 
+-    }
+-
 -    private <T extends GameRules.Value<T>> void assignCap(GameRules.Key<T> p_46173_, GameRules p_46174_, @Nullable MinecraftServer p_46175_) {
 -        T t = p_46174_.getRule(p_46173_);
 -        this.<T>getRule(p_46173_).setFrom(t, p_46175_);
++    public void assignFrom(GameRules rules, @Nullable ServerLevel level) { // CraftBukkit - per-world
++        rules.rules.keySet().forEach(key -> this.assignCap((GameRules.Key<?>)key, rules, level)); // CraftBukkit - per-world
++    }
++
 +    private <T extends GameRules.Value<T>> void assignCap(GameRules.Key<T> key, GameRules rules, @Nullable ServerLevel level) { // CraftBukkit - per-world
 +        T rule = rules.getRule(key);
 +        this.<T>getRule(key).setFrom(rule, level); // CraftBukkit - per-world
++    }
++
++    public boolean getBoolean(GameRules.Key<GameRules.BooleanValue> key, Boolean gameRuleOverride) {
++        if (gameRuleOverride != null) {
++            return gameRuleOverride;
++        }
++        return this.getBoolean(key);
      }
  
      public boolean getBoolean(GameRules.Key<GameRules.BooleanValue> p_46208_) {

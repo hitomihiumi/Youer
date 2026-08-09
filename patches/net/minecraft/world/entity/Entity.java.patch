@@ -2899,7 +2899,7 @@
      @Override
      public void setLevelCallback(EntityInLevelCallback p_146849_) {
          this.levelCallback = p_146849_;
-@@ -3837,6 +_,134 @@
+@@ -3837,6 +_,135 @@
          return true;
      }
  
@@ -2939,9 +2939,10 @@
 +    // Neo: Set the default behavior for trampling on Farmland
 +    @Override
 +    public boolean canTrample(ServerLevel level, BlockState state, BlockPos pos, double fallDistance) {
-+        return level.random.nextFloat() < fallDistance - 0.5F
++        Boolean mobGriefingOverride = level.purpurConfig.farmlandMobGriefingOverride; // Purpur - Add mobGriefing override to everything affected
++        return (level.purpurConfig.farmlandTrampleHeight >= 0D ? fallDistance >= level.purpurConfig.farmlandTrampleHeight : level.random.nextFloat() < fallDistance - 0.5F) // Purpur - Configurable farmland trample height
 +             && this instanceof LivingEntity
-+             && (this instanceof Player || net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, this))
++             && (this instanceof Player || (mobGriefingOverride != null ? mobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, this)))
 +             && this.getBbWidth() * this.getBbWidth() * this.getBbHeight() > 0.512F;
 +    }
 +

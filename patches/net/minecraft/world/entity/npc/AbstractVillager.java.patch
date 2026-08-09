@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/npc/AbstractVillager.java
 +++ b/net/minecraft/world/entity/npc/AbstractVillager.java
+@@ -35,6 +_,7 @@
+ import net.minecraft.world.phys.Vec3;
+ 
+ public abstract class AbstractVillager extends AgeableMob implements InventoryCarrier, Npc, Merchant {
++    static final net.minecraft.world.item.crafting.Ingredient TEMPT_ITEMS = net.minecraft.world.item.crafting.Ingredient.of(net.minecraft.world.level.block.Blocks.EMERALD_BLOCK.asItem()); // Purpur - Villagers follow emerald blocks
+     private static final EntityDataAccessor<Integer> DATA_UNHAPPY_COUNTER = SynchedEntityData.defineId(AbstractVillager.class, EntityDataSerializers.INT);
+     public static final int VILLAGER_SLOT_OFFSET = 300;
+     private static final int VILLAGER_INVENTORY_SIZE = 8;
 @@ -42,7 +_,7 @@
      private Player tradingPlayer;
      @Nullable

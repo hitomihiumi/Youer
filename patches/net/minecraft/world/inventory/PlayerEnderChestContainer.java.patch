@@ -1,11 +1,13 @@
 --- a/net/minecraft/world/inventory/PlayerEnderChestContainer.java
 +++ b/net/minecraft/world/inventory/PlayerEnderChestContainer.java
-@@ -12,9 +_,23 @@
+@@ -12,10 +_,31 @@
  public class PlayerEnderChestContainer extends SimpleContainer {
      @Nullable
      private EnderChestBlockEntity activeChest;
 -
 -    public PlayerEnderChestContainer() {
+-        super(27);
+-    }
 +    // CraftBukkit start
 +    private final Player owner;
 +
@@ -20,9 +22,17 @@
 +    }
 +
 +    public PlayerEnderChestContainer(Player owner) {
-         super(27);
++        super(org.purpurmc.purpur.PurpurConfig.enderChestSixRows ? 54 : 27); // Purpur - Barrels and enderchests 6 rows
 +        this.owner = owner;
 +        // CraftBukkit end
-     }
++    }
++
++    // Purpur start - Barrels and enderchests 6 rows
++    @Override
++    public int getContainerSize() {
++        return owner.sixRowEnderchestSlotCount < 0 ? super.getContainerSize() : owner.sixRowEnderchestSlotCount;
++    }
++    // Purpur end - Barrels and enderchests 6 rows
  
      public void setActiveChest(EnderChestBlockEntity p_40106_) {
+         this.activeChest = p_40106_;

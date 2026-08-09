@@ -1,5 +1,86 @@
 --- a/net/minecraft/world/entity/animal/frog/Frog.java
 +++ b/net/minecraft/world/entity/animal/frog/Frog.java
+@@ -106,6 +_,8 @@
+     public final AnimationState croakAnimationState = new AnimationState();
+     public final AnimationState tongueAnimationState = new AnimationState();
+     public final AnimationState swimIdleAnimationState = new AnimationState();
++    private org.purpurmc.purpur.controller.MoveControllerWASD purpurLandController; // Purpur - Ridables
++    private org.purpurmc.purpur.controller.WaterMoveControllerWASD purpurWaterController; // Purpur - Ridables
+ 
+     public Frog(EntityType<? extends Animal> p_218470_, Level p_218471_) {
+         super(p_218470_, p_218471_);
+@@ -113,7 +_,62 @@
+         this.setPathfindingMalus(PathType.WATER, 4.0F);
+         this.setPathfindingMalus(PathType.TRAPDOOR, -1.0F);
+         this.moveControl = new SmoothSwimmingMoveControl(this, 85, 10, 0.02F, 0.1F, true);
+-    }
++        // Purpur start - Ridables
++        this.purpurLandController = new org.purpurmc.purpur.controller.MoveControllerWASD(this, 0.2F);
++        this.purpurWaterController = new org.purpurmc.purpur.controller.WaterMoveControllerWASD(this, 0.5F);
++        this.moveControl = new SmoothSwimmingMoveControl(this, 85, 10, 0.02F, 0.1F, true) {
++            @Override
++            public void tick() {
++                net.minecraft.world.entity.player.Player rider = mob.getRider();
++                if (rider != null && mob.isControllable()) {
++                    if (mob.isInWater()) {
++                        purpurWaterController.purpurTick(rider);
++                        mob.setDeltaMovement(mob.getDeltaMovement().add(0.0D, -0.005D, 0.0D));
++                    } else {
++                        purpurLandController.purpurTick(rider);
++                    }
++                } else {
++                    super.tick();
++                }
++            }
++        };
++        // Purpur end - Ridables
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.frogRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.frogRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.frogControllable;
++    }
++
++    @Override
++    protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++    }
++
++    @Override
++    public float getJumpPower() {
++        return (getRider() != null && isControllable()) ? level().purpurConfig.frogRidableJumpHeight * this.getBlockJumpFactor() : super.getJumpPower();
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.frogBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
+ 
+     @Override
+     protected Brain.Provider<Frog> brainProvider() {
+@@ -206,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel p_376431_) {
+         ProfilerFiller profilerfiller = Profiler.get();
+         profilerfiller.push("frogBrain");
++        if ((getRider() == null || !this.isControllable())) // Purpur - only use brain if no rider
+         this.getBrain().tick(p_376431_, this);
+         profilerfiller.pop();
+         profilerfiller.push("frogActivityUpdate");
 @@ -287,8 +_,13 @@
      }
  
@@ -15,4 +96,15 @@
 +        // Paper end - Add EntityFertilizeEggEvent event
          this.getBrain().setMemory(MemoryModuleType.IS_PREGNANT, Unit.INSTANCE);
      }
+ 
+@@ -385,8 +_,8 @@
+         return p_218513_.getBlockState(p_218515_.below()).is(BlockTags.FROGS_SPAWNABLE_ON) && isBrightEnoughToSpawn(p_218513_, p_218515_);
+     }
+ 
+-    class FrogLookControl extends LookControl {
+-        FrogLookControl(Mob p_218544_) {
++    class FrogLookControl extends org.purpurmc.purpur.controller.LookControllerWASD { // Purpur - Ridables
++        FrogLookControl(final Mob p_218544_) {
+             super(p_218544_);
+         }
  

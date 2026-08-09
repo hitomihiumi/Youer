@@ -9,7 +9,7 @@
      private int calmDown;
      private boolean isRunning;
      private final Predicate<ItemStack> items;
-@@ -58,6 +_,15 @@
+@@ -58,12 +_,21 @@
          } else {
              this.player = getServerLevel(this.mob)
                  .getNearestPlayer(this.targetingConditions.range(this.mob.getAttributeValue(Attributes.TEMPT_RANGE)), this.mob);
@@ -25,6 +25,14 @@
              return this.player != null;
          }
      }
+ 
+-    private boolean shouldFollow(LivingEntity p_148139_) {
+-        return this.items.test(p_148139_.getMainHandItem()) || this.items.test(p_148139_.getOffhandItem());
++    private boolean shouldFollow(LivingEntity entity) {
++        return (this.items.test(entity.getMainHandItem()) || this.items.test(entity.getOffhandItem())) && (!(this.mob instanceof net.minecraft.world.entity.npc.Villager villager) || !villager.isSleeping()); // Purpur - Villagers follow emerald blocks
+     }
+ 
+     @Override
 @@ -124,8 +_,8 @@
          this.mob.getNavigation().stop();
      }

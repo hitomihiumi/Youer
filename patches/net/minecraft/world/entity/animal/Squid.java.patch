@@ -1,11 +1,134 @@
 --- a/net/minecraft/world/entity/animal/Squid.java
 +++ b/net/minecraft/world/entity/animal/Squid.java
-@@ -46,7 +_,7 @@
+@@ -46,13 +_,77 @@
  
      public Squid(EntityType<? extends Squid> p_29953_, Level p_29954_) {
          super(p_29953_, p_29954_);
 -        this.random.setSeed(this.getId());
-+        //this.random.setSeed(this.getId()); // Paper - Share random for entities to make them more random
++        if (!p_29954_.purpurConfig.entitySharedRandom) this.random.setSeed(this.getId()); // Paper - Share random for entities to make them more random // Purpur - Add toggle for RNG manipulation
          this.tentacleSpeed = 1.0F / (this.random.nextFloat() + 1.0F) * 0.2F;
      }
  
++    // Purpur start - Stop squids floating on top of water
++    @Override
++    public net.minecraft.world.phys.AABB getAxisForFluidCheck() {
++        // Stops squids from floating just over the water
++        return super.getAxisForFluidCheck().offsetY(level().purpurConfig.squidOffsetWaterCheck);
++    }
++    // Purpur end - Stop squids floating on top of water
++
++    // Purpur start - Flying squids! Oh my!
++    public boolean canFly() {
++        return this.level().purpurConfig.squidsCanFly;
++    }
++
++    @Override
++    public boolean isInWater() {
++        return this.wasTouchingWater || canFly();
++    }
++    // Purpur end - Flying squids! Oh my!
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.squidRidable;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.squidControllable;
++    }
++
++    protected static void rotateVectorAroundY(org.bukkit.util.Vector vector, double degrees) {
++        double rad = Math.toRadians(degrees);
++        double cos = Math.cos(rad);
++        double sine = Math.sin(rad);
++        double x = vector.getX();
++        double z = vector.getZ();
++        vector.setX(cos * x - sine * z);
++        vector.setZ(sine * x + cos * z);
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.squidMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.squidScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.squidTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.squidAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new Squid.SquidRandomMovementGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new Squid.SquidFleeGoal());
+     }
+ 
+@@ -127,6 +_,7 @@
+         }
+ 
+         if (this.isInWater()) {
++            if (canFly()) setNoGravity(!wasTouchingWater); // Purpur - Flying squids! Oh my!
+             if (this.tentacleMovement < (float) Math.PI) {
+                 float f = this.tentacleMovement / (float) Math.PI;
+                 this.tentacleAngle = Mth.sin(f * f * (float) Math.PI) * (float) Math.PI * 0.25F;
+@@ -303,10 +_,41 @@
+ 
+         @Override
+         public void tick() {
+-            int i = this.squid.getNoActionTime();
+-            if (i > 100) {
++            // Purpur start - Ridables
++            net.minecraft.world.entity.player.Player rider = squid.getRider();
++            if (rider != null && squid.isControllable()) {
++                if (rider.jumping) {
++                    squid.onSpacebar();
++                }
++                float forward = rider.getForwardMot();
++                float strafe = rider.getStrafeMot();
++                float speed = (float) squid.getAttributeValue(Attributes.MOVEMENT_SPEED) * 10F;
++                if (forward < 0.0F) {
++                    speed *= -0.5;
++                }
++                org.bukkit.util.Vector dir = rider.getBukkitEntity().getEyeLocation().getDirection().normalize().multiply(speed / 20.0F);
++                if (strafe != 0.0F) {
++                    if (forward == 0.0F) {
++                        dir.setY(0);
++                        rotateVectorAroundY(dir, strafe > 0.0F ? -90 : 90);
++                    } else if (forward < 0.0F) {
++                        rotateVectorAroundY(dir, strafe > 0.0F ? 45 : -45);
++                    } else {
++                        rotateVectorAroundY(dir, strafe > 0.0F ? -45 : 45);
++                    }
++                }
++                if (forward != 0.0F || strafe != 0.0F) {
++                    squid.movementVector = new Vec3((float) dir.getX(), (float) dir.getY(), (float) dir.getZ());
++                } else {
++                    squid.movementVector = Vec3.ZERO;
++                }
++                return;
++            }
++            // Purpur end - Ridables
++            int noActionTime = this.squid.getNoActionTime();
++            if (noActionTime > 100) {
+                 this.squid.movementVector = Vec3.ZERO;
+-            } else if (this.squid.getRandom().nextInt(reducedTickDelay(50)) == 0 || !this.squid.wasTouchingWater || !this.squid.hasMovementVector()) {
++            } else if (this.squid.getRandom().nextInt(reducedTickDelay(50)) == 0 || !this.squid.isInWater() || !this.squid.hasMovementVector()) { // Purpur - Flying squids! Oh my!
+                 float f = this.squid.getRandom().nextFloat() * (float) (Math.PI * 2);
+                 this.squid.movementVector = new Vec3(Mth.cos(f) * 0.2F, -0.1F + this.squid.getRandom().nextFloat() * 0.2F, Mth.sin(f) * 0.2F);
+             }

@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/entity/monster/breeze/Breeze.java
++++ b/net/minecraft/world/entity/monster/breeze/Breeze.java
+@@ -235,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel p_376422_) {
+         ProfilerFiller profilerfiller = Profiler.get();
+         profilerfiller.push("breezeBrain");
++        if ((getRider() == null || !this.isControllable())) // Purpur - only use brain if no rider
+         this.getBrain().tick(p_376422_, this);
+         profilerfiller.popPush("breezeActivityUpdate");
+         BreezeAi.updateActivity(this);

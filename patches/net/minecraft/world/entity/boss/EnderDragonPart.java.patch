@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/boss/EnderDragonPart.java
 +++ b/net/minecraft/world/entity/boss/EnderDragonPart.java
-@@ -15,13 +_,13 @@
+@@ -15,18 +_,25 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  
@@ -16,3 +16,15 @@
          this.size = EntityDimensions.scalable(p_31016_, p_31017_);
          this.refreshDimensions();
          this.parentMob = p_31014_;
+         this.name = p_31015_;
+     }
++
++    // Purpur start - Ridables
++    @Override
++    public net.minecraft.world.InteractionResult interact(net.minecraft.world.entity.player.Player player, net.minecraft.world.InteractionHand hand) {
++        return parentMob.isAlive() ? parentMob.tryRide(player, hand) : net.minecraft.world.InteractionResult.PASS;
++    }
++    // Purpur end - Ridables
+ 
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder p_325943_) {
