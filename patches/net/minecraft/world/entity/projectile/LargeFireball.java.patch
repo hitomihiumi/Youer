@@ -8,13 +8,13 @@
 -        super(p_37199_, p_37200_);
 +    public LargeFireball(EntityType<? extends LargeFireball> entityType, Level level) {
 +        super(entityType, level);
-+        this.isIncendiary = (level instanceof ServerLevel serverLevel) && serverLevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING); // CraftBukkit
++        this.isIncendiary = (level instanceof ServerLevel serverLevel) && serverLevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING, serverLevel.purpurConfig.fireballsMobGriefingOverride); // CraftBukkit // Purpur - Add mobGriefing override to everything affected
      }
  
      public LargeFireball(Level p_181151_, LivingEntity p_181152_, Vec3 p_347580_, int p_181156_) {
          super(EntityType.FIREBALL, p_181152_, p_347580_, p_181151_);
          this.explosionPower = p_181156_;
-+        this.isIncendiary = (p_181151_ instanceof ServerLevel serverLevel) && net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, p_181152_); // CraftBukkit
++        this.isIncendiary = (p_181151_ instanceof ServerLevel serverLevel) && (serverLevel.purpurConfig.fireballsMobGriefingOverride != null ? serverLevel.purpurConfig.fireballsMobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, p_181152_)); // CraftBukkit // Purpur - Add mobGriefing override to everything affected
      }
  
      @Override
@@ -28,7 +28,7 @@
 +        super.onHit(result);
 +        if (this.level() instanceof ServerLevel serverLevel) {
 +            // TODO 1.19.3: The creation of Level.ExplosionInteraction means this code path will fire EntityMobGriefingEvent twice. Should we try and fix it? -SS
-+            boolean _boolean = net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, this.getOwner());
++            boolean _boolean = serverLevel.purpurConfig.fireballsMobGriefingOverride != null ? serverLevel.purpurConfig.fireballsMobGriefingOverride : net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, this.getOwner()); // Purpur - Add mobGriefing override to everything affected
 +            // CraftBukkit start - fire ExplosionPrimeEvent
 +            org.bukkit.event.entity.ExplosionPrimeEvent event = new org.bukkit.event.entity.ExplosionPrimeEvent((org.bukkit.entity.Explosive) this.getBukkitEntity());
 +            if (event.callEvent()) {
