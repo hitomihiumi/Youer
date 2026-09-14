@@ -28,3 +28,111 @@
      }
  
      @Override
+@@ -269,6 +_,60 @@
+         return p_55615_.isFaceSturdy(p_55613_, p_55614_, Direction.UP) || p_55615_.is(Blocks.HOPPER);
+     }
+ 
++    // Paper start - Optimize redstone (Eigencraft)
++    // The bulk of the new functionality is found in RedstoneWireTurbo.java
++    io.papermc.paper.redstone.RedstoneWireTurbo turbo = new io.papermc.paper.redstone.RedstoneWireTurbo(this);
++
++    /*
++     * Modified version of pre-existing updateSurroundingRedstone, which is called from
++     * this.neighborChanged and a few other methods in this class.
++     * Note: Added 'source' argument so as to help determine direction of information flow
++     */
++    private void updateSurroundingRedstone(Level worldIn, BlockPos pos, BlockState state, @Nullable Orientation orientation, boolean blockAdded) {
++        if (worldIn.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.EIGENCRAFT) {
++            // since 24w33a the source pos is no longer given, but instead an Orientation parameter
++            // when this is not null, it can be used to find the source pos, which the turbo uses
++            // to find the direction of information flow
++            BlockPos source = null;
++            if (orientation != null) {
++                source = pos.relative(orientation.getFront().getOpposite());
++            }
++            turbo.updateSurroundingRedstone(worldIn, pos, state, source);
++            return;
++        }
++        updatePowerStrength(worldIn, pos, state, orientation, blockAdded);
++    }
++
++    /*
++     * This method computes a wire's target strength and updates the given block state.
++     * It uses the DefaultRedstoneWireEvaluator for this, which is identical to code
++     * that was present in this class prior to the introduction of the experimental redstone
++     * changes in 24w33a.
++     * The previous implementation of this method in this patch had optimizations that have
++     * not been relevant since 1.13, thus it has been greatly simplified.
++     */
++    public BlockState calculateCurrentChanges(Level level, BlockPos pos, BlockState state) {
++        int oldPower = state.getValue(POWER);
++        int newPower = ((DefaultRedstoneWireEvaluator) evaluator).calculateTargetStrength(level, pos);
++        if (oldPower != newPower) {
++            org.bukkit.event.block.BlockRedstoneEvent event = new org.bukkit.event.block.BlockRedstoneEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), oldPower, newPower);
++            level.getCraftServer().getPluginManager().callEvent(event);
++
++            newPower = event.getNewCurrent();
++
++            if (level.getBlockState(pos) == state) {
++                state = state.setValue(POWER, newPower);
++                // [Space Walker] suppress shape updates and emit those manually to
++                // bypass the new neighbor update stack.
++                if (level.setBlock(pos, state, Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS)) {
++                    turbo.updateNeighborShapes(level, pos, state);
++                }
++            }
++        }
++        return state;
++    }
++    // Paper end
++
+     private void updatePowerStrength(Level p_55531_, BlockPos p_55532_, BlockState p_55533_, @Nullable Orientation p_362758_, boolean p_366538_) {
+         if (useExperimentalEvaluator(p_55531_)) {
+             new ExperimentalRedstoneWireEvaluator(this).updatePowerStrength(p_55531_, p_55532_, p_55533_, p_362758_, p_366538_);
+@@ -297,7 +_,13 @@
+     @Override
+     protected void onPlace(BlockState p_55630_, Level p_55631_, BlockPos p_55632_, BlockState p_55633_, boolean p_55634_) {
+         if (!p_55633_.is(p_55630_.getBlock()) && !p_55631_.isClientSide) {
+-            this.updatePowerStrength(p_55631_, p_55632_, p_55630_, null, true);
++            // Paper start - optimize redstone - replace call to updatePowerStrength
++            if (p_55631_.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++                p_55631_.getWireHandler().onWireAdded(p_55632_, p_55630_); // Alternate Current
++            } else {
++                this.updateSurroundingRedstone(p_55631_, p_55632_, p_55630_, null, true); // Vanilla/Eigencraft
++            }
++            // Paper end - optimize redstone
+ 
+             for (Direction direction : Direction.Plane.VERTICAL) {
+                 p_55631_.updateNeighborsAt(p_55632_.relative(direction), this);
+@@ -314,7 +_,13 @@
+                 p_393706_.updateNeighborsAt(p_394400_.relative(direction), this);
+             }
+ 
+-            this.updatePowerStrength(p_393706_, p_394400_, p_393608_, null, false);
++            // Paper start - optimize redstone - replace call to updatePowerStrength
++            if (p_393706_.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++                p_393706_.getWireHandler().onWireRemoved(p_394400_, p_393608_); // Alternate Current
++            } else {
++                this.updateSurroundingRedstone(p_393706_, p_394400_, p_393608_, null, false); // Vanilla/Eigencraft
++            }
++            // Paper end - optimize redstone
+             this.updateNeighborsOfNeighboringWires(p_393706_, p_394400_);
+         }
+     }
+@@ -337,9 +_,15 @@
+     @Override
+     protected void neighborChanged(BlockState p_55561_, Level p_55562_, BlockPos p_55563_, Block p_55564_, @Nullable Orientation p_362973_, boolean p_55566_) {
+         if (!p_55562_.isClientSide) {
++            // Paper start - optimize redstone (Alternate Current)
++            // Alternate Current handles breaking of redstone wires in the WireHandler.
++            if (p_55562_.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++                p_55562_.getWireHandler().onWireUpdated(pos, state, orientation);
++            } else
++                // Paper end - optimize redstone (Alternate Current)
+             if (p_55564_ != this || !useExperimentalEvaluator(p_55562_)) {
+                 if (p_55561_.canSurvive(p_55562_, p_55563_)) {
+-                    this.updatePowerStrength(p_55562_, p_55563_, p_55561_, p_362973_, false);
++                    this.updateSurroundingRedstone(p_55562_, p_55563_, p_55561_, p_362973_, false); // Paper - Optimize redstone (Eigencraft)
+                 } else {
+                     dropResources(p_55561_, p_55562_, p_55563_);
+                     p_55562_.removeBlock(p_55563_, false);

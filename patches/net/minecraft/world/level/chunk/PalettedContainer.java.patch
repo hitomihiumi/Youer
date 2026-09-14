@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/level/chunk/PalettedContainer.java
 +++ b/net/minecraft/world/level/chunk/PalettedContainer.java
-@@ -31,14 +_,14 @@
+@@ -31,23 +_,32 @@
      public final IdMap<T> registry;
      public volatile PalettedContainer.Data<T> data;
      private final PalettedContainer.Strategy strategy;
 -    private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer");
++    private final T @org.jetbrains.annotations.Nullable [] presetValues; // Paper - Anti-Xray - Add preset values
 +    //private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer"); // Paper - unused
  
      public void acquire() {
@@ -17,19 +18,130 @@
 +        // this.threadingDetector.checkAndUnlock(); // Paper - disable this - use proper synchronization
      }
  
++    // Paper start - Anti-Xray - Add preset values
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
      public static <T> Codec<PalettedContainer<T>> codecRW(IdMap<T> p_238372_, Codec<T> p_238373_, PalettedContainer.Strategy p_238374_, T p_238375_) {
-@@ -106,7 +_,7 @@
+-        PalettedContainerRO.Unpacker<T, PalettedContainer<T>> unpacker = PalettedContainer::unpack;
+-        return codec(p_238372_, p_238373_, p_238374_, p_238375_, unpacker);
++        return PalettedContainer.codecRW(p_238372_, p_238373_, p_238374_, p_238375_, null);
++    }
++    public static <T> Codec<PalettedContainer<T>> codecRW(IdMap<T> registry, Codec<T> codec, PalettedContainer.Strategy strategy, T value, T @org.jetbrains.annotations.Nullable [] presetValues) {
++        PalettedContainerRO.Unpacker<T, PalettedContainer<T>> unpacker = (idListx, paletteProviderx, serialized) -> {
++            return unpack(idListx, paletteProviderx, serialized, value, presetValues);
++        };
++        // Paper end
++        return codec(registry, codec, strategy, value, unpacker);
+     }
+ 
+     public static <T> Codec<PalettedContainerRO<T>> codecRO(IdMap<T> p_238419_, Codec<T> p_238420_, PalettedContainer.Strategy p_238421_, T p_238422_) {
+-        PalettedContainerRO.Unpacker<T, PalettedContainerRO<T>> unpacker = (p_338083_, p_338084_, p_338085_) -> unpack(p_338083_, p_338084_, p_338085_)
++        PalettedContainerRO.Unpacker<T, PalettedContainerRO<T>> unpacker = (p_338083_, p_338084_, p_338085_) -> unpack(p_338083_, p_338084_, p_338085_, p_238422_, null) // Paper - Anti-Xray - Add preset values
+             .map(p_238264_ -> (PalettedContainerRO<T>)p_238264_);
+         return codec(p_238419_, p_238420_, p_238421_, p_238422_, unpacker);
+     }
+@@ -71,27 +_,66 @@
+             );
+     }
+ 
++    // Paper start - Anti-Xray - Add preset values
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
++    public PalettedContainer(IdMap<T> registry, PalettedContainer.Strategy strategy, PalettedContainer.Configuration<T> configuration, BitStorage storage, List<T> values) {
++        this(registry, strategy, configuration, storage, values, null, null);
++    }
+     public PalettedContainer(
+-        IdMap<T> p_188035_, PalettedContainer.Strategy p_188036_, PalettedContainer.Configuration<T> p_188037_, BitStorage p_188038_, List<T> p_188039_
++        IdMap<T> p_188035_, PalettedContainer.Strategy p_188036_, PalettedContainer.Configuration<T> p_188037_, BitStorage p_188038_, List<T> p_188039_, T defaultValue, T @org.jetbrains.annotations.Nullable [] presetValues
+     ) {
++        this.presetValues = presetValues;
+         this.registry = p_188035_;
+         this.strategy = p_188036_;
+         this.data = new PalettedContainer.Data<>(p_188037_, p_188038_, p_188037_.factory().create(p_188037_.bits(), p_188035_, this, p_188039_));
++        if (presetValues != null && (p_188037_.factory() == PalettedContainer.Strategy.SINGLE_VALUE_PALETTE_FACTORY ? this.data.palette.valueFor(0) != defaultValue : p_188037_.factory() != PalettedContainer.Strategy.GLOBAL_PALETTE_FACTORY)) {
++            // In 1.18 Mojang unfortunately removed code that already handled possible resize operations on read from disk for us
++            // We readd this here but in a smarter way than it was before
++            int maxSize = 1 << p_188037_.bits();
++
++            for (T presetValue : presetValues) {
++                if (this.data.palette.getSize() >= maxSize) {
++                    java.util.Set<T> allValues = new java.util.HashSet<>(p_188039_);
++                    allValues.addAll(Arrays.asList(presetValues));
++                    int newBits = Mth.ceillog2(allValues.size());
++
++                    if (newBits > p_188037_.bits()) {
++                        this.onResize(newBits, null);
++                    }
++
++                    break;
++                }
++
++                this.data.palette.idFor(presetValue);
++            }
++        }
++        // Paper end
+     }
+ 
+-    private PalettedContainer(IdMap<T> p_199928_, PalettedContainer.Strategy p_199929_, PalettedContainer.Data<T> p_199930_) {
++    // Paper start - Anti-Xray - Add preset values
++    private PalettedContainer(IdMap<T> p_199928_, PalettedContainer.Strategy p_199929_, PalettedContainer.Data<T> p_199930_, T @org.jetbrains.annotations.Nullable [] presetValues) {
++        this.presetValues = presetValues;
++        // Paper end - Anti-Xray
+         this.registry = p_199928_;
+         this.strategy = p_199929_;
+         this.data = p_199930_;
+     }
+ 
+-    private PalettedContainer(PalettedContainer<T> p_364034_) {
++    private PalettedContainer(PalettedContainer<T> p_364034_, T @org.jetbrains.annotations.Nullable [] presetValues) { // Paper - Anti-Xray - Add preset values
++        this.presetValues = presetValues; // Paper - Anti-Xray - Add preset values
+         this.registry = p_364034_.registry;
+         this.strategy = p_364034_.strategy;
+         this.data = p_364034_.data.copy(this);
+     }
+ 
++    // Paper start - Anti-Xray - Add preset values
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
+     public PalettedContainer(IdMap<T> p_188041_, T p_188042_, PalettedContainer.Strategy p_188043_) {
++        this(p_188041_, p_188042_, p_188043_, null);
++    }
++    public PalettedContainer(IdMap<T> p_188041_, T p_188042_, PalettedContainer.Strategy p_188043_, T @org.jetbrains.annotations.Nullable [] presetValues) {
++        this.presetValues = presetValues;
++        // Paper end - Anti-Xray
+         this.strategy = p_188043_;
+         this.registry = p_188041_;
+         this.data = this.createOrReuseData(null, 0);
+@@ -106,15 +_,34 @@
      }
  
      @Override
 -    public int onResize(int p_63142_, T p_63143_) {
 +    public synchronized int onResize(int p_63142_, T p_63143_) { // Paper - synchronize
          PalettedContainer.Data<T> data = this.data;
++        // Paper start - Anti-Xray - Add preset values
++        if (this.presetValues != null && p_63143_ != null && data.configuration().factory() == PalettedContainer.Strategy.SINGLE_VALUE_PALETTE_FACTORY) {
++            int duplicates = 0;
++            List<T> presetValues = Arrays.asList(this.presetValues);
++            duplicates += presetValues.contains(p_63143_) ? 1 : 0;
++            duplicates += presetValues.contains(data.palette.valueFor(0)) ? 1 : 0;
++            p_63142_ = Mth.ceillog2((1 << this.strategy.calculateBitsForSerialization(this.registry, 1 << p_63142_)) + presetValues.size() - duplicates);
++        }
++        // Paper end - Anti-Xray
          PalettedContainer.Data<T> data1 = this.createOrReuseData(data, p_63142_);
          data1.copyFrom(data.palette, data.storage);
-@@ -114,7 +_,7 @@
-         return data1.palette.idFor(p_63143_);
-     }
+         this.data = data1;
+-        return data1.palette.idFor(p_63143_);
+-    }
++        // Paper start - Anti-Xray
++        this.addPresetValues();
++        return p_63143_ == null ? -1 : data1.palette.idFor(p_63143_);
++    }
++    private void addPresetValues() {
++        if (this.presetValues != null && this.data.configuration().factory() != PalettedContainer.Strategy.GLOBAL_PALETTE_FACTORY) {
++            for (T presetValue : this.presetValues) {
++                this.data.palette.idFor(presetValue);
++            }
++        }
++    }
++    // Paper end - Anti-Xray
  
 -    public T getAndSet(int p_63092_, int p_63093_, int p_63094_, T p_63095_) {
 +    public synchronized T getAndSet(int p_63092_, int p_63093_, int p_63094_, T p_63095_) { // Paper - synchronize
@@ -54,16 +166,50 @@
          this.acquire();
  
          try {
-@@ -185,7 +_,7 @@
+@@ -179,24 +_,35 @@
+             data.palette.read(p_63119_);
+             p_63119_.readFixedSizeLongArray(data.storage.getRaw());
+             this.data = data;
++            this.addPresetValues(); // Paper - Anti-Xray - Add preset values (inefficient, but this isn't used by the server)
+         } finally {
+             this.release();
+         }
      }
  
++    // Paper start - Anti-Xray; Add chunk packet info
      @Override
--    public void write(FriendlyByteBuf p_63136_) {
-+    public synchronized void write(FriendlyByteBuf p_63136_) { // Paper - synchronize
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
+     public void write(FriendlyByteBuf p_63136_) {
++        this.write(p_63136_, null, 0);
++    }
++    @Override
++    public synchronized void write(FriendlyByteBuf p_63136_, @Nullable io.papermc.paper.antixray.ChunkPacketInfo<T> chunkPacketInfo, int chunkSectionIndex) { // Paper - Synchronize
          this.acquire();
  
          try {
-@@ -233,7 +_,7 @@
+-            this.data.write(p_63136_);
++            this.data.write(p_63136_, chunkPacketInfo, chunkSectionIndex);
++            if (chunkPacketInfo != null) {
++                chunkPacketInfo.setPresetValues(chunkSectionIndex, this.presetValues);
++            }
++            // Paper end - Anti-Xray
+         } finally {
+             this.release();
+         }
+     }
+ 
+     private static <T> DataResult<PalettedContainer<T>> unpack(
+-        IdMap<T> p_188068_, PalettedContainer.Strategy p_188069_, PalettedContainerRO.PackedData<T> p_238258_
++        IdMap<T> p_188068_, PalettedContainer.Strategy p_188069_, PalettedContainerRO.PackedData<T> p_238258_, T defaultValue, T @org.jetbrains.annotations.Nullable [] presetValues // Paper - Anti-Xray - Add preset values
+     ) {
+         List<T> list = p_238258_.paletteEntries();
+         int i = p_188069_.size();
+@@ -229,11 +_,11 @@
+             }
+         }
+ 
+-        return DataResult.success(new PalettedContainer<>(p_188068_, p_188069_, configuration, bitstorage, list));
++        return DataResult.success(new PalettedContainer<>(p_188068_, p_188069_, configuration, bitstorage, list, defaultValue, presetValues)); // Paper - Anti-Xray - Add preset values
      }
  
      @Override
@@ -72,3 +218,36 @@
          this.acquire();
  
          PalettedContainerRO.PackedData palettedcontainerro$packeddata;
+@@ -287,12 +_,12 @@
+ 
+     @Override
+     public PalettedContainer<T> copy() {
+-        return new PalettedContainer<>(this);
++        return new PalettedContainer<>(this, this.presetValues); // Paper - Anti-Xray - Add preset values
+     }
+ 
+     @Override
+     public PalettedContainer<T> recreate() {
+-        return new PalettedContainer<>(this.registry, this.data.palette.valueFor(0), this.strategy);
++        return new PalettedContainer<>(this.registry, this.data.palette.valueFor(0), this.strategy, this.presetValues); // Paper - Anti-Xray - Add preset values
+     }
+ 
+     @Override
+@@ -332,9 +_,16 @@
+             return 1 + this.palette.getSerializedSize() + this.storage.getRaw().length * 8;
+         }
+ 
+-        public void write(FriendlyByteBuf p_188115_) {
++        // Paper start - Anti-Xray - Add chunk packet info
++        public void write(FriendlyByteBuf p_188115_, @Nullable io.papermc.paper.antixray.ChunkPacketInfo<T> chunkPacketInfo, int chunkSectionIndex) {
+             p_188115_.writeByte(this.storage.getBits());
+             this.palette.write(p_188115_);
++            if (chunkPacketInfo != null) {
++                chunkPacketInfo.setBits(chunkSectionIndex, this.configuration.bits());
++                chunkPacketInfo.setPalette(chunkSectionIndex, this.palette);
++                chunkPacketInfo.setIndex(chunkSectionIndex, p_188115_.writerIndex());
++            }
++        // Paper end - Anti-Xray - Add chunk packet info
+             p_188115_.writeFixedSizeLongArray(this.storage.getRaw());
+         }
+ 

@@ -1,0 +1,88 @@
+--- a/net/minecraft/core/SectionPos.java
++++ b/net/minecraft/core/SectionPos.java
+@@ -38,7 +_,7 @@
+     }
+ 
+     public static SectionPos of(BlockPos p_123200_) {
+-        return new SectionPos(blockToSectionCoord(p_123200_.getX()), blockToSectionCoord(p_123200_.getY()), blockToSectionCoord(p_123200_.getZ()));
++        return new SectionPos(p_123200_.getX() >> 4, p_123200_.getY() >> 4, p_123200_.getZ() >> 4); // Paper
+     }
+ 
+     public static SectionPos of(ChunkPos p_123197_, int p_123198_) {
+@@ -54,7 +_,7 @@
+     }
+ 
+     public static SectionPos of(long p_123185_) {
+-        return new SectionPos(x(p_123185_), y(p_123185_), z(p_123185_));
++        return new SectionPos((int) (p_123185_ >> 42), (int) (p_123185_ << 44 >> 44), (int) (p_123185_ << 22 >> 42)); // Paper
+     }
+ 
+     public static SectionPos bottomOf(ChunkAccess p_175563_) {
+@@ -65,8 +_,16 @@
+         return offset(p_123192_, p_123193_.getStepX(), p_123193_.getStepY(), p_123193_.getStepZ());
+     }
+ 
++    // Paper start
++    public static long getAdjacentFromBlockPos(int x, int y, int z, Direction direction) {
++        return (((long) ((x >> 4) + direction.getStepX()) & 4194303L) << 42) | (((long) ((y >> 4) + direction.getStepY()) & 1048575L)) | (((long) ((z >> 4) + direction.getStepZ()) & 4194303L) << 20);
++    }
++    public static long getAdjacentFromSectionPos(int x, int y, int z, Direction direction) {
++        return (((long) (x + direction.getStepX()) & 4194303L) << 42) | (((long) ((y) + direction.getStepY()) & 1048575L)) | (((long) (z + direction.getStepZ()) & 4194303L) << 20);
++    }
++    // Paper end
+     public static long offset(long p_123187_, int p_123188_, int p_123189_, int p_123190_) {
+-        return asLong(x(p_123187_) + p_123188_, y(p_123187_) + p_123189_, z(p_123187_) + p_123190_);
++        return (((long) ((int) (p_123187_ >> 42) + p_123188_) & 4194303L) << 42) | (((long) ((int) (p_123187_ << 44 >> 44) + p_123189_) & 1048575L)) | (((long) ((int) (p_123187_ << 22 >> 42) + p_123190_) & 4194303L) << 20); // Simplify to reduce instruction count
+     }
+ 
+     public static int posToSectionCoord(double p_175553_) {
+@@ -86,10 +_,7 @@
+     }
+ 
+     public static short sectionRelativePos(BlockPos p_123219_) {
+-        int i = sectionRelative(p_123219_.getX());
+-        int j = sectionRelative(p_123219_.getY());
+-        int k = sectionRelative(p_123219_.getZ());
+-        return (short)(i << 8 | k << 4 | j << 0);
++        return (short) ((pos.getX() & 15) << 8 | (pos.getZ() & 15) << 4 | pos.getY() & 15); // Paper - simplify/inline
+     }
+ 
+     public static int sectionRelativeX(short p_123205_) {
+@@ -152,16 +_,16 @@
+         return this.getZ();
+     }
+ 
+-    public int minBlockX() {
+-        return sectionToBlockCoord(this.x());
+-    }
+-
+-    public int minBlockY() {
+-        return sectionToBlockCoord(this.y());
+-    }
+-
+-    public int minBlockZ() {
+-        return sectionToBlockCoord(this.z());
++    public final int minBlockX() { // Paper - final
++        return this.getX() << 4; // Paper - inline
++    }
++
++    public final int minBlockY() { // Paper - final
++        return this.getY() << 4; // Paper - inline
++    }
++
++    public final int minBlockZ() { // Paper - final
++        return this.getZ() << 4; // Paper - inline
+     }
+ 
+     public int maxBlockX() {
+@@ -177,9 +_,7 @@
+     }
+ 
+     public static long blockToSection(long p_123236_) {
+-        return asLong(
+-            blockToSectionCoord(BlockPos.getX(p_123236_)), blockToSectionCoord(BlockPos.getY(p_123236_)), blockToSectionCoord(BlockPos.getZ(p_123236_))
+-        );
++        return (((long) (int) (p_123236_ >> 42) & 4194303L) << 42) | (((long) (int) ((p_123236_ << 52) >> 56) & 1048575L)) | (((long) (int) ((p_123236_ << 26) >> 42) & 4194303L) << 20); // Simplify to reduce instruction count
+     }
+ 
+     public static long getZeroNode(int p_285381_, int p_285068_) {

@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/CollisionGetter.java
++++ b/net/minecraft/world/level/CollisionGetter.java
+@@ -50,11 +_,13 @@
+     }
+ 
+     default boolean noCollision(@Nullable Entity p_364564_, AABB p_364942_, boolean p_362912_) {
++        try { if (p_364564_ != null) p_364564_.collisionLoadChunks = true; // Paper
+         for (VoxelShape voxelshape : p_362912_ ? this.getBlockAndLiquidCollisions(p_364564_, p_364942_) : this.getBlockCollisions(p_364564_, p_364942_)) {
+             if (!voxelshape.isEmpty()) {
+                 return false;
+             }
+         }
++        } finally { if (entity != null) entity.collisionLoadChunks = false; } // Paper
+ 
+         if (!this.getEntityCollisions(p_364564_, p_364942_).isEmpty()) {
+             return false;

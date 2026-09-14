@@ -31,14 +31,24 @@
          this.upgradeData = p_187622_;
          this.levelHeightAccessor = p_187623_;
          this.sections = new LevelChunkSection[p_187623_.getSectionsCount()];
-@@ -110,6 +_,7 @@
+@@ -109,13 +_,14 @@
+             }
          }
  
-         replaceMissingSections(p_187624_, this.sections);
+-        replaceMissingSections(p_187624_, this.sections);
++        this.replaceMissingSections(p_187624_, this.sections); // Paper - Anti-Xray - make it a non-static method
 +        this.biomeRegistry = p_187624_; // CraftBukkit
      }
  
-     private static void replaceMissingSections(Registry<Biome> p_281389_, LevelChunkSection[] p_282796_) {
+-    private static void replaceMissingSections(Registry<Biome> p_281389_, LevelChunkSection[] p_282796_) {
++    private void replaceMissingSections(Registry<Biome> p_281389_, LevelChunkSection[] p_282796_) { // Paper - Anti-Xray - make it a non-static method
+         for (int i = 0; i < p_282796_.length; i++) {
+             if (p_282796_[i] == null) {
+-                p_282796_[i] = new LevelChunkSection(p_281389_);
++                p_282796_[i] = new LevelChunkSection(p_281389_, this.levelHeightAccessor instanceof net.minecraft.world.level.Level ? (net.minecraft.world.level.Level) this.levelHeightAccessor : null, this.chunkPos, this.levelHeightAccessor.getSectionYFromSectionIndex(i)); // Paper - Anti-Xray - Add parameters
+             }
+         }
+     }
 @@ -124,6 +_,8 @@
          return GameEventListenerRegistry.NOOP;
      }

@@ -1460,6 +1460,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
         // Paper start - Teleport passenger API
         // Don't allow teleporting between worlds while keeping passengers
         if (ignorePassengers && entity.isVehicle() && location.getWorld() != this.getWorld()) {
+            if (!new org.purpurmc.purpur.event.entity.EntityTeleportHinderedEvent(entity.getBukkitEntity(), org.purpurmc.purpur.event.entity.EntityTeleportHinderedEvent.Reason.IS_VEHICLE, cause).callEvent()) // Purpur - Add EntityTeleportHinderedEvent
             return false;
         }
 

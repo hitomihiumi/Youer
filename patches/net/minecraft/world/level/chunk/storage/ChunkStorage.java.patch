@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/storage/ChunkStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/ChunkStorage.java
-@@ -38,17 +_,30 @@
+@@ -38,27 +_,54 @@
          return this.worker.isOldChunkAround(p_223452_, p_223453_);
      }
  
@@ -22,7 +22,7 @@
          } else {
              try {
 +                // CraftBukkit start
-+                if (i < 1466) {
++                if (false && i < 1466) { // Paper - no longer needed, data converter system / DFU handles it now
 +                    CompoundTag level = p_188291_.getCompoundOrEmpty("Level");
 +                    if (level.getBooleanOr("TerrainPopulated", false) && !level.getBooleanOr("LightPopulated", false)) {
 +                        // Light is purged updating to 1.14+. We need to set light populated to true so the converter recognizes the chunk as being "full"
@@ -31,9 +31,11 @@
 +                }
 +                // CraftBukkit end
                  if (i < 1493) {
-                     p_188291_ = DataFixTypes.CHUNK.update(this.fixerUpper, p_188291_, i, 1493);
+-                    p_188291_ = DataFixTypes.CHUNK.update(this.fixerUpper, p_188291_, i, 1493);
++                    p_188291_ = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK, p_188291_, i, 1493); // Paper - replace chunk converter
                      if (p_188291_.getCompound("Level").flatMap(p_409525_ -> p_409525_.getBoolean("hasLegacyStructureData")).orElse(false)) {
-@@ -57,8 +_,22 @@
+                         LegacyStructureDataHandler legacystructuredatahandler = this.getLegacyStructureHandler(p_188289_, p_188290_);
+                         p_188291_ = legacystructuredatahandler.updateFromLegacy(p_188291_);
                      }
                  }
  
@@ -47,7 +49,8 @@
 +                // Spigot end
 +
                  injectDatafixingContext(p_188291_, p_188289_, p_188292_);
-                 p_188291_ = DataFixTypes.CHUNK.updateToCurrentVersion(this.fixerUpper, p_188291_, Math.max(1493, i));
+-                p_188291_ = DataFixTypes.CHUNK.updateToCurrentVersion(this.fixerUpper, p_188291_, Math.max(1493, i));
++                p_188291_ = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK, p_188291_, Math.max(1493, i), ca.spottedleaf.dataconverter.minecraft.util.Version.getCurrentVersion()); // Paper - replace chunk converter
 +                // Spigot start
 +                if (stopBelowZero) {
 +                    p_188291_.putString("Status", net.minecraft.core.registries.BuiltInRegistries.CHUNK_STATUS.getKey(net.minecraft.world.level.chunk.status.ChunkStatus.SPAWN).toString());

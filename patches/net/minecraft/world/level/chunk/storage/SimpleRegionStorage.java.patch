@@ -1,0 +1,34 @@
+--- a/net/minecraft/world/level/chunk/storage/SimpleRegionStorage.java
++++ b/net/minecraft/world/level/chunk/storage/SimpleRegionStorage.java
+@@ -32,14 +_,29 @@
+         return this.worker.store(p_321715_, p_321816_);
+     }
+ 
++    // Paper start - rewrite data conversion system
++    private ca.spottedleaf.dataconverter.minecraft.datatypes.MCDataType getDataConverterType() {
++        if (this.dataFixType == DataFixTypes.ENTITY_CHUNK) {
++            return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY_CHUNK;
++        } else if (this.dataFixType == DataFixTypes.POI_CHUNK) {
++            return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.POI_CHUNK;
++        } else {
++            throw new UnsupportedOperationException("For " + this.dataFixType.name());
++        }
++    }
++    // Paper end - rewrite data conversion system
++
+     public CompoundTag upgradeChunkTag(CompoundTag p_321601_, int p_321496_) {
+         int i = NbtUtils.getDataVersion(p_321601_, p_321496_);
+-        CompoundTag compoundtag = this.dataFixType.updateToCurrentVersion(this.fixerUpper, p_321601_, i);
++        CompoundTag compoundtag = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(this.getDataConverterType(), p_321601_, i, ca.spottedleaf.dataconverter.minecraft.util.Version.getCurrentVersion());; // Paper start - rewrite data conversion system
+         return NbtUtils.addCurrentDataVersion(compoundtag);
+     }
+ 
+     public Dynamic<Tag> upgradeChunkTag(Dynamic<Tag> p_321643_, int p_321759_) {
+-        return this.dataFixType.updateToCurrentVersion(this.fixerUpper, p_321643_, p_321759_);
++        // Paper start - rewrite data conversion system
++        final CompoundTag converted = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(this.getDataConverterType(), (CompoundTag)p_321643_.getValue(), p_321759_, ca.spottedleaf.dataconverter.minecraft.util.Version.getCurrentVersion());
++        return new Dynamic<>(p_321643_.getOps(), converted);
++        // Paper end - rewrite data conversion system
+     }
+ 
+     public CompletableFuture<Void> synchronize(boolean p_321682_) {

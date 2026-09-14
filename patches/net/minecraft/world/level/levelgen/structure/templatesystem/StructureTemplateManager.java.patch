@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplateManager.java
++++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplateManager.java
+@@ -244,7 +_,7 @@
+     public StructureTemplate readStructure(CompoundTag p_230405_) {
+         StructureTemplate structuretemplate = new StructureTemplate();
+         int i = NbtUtils.getDataVersion(p_230405_, 500);
+-        structuretemplate.load(this.blockLookup, DataFixTypes.STRUCTURE.updateToCurrentVersion(this.fixerUpper, p_230405_, i));
++        structuretemplate.load(this.blockLookup, ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.STRUCTURE, p_230405_, i, ca.spottedleaf.dataconverter.minecraft.util.Version.getCurrentVersion())); // Paper - rewrite data conversion system
+         return structuretemplate;
+     }
+ 

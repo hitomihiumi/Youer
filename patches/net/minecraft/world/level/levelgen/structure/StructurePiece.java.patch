@@ -86,10 +86,10 @@
 +            // if (blockEntity instanceof ChestBlockEntity) {
 +            //     ((ChestBlockEntity)blockEntity).setLootTable(lootTable, random.nextLong());
 +            // }
-+            org.bukkit.craftbukkit.block.CraftChest chestState = (org.bukkit.craftbukkit.block.CraftChest) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(level, pos, state, null);
-+            chestState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(lootTable));
-+            chestState.setSeed(random.nextLong());
-+            this.placeCraftBlockEntity(level, pos, chestState, 2);
++            org.bukkit.craftbukkit.block.CraftChest chestState = (org.bukkit.craftbukkit.block.CraftChest) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(p_226763_, p_226766_, p_226768_, null);
++            chestState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(p_335513_));
++            chestState.setSeed(p_226765_.nextLong());
++            this.placeCraftBlockEntity(p_226763_, p_226766_, chestState, 2);
 +            // CraftBukkit end
  
              return true;

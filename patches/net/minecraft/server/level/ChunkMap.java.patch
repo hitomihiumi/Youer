@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
+@@ -20,7 +_,6 @@
+ import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+-import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
+ import java.io.IOException;
+ import java.io.Writer;
+ import java.nio.file.Path;
 @@ -150,6 +_,33 @@
      public int serverViewDistance;
      private final WorldGenContext worldGenContext;
@@ -56,15 +64,28 @@
          this.mainThreadExecutor = p_214841_;
          ConsecutiveExecutor consecutiveexecutor1 = new ConsecutiveExecutor(p_214840_, "worldgen");
          this.progressListener = p_214844_;
-@@ -214,6 +_,12 @@
+@@ -214,6 +_,25 @@
          this.chunksToEagerlySave.add(p_381702_.toLong());
      }
  
-+    // Paper start
-+    public int getMobCountNear(final ServerPlayer player, final net.minecraft.world.entity.MobCategory mobCategory) {
-+        return -1;
++    // Paper start - Optional per player mob spawns
++    public void updatePlayerMobTypeMap(final Entity entity) {
++        if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
++            return;
++        }
++
++        final int index = entity.getType().getCategory().ordinal();
++        // Youer - moonrise's NearbyPlayers index is excluded; vanilla's per-chunk
++        // player list over the tick view distance answers the same question
++        for (final ServerPlayer player : this.getPlayers(entity.chunkPosition(), false)) {
++            ++(player.mobCounts[index]);
++        }
 +    }
-+    // Paper end
++
++    public int getMobCountNear(final ServerPlayer player, final net.minecraft.world.entity.MobCategory mobCategory) {
++        return player.mobCounts[mobCategory.ordinal()];
++    }
++    // Paper end - Optional per player mob spawns
 +
      protected ChunkGenerator generator() {
          return this.worldGenContext.generator();
@@ -331,7 +352,7 @@
      class DistanceManager extends net.minecraft.server.level.DistanceManager {
          protected DistanceManager(TicketStorage p_394597_, Executor p_140459_, Executor p_140460_) {
              super(p_394597_, p_140459_, p_140460_);
-@@ -1335,24 +_,47 @@
+@@ -1335,24 +_,48 @@
          }
  
          public void removePlayer(ServerPlayer p_140486_) {
@@ -381,6 +402,7 @@
                          this.serverEntity.addPairing(p_140498_);
 +                        }
 +                        // Paper end - entity tracking events
++                        this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
                      }
                  } else if (this.seenBy.remove(p_140498_.connection)) {
                      this.serverEntity.removePairing(p_140498_);

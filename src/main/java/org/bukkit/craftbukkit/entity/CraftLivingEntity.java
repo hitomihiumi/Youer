@@ -1167,4 +1167,16 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     public CombatTracker getCombatTracker() {
         return this.getHandle().getCombatTracker().paperCombatTracker;
     }
+
+    // Purpur start - API for any mob to burn daylight
+    @Override
+    public boolean shouldBurnInDay() {
+        return this.getHandle().shouldBurnInDay();
+    }
+
+    @Override
+    public void setShouldBurnInDay(final boolean shouldBurnInDay) {
+        this.getHandle().setShouldBurnInDay(shouldBurnInDay);
+    }
+    // Purpur end - API for any mob to burn daylight
 }

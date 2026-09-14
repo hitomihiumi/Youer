@@ -1,0 +1,14 @@
+--- a/net/minecraft/network/protocol/game/ClientboundChunksBiomesPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundChunksBiomesPacket.java
+@@ -69,8 +_,10 @@
+         }
+ 
+         public static void extractChunkData(FriendlyByteBuf p_275626_, LevelChunk p_275570_) {
++            int chunkSectionIndex = 0; // Paper - Anti-Xray
+             for (LevelChunkSection levelchunksection : p_275570_.getSections()) {
+-                levelchunksection.getBiomes().write(p_275626_);
++                levelchunksection.getBiomes().write(p_275626_, null, chunkSectionIndex); // Paper - Anti-Xray
++                chunkSectionIndex++; // Paper - Anti-Xray
+             }
+ 
+             if (p_275626_.writerIndex() != p_275626_.capacity()) {

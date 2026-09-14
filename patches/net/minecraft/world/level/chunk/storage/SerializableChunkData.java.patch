@@ -11,10 +11,36 @@
  ) {
      private static final Codec<PalettedContainer<BlockState>> BLOCK_STATE_CODEC = PalettedContainer.codecRW(
          Block.BLOCK_STATE_REGISTRY, BlockState.CODEC, PalettedContainer.Strategy.SECTION_STATES, Blocks.AIR.defaultBlockState()
-@@ -112,6 +_,33 @@
+@@ -112,8 +_,62 @@
      public static final String BLOCK_LIGHT_TAG = "BlockLight";
      public static final String SKY_LIGHT_TAG = "SkyLight";
  
++    // Paper start - guard against serializing mismatching coordinates
++    // TODO Note: This needs to be re-checked each update
++    public static ChunkPos getChunkCoordinate(final CompoundTag chunkData) {
++        final int dataVersion = ChunkStorage.getVersion(chunkData);
++        if (dataVersion < 2842) { // Level tag is removed after this version
++            final CompoundTag levelData = chunkData.getCompoundOrEmpty("Level");
++            return new ChunkPos(levelData.getIntOr("xPos", 0), levelData.getIntOr("zPos", 0));
++        } else {
++            return new ChunkPos(chunkData.getIntOr("xPos", 0), chunkData.getIntOr("zPos", 0));
++        }
++    }
++    // Paper end - guard against serializing mismatching coordinates
++
++    // Paper start - Attempt to recalculate regionfile header if it is corrupt
++    // TODO: Check on update
++    public static long getLastWorldSaveTime(final CompoundTag chunkData) {
++        final int dataVersion = ChunkStorage.getVersion(chunkData);
++        if (dataVersion < 2842) { // Level tag is removed after this version
++            final CompoundTag levelData = chunkData.getCompoundOrEmpty("Level");
++            return levelData.getLongOr("LastUpdate", 0L);
++        } else {
++            return chunkData.getLongOr("LastUpdate", 0L);
++        }
++    }
++    // Paper end - Attempt to recalculate regionfile header if it is corrupt
++
 +    /**
 +     * @deprecated Neo: use constructor with additional data instead
 +     */
@@ -44,7 +70,10 @@
 +
      @Nullable
      public static SerializableChunkData parse(LevelHeightAccessor p_361938_, RegistryAccess p_365010_, CompoundTag p_362040_) {
++        net.minecraft.server.level.ServerLevel serverLevel = (net.minecraft.server.level.ServerLevel) p_361938_; // Paper - Anti-Xray This is is seemingly only called from ChunkMap, where, we have a server level. We'll fight this later if needed.
          if (p_362040_.getString("Status").isEmpty()) {
+             return null;
+         } else {
 @@ -155,7 +_,7 @@
              ListTag listtag2 = p_362040_.getListOrEmpty("sections");
              List<SerializableChunkData.SectionData> list2 = new ArrayList<>(listtag2.size());
@@ -54,8 +83,23 @@
  
              for (int i1 = 0; i1 < listtag2.size(); i1++) {
                  Optional<CompoundTag> optional = listtag2.getCompound(i1);
-@@ -175,7 +_,7 @@
-                                     Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES
+@@ -164,18 +_,20 @@
+                     int j1 = compoundtag.getByteOr("Y", (byte)0);
+                     LevelChunkSection levelchunksection;
+                     if (j1 >= p_361938_.getMinSectionY() && j1 <= p_361938_.getMaxSectionY()) {
++                        final BlockState[] presetBlockStates = serverLevel.chunkPacketBlockController.getPresetBlockStates(serverLevel, chunkPos, j1); // Paper - Anti-Xray - Add preset block states
++                        final Codec<PalettedContainer<BlockState>> blockStateCodec = presetBlockStates == null ? BLOCK_STATE_CODEC : PalettedContainer.codecRW(Block.BLOCK_STATE_REGISTRY, BlockState.CODEC, PalettedContainer.Strategy.SECTION_STATES, Blocks.AIR.defaultBlockState(), presetBlockStates); // Paper - Anti-Xray
+                         PalettedContainer<BlockState> palettedcontainer = compoundtag.getCompound("block_states")
+                             .map(
+-                                p_409528_ -> BLOCK_STATE_CODEC.parse(NbtOps.INSTANCE, p_409528_)
++                                p_409528_ -> blockStateCodec.parse(NbtOps.INSTANCE, p_409528_) // Paper - Anti-Xray
+                                     .promotePartial(p_361842_ -> logErrors(chunkpos, j1, p_361842_))
+                                     .getOrThrow(SerializableChunkData.ChunkReadException::new)
+                             )
+                             .orElseGet(
+                                 () -> new PalettedContainer<>(
+-                                    Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES
++                                    Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES, presetBlockStates // Paper - Anti-Xray - Add preset biomes
                                  )
                              );
 -                        PalettedContainerRO<Holder<Biome>> palettedcontainerro = compoundtag.getCompound("biomes")
@@ -63,6 +107,15 @@
                              .map(
                                  p_409533_ -> codec.parse(NbtOps.INSTANCE, p_409533_)
                                      .promotePartial(p_361282_ -> logErrors(chunkpos, j1, p_361282_))
+@@ -183,7 +_,7 @@
+                             )
+                             .orElseGet(
+                                 () -> new PalettedContainer<>(
+-                                    registry.asHolderIdMap(), registry.getOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES
++                                    registry.asHolderIdMap(), registry.getOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES, null // Paper - Anti-Xray - Add preset biomes
+                                 )
+                             );
+                         levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerro);
 @@ -197,6 +_,9 @@
                  }
              }
@@ -124,7 +177,7 @@
  
 +    // CraftBukkit start - read/write
 +    private static Codec<PalettedContainer<Holder<Biome>>> makeBiomeCodecRW(Registry<Biome> biomeRegistry) {
-+        return PalettedContainer.codecRW(biomeRegistry.asHolderIdMap(), biomeRegistry.holderByNameCodec(), PalettedContainer.Strategy.SECTION_BIOMES, biomeRegistry.getOrThrow(Biomes.PLAINS));
++        return PalettedContainer.codecRW(biomeRegistry.asHolderIdMap(), biomeRegistry.holderByNameCodec(), PalettedContainer.Strategy.SECTION_BIOMES, biomeRegistry.getOrThrow(Biomes.PLAINS), null); // Paper - Anti-Xray - Add preset biomes
 +    }
 +    // CraftBukkit end
 +
@@ -160,6 +213,15 @@
              );
          }
      }
+@@ -430,7 +_,7 @@
+         compoundtag.putInt("xPos", this.chunkPos.x);
+         compoundtag.putInt("yPos", this.minSectionY);
+         compoundtag.putInt("zPos", this.chunkPos.z);
+-        compoundtag.putLong("LastUpdate", this.lastUpdateTime);
++        compoundtag.putLong("LastUpdate", this.lastUpdateTime); // Paper - Diff on change
+         compoundtag.putLong("InhabitedTime", this.inhabitedTime);
+         compoundtag.putString("Status", BuiltInRegistries.CHUNK_STATUS.getKey(this.chunkStatus).toString());
+         compoundtag.storeNullable("blending_data", BlendingData.Packed.CODEC, this.blendingData);
 @@ -487,6 +_,14 @@
          this.heightmaps.forEach((p_362472_, p_363515_) -> compoundtag2.put(p_362472_.getSerializationKey(), new LongArrayTag(p_363515_)));
          compoundtag.put("Heightmaps", compoundtag2);

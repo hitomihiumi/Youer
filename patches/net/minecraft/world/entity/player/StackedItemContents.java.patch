@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/entity/player/StackedItemContents.java
++++ b/net/minecraft/world/entity/player/StackedItemContents.java
+@@ -9,9 +_,14 @@
+ import net.minecraft.world.item.crafting.Recipe;
+ 
+ public class StackedItemContents {
+-    private final StackedContents<Holder<Item>> raw = new StackedContents<>();
++    // Paper start - Improve exact choice recipe ingredients
++    private final StackedContents<io.papermc.paper.inventory.recipe.ItemOrExact> raw = new StackedContents<>();
++    @Nullable
++    private io.papermc.paper.inventory.recipe.StackedContentsExtrasMap extrasMap;
++    // Paper start - Improve exact choice recipe ingredients
+ 
+     public void accountSimpleStack(ItemStack p_363120_) {
++        if (this.extrasMap != null && this.extrasMap.accountStack(p_363120_, Math.min(64, p_363120_.getCount()))) return; // Paper - Improve exact choice recipe ingredients; max of 64 due to accountStack method below
+         if (Inventory.isUsableForCrafting(p_363120_)) {
+             this.accountStack(p_363120_);
+         }

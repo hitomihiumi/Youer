@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/storage/LevelStorageSource.java
 +++ b/net/minecraft/world/level/storage/LevelStorageSource.java
+@@ -226,7 +_,7 @@
+         CompoundTag compoundtag1 = compoundtag.getCompoundOrEmpty("Data");
+         int i = NbtUtils.getDataVersion(compoundtag1, -1);
+         Dynamic<?> dynamic = DataFixTypes.LEVEL.updateToCurrentVersion(p_307468_, new Dynamic<>(NbtOps.INSTANCE, compoundtag1), i);
+-        dynamic = dynamic.update("Player", p_341581_ -> DataFixTypes.PLAYER.updateToCurrentVersion(p_307468_, p_341581_, i));
++        dynamic = dynamic.update("Player", p_341581_ -> new Dynamic(p_341581_.getOps(), ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.PLAYER, (net.minecraft.nbt.CompoundTag)p_341581_.getValue(), i, ca.spottedleaf.dataconverter.minecraft.util.Version.getCurrentVersion()))); // Paper - replace data conversion system
+         return dynamic.update("WorldGenSettings", p_341584_ -> DataFixTypes.WORLD_GEN_SETTINGS.updateToCurrentVersion(p_307468_, p_341584_, i));
+     }
+ 
 @@ -340,25 +_,39 @@
          return this.backupDir;
      }

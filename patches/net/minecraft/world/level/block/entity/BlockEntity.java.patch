@@ -85,6 +85,14 @@
      }
  
      public final CompoundTag saveCustomOnly(HolderLookup.Provider p_338656_) {
+@@ -204,6 +_,7 @@
+ 
+     public void setChanged() {
+         if (this.level != null) {
++            if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
+             setChanged(this.level, this.worldPosition, this.blockState);
+         }
+     }
 @@ -238,10 +_,14 @@
  
      public void setRemoved() {

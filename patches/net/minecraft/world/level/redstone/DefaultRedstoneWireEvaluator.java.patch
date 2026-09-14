@@ -18,3 +18,12 @@
              if (p_362666_.getBlockState(p_365481_) == p_361516_) {
                  p_362666_.setBlock(p_365481_, p_361516_.setValue(RedStoneWireBlock.POWER, i), 2);
              }
+@@ -35,7 +_,7 @@
+         }
+     }
+ 
+-    private int calculateTargetStrength(Level p_362516_, BlockPos p_364850_) {
++    public int calculateTargetStrength(Level p_362516_, BlockPos p_364850_) { // Paper - Optimize redstone
+         int i = this.getBlockSignal(p_362516_, p_364850_);
+         return i == 15 ? i : Math.max(i, this.getIncomingWireSignal(p_362516_, p_364850_));
+     }

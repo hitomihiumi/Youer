@@ -357,6 +357,25 @@
                  p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
              );
          }
+@@ -584,10 +_,16 @@
+     }
+ 
+     public ItemStack copy() {
+-        if (this.isEmpty()) {
++        // Paper start - Perf: Optimize Hoppers
++        return this.copy(false);
++    }
++
++    public ItemStack copy(final boolean originalItem) {
++        if (!originalItem && this.isEmpty()) {
++            // Paper end - Perf: Optimize Hoppers
+             return EMPTY;
+         } else {
+-            ItemStack itemstack = new ItemStack(this.getItem(), this.count, this.components.copy());
++            ItemStack itemstack = new ItemStack(originalItem ? this.item : this.getItem(), this.count, this.components.copy()); // Paper - Perf: Optimize Hoppers
+             itemstack.setPopTime(this.getPopTime());
+             return itemstack;
+         }
 @@ -721,9 +_,15 @@
          return this.getItem().useOnRelease(this);
      }

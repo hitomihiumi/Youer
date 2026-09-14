@@ -42,11 +42,13 @@
      public int cooldownTime = -1;
      private long tickedGameTime;
      public Direction facing;
-@@ -98,7 +_,14 @@
+@@ -98,9 +_,53 @@
          p_155577_.tickedGameTime = p_155574_.getGameTime();
          if (!p_155577_.isOnCooldown()) {
              p_155577_.setCooldown(0);
 -            tryMoveItems(p_155574_, p_155575_, p_155576_, p_155577_, () -> suckInItems(p_155574_, p_155577_));
+-        }
+-    }
 +            // Spigot start
 +            boolean result = tryMoveItems(p_155574_, p_155575_, p_155576_, p_155577_, () -> {
 +                return suckInItems(p_155574_, p_155577_);
@@ -55,10 +57,62 @@
 +                p_155577_.setCooldown(p_155577_.level.spigotConfig.hopperCheck);
 +            }
 +            // Spigot end
-         }
-     }
++        }
++    }
++
++    // Paper start - Perf: Optimize Hoppers
++    private static final int HOPPER_EMPTY = 0;
++    private static final int HOPPER_HAS_ITEMS = 1;
++    private static final int HOPPER_IS_FULL = 2;
++
++    private static int getFullState(final HopperBlockEntity hopper) {
++        hopper.unpackLootTable(null);
++
++        final List<ItemStack> hopperItems = hopper.items;
++
++        boolean empty = true;
++        boolean full = true;
++
++        for (int i = 0, len = hopperItems.size(); i < len; ++i) {
++            final ItemStack stack = hopperItems.get(i);
++            if (stack.isEmpty()) {
++                full = false;
++                continue;
++            }
++
++            if (!full) {
++                // can't be full
++                return HOPPER_HAS_ITEMS;
++            }
++
++            empty = false;
++
++            if (stack.getCount() != stack.getMaxStackSize()) {
++                // can't be full or empty
++                return HOPPER_HAS_ITEMS;
++            }
++        }
++
++        return empty ? HOPPER_EMPTY : (full ? HOPPER_IS_FULL : HOPPER_HAS_ITEMS);
++    }
++    // Paper end - Perf: Optimize Hoppers
  
-@@ -117,7 +_,7 @@
+     private static boolean tryMoveItems(Level p_155579_, BlockPos p_155580_, BlockState p_155581_, HopperBlockEntity p_155582_, BooleanSupplier p_155583_) {
+         if (p_155579_.isClientSide) {
+@@ -108,16 +_,17 @@
+         } else {
+             if (!p_155582_.isOnCooldown() && p_155581_.getValue(HopperBlock.ENABLED)) {
+                 boolean flag = false;
+-                if (!p_155582_.isEmpty()) {
++                final int fullState = getFullState(p_155582_); // Paper - Perf: Optimize Hoppers
++                if (fullState != HOPPER_EMPTY) { // Paper - Perf: Optimize Hoppers
+                     flag = ejectItems(p_155579_, p_155580_, p_155582_);
+                 }
+ 
+-                if (!p_155582_.inventoryFull()) {
+-                    flag |= p_155583_.getAsBoolean();
++                if (fullState != HOPPER_IS_FULL || flag) { // Paper - Perf: Optimize Hoppers
++                    flag |= p_155583_.getAsBoolean(); // Paper - note: this is not a validator, it's what adds/sucks in items
                  }
  
                  if (flag) {
@@ -225,18 +279,20 @@
                  p_59356_.setItem(p_59357_, itemstack);
              }
          }
-@@ -263,12 +_,20 @@
+@@ -263,12 +_,22 @@
  
      public static boolean addItem(Container p_59332_, ItemEntity p_59333_) {
          boolean flag = false;
 +        // CraftBukkit start
++        if (org.bukkit.event.inventory.InventoryPickupItemEvent.getHandlerList().getRegisteredListeners().length > 0) { // Paper - optimize hoppers
 +        org.bukkit.event.inventory.InventoryPickupItemEvent event = new org.bukkit.event.inventory.InventoryPickupItemEvent(
-+            p_59332_.getOwner().getInventory(), (org.bukkit.entity.Item) p_59333_.getBukkitEntity()
++            getInventory(p_59332_), (org.bukkit.entity.Item) p_59333_.getBukkitEntity() // Paper - Perf: Optimize Hoppers; use getInventory() to avoid snapshot creation
 +        );
 +        if (!event.callEvent()) {
 +            return false;
 +        }
 +        // CraftBukkit end
++        } // Paper - Perf: Optimize Hoppers
          ItemStack itemstack = p_59333_.getItem().copy();
          ItemStack itemstack1 = addItem(null, p_59332_, itemstack, null);
          if (itemstack1.isEmpty()) {
@@ -247,24 +303,26 @@
          } else {
              p_59333_.setItem(itemstack1);
          }
-@@ -312,11 +_,18 @@
+@@ -312,11 +_,20 @@
              boolean flag = false;
              boolean flag1 = p_59322_.isEmpty();
              if (itemstack.isEmpty()) {
 +                // Spigot start - SPIGOT-6693, SimpleContainer#setItem
 +                ItemStack leftover = ItemStack.EMPTY; // Paper - Make hoppers respect inventory max stack size
-+                if (!stack.isEmpty() && stack.getCount() > destination.getMaxStackSize()) {
-+                    leftover = stack; // Paper - Make hoppers respect inventory max stack size
-+                    stack = stack.split(destination.getMaxStackSize());
++                if (!p_59323_.isEmpty() && p_59323_.getCount() > p_59322_.getMaxStackSize()) {
++                    leftover = p_59323_; // Paper - Make hoppers respect inventory max stack size
++                    p_59323_ = p_59323_.split(p_59322_.getMaxStackSize());
 +                }
 +                // Spigot end
++                ignoreBlockEntityUpdates = true; // Paper - Perf: Optimize Hoppers
                  p_59322_.setItem(p_59324_, p_59323_);
 -                p_59323_ = ItemStack.EMPTY;
++                ignoreBlockEntityUpdates = false; // Paper - Perf: Optimize Hoppers
 +                p_59323_ = leftover; // Paper - Make hoppers respect inventory max stack size
                  flag = true;
              } else if (canMergeItems(itemstack, p_59323_)) {
 -                int i = p_59323_.getMaxStackSize() - itemstack.getCount();
-+                int i = Math.min(p_59323_.getMaxStackSize(), destination.getMaxStackSize()) - itemstack.getCount(); // Paper - Make hoppers respect inventory max stack size
++                int i = Math.min(p_59323_.getMaxStackSize(), p_59322_.getMaxStackSize()) - itemstack.getCount(); // Paper - Make hoppers respect inventory max stack size
                  int j = Math.min(p_59323_.getCount(), i);
                  p_59323_.shrink(j);
                  itemstack.grow(j);

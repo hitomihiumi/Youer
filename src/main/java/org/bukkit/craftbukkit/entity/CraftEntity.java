@@ -125,6 +125,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     }
     // Purpur end - Fire Immunity API
 
+    // Purpur start - API for any mob to burn daylight
+    @Override
+    public boolean isInDaylight() {
+        return getHandle().isSunBurnTick();
+    }
+    // Purpur end - API for any mob to burn daylight
+
     public static <T extends Entity> CraftEntity getEntity(CraftServer server, T entity) {
         Preconditions.checkArgument(entity != null, "Unknown entity");
 
@@ -314,6 +321,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         boolean retainPassengers = flagSet.contains(io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
         // Don't allow teleporting between worlds while keeping passengers
         if (flagSet.contains(io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS) && this.entity.isVehicle() && location.getWorld() != this.getWorld()) {
+            if (!new org.purpurmc.purpur.event.entity.EntityTeleportHinderedEvent(entity.getBukkitEntity(), org.purpurmc.purpur.event.entity.EntityTeleportHinderedEvent.Reason.IS_VEHICLE, cause).callEvent()) // Purpur - Add EntityTeleportHinderedEvent
             return false;
         }
 
@@ -1345,4 +1353,26 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         return this.entity.get(io.papermc.paper.datacomponent.PaperDataComponentType.bukkitToMinecraft(type)) != null;
     }
 
+    // Purpur start - Ridables
+    @Override
+    public org.bukkit.entity.Player getRider() {
+        net.minecraft.world.entity.player.Player rider = getHandle().getRider();
+        return rider != null ? (org.bukkit.entity.Player) rider.getBukkitEntity() : null;
+    }
+
+    @Override
+    public boolean hasRider() {
+        return getHandle().getRider() != null;
+    }
+
+    @Override
+    public boolean isRidable() {
+        return getHandle().isRidable();
+    }
+
+    @Override
+    public boolean isRidableInWater() {
+        return !getHandle().dismountsUnderwater();
+    }
+    // Purpur end - Ridables
 }

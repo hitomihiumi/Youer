@@ -13,13 +13,14 @@
  public class AnvilMenu extends ItemCombinerMenu {
      public static final int INPUT_SLOT = 0;
      public static final int ADDITIONAL_SLOT = 1;
-@@ -46,6 +_,12 @@
+@@ -46,6 +_,13 @@
      private static final int ADDITIONAL_SLOT_X_PLACEMENT = 76;
      private static final int RESULT_SLOT_X_PLACEMENT = 134;
      private static final int SLOT_Y_PLACEMENT = 47;
 +    // CraftBukkit start
 +    public static final int DEFAULT_DENIED_COST = -1;
 +    public int maximumRepairCost = 40;
++    public boolean bypassCost = false; // Purpur - Anvil API
 +    private org.bukkit.craftbukkit.inventory.view.CraftAnvilView bukkitEntity;
 +    // CraftBukkit end
 +    public boolean bypassEnchantmentLevelRestriction = false; // Paper - bypass anvil level restrictions
@@ -31,7 +32,7 @@
      @Override
      protected boolean mayPickup(Player p_39023_, boolean p_39024_) {
 -        return (p_39023_.hasInfiniteMaterials() || p_39023_.experienceLevel >= this.cost.get()) && this.cost.get() > 0;
-+        return (p_39023_.hasInfiniteMaterials() || p_39023_.experienceLevel >= this.cost.get()) && this.cost.get() > AnvilMenu.DEFAULT_DENIED_COST && hasStack; // CraftBukkit - allow cost 0 like a free item
++        return (p_39023_.hasInfiniteMaterials() || p_39023_.experienceLevel >= this.cost.get()) && (this.bypassCost || this.cost.get() > AnvilMenu.DEFAULT_DENIED_COST) && p_39024_; // CraftBukkit - allow cost 0 like a free item // Purpur - Anvil API
      }
  
      @Override
@@ -210,7 +211,7 @@
 +                        if (removeItalics) {
 +                            component = component.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false);
 +                        }
-+                        itemStack.set(DataComponents.CUSTOM_NAME, io.papermc.paper.adventure.PaperAdventure.asVanilla(component));
++                        itemstack1.set(DataComponents.CUSTOM_NAME, io.papermc.paper.adventure.PaperAdventure.asVanilla(component));
 +                    }
 +                    else
 +                    // Purpur end - Allow anvil colors
