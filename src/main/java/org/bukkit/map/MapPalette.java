@@ -1,6 +1,7 @@
 package org.bukkit.map;
 
 import com.google.common.base.Preconditions;
+import gg.pufferfish.pufferfish.simd.SIMDDetection; // Pufferfish
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -35,7 +36,7 @@ public final class MapPalette {
     }
 
     @NotNull
-    static final Color[] colors = {
+    public static final Color[] colors = { // Pufferfish - public access
         // Start generate - MapPalette#colors
         // @GeneratedFrom 1.21.8
         new Color(0x00000000, true),
@@ -395,9 +396,15 @@ public final class MapPalette {
         temp.getRGB(0, 0, temp.getWidth(), temp.getHeight(), pixels, 0, temp.getWidth());
 
         byte[] result = new byte[temp.getWidth() * temp.getHeight()];
+        // Pufferfish start
+        if (!SIMDDetection.isEnabled) {
         for (int i = 0; i < pixels.length; i++) {
             result[i] = matchColor(new Color(pixels[i], true));
         }
+        } else {
+            gg.pufferfish.pufferfish.simd.VectorMapPalette.matchColorVectorized(pixels, result);
+        }
+        // Pufferfish end
         return result;
     }
 
