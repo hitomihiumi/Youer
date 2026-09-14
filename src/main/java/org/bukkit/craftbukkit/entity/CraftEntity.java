@@ -113,6 +113,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         this.entityType = CraftEntityType.minecraftToBukkit(entity.getType());
     }
 
+    // Purpur start - Fire Immunity API
+    @Override
+    public boolean isImmuneToFire() {
+        return getHandle().fireImmune();
+    }
+
+    @Override
+    public void setImmuneToFire(Boolean fireImmune) {
+        getHandle().immuneToFire = fireImmune;
+    }
+    // Purpur end - Fire Immunity API
+
     public static <T extends Entity> CraftEntity getEntity(CraftServer server, T entity) {
         Preconditions.checkArgument(entity != null, "Unknown entity");
 

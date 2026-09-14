@@ -78,3 +78,26 @@
          return this.isBaby() ? SoundEvents.GHASTLING_DEATH : SoundEvents.HAPPY_GHAST_DEATH;
      }
  
+@@ -303,8 +_,12 @@
+     }
+ 
+     @Override
+-    protected void removePassenger(Entity p_415575_) {
+-        super.removePassenger(p_415575_);
++    // Paper start - cancellable passengers
++    protected boolean removePassenger(Entity p_415575_, boolean suppressCancellation) {
++        if (!super.removePassenger(p_415575_, suppressCancellation)) {
++            return false;
++        }
++    // Paper end - cancellable passengers
+         if (!this.level().isClientSide) {
+             this.setServerStillTimeout(10);
+         }
+@@ -313,6 +_,7 @@
+             this.clearHome();
+             this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.HARNESS_GOGGLES_UP, this.getSoundSource(), 1.0F, 1.0F);
+         }
++        return true; // Paper - cancellable passengers
+     }
+ 
+     @Override

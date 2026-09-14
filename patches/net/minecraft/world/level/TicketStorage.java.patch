@@ -18,7 +18,7 @@
      }
  
      public TicketStorage() {
-@@ -158,6 +_,7 @@
+@@ -158,13 +_,14 @@
          if (p_394469_.getType().equals(TicketType.FORCED)) {
              this.chunksWithForcedTickets.add(p_394247_);
          }
@@ -26,6 +26,14 @@
  
          this.setDirty();
          return true;
+     }
+ 
+     private static boolean isTicketSameTypeAndLevel(Ticket p_394344_, Ticket p_394181_) {
+-        return p_394181_.getType() == p_394344_.getType() && p_394181_.getTicketLevel() == p_394344_.getTicketLevel();
++        return p_394181_.getType() == p_394344_.getType() && p_394181_.getTicketLevel() == p_394344_.getTicketLevel() && java.util.Objects.equals(p_394181_.getIdentifier(), p_394344_.getIdentifier()); // Paper - add identifier
+     }
+ 
+     public int getTicketLevelAt(long p_393578_, boolean p_393891_) {
 @@ -241,6 +_,7 @@
                  if (p_394054_.getType().equals(TicketType.FORCED)) {
                      this.updateForcedChunks();

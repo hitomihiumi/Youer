@@ -67,6 +67,42 @@
              if (this.level() instanceof ServerLevel serverlevel && this.readyForShearing()) {
                  this.shear(serverlevel, SoundSource.PLAYERS, itemstack);
                  this.gameEvent(GameEvent.SHEAR, p_404982_);
+@@ -153,14 +_,28 @@
+ 
+     @Override
+     public void shear(ServerLevel p_405075_, SoundSource p_405077_, ItemStack p_405709_) {
++        // Paper start - custom shear drops
++        this.shear(p_405075_, p_405077_, p_405709_, this.generateDefaultDrops(p_405075_, p_405709_));
++    }
++
++    @Override
++    public java.util.List<ItemStack> generateDefaultDrops(final ServerLevel serverLevel, final ItemStack p_405709_) {
++        final java.util.List<ItemStack> drops = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++        this.dropFromShearingLootTable(serverLevel, BuiltInLootTables.SHEAR_SHEEP, p_405709_, (ignored, stack) -> {
++            for (int i = 0; i < stack.getCount(); ++i) drops.add(stack.copyWithCount(1));
++        });
++        return drops;
++    }
++
++    @Override
++    public void shear(ServerLevel p_405075_, SoundSource p_405077_, ItemStack p_405709_, java.util.List<ItemStack> drops) {
++        // Paper end - custom shear drops
+         p_405075_.playSound(null, this, SoundEvents.SHEEP_SHEAR, p_405077_, 1.0F, 1.0F);
+-        this.dropFromShearingLootTable(
+-            p_405075_,
+-            BuiltInLootTables.SHEAR_SHEEP,
+-            p_405709_,
+-            (p_405522_, p_405241_) -> {
+-                for (int i = 0; i < p_405241_.getCount(); i++) {
+-                    ItemEntity itementity = this.spawnAtLocation(p_405522_, p_405241_.copyWithCount(1), 1.0F);
++        drops.forEach(p_405241_ -> { // Paper - custom drops - loop in generated default drops
++            if (true) { // Paper - custom drops - loop in generated default drops
++                this.forceDrops = true; // CraftBukkit
++                ItemEntity itementity = this.spawnAtLocation(level, p_405241_, 1.0F); // Paper - custom drops - copy already done above
++                this.forceDrops = false; // CraftBukkit
+                     if (itementity != null) {
+                         itementity.setDeltaMovement(
+                             itementity.getDeltaMovement()
 @@ -197,17 +_,17 @@
      }
  
@@ -88,3 +124,11 @@
          return SoundEvents.SHEEP_DEATH;
      }
  
+@@ -279,6 +_,7 @@
+ 
+     @Override
+     public void ate() {
++        if (!new org.bukkit.event.entity.SheepRegrowWoolEvent((org.bukkit.entity.Sheep) this.getBukkitEntity()).callEvent()) return; // CraftBukkit
+         super.ate();
+         this.setSheared(false);
+         if (this.isBaby()) {

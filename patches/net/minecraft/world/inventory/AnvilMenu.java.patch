@@ -13,7 +13,26 @@
  public class AnvilMenu extends ItemCombinerMenu {
      public static final int INPUT_SLOT = 0;
      public static final int ADDITIONAL_SLOT = 1;
-@@ -76,6 +_,16 @@
+@@ -46,6 +_,12 @@
+     private static final int ADDITIONAL_SLOT_X_PLACEMENT = 76;
+     private static final int RESULT_SLOT_X_PLACEMENT = 134;
+     private static final int SLOT_Y_PLACEMENT = 47;
++    // CraftBukkit start
++    public static final int DEFAULT_DENIED_COST = -1;
++    public int maximumRepairCost = 40;
++    private org.bukkit.craftbukkit.inventory.view.CraftAnvilView bukkitEntity;
++    // CraftBukkit end
++    public boolean bypassEnchantmentLevelRestriction = false; // Paper - bypass anvil level restrictions
+ 
+     public AnvilMenu(int p_39005_, Inventory p_39006_) {
+         this(p_39005_, p_39006_, ContainerLevelAccess.NULL);
+@@ -71,11 +_,21 @@
+ 
+     @Override
+     protected boolean mayPickup(Player p_39023_, boolean p_39024_) {
+-        return (p_39023_.hasInfiniteMaterials() || p_39023_.experienceLevel >= this.cost.get()) && this.cost.get() > 0;
++        return (p_39023_.hasInfiniteMaterials() || p_39023_.experienceLevel >= this.cost.get()) && this.cost.get() > AnvilMenu.DEFAULT_DENIED_COST && hasStack; // CraftBukkit - allow cost 0 like a free item
+     }
  
      @Override
      protected void onTake(Player p_150474_, ItemStack p_150475_) {
@@ -30,6 +49,32 @@
          if (!p_150474_.hasInfiniteMaterials()) {
              p_150474_.giveExperienceLevels(-this.cost.get());
          }
+@@ -92,7 +_,7 @@
+             this.inputSlots.setItem(1, ItemStack.EMPTY);
+         }
+ 
+-        this.cost.set(0);
++        this.cost.set(AnvilMenu.DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
+         if (p_150474_ instanceof ServerPlayer serverplayer
+             && !StringUtil.isBlank(this.itemName)
+             && !this.inputSlots.getItem(0).getHoverName().getString().equals(this.itemName)) {
+@@ -104,6 +_,16 @@
+             BlockState blockstate = p_150479_.getBlockState(p_150480_);
+             if (!p_150474_.hasInfiniteMaterials() && blockstate.is(BlockTags.ANVIL) && p_150474_.getRandom().nextFloat() < 0.12F) {
+                 BlockState blockstate1 = AnvilBlock.damage(blockstate);
++                // Paper start - AnvilDamageEvent
++                com.destroystokyo.paper.event.block.AnvilDamagedEvent anvilDamagedEvent = new com.destroystokyo.paper.event.block.AnvilDamagedEvent(getBukkitView(), blockstate1 != null ? org.bukkit.craftbukkit.block.data.CraftBlockData.fromData(blockstate1) : null);
++                if (!anvilDamagedEvent.callEvent()) {
++                    return;
++                } else if (anvilDamagedEvent.getDamageState() == com.destroystokyo.paper.event.block.AnvilDamagedEvent.DamageState.BROKEN) {
++                    blockstate1 = null;
++                } else {
++                    blockstate1 = ((org.bukkit.craftbukkit.block.data.CraftBlockData) anvilDamagedEvent.getDamageState().getMaterial().createBlockData()).getState().setValue(AnvilBlock.FACING, blockstate.getValue(AnvilBlock.FACING));
++                }
++                // Paper end - AnvilDamageEvent
+                 if (blockstate1 == null) {
+                     p_150479_.removeBlock(p_150480_, false);
+                     p_150479_.levelEvent(1029, p_150480_, 0);
 @@ -115,10 +_,30 @@
                  p_150479_.levelEvent(1030, p_150480_, 0);
              }
@@ -62,6 +107,28 @@
          ItemStack itemstack = this.inputSlots.getItem(0);
          this.onlyRenaming = false;
          this.cost.set(1);
+@@ -136,8 +_,8 @@
+                 if (itemstack1.isDamageableItem() && itemstack.isValidRepairItem(itemstack2)) {
+                     int l2 = Math.min(itemstack1.getDamageValue(), itemstack1.getMaxDamage() / 4);
+                     if (l2 <= 0) {
+-                        this.resultSlots.setItem(0, ItemStack.EMPTY);
+-                        this.cost.set(0);
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareAnvilEvent(this.getBukkitView(), ItemStack.EMPTY); // CraftBukkit
++                        this.cost.set(AnvilMenu.DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
+                         return;
+                     }
+ 
+@@ -152,8 +_,8 @@
+                     this.repairItemCountCost = j3;
+                 } else {
+                     if (!flag && (!itemstack1.is(itemstack2.getItem()) || !itemstack1.isDamageableItem())) {
+-                        this.resultSlots.setItem(0, ItemStack.EMPTY);
+-                        this.cost.set(0);
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareAnvilEvent(this.getBukkitView(), ItemStack.EMPTY); // CraftBukkit
++                        this.cost.set(AnvilMenu.DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
+                         return;
+                     }
+ 
 @@ -183,8 +_,10 @@
                          int j2 = entry.getIntValue();
                          j2 = i2 == j2 ? j2 + 1 : Math.max(j2, i2);
@@ -75,6 +142,26 @@
                              flag1 = true;
                          }
  
+@@ -199,7 +_,7 @@
+                             flag3 = true;
+                         } else {
+                             flag2 = true;
+-                            if (j2 > enchantment.getMaxLevel()) {
++                            if (j2 > enchantment.getMaxLevel() && !this.bypassEnchantmentLevelRestriction) { // Paper - bypass anvil level restrictions
+                                 j2 = enchantment.getMaxLevel();
+                             }
+ 
+@@ -217,8 +_,8 @@
+                     }
+ 
+                     if (flag3 && !flag2) {
+-                        this.resultSlots.setItem(0, ItemStack.EMPTY);
+-                        this.cost.set(0);
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareAnvilEvent(this.getBukkitView(), ItemStack.EMPTY); // CraftBukkit
++                        this.cost.set(AnvilMenu.DEFAULT_DENIED_COST); // CraftBukkit - use a variable for set a cost for denied item
+                         return;
+                     }
+                 }
 @@ -228,6 +_,54 @@
                  if (!this.itemName.equals(itemstack.getHoverName().getString())) {
                      k = 1;
@@ -130,6 +217,29 @@
                      itemstack1.set(DataComponents.CUSTOM_NAME, Component.literal(this.itemName));
                  }
              } else if (itemstack.has(DataComponents.CUSTOM_NAME)) {
+@@ -243,16 +_,19 @@
+             }
+ 
+             if (k == i && k > 0) {
+-                if (this.cost.get() >= 40) {
+-                    this.cost.set(39);
++                // CraftBukkit start
++                if (this.cost.get() >= this.maximumRepairCost) {
++                    this.cost.set(this.maximumRepairCost - 1);
++                // CraftBukkit end
+                 }
+ 
+                 this.onlyRenaming = true;
+             }
+ 
+-            if (this.cost.get() >= 40 && !this.player.hasInfiniteMaterials()) {
++            if (this.cost.get() >= this.maximumRepairCost && !this.player.hasInfiniteMaterials()) { // CraftBukkit
+                 itemstack1 = ItemStack.EMPTY;
+             }
++
+ 
+             if (!itemstack1.isEmpty()) {
+                 int i3 = itemstack1.getOrDefault(DataComponents.REPAIR_COST, 0);
 @@ -277,7 +_,7 @@
      }
  
@@ -139,6 +249,14 @@
      }
  
      public boolean setItemName(String p_288970_) {
+@@ -294,6 +_,7 @@
+             }
+ 
+             this.createResult();
++            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, RESULT_SLOT); // Paper - Add PrepareResultEvent
+             return true;
+         } else {
+             return false;
 @@ -309,4 +_,11 @@
      public int getCost() {
          return this.cost.get();

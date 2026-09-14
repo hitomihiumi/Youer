@@ -31,6 +31,24 @@
  
          return compoundtag1;
      }
+@@ -152,7 +_,7 @@
+         } else {
+             int i = Util.maxAllowedExecutorThreads();
+             int j = map.size();
+-            if (j > i) {
++            if (false && j > i) { // Paper - Separate dimension data IO pool; just throw them into the fixed pool queue
+                 this.pendingWriteFuture = this.pendingWriteFuture.thenCompose(p_400982_ -> {
+                     List<CompletableFuture<?>> list = new ArrayList<>(i);
+                     int k = Mth.positiveCeilDiv(j, i);
+@@ -173,7 +_,7 @@
+                         p_400974_ -> CompletableFuture.allOf(
+                             map.entrySet()
+                                 .stream()
+-                                .map(p_400983_ -> CompletableFuture.runAsync(() -> this.tryWrite(p_400983_.getKey(), p_400983_.getValue()), Util.ioPool()))
++                                .map(p_400983_ -> CompletableFuture.runAsync(() -> this.tryWrite(p_400983_.getKey(), p_400983_.getValue()), Util.DIMENSION_DATA_IO_POOL)) // Paper - Separate dimension data IO pool
+                                 .toArray(CompletableFuture[]::new)
+                         )
+                     );
 @@ -205,7 +_,11 @@
          Path path = this.getDataFile(p_401021_.id());
  

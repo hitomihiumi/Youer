@@ -40,6 +40,15 @@
      }
  
      @Override
+@@ -228,7 +_,7 @@
+         p_78547_.put("Version", compoundtag);
+         NbtUtils.addCurrentDataVersion(p_78547_);
+         DynamicOps<Tag> dynamicops = p_78546_.createSerializationContext(NbtOps.INSTANCE);
+-        WorldGenSettings.encode(dynamicops, this.worldOptions, p_78546_)
++        WorldGenSettings.encode(dynamicops, this.worldOptions, new net.minecraft.world.level.levelgen.WorldDimensions(this.customDimensions != null ? this.customDimensions : p_78546_.lookupOrThrow(net.minecraft.core.registries.Registries.LEVEL_STEM))) // CraftBukkit
+             .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
+             .ifPresent(p_78574_ -> p_78547_.put("WorldGenSettings", p_78574_));
+         p_78547_.putInt("GameType", this.settings.gameType().getId());
 @@ -267,6 +_,12 @@
          p_78547_.putInt("WanderingTraderSpawnDelay", this.wanderingTraderSpawnDelay);
          p_78547_.putInt("WanderingTraderSpawnChance", this.wanderingTraderSpawnChance);
@@ -53,6 +62,72 @@
      }
  
      private static ListTag stringCollectionToTag(Set<String> p_277880_) {
+@@ -344,6 +_,25 @@
+ 
+     @Override
+     public void setThundering(boolean p_78562_) {
++        // Paper start - Add cause to Weather/ThunderChangeEvents
++        this.setThundering(p_78562_, org.bukkit.event.weather.ThunderChangeEvent.Cause.UNKNOWN);
++    }
++    public void setThundering(boolean p_78562_, org.bukkit.event.weather.ThunderChangeEvent.Cause cause) {
++        // Paper end - Add cause to Weather/ThunderChangeEvents
++        // CraftBukkit start
++        if (this.thundering == p_78562_) {
++            return;
++        }
++
++        org.bukkit.World world = org.bukkit.Bukkit.getWorld(this.getLevelName());
++        if (world != null) {
++            org.bukkit.event.weather.ThunderChangeEvent thunder = new org.bukkit.event.weather.ThunderChangeEvent(world, p_78562_, cause); // Paper - Add cause to Weather/ThunderChangeEvents
++            org.bukkit.Bukkit.getServer().getPluginManager().callEvent(thunder);
++            if (thunder.isCancelled()) {
++                return;
++            }
++        }
++        // CraftBukkit end
+         this.thundering = p_78562_;
+     }
+ 
+@@ -364,6 +_,26 @@
+ 
+     @Override
+     public void setRaining(boolean p_78576_) {
++        // Paper start - Add cause to Weather/ThunderChangeEvents
++        this.setRaining(p_78576_, org.bukkit.event.weather.WeatherChangeEvent.Cause.UNKNOWN);
++    }
++
++    public void setRaining(boolean p_78576_, org.bukkit.event.weather.WeatherChangeEvent.Cause cause) {
++        // Paper end - Add cause to Weather/ThunderChangeEvents
++        // CraftBukkit start
++        if (this.raining == p_78576_) {
++            return;
++        }
++
++        org.bukkit.World world = org.bukkit.Bukkit.getWorld(this.getLevelName());
++        if (world != null) {
++            org.bukkit.event.weather.WeatherChangeEvent weather = new org.bukkit.event.weather.WeatherChangeEvent(world, p_78576_, cause); // Paper - Add cause to Weather/ThunderChangeEvents
++            org.bukkit.Bukkit.getServer().getPluginManager().callEvent(weather);
++            if (weather.isCancelled()) {
++                return;
++            }
++        }
++        // CraftBukkit end
+         this.raining = p_78576_;
+     }
+ 
+@@ -430,6 +_,12 @@
+     @Override
+     public void setDifficulty(Difficulty p_78521_) {
+         this.settings = this.settings.withDifficulty(p_78521_);
++        // CraftBukkit start
++        net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket packet = new net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket(this.getDifficulty(), this.isDifficultyLocked());
++        for (net.minecraft.server.level.ServerPlayer player : (java.util.List<net.minecraft.server.level.ServerPlayer>) (java.util.List) this.world.players()) {
++            player.connection.send(packet);
++        }
++        // CraftBukkit end
+     }
+ 
+     @Override
 @@ -566,10 +_,58 @@
          return this.settings.copy();
      }

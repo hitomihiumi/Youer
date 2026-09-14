@@ -19,6 +19,18 @@
          this.updateConnections(railshape);
      }
  
+@@ -143,6 +_,11 @@
+     }
+ 
+     private void connectTo(RailState p_55442_) {
++        // Paper start - Fix some rails connecting improperly
++        if (!this.isValid() || !p_55442_.isValid()) {
++            return;
++        }
++        // Paper end - Fix some rails connecting improperly
+         this.connections.add(p_55442_.pos);
+         BlockPos blockpos = this.pos.north();
+         BlockPos blockpos1 = this.pos.south();
 @@ -179,7 +_,7 @@
              }
          }
@@ -75,3 +87,28 @@
              railshape = p_55434_;
          }
  
+@@ -333,10 +_,15 @@
+         this.state = this.state.setValue(this.block.getShapeProperty(), railshape);
+         if (p_55433_ || this.level.getBlockState(this.pos) != this.state) {
+             this.level.setBlock(this.pos, this.state, 3);
++            // Paper start - Fix some rails connecting improperly
++            if (!this.isValid()) {
++                return this;
++            }
++            // Paper end - Fix some rails connecting improperly
+ 
+             for (int i = 0; i < this.connections.size(); i++) {
+                 RailState railstate = this.getRail(this.connections.get(i));
+-                if (railstate != null) {
++                if (railstate != null && railstate.isValid()) { // Paper - Fix some rails connecting improperly
+                     railstate.removeSoftConnections();
+                     if (railstate.canConnectTo(this)) {
+                         railstate.connectTo(this);
+@@ -349,6 +_,6 @@
+     }
+ 
+     public BlockState getState() {
+-        return this.state;
++        return this.level.getBlockState(this.pos); // Paper - Fix some rails connecting improperly
+     }
+ }

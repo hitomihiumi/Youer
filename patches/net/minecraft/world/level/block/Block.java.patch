@@ -9,6 +9,28 @@
      private static final LoadingCache<VoxelShape, Boolean> SHAPE_FULL_BLOCK_CACHE = CacheBuilder.newBuilder()
          .maximumSize(512L)
          .weakKeys()
+@@ -98,6 +_,21 @@
+     public static final int UPDATE_LIMIT = 512;
+     protected final StateDefinition<Block, BlockState> stateDefinition;
+     private BlockState defaultBlockState;
++    // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
++    public final boolean isDestroyable() {
++        return io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits ||
++            this != Blocks.BARRIER &&
++            this != Blocks.BEDROCK &&
++            this != Blocks.END_PORTAL_FRAME &&
++            this != Blocks.END_PORTAL &&
++            this != Blocks.END_GATEWAY &&
++            this != Blocks.COMMAND_BLOCK &&
++            this != Blocks.REPEATING_COMMAND_BLOCK &&
++            this != Blocks.CHAIN_COMMAND_BLOCK &&
++            this != Blocks.STRUCTURE_BLOCK &&
++            this != Blocks.JIGSAW;
++    }
++    // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
+     @Nullable
+     private Item item;
+     private static final int CACHE_SIZE = 256;
 @@ -228,7 +_,7 @@
          this.createBlockStateDefinition(builder);
          this.stateDefinition = builder.create(Block::defaultBlockState, BlockState::new);
@@ -106,7 +128,25 @@
      public float getExplosionResistance() {
          return this.explosionResistance;
      }
-@@ -404,7 +_,15 @@
+@@ -397,14 +_,31 @@
+         return this.defaultBlockState();
+     }
+ 
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - fix drops not preventing stats/food exhaustion
+     public void playerDestroy(Level p_49827_, Player p_49828_, BlockPos p_49829_, BlockState p_49830_, @Nullable BlockEntity p_49831_, ItemStack p_49832_) {
++        // Paper start - fix drops not preventing stats/food exhaustion
++        this.playerDestroy(p_49827_, p_49828_, p_49829_, p_49830_, p_49831_, p_49832_, true, true);
++    }
++
++    public void playerDestroy(Level p_49827_, Player p_49828_, BlockPos p_49829_, BlockState p_49830_, @Nullable BlockEntity p_49831_, ItemStack p_49832_, boolean includeDrops, boolean dropExp) {
++        // Paper end - fix drops not preventing stats/food exhaustion
+         p_49828_.awardStat(Stats.BLOCK_MINED.get(this));
+-        p_49828_.causeFoodExhaustion(0.005F);
+-        dropResources(p_49830_, p_49827_, p_49829_, p_49831_, p_49828_, p_49832_);
++        p_49828_.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
++        if (includeDrops) { // Paper - fix drops not preventing stats/food exhaustion
++        Block.dropResources(p_49830_, p_49827_, p_49829_, p_49831_, p_49828_, p_49832_, dropExp); // Paper - Properly handle xp dropping
++        } // Paper - fix drops not preventing stats/food exhaustion
      }
  
      public void setPlacedBy(Level p_49847_, BlockPos p_49848_, BlockState p_49849_, @Nullable LivingEntity p_49850_, ItemStack p_49851_) {
@@ -140,7 +180,7 @@
      public boolean dropFromExplosion(Explosion p_49826_) {
          return true;
      }
-@@ -534,6 +_,35 @@
+@@ -534,17 +_,54 @@
          return p_394311_.setValue(p_394352_, (T)p_394525_);
      }
  
@@ -176,3 +216,25 @@
      @Deprecated
      public Holder.Reference<Block> builtInRegistryHolder() {
          return this.builtInRegistryHolder;
+     }
+ 
+-    protected void tryDropExperience(ServerLevel p_220823_, BlockPos p_220824_, ItemStack p_220825_, IntProvider p_220826_) {
++    protected int tryDropExperience(ServerLevel p_220823_, BlockPos p_220824_, ItemStack p_220825_, IntProvider p_220826_) { // CraftBukkit
+         int i = EnchantmentHelper.processBlockExperience(p_220823_, p_220825_, p_220826_.sample(p_220823_.getRandom()));
+         if (i > 0) {
+-            this.popExperience(p_220823_, p_220824_, i);
++            // CraftBukkit start
++            //this.popExperience(level, pos, i);
++            return i;
+         }
+-    }
++        return 0;
++    }
++
++    public int getExpDrop(BlockState state, ServerLevel level, BlockPos pos, ItemStack stack, boolean dropExperience) {
++        return 0;
++    }
++    // CraftBukkit end
+ 
+     record ShapePairKey(VoxelShape first, VoxelShape second) {
+         @Override

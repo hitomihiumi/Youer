@@ -35,6 +35,28 @@
          }
      }
  
+@@ -159,11 +_,19 @@
+ 
+     @Override
+     public boolean canCollideWith(Entity p_38168_) {
+-        return AbstractBoat.canVehicleCollide(this, p_38168_);
++        // Paper start - fix VehicleEntityCollisionEvent not called when colliding with player
++        boolean collides = AbstractBoat.canVehicleCollide(this, p_38168_);
++        if (!collides) {
++            return false;
++        }
++
++        org.bukkit.event.vehicle.VehicleEntityCollisionEvent collisionEvent = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent((org.bukkit.entity.Vehicle) this.getBukkitEntity(), p_38168_.getBukkitEntity());
++        return collisionEvent.callEvent();
++        // Paper end - fix VehicleEntityCollisionEvent not called when colliding with player
+     }
+ 
+     @Override
+-    public boolean isPushable() {
++    public boolean isCollidable(boolean ignoreClimbing) { // Paper - Climbing should not bypass cramming gamerule
+         return true;
+     }
+ 
 @@ -266,6 +_,22 @@
  
      @Override
@@ -58,6 +80,28 @@
          if (this.getHurtTime() > 0) {
              this.setHurtTime(this.getHurtTime() - 1);
          }
+@@ -275,8 +_,20 @@
+         }
+ 
+         this.checkBelowWorld();
+-        this.handlePortal();
++        // this.handlePortal(); // CraftBukkit - handled in postTick
+         this.behavior.tick();
++        // CraftBukkit start
++        org.bukkit.World bworld = this.level().getWorld();
++        org.bukkit.Location from = new org.bukkit.Location(bworld, prevX, prevY, prevZ, prevYaw, prevPitch);
++        org.bukkit.Location to = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.position(), bworld, this.getYRot(), this.getXRot());
++        org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
++
++        new org.bukkit.event.vehicle.VehicleUpdateEvent(vehicle).callEvent();
++
++        if (!from.equals(to)) {
++            new org.bukkit.event.vehicle.VehicleMoveEvent(vehicle, from, to).callEvent();
++        }
++        // CraftBukkit end
+         this.updateInWaterStateAndDoFluidPushing();
+         if (this.isInLava()) {
+             this.lavaIgnite();
 @@ -360,13 +_,59 @@
          this.behavior.moveAlongTrack(p_376546_);
      }
@@ -133,3 +177,76 @@
              if (railshape == RailShape.EAST_WEST) {
                  if (this.isRedstoneConductor(p_361470_.west())) {
                      return new Vec3(1.0, 0.0, 0.0);
+@@ -472,6 +_,15 @@
+         this.setDisplayOffset(p_422276_.getIntOr("DisplayOffset", this.getDefaultDisplayOffset()));
+         this.flipped = p_422276_.getBooleanOr("FlippedRotation", false);
+         this.firstTick = p_422276_.getBooleanOr("HasTicked", false);
++        // Paper start - Friction API
++        p_422276_.getString("Paper.FrictionState").ifPresent(frictionState -> {
++            try {
++                this.frictionState = net.kyori.adventure.util.TriState.valueOf(frictionState);
++            } catch (Exception ignored) {
++                com.mojang.logging.LogUtils.getLogger().error("Unknown friction state {} for {}", frictionState, this);
++            }
++        });
++        // Paper end - Friction API
+     }
+ 
+     @Override
+@@ -482,15 +_,29 @@
+             p_422143_.putInt("DisplayOffset", i);
+         }
+ 
++
+         p_422143_.putBoolean("FlippedRotation", this.flipped);
+         p_422143_.putBoolean("HasTicked", this.firstTick);
++        // Paper start - Friction API
++        if (this.frictionState != net.kyori.adventure.util.TriState.NOT_SET) {
++            p_422143_.putString("Paper.FrictionState", this.frictionState.toString());
++        }
++        // Paper end - Friction API
+     }
+ 
+     @Override
+     public void push(Entity p_38165_) {
+         if (!this.level().isClientSide) {
+             if (!p_38165_.noPhysics && !this.noPhysics) {
++                if (!this.level().paperConfig().collisions.allowVehicleCollisions && this.level().paperConfig().collisions.onlyPlayersCollide && !(p_38165_ instanceof Player)) return; // Paper - Collision option for requiring a player participant
+                 if (!this.hasPassenger(p_38165_)) {
++                    // CraftBukkit start
++                    org.bukkit.event.vehicle.VehicleEntityCollisionEvent collisionEvent = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent(
++                        (org.bukkit.entity.Vehicle) this.getBukkitEntity(),
++                        p_38165_.getBukkitEntity()
++                    );
++                    if (!collisionEvent.callEvent()) return;
++                    // CraftBukkit end
+                     double d0 = p_38165_.getX() - this.getX();
+                     double d1 = p_38165_.getZ() - this.getZ();
+                     double d2 = d0 * d0 + d1 * d1;
+@@ -599,4 +_,26 @@
+     public boolean isFurnace() {
+         return false;
+     }
++
++    // CraftBukkit start - Methods for getting and setting flying and derailed velocity modifiers
++    public org.bukkit.util.Vector getFlyingVelocityMod() {
++        return new org.bukkit.util.Vector(this.flyingX, this.flyingY, this.flyingZ);
++    }
++
++    public void setFlyingVelocityMod(org.bukkit.util.Vector flying) {
++        this.flyingX = flying.getX();
++        this.flyingY = flying.getY();
++        this.flyingZ = flying.getZ();
++    }
++
++    public org.bukkit.util.Vector getDerailedVelocityMod() {
++        return new org.bukkit.util.Vector(this.derailedX, this.derailedY, this.derailedZ);
++    }
++
++    public void setDerailedVelocityMod(org.bukkit.util.Vector derailed) {
++        this.derailedX = derailed.getX();
++        this.derailedY = derailed.getY();
++        this.derailedZ = derailed.getZ();
++    }
++    // CraftBukkit end
+ }

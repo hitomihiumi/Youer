@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/item/component/BundleContents.java
 +++ b/net/minecraft/world/item/component/BundleContents.java
+@@ -25,6 +_,7 @@
+         .flatXmap(BundleContents::checkAndCreate, p_381696_ -> DataResult.success(p_381696_.items));
+     public static final StreamCodec<RegistryFriendlyByteBuf, BundleContents> STREAM_CODEC = ItemStack.STREAM_CODEC
+         .apply(ByteBufCodecs.list())
++        .apply(ByteBufCodecs::increaseDepth) // Paper - Track codec depth
+         .map(BundleContents::new, p_331551_ -> p_331551_.items);
+     private static final Fraction BUNDLE_IN_BUNDLE_WEIGHT = Fraction.getFraction(1, 16);
+     private static final int NO_STACK_INDEX = -1;
 @@ -73,7 +_,8 @@
      }
  

@@ -9,7 +9,24 @@
      }
  
      @Override
-@@ -43,7 +_,10 @@
+@@ -35,15 +_,24 @@
+         BlockState p_401336_,
+         RandomSource p_401169_
+     ) {
+-        return !p_401118_.canSurvive(p_401198_, p_401142_)
+-            ? Blocks.AIR.defaultBlockState()
+-            : super.updateShape(p_401118_, p_401198_, p_401107_, p_401142_, p_401236_, p_401082_, p_401336_, p_401169_);
++        // CraftBukkit start
++        if (!p_401118_.canSurvive(p_401198_, p_401142_)) {
++            // Suppress during worldgen
++            if (!(p_401198_ instanceof net.minecraft.server.level.ServerLevel serverLevel && serverLevel.hasPhysicsEvent) || !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(serverLevel, p_401142_).isCancelled()) { // Paper
++                return Blocks.AIR.defaultBlockState();
++            }
++        }
++        return super.updateShape(p_401118_, p_401198_, p_401107_, p_401142_, p_401236_, p_401082_, p_401336_, p_401169_);
++        // CraftBukkit end
+     }
+ 
      @Override
      protected boolean canSurvive(BlockState p_401395_, LevelReader p_401031_, BlockPos p_401248_) {
          BlockPos blockpos = p_401248_.below();

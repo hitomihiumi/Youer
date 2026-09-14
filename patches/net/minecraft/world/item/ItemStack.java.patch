@@ -320,6 +320,34 @@
              this.shrink(1);
              p_360895_.accept(item);
          }
+@@ -484,7 +_,26 @@
+                 return;
+             }
+ 
+-            int j = Math.min(this.getDamageValue() + i, this.getMaxDamage() - 1);
++            int j = Math.min(this.getDamageValue() + i, this.getMaxDamage() - 1); // Paper - Expand PlayerItemDamageEvent - diff on change as min computation is copied post event.
++
++            // Paper start - Expand PlayerItemDamageEvent
++            if (j - this.getDamageValue() > 0) {
++                org.bukkit.event.player.PlayerItemDamageEvent event = new org.bukkit.event.player.PlayerItemDamageEvent(
++                    serverplayer.getBukkitEntity(),
++                    org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this),
++                    j - this.getDamageValue(),
++                    damage
++                );
++                if (!event.callEvent() || event.getDamage() == 0) {
++                    return;
++                }
++
++                // Prevent breaking the item in this code path as callers may expect the item to survive
++                // (given the method name)
++                j = Math.min(this.getDamageValue() + event.getDamage(), this.getMaxDamage() - 1);
++            }
++            // Paper end - Expand PlayerItemDamageEvent
++
+             this.applyDamage(j, serverplayer, p_360034_ -> {});
+         }
+     }
 @@ -498,7 +_,7 @@
              this.hurtAndBreak(
                  p_41623_,
@@ -438,7 +466,7 @@
      public ItemEnchantments getEnchantments() {
          return this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
      }
-@@ -977,16 +_,28 @@
+@@ -977,19 +_,44 @@
      }
  
      public void forEachModifier(EquipmentSlotGroup p_348610_, TriConsumer<Holder<Attribute>, AttributeModifier, ItemAttributeModifiers.Display> p_415655_) {
@@ -467,6 +495,22 @@
          EnchantmentHelper.forEachModifier(this, p_332001_, p_330882_);
      }
  
++    // CraftBukkit start
++    @Deprecated
++    public void setItem(Item item) {
++        this.bukkitStack = null; // Paper
++        this.item = item;
++        // Paper start - change base component prototype
++        final DataComponentPatch patch = this.getComponentsPatch();
++        this.components = new PatchedDataComponentMap(this.item.components());
++        this.applyComponents(patch);
++        // Paper end - change base component prototype
++    }
++    // CraftBukkit end
++
+     public Component getDisplayName() {
+         MutableComponent mutablecomponent = Component.empty().append(this.getHoverName());
+         if (this.has(DataComponents.CUSTOM_NAME)) {
 @@ -998,7 +_,7 @@
  
          MutableComponent mutablecomponent1 = ComponentUtils.wrapInSquareBrackets(mutablecomponent);
@@ -476,6 +520,15 @@
          }
  
          return mutablecomponent1;
+@@ -1045,7 +_,7 @@
+     }
+ 
+     public void consume(int p_326311_, @Nullable LivingEntity p_326200_) {
+-        if (p_326200_ == null || !p_326200_.hasInfiniteMaterials()) {
++        if ((p_326200_ == null || !p_326200_.hasInfiniteMaterials()) && this != ItemStack.EMPTY) { // CraftBukkit
+             this.shrink(p_326311_);
+         }
+     }
 @@ -1065,11 +_,14 @@
          this.getItem().onUseTick(p_41732_, p_41733_, this, p_41734_);
      }

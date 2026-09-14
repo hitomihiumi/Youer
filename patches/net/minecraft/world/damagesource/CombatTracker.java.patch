@@ -1,5 +1,30 @@
 --- a/net/minecraft/world/damagesource/CombatTracker.java
 +++ b/net/minecraft/world/damagesource/CombatTracker.java
+@@ -29,15 +_,24 @@
+     private int combatEndTime;
+     public boolean inCombat;
+     public boolean takingDamage;
++    public final io.papermc.paper.world.damagesource.PaperCombatTrackerWrapper paperCombatTracker; // Paper - Combat tracker API
+ 
+     public CombatTracker(LivingEntity p_19285_) {
+         this.mob = p_19285_;
++        this.paperCombatTracker = new io.papermc.paper.world.damagesource.PaperCombatTrackerWrapper(this); // Paper - Combat tracker API
+     }
+ 
+     public void recordDamage(DamageSource p_289533_, float p_289559_) {
+         this.recheckStatus();
+         FallLocation falllocation = FallLocation.getCurrentFallLocation(this.mob);
+         CombatEntry combatentry = new CombatEntry(p_289533_, p_289559_, falllocation, (float)this.mob.fallDistance);
++    // Paper start - Combat tracker API
++        recordDamageAndCheckCombatState(combatentry);
++    }
++
++    public void recordDamageAndCheckCombatState(final CombatEntry combatentry) {
++        final DamageSource p_289533_ = combatentry.source();
++    // Paper end - Combat tracker API
+         this.entries.add(combatentry);
+         this.lastDamageTime = this.mob.tickCount;
+         this.takingDamage = true;
 @@ -55,7 +_,7 @@
  
      private Component getMessageForAssistedFall(Entity p_289547_, Component p_289532_, String p_289555_, String p_289548_) {
@@ -37,3 +62,17 @@
                  return damagesource.getLocalizedDeathMessage(this.mob);
              }
          }
+@@ -147,6 +_,13 @@
+     public void recheckStatus() {
+         int i = this.inCombat ? 300 : 100;
+         if (this.takingDamage && (!this.mob.isAlive() || this.mob.tickCount - this.lastDamageTime > i)) {
++    // Paper start - Combat tracker API
++            resetCombatState();
++        }
++    }
++
++    public void resetCombatState() {{
++    // Paper end - Combat tracker API
+             boolean flag = this.inCombat;
+             this.takingDamage = false;
+             this.inCombat = false;

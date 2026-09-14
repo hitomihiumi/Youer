@@ -62,3 +62,42 @@
          return SoundEvents.BOGGED_DEATH;
      }
  
+@@ -127,15 +_,33 @@
+ 
+     @Override
+     public void shear(ServerLevel p_376748_, SoundSource p_331493_, ItemStack p_373125_) {
++        // Paper start - custom shear drops
++        this.shear(p_376748_, p_331493_, p_373125_, this.generateDefaultDrops(p_376748_, p_373125_));
++    }
++
++    @Override
++    public java.util.List<ItemStack> generateDefaultDrops(final ServerLevel serverLevel, final ItemStack p_373125_) {
++        final java.util.List<ItemStack> drops = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++        this.dropFromShearingLootTable(serverLevel, BuiltInLootTables.BOGGED_SHEAR, p_373125_, (ignored, stack) -> {
++            drops.add(stack);
++        });
++        return drops;
++    }
++
++    @Override
++    public void shear(ServerLevel p_376748_, SoundSource p_331493_, ItemStack p_373125_, java.util.List<ItemStack> drops) {
++        // Paper end - custom shear drops
+         p_376748_.playSound(null, this, SoundEvents.BOGGED_SHEAR, p_331493_, 1.0F, 1.0F);
+-        this.spawnShearedMushrooms(p_376748_, p_373125_);
++        this.spawnShearedMushrooms(p_376748_, p_373125_, drops); // Paper - custom shear drops
+         this.setSheared(true);
+     }
+ 
+-    private void spawnShearedMushrooms(ServerLevel p_376846_, ItemStack p_372900_) {
+-        this.dropFromShearingLootTable(
+-            p_376846_, BuiltInLootTables.BOGGED_SHEAR, p_372900_, (p_427097_, p_427098_) -> this.spawnAtLocation(p_427097_, p_427098_, this.getBbHeight())
+-        );
++    // Paper start - custom shear drops
++    private void spawnShearedMushrooms(ServerLevel level, ItemStack stack, java.util.List<ItemStack> drops) {
++        this.forceDrops = true; // Paper - Add missing forceDrop toggles
++        drops.forEach(drop -> this.spawnAtLocation(level, drop, this.getBbHeight()));
++        this.forceDrops = false; // Paper - Add missing forceDrop toggles
++        // Paper end - custom shear drops
+     }
+ 
+     @Override

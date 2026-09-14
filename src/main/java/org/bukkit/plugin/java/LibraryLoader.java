@@ -66,6 +66,7 @@ public class LibraryLoader {
         session.setTransferListener(new AbstractTransferListener() {
             @Override
             public void transferStarted(@NotNull TransferEvent event) {
+                if (!JavaPluginLoader.SuppressLibraryLoaderLogger) // Purpur - Add log suppression for LibraryLoader
                 logger.log(Level.INFO, "Downloading {0}", event.getResource().getRepositoryUrl() + event.getResource().getResourceName());
             }
         });
@@ -91,6 +92,7 @@ public class LibraryLoader {
             // Paper end - plugin loader api
             return null;
         }
+        if (!JavaPluginLoader.SuppressLibraryLoaderLogger) // Purpur - Add log suppression for LibraryLoader
         logger.log(Level.INFO, "[{0}] Loading {1} libraries... please wait", new Object[]
             {
                 java.util.Objects.requireNonNullElseGet(desc.getPrefix(), desc::getName), desc.getLibraries().size() // Paper - use configured log prefix
@@ -143,6 +145,7 @@ public class LibraryLoader {
             }
 
             jarFiles.add(url);
+            if (!JavaPluginLoader.SuppressLibraryLoaderLogger) // Purpur - Add log suppression for LibraryLoader
             logger.log(Level.INFO, "[{0}] Loaded library {1}", new Object[]
                 {
                     java.util.Objects.requireNonNullElseGet(desc.getPrefix(), desc::getName), file // Paper - use configured log prefix

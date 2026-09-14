@@ -47,7 +47,7 @@ public class TimingsCommand extends BukkitCommand {
     public TimingsCommand(@NotNull String name) {
         super(name);
         this.description = "Manages Spigot Timings data to see performance of the server.";
-        this.usageMessage = "/timings <reset|report|on|off|verbon|verboff>";
+        this.usageMessage = "/timings";// <reset|report|on|off|verbon|verboff>"; // Purpur - Remove Timings
         this.setPermission("bukkit.command.timings");
     }
 
@@ -57,7 +57,12 @@ public class TimingsCommand extends BukkitCommand {
             return true;
         }
         if (true) {
-            sender.sendMessage(Timings.deprecationMessage());
+            // Purpur start - Remove Timings
+            net.kyori.adventure.text.minimessage.MiniMessage mm = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage();
+            sender.sendMessage(mm.deserialize("<gold>Purpur has removed timings to save your performance. Please use <click:suggest_command:'/spark'><grey>/spark</grey></click> instead"));
+            sender.sendMessage(mm.deserialize("<gold>For more information, view its documentation at"));
+            sender.sendMessage(mm.deserialize("<gold><click:open_url:'https://spark.lucko.me/docs/Command-Usage'>https://spark.lucko.me/docs/Command-Usage</click>"));
+            // Purpur end - Remove Timings
             return true;
         }
         if (args.length < 1) {
@@ -118,7 +123,7 @@ public class TimingsCommand extends BukkitCommand {
         Preconditions.checkNotNull(args, "Arguments cannot be null");
         Preconditions.checkNotNull(alias, "Alias cannot be null");
 
-        if (args.length == 1) {
+        if (false && args.length == 1) { // Purpur - Remove Timings
             return StringUtil.copyPartialMatches(args[0], TIMINGS_SUBCOMMANDS,
                 new ArrayList<String>(TIMINGS_SUBCOMMANDS.size()));
         }

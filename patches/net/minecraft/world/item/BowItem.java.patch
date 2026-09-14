@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/BowItem.java
 +++ b/net/minecraft/world/item/BowItem.java
-@@ -28,10 +_,17 @@
+@@ -28,17 +_,24 @@
              return false;
          } else {
              ItemStack itemstack = player.getProjectile(p_40667_);
@@ -18,6 +18,14 @@
                  float f = getPowerForTime(i);
                  if (f < 0.1) {
                      return false;
+                 } else {
+                     List<ItemStack> list = draw(p_40667_, itemstack, player);
+                     if (p_40668_ instanceof ServerLevel serverlevel && !list.isEmpty()) {
+-                        this.shoot(serverlevel, player, player.getUsedItemHand(), p_40667_, list, f * 3.0F, 1.0F, f == 1.0F, null);
++                        this.shoot(serverlevel, player, player.getUsedItemHand(), p_40667_, list, f * 3.0F, 1.0F, f == 1.0F, null, f); // Paper - Pass draw strength
+                     }
+ 
+                     p_40668_.playSound(
 @@ -89,6 +_,10 @@
      public InteractionResult use(Level p_40672_, Player p_40673_, InteractionHand p_40674_) {
          ItemStack itemstack = p_40673_.getItemInHand(p_40674_);

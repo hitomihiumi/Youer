@@ -1,5 +1,223 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
+@@ -55,7 +_,20 @@
+ 
+     public void setOwner(@Nullable Entity p_37263_) {
+         this.setOwner(p_37263_ != null ? new EntityReference<>(p_37263_) : null);
+-    }
++        this.refreshProjectileSource(false); // Paper
++    }
++
++    // Paper start - Refresh ProjectileSource for projectiles
++    public void refreshProjectileSource(boolean fillCache) {
++        if (fillCache) {
++            this.getOwner();
++        }
++        Entity owner = this.getOwner();
++        if (owner != null && this.projectileSource == null && owner.getBukkitEntity() instanceof org.bukkit.projectiles.ProjectileSource projSource) {
++            this.projectileSource = projSource;
++        }
++    }
++    // Paper end - Refresh ProjectileSource for projectiles
+ 
+     @Nullable
+     @Override
+@@ -84,6 +_,7 @@
+     @Override
+     protected void readAdditionalSaveData(ValueInput p_421811_) {
+         this.setOwner(EntityReference.read(p_421811_, "Owner"));
++        if (this instanceof ThrownEnderpearl && this.level().paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && this.level().paperConfig().misc.legacyEnderPearlBehavior) { this.owner = null; } // Paper - Reset pearls when they stop being ticked; Don't store shooter name for pearls to block enderpearl travel exploit
+         this.leftOwner = p_421811_.getBooleanOr("LeftOwner", false);
+         this.hasBeenShot = p_421811_.getBooleanOr("HasBeenShot", false);
+     }
+@@ -151,7 +_,14 @@
+         float f2 = Mth.cos(p_37254_ * (float) (Math.PI / 180.0)) * Mth.cos(p_37253_ * (float) (Math.PI / 180.0));
+         this.shoot(f, f1, f2, p_37256_, p_37257_);
+         Vec3 vec3 = p_37252_.getKnownMovement();
++        // Paper start - allow disabling relative velocity
++        if (Double.isNaN(vec3.x) || Double.isNaN(vec3.y) || Double.isNaN(vec3.z)) {
++            vec3 = new Vec3(0, 0, 0);
++        }
++        if (!p_37252_.level().paperConfig().misc.disableRelativeProjectileVelocity) {
+         this.setDeltaMovement(this.getDeltaMovement().add(vec3.x, p_37252_.onGround() ? 0.0 : vec3.y, vec3.z));
++        }
++        // Paper end - allow disabling relative velocity
+     }
+ 
+     @Override
+@@ -169,15 +_,14 @@
+     }
+ 
+     public static <T extends Projectile> T spawnProjectileFromRotation(
+-        Projectile.ProjectileFactory<T> p_364847_,
+-        ServerLevel p_364917_,
+-        ItemStack p_361900_,
+-        LivingEntity p_364717_,
+-        float p_360563_,
+-        float p_361014_,
+-        float p_365444_
++        Projectile.ProjectileFactory<T> p_364847_, ServerLevel p_364917_, ItemStack p_361900_, LivingEntity p_364717_, float p_360563_, float p_361014_, float p_365444_
+     ) {
+-        return spawnProjectile(
++        // Paper start - PlayerLaunchProjectileEvent
++        return spawnProjectileFromRotationDelayed(p_364847_, p_364917_, p_361900_, p_364717_, p_360563_, p_361014_, p_365444_).spawn();
++    }
++    public static <T extends Projectile> Delayed<T> spawnProjectileFromRotationDelayed(Projectile.ProjectileFactory<T> p_364847_, ServerLevel p_364917_, ItemStack p_361900_, LivingEntity p_364717_, float p_360563_, float p_361014_, float p_365444_) {
++        return spawnProjectileDelayed(
++        // Paper end - PlayerLaunchProjectileEvent
+             p_364847_.create(p_364917_, p_364717_, p_361900_),
+             p_364917_,
+             p_361900_,
+@@ -207,7 +_,13 @@
+     public static <T extends Projectile> T spawnProjectileUsingShoot(
+         T p_363444_, ServerLevel p_365046_, ItemStack p_365439_, double p_364920_, double p_362460_, double p_365302_, float p_364445_, float p_360615_
+     ) {
+-        return spawnProjectile(p_363444_, p_365046_, p_365439_, p_359970_ -> p_363444_.shoot(p_364920_, p_362460_, p_365302_, p_364445_, p_360615_));
++        // Paper start - fixes and addition to spawn reason API
++        return spawnProjectileUsingShootDelayed(p_363444_, p_365046_, p_365439_, p_364920_, p_362460_, p_365302_, p_364445_, p_360615_).spawn();
++    }
++
++    public static <T extends Projectile> Delayed<T> spawnProjectileUsingShootDelayed(T p_363444_, ServerLevel p_365046_, ItemStack p_365439_, double p_364920_, double p_362460_, double p_365302_, float p_364445_, float p_360615_) {
++        return spawnProjectileDelayed(p_363444_, p_365046_, p_365439_, p_359970_ -> p_363444_.shoot(p_364920_, p_362460_, p_365302_, p_364445_, p_360615_));
++        // Paper end - fixes and addition to spawn reason API
+     }
+ 
+     public static <T extends Projectile> T spawnProjectile(T p_363460_, ServerLevel p_362469_, ItemStack p_364790_) {
+@@ -215,11 +_,46 @@
+     }
+ 
+     public static <T extends Projectile> T spawnProjectile(T p_360642_, ServerLevel p_360523_, ItemStack p_364956_, Consumer<T> p_364362_) {
++        // Paper start - delayed projectile spawning
++        return spawnProjectileDelayed(p_360642_, p_360523_, p_364956_, p_364362_).spawn();
++    }
++
++    public static <T extends Projectile> Delayed<T> spawnProjectileDelayed(T p_360642_, ServerLevel p_360523_, ItemStack p_364956_, Consumer<T> p_364362_) {
++        // Paper end - delayed projectile spawning
+         p_364362_.accept(p_360642_);
+-        p_360523_.addFreshEntity(p_360642_);
+-        p_360642_.applyOnProjectileSpawned(p_360523_, p_364956_);
+-        return p_360642_;
+-    }
++        return new Delayed<>(projectile, level, stack); // Paper - delayed projectile spawning
++    }
++
++    // Paper start - delayed projectile spawning
++    public record Delayed<T extends Projectile>(
++        T projectile,
++        ServerLevel world,
++        ItemStack projectileStack
++    ) {
++        // Taken from net.minecraft.world.entity.projectile.Projectile.spawnProjectile(T, net.minecraft.server.level.ServerLevel, net.minecraft.world.item.ItemStack, java.util.function.Consumer<T>)
++        public boolean attemptSpawn() {
++            if (!this.world.addFreshEntity(this.projectile)) return false;
++            this.projectile.applyOnProjectileSpawned(this.world, this.projectileStack);
++            return true;
++        }
++
++        public T spawn() {
++            this.attemptSpawn();
++            return this.projectile();
++        }
++
++        public boolean attemptSpawn(final org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason) {
++            if (!this.world.addFreshEntity(this.projectile, reason)) return false;
++            this.projectile.applyOnProjectileSpawned(this.world, this.projectileStack);
++            return true;
++        }
++
++        public T spawn(final org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason) {
++            this.attemptSpawn(reason);
++            return this.projectile();
++        }
++    }
++    // Paper end - delayed projectile spawning
+ 
+     public void applyOnProjectileSpawned(ServerLevel p_361488_, ItemStack p_360952_) {
+         EnchantmentHelper.onProjectileSpawned(p_361488_, p_360952_, this, p_359985_ -> {});
+@@ -231,6 +_,17 @@
+         }
+     }
+ 
++    // CraftBukkit start - call projectile hit event
++    public ProjectileDeflection preHitTargetOrDeflectSelf(HitResult hitResult) {
++        org.bukkit.event.entity.ProjectileHitEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callProjectileHitEvent(this, hitResult);
++        this.hitCancelled = event != null && event.isCancelled();
++        if (hitResult.getType() == HitResult.Type.BLOCK || !this.hitCancelled) {
++            return this.hitTargetOrDeflectSelf(hitResult);
++        }
++        return ProjectileDeflection.NONE;
++    }
++    // CraftBukkit end
++
+     protected ProjectileDeflection hitTargetOrDeflectSelf(HitResult p_341949_) {
+         if (p_341949_.getType() == HitResult.Type.ENTITY) {
+             EntityHitResult entityhitresult = (EntityHitResult)p_341949_;
+@@ -262,7 +_,13 @@
+     public boolean deflect(ProjectileDeflection p_341900_, @Nullable Entity p_341912_, @Nullable Entity p_341932_, boolean p_341948_) {
+         p_341900_.deflect(this, p_341912_, this.random);
+         if (!this.level().isClientSide) {
+-            this.setOwner(p_341932_);
++            // Paper start - Fix PickupStatus getting reset
++            if (this instanceof AbstractArrow arrow) {
++                arrow.setOwner(p_341932_, false);
++            } else {
++                this.setOwner(p_341932_);
++            }
++            // Paper end - Fix PickupStatus getting reset
+             this.onDeflection(p_341912_, p_341948_);
+         }
+ 
+@@ -298,15 +_,35 @@
+     }
+ 
+     protected void onHitBlock(BlockHitResult p_37258_) {
++        // CraftBukkit start - cancellable hit event
++        if (this.hitCancelled) {
++            return;
++        }
++        // CraftBukkit end
+         BlockState blockstate = this.level().getBlockState(p_37258_.getBlockPos());
+         blockstate.onProjectileHit(this.level(), blockstate, p_37258_, this);
+     }
+ 
++    // Paper start
++    public boolean canHitEntityPublic(final Entity target) {
++        return this.canHitEntity(target);
++    }
++    // Paper end
++
+     protected boolean canHitEntity(Entity p_37250_) {
+         if (!p_37250_.canBeHitByProjectile()) {
+             return false;
+         } else {
+             Entity entity = this.getOwner();
++            // Paper start - Cancel hit for vanished entities
++            if (entity instanceof net.minecraft.server.level.ServerPlayer) {
++                org.bukkit.entity.Entity collided = target.getBukkitEntity();
++                org.bukkit.entity.Player shooter = (org.bukkit.entity.Player) entity.getBukkitEntity();
++                if (!shooter.canSee(collided)) {
++                    return false;
++                }
++            }
++            // Paper end - Cancel hit for vanished entities
+             return entity == null || this.leftOwner || !entity.isPassengerOfSameVehicle(p_37250_);
+         }
+     }
+@@ -319,13 +_,7 @@
+     }
+ 
+     protected static float lerpRotation(float p_37274_, float p_37275_) {
+-        while (p_37275_ - p_37274_ < -180.0F) {
+-            p_37274_ -= 360.0F;
+-        }
+-
+-        while (p_37275_ - p_37274_ >= 180.0F) {
+-            p_37274_ += 360.0F;
+-        }
++        currentRotation += Math.round((targetRotation - currentRotation) / 360.0F) * 360.0F; // Paper - stop large look changes from crashing the server
+ 
+         return Mth.lerp(0.2F, p_37274_, p_37275_);
+     }
 @@ -350,7 +_,7 @@
          Entity entity = this.getOwner();
          return entity instanceof Player

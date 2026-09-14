@@ -124,7 +124,7 @@ public final class Timings {
     @NotNull
     public static Timing ofStart(@NotNull Plugin plugin, @NotNull String name, @Nullable Timing groupHandler) {
         Timing timing = of(plugin, name, groupHandler);
-        timing.startTiming();
+        //timing.startTiming(); // Purpur - Remove Timings
         return timing;
     }
 
@@ -146,7 +146,7 @@ public final class Timings {
      */
     public static void setTimingsEnabled(boolean enabled) {
         if (enabled && !warnedAboutDeprecationOnEnable) {
-            Bukkit.getLogger().severe(PlainTextComponentSerializer.plainText().serialize(deprecationMessage()));
+            //Bukkit.getLogger().severe(PlainTextComponentSerializer.plainText().serialize(deprecationMessage())); // Purpur - Remove Timings
             warnedAboutDeprecationOnEnable = true;
         }
     }

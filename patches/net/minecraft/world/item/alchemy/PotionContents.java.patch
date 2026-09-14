@@ -1,13 +1,22 @@
 --- a/net/minecraft/world/item/alchemy/PotionContents.java
 +++ b/net/minecraft/world/item/alchemy/PotionContents.java
-@@ -192,6 +_,10 @@
+@@ -159,7 +_,7 @@
+                 if (p_376018_.getEffect().value().isInstantenous()) {
+                     p_376018_.getEffect().value().applyInstantenousEffect(serverlevel, player1, player1, p_366471_, p_376018_.getAmplifier(), 1.0);
+                 } else {
+-                    p_366471_.addEffect(p_376018_);
++                    p_366471_.addEffect(p_376018_, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.POTION_DRINK); // CraftBukkit
+                 }
+             }, p_393741_);
+         }
+@@ -191,6 +_,10 @@
+         if (!list.isEmpty()) {
              p_331296_.accept(CommonComponents.EMPTY);
              p_331296_.accept(Component.translatable("potion.whenDrank").withStyle(ChatFormatting.DARK_PURPLE));
- 
++
 +            // Neo: Override handling of potion attribute tooltips to support IAttributeExtension
 +            net.neoforged.neoforge.common.util.AttributeUtil.addPotionTooltip(list, p_331296_);
 +            if (true) return;
-+
+ 
              for (Pair<Holder<Attribute>, AttributeModifier> pair : list) {
                  AttributeModifier attributemodifier = pair.getSecond();
-                 double d1 = attributemodifier.amount();

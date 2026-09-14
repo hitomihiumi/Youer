@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -93,9 +_,14 @@
+@@ -93,19 +_,24 @@
      public ChunkGenerator(BiomeSource p_255838_, Function<Holder<Biome>, BiomeGenerationSettings> p_256216_) {
          this.biomeSource = p_255838_;
          this.generationSettingsGetter = p_256216_;
@@ -8,11 +8,110 @@
 +        this.featuresPerStep = net.neoforged.neoforge.common.util.Lazy.of(
              () -> FeatureSorter.buildFeaturesPerStep(List.copyOf(p_255838_.possibleBiomes()), p_223216_ -> p_256216_.apply(p_223216_).features(), true)
          );
-+    }
-+
+     }
+ 
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public void refreshFeaturesPerStep() {
 +        ((net.neoforged.neoforge.common.util.Lazy<?>) this.featuresPerStep).invalidate();
++    }
++
+     public void validate() {
+         this.featuresPerStep.get();
      }
  
-     public void validate() {
+     protected abstract MapCodec<? extends ChunkGenerator> codec();
+ 
+-    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_) {
+-        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_);
++    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_, org.spigotmc.SpigotWorldConfig conf) { // Spigot
++        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_, conf); // Spigot
+     }
+ 
+     public Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> getTypeNameForDataFixer() {
+@@ -127,6 +_,24 @@
+     public Pair<BlockPos, Holder<Structure>> findNearestMapStructure(
+         ServerLevel p_223038_, HolderSet<Structure> p_223039_, BlockPos p_223040_, int p_223041_, boolean p_223042_
+     ) {
++        // Paper start - StructuresLocateEvent
++        final org.bukkit.World bukkitWorld = level.getWorld();
++        final org.bukkit.Location origin = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level);
++        final List<org.bukkit.generator.structure.Structure> apiStructures = structure.stream().map(Holder::value).map(nms -> org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(nms)).toList();
++        if (!apiStructures.isEmpty()) {
++            final io.papermc.paper.event.world.StructuresLocateEvent event = new io.papermc.paper.event.world.StructuresLocateEvent(bukkitWorld, origin, apiStructures, searchRadius, skipKnownStructures);
++            if (!event.callEvent()) {
++                return null;
++            }
++            if (event.getResult() != null) {
++                return Pair.of(io.papermc.paper.util.MCUtil.toBlockPos(event.getResult().pos()), level.registryAccess().lookupOrThrow(Registries.STRUCTURE).wrapAsHolder(org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraft(event.getResult().structure())));
++            }
++            pos = org.bukkit.craftbukkit.util.CraftLocation.toBlockPosition(event.getOrigin());
++            searchRadius = event.getRadius();
++            skipKnownStructures = event.shouldFindUnexplored();
++            structure = HolderSet.direct(api -> level.registryAccess().lookupOrThrow(Registries.STRUCTURE).wrapAsHolder(org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraft(api)), event.getStructures());
++        }
++        // Paper end
+         ChunkGeneratorStructureState chunkgeneratorstructurestate = p_223038_.getChunkSource().getGeneratorState();
+         Map<StructurePlacement, Set<Holder<Structure>>> map = new Object2ObjectArrayMap<>();
+ 
+@@ -252,11 +_,15 @@
+         int i = p_223197_.spacing();
+ 
+         for (int j = -p_223194_; j <= p_223194_; j++) {
+-            boolean flag = j == -p_223194_ || j == p_223194_;
++            // Paper start - Perf: iterate over border chunks instead of entire square chunk area
++            final int radius = p_223194_;
++            boolean flag = j == -p_223194_ || j == p_223194_; final boolean onBorderAlongZAxis = flag; // Paper - OBFHELPER
+ 
+-            for (int k = -p_223194_; k <= p_223194_; k++) {
+-                boolean flag1 = k == -p_223194_ || k == p_223194_;
+-                if (flag || flag1) {
++            for (int k = -radius; k <= radius; k += onBorderAlongZAxis ? 1 : radius * 2) {
++                // boolean flag1 = k == -z || k == z;
++                // if (flag || flag1) {
++                if (true) {
++            // Paper end - Perf: iterate over border chunks instead of entire square chunk area
+                     int l = p_223192_ + i * j;
+                     int i1 = p_223193_ + i * k;
+                     ChunkPos chunkpos = p_223197_.getPotentialStructureChunk(p_223196_, l, i1);
+@@ -307,7 +_,7 @@
+         }
+     }
+ 
+-    public void applyBiomeDecoration(WorldGenLevel p_223087_, ChunkAccess p_223088_, StructureManager p_223089_) {
++    public void addVanillaDecorations(WorldGenLevel p_223087_, ChunkAccess p_223088_, StructureManager p_223089_) { // CraftBukkit - rename
+         ChunkPos chunkpos = p_223088_.getPos();
+         if (!SharedConstants.debugVoidTerrain(chunkpos)) {
+             SectionPos sectionpos = SectionPos.of(chunkpos, p_223087_.getMinSectionY());
+@@ -400,6 +_,32 @@
+             }
+         }
+     }
++   // CraftBukkit start
++    public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
++        this.applyBiomeDecoration(level, chunk, structureManager, true);
++    }
++
++    public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager, boolean addVanillaDecorations) {
++        if (addVanillaDecorations) {
++            this.addVanillaDecorations(level, chunk, structureManager);
++        }
++
++        org.bukkit.World world = level.getMinecraftWorld().getWorld();
++        // only call when a populator is present (prevents unnecessary entity conversion)
++        if (!world.getPopulators().isEmpty()) {
++            org.bukkit.craftbukkit.generator.CraftLimitedRegion limitedRegion = new org.bukkit.craftbukkit.generator.CraftLimitedRegion(level, chunk.getPos());
++            int x = chunk.getPos().x;
++            int z = chunk.getPos().z;
++            for (org.bukkit.generator.BlockPopulator populator : world.getPopulators()) {
++                WorldgenRandom seededrandom = new WorldgenRandom(new net.minecraft.world.level.levelgen.LegacyRandomSource(level.getSeed()));
++                seededrandom.setDecorationSeed(level.getSeed(), x, z);
++                populator.populate(world, new org.bukkit.craftbukkit.util.RandomSourceWrapper.RandomWrapper(seededrandom), x, z, limitedRegion);
++            }
++            limitedRegion.saveEntities();
++            limitedRegion.breakLink();
++        }
++    }
++    // CraftBukkit end
+ 
+     private static BoundingBox getWritableArea(ChunkAccess p_187718_) {
+         ChunkPos chunkpos = p_187718_.getPos();

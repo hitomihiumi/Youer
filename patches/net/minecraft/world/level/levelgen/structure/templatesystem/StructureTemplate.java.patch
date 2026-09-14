@@ -1,6 +1,17 @@
 --- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 +++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
-@@ -258,6 +_,10 @@
+@@ -79,6 +_,10 @@
+     public final List<StructureTemplate.StructureEntityInfo> entityInfoList = Lists.newArrayList();
+     private Vec3i size = Vec3i.ZERO;
+     private String author = "?";
++    // CraftBukkit start - data containers
++    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
++    public org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(StructureTemplate.DATA_TYPE_REGISTRY);
++    // CraftBukkit end
+ 
+     public Vec3i getSize() {
+         return this.size;
+@@ -258,12 +_,29 @@
          return transform(p_74565_, p_74564_.getMirror(), p_74564_.getRotation(), p_74564_.getRotationPivot());
      }
  
@@ -11,6 +22,25 @@
      public boolean placeInWorld(
          ServerLevelAccessor p_230329_, BlockPos p_230330_, BlockPos p_230331_, StructurePlaceSettings p_230332_, RandomSource p_230333_, int p_230334_
      ) {
+         if (this.palettes.isEmpty()) {
+             return false;
+         } else {
++            // CraftBukkit start
++            // We only want the TransformerGeneratorAccess at certain locations because in here are many "block update" calls that shouldn't be transformed
++            ServerLevelAccessor wrappedAccess = serverLevel;
++            org.bukkit.craftbukkit.util.CraftStructureTransformer structureTransformer = null;
++            if (wrappedAccess instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
++                serverLevel = transformerAccess.getDelegate();
++                structureTransformer = transformerAccess.getStructureTransformer();
++                // The structureTransformer is not needed if we can not transform blocks therefore we can save a little bit of performance doing this
++                if (structureTransformer != null && !structureTransformer.canTransformBlocks()) {
++                    structureTransformer = null;
++                }
++            }
++            // CraftBukkit end
+             List<StructureTemplate.StructureBlockInfo> list = p_230332_.getRandomPalette(this.palettes, p_230330_).blocks();
+             if ((!list.isEmpty() || !p_230332_.isIgnoreEntities() && !this.entityInfoList.isEmpty())
+                 && this.size.getX() >= 1
 @@ -279,7 +_,7 @@
                  int l = Integer.MIN_VALUE;
                  int i1 = Integer.MIN_VALUE;
@@ -20,7 +50,41 @@
  
                  try (ProblemReporter.ScopedCollector problemreporter$scopedcollector = new ProblemReporter.ScopedCollector(LOGGER)) {
                      for (StructureTemplate.StructureBlockInfo structuretemplate$structureblockinfo : list4) {
-@@ -398,16 +_,7 @@
+@@ -291,6 +_,21 @@
+                                 p_230329_.setBlock(blockpos, Blocks.BARRIER.defaultBlockState(), 820);
+                             }
+ 
++                            // CraftBukkit start
++                            if (structureTransformer != null) {
++                                org.bukkit.craftbukkit.block.CraftBlockState craftBlockState = (org.bukkit.craftbukkit.block.CraftBlockState) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(serverLevel, blockPos, blockState, null);
++                                if (structureBlockInfo.nbt != null && craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> entityState) {
++                                    entityState.loadData(structureBlockInfo.nbt);
++                                    if (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftLootable<?> craftLootable) {
++                                        craftLootable.setSeed(random.nextLong());
++                                    }
++                                }
++                                craftBlockState = structureTransformer.transformCraftState(craftBlockState);
++                                blockState = craftBlockState.getHandle();
++                                structureBlockInfo = new StructureTemplate.StructureBlockInfo(blockPos, blockState, (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState ? craftBlockEntityState.getSnapshotNBT() : null));
++                            }
++                            // CraftBukkit end
++
+                             if (p_230329_.setBlock(blockpos, blockstate, p_230334_)) {
+                                 i = Math.min(i, blockpos.getX());
+                                 j = Math.min(j, blockpos.getY());
+@@ -391,23 +_,18 @@
+                             if (pair.getSecond() != null) {
+                                 BlockEntity blockentity1 = p_230329_.getBlockEntity(blockpos4);
+                                 if (blockentity1 != null) {
+-                                    blockentity1.setChanged();
++                                    // Paper start - Fix NBT pieces overriding a block entity during worldgen deadlock
++                                    if (!(serverLevel instanceof net.minecraft.world.level.WorldGenLevel)) {
++                                        blockentity1.setChanged();
++                                    }
++                                    // Paper end - Fix NBT pieces overriding a block entity during worldgen deadlock
+                                 }
+                             }
+                         }
                      }
  
                      if (!p_230332_.isIgnoreEntities()) {
@@ -114,7 +178,7 @@
                  ListTag listtag = new ListTag();
                  listtag.add(DoubleTag.valueOf(vec31.x));
                  listtag.add(DoubleTag.valueOf(vec31.y));
-@@ -510,10 +_,10 @@
+@@ -510,27 +_,29 @@
                  createEntityIgnoreException(p_421857_, p_74524_, compoundtag)
                      .ifPresent(
                          p_275190_ -> {
@@ -128,6 +192,44 @@
                                  ((Mob)p_275190_)
                                      .finalizeSpawn(p_74524_, p_74524_.getCurrentDifficultyAt(BlockPos.containing(vec31)), EntitySpawnReason.STRUCTURE, null);
                              }
+ 
+                             p_74524_.addFreshEntityWithPassengers(p_275190_);
+-                        }
+-                    );
++                });
+             }
+         }
++
+     }
+ 
+     private static Optional<Entity> createEntityIgnoreException(ProblemReporter p_422568_, ServerLevelAccessor p_74544_, CompoundTag p_74545_) {
+-        try {
+-            return EntityType.create(TagValueInput.create(p_422568_, p_74544_.registryAccess(), p_74545_), p_74544_.getLevel(), EntitySpawnReason.STRUCTURE);
+-        } catch (Exception exception) {
+-            return Optional.empty();
+-        }
++        // CraftBukkit start
++        // try {
++            return EntityType.create(TagValueInput.create(p_422568_, p_74544_.registryAccess(), p_74545_), p_74544_.getLevel(), EntitySpawnReason.STRUCTURE, true); // Paper - Don't fire sync event during generation
++        // } catch (Exception var4) {
++        //     return Optional.empty();
++        // }
++        // CraftBukkit end
+     }
+ 
+     public Vec3i getSize(Rotation p_163809_) {
+@@ -740,6 +_,11 @@
+ 
+         p_74619_.put("entities", listtag);
+         p_74619_.put("size", this.newIntegerList(this.size.getX(), this.size.getY(), this.size.getZ()));
++        // CraftBukkit start - PDC
++        if (!this.persistentDataContainer.isEmpty()) {
++            p_74619_.put("BukkitValues", this.persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
+         return NbtUtils.addCurrentDataVersion(p_74619_);
+     }
+ 
 @@ -869,7 +_,7 @@
  
      public static final class Palette {

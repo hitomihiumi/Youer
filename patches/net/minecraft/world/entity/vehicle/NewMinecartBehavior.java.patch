@@ -55,3 +55,40 @@
                          if (this.restAtVShape(p_361660_, railshape)) {
                              return 0.0;
                          }
+@@ -491,6 +_,12 @@
+ 
+     @Override
+     public double getMaxSpeed(ServerLevel p_376456_) {
++        // CraftBukkit start
++        Double maxSpeed = this.minecart.maxSpeed;
++        if (maxSpeed != null) {
++            return this.minecart.isInWater() ? maxSpeed / 2.0D : maxSpeed;
++        }
++        // CraftBukkit end
+         return p_376456_.getGameRules().getInt(GameRules.RULE_MINECART_MAX_SPEED) * (this.minecart.isInWater() ? 0.5 : 1.0) / 20.0;
+     }
+ 
+@@ -506,7 +_,8 @@
+ 
+     @Override
+     public double getSlowdownFactor() {
+-        return this.minecart.isVehicle() ? 0.997 : 0.975;
++        if (this.minecart.frictionState == net.kyori.adventure.util.TriState.FALSE) return 1; // Paper
++        return this.minecart.isVehicle() || !this.minecart.slowWhenEmpty ? 0.997 : 0.975; // CraftBukkit - add !this.slowWhenEmpty
+     }
+ 
+     @Override
+@@ -530,6 +_,13 @@
+                         && !(entity instanceof AbstractMinecart)
+                         && !this.minecart.isVehicle()
+                         && !entity.isPassenger()) {
++                        // CraftBukkit start
++                        org.bukkit.event.vehicle.VehicleEntityCollisionEvent collisionEvent = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent(
++                            (org.bukkit.entity.Vehicle) this.minecart.getBukkitEntity(),
++                            entity.getBukkitEntity()
++                        );
++                        if (!collisionEvent.callEvent()) continue;
++                        // CraftBukkit end
+                         boolean flag = entity.startRiding(this.minecart);
+                         if (flag) {
+                             return true;

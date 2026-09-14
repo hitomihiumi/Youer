@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/entity/TheEndGatewayBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/TheEndGatewayBlockEntity.java
+@@ -132,7 +_,7 @@
+ 
+     @Nullable
+     public Vec3 getPortalPosition(ServerLevel p_350561_, BlockPos p_350271_) {
+-        if (this.exitPortal == null && p_350561_.dimension() == Level.END) {
++        if (this.exitPortal == null && p_350561_.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.END) { // CraftBukkit - work in alternate worlds
+             BlockPos blockpos = findOrCreateValidTeleportPos(p_350561_, p_350271_);
+             blockpos = blockpos.above(10);
+             LOGGER.debug("Creating portal at {}", blockpos);
 @@ -255,7 +_,7 @@
  
      @Override

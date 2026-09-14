@@ -19,6 +19,15 @@
          }
      }
  
+@@ -256,7 +_,7 @@
+     }
+ 
+     protected boolean canBeReplaced(BlockState p_60470_, BlockPlaceContext p_60471_) {
+-        return p_60470_.canBeReplaced() && (p_60471_.getItemInHand().isEmpty() || !p_60471_.getItemInHand().is(this.asItem()));
++        return p_60470_.canBeReplaced() && (p_60471_.getItemInHand().isEmpty() || !p_60471_.getItemInHand().is(this.asItem())) && (p_60470_.isDestroyable() || (p_60471_.getPlayer() != null && p_60471_.getPlayer().getAbilities().instabuild)); // Paper - Protect Bedrock and End Portal/Frames from being destroyed
+     }
+ 
+     protected boolean canBeReplaced(BlockState p_60535_, Fluid p_60536_) {
 @@ -346,8 +_,8 @@
          if (f == -1.0F) {
              return 0.0F;
@@ -55,6 +64,21 @@
      public abstract static class BlockStateBase extends StateHolder<Block, BlockState> {
          private static final Direction[] DIRECTIONS = Direction.values();
          private static final VoxelShape[] EMPTY_OCCLUSION_SHAPES = Util.make(
+@@ -490,12 +_,14 @@
+             }
+         }
+ 
++        protected boolean shapeExceedsCube = true; // Paper - moved from actual method to here
+         public void initCache() {
+             this.fluidState = this.owner.getFluidState(this.asState());
+             this.isRandomlyTicking = this.owner.isRandomlyTicking(this.asState());
+             if (!this.getBlock().hasDynamicShape()) {
+                 this.cache = new BlockBehaviour.BlockStateBase.Cache(this.asState());
+             }
++            this.shapeExceedsCube = this.cache == null || this.cache.largeCollisionShape; // Paper - moved from actual method to here
+ 
+             this.legacySolid = this.calculateSolid();
+             this.occlusionShape = this.canOcclude ? this.owner.getOcclusionShape(this.asState()) : Shapes.empty();
 @@ -508,7 +_,12 @@
                  this.occlusionShapesByFace = new VoxelShape[DIRECTIONS.length];
  
@@ -69,6 +93,18 @@
                  }
              }
  
+@@ -534,6 +_,11 @@
+         public boolean isSolid() {
+             return this.legacySolid;
+         }
++        // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
++        public final boolean isDestroyable() {
++            return getBlock().isDestroyable();
++        }
++        // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
+ 
+         public boolean isValidSpawn(BlockGetter p_60644_, BlockPos p_60645_, EntityType<?> p_60646_) {
+             return this.getBlock().properties.isValidSpawn.test(this.asState(), p_60644_, p_60645_, p_60646_);
 @@ -563,14 +_,18 @@
              return this.useShapeForLightOcclusion;
          }
@@ -111,6 +147,29 @@
              return this.pushReaction;
          }
  
+@@ -732,7 +_,13 @@
+         }
+ 
+         public void onPlace(Level p_60697_, BlockPos p_60698_, BlockState p_60699_, boolean p_60700_) {
+-            this.getBlock().onPlace(this.asState(), p_60697_, p_60698_, p_60699_, p_60700_);
++            // CraftBukkit start
++            this.onPlace(p_60697_, p_60698_, p_60699_, p_60700_, null);
++        }
++
++        public void onPlace(Level p_60697_, BlockPos p_60698_, BlockState p_60699_, boolean p_60700_, @Nullable net.minecraft.world.item.context.UseOnContext context) {
++            this.getBlock().onPlace(this.asState(), p_60697_, p_60698_, p_60699_, p_60700_, context);
++            // CraftBukkit end
+         }
+ 
+         public void affectNeighborsAfterRemoval(ServerLevel p_394387_, BlockPos p_394482_, boolean p_394128_) {
+@@ -757,6 +_,7 @@
+ 
+         public void spawnAfterBreak(ServerLevel p_222968_, BlockPos p_222969_, ItemStack p_222970_, boolean p_222971_) {
+             this.getBlock().spawnAfterBreak(this.asState(), p_222968_, p_222969_, p_222970_, p_222971_);
++            if (p_222971_) {this.getBlock().popExperience(p_222968_, p_222969_, this.getBlock().getExpDrop(this.asState(), p_222968_, p_222969_, p_222970_, true));} // Paper - Properly handle xp dropping
+         }
+ 
+         public List<ItemStack> getDrops(LootParams.Builder p_287688_) {
 @@ -764,6 +_,9 @@
          }
  
@@ -119,6 +178,20 @@
 +            var e = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent(useOnContext, net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent.UsePhase.BLOCK));
 +            if (e.isCanceled()) return e.getCancellationResult();
              return this.getBlock().useItemOn(p_316374_, this.asState(), p_316651_, p_316877_.getBlockPos(), p_316623_, p_316469_, p_316877_);
+         }
+ 
+@@ -861,11 +_,11 @@
+             return this.getBlock().builtInRegistryHolder().is(p_304668_);
+         }
+ 
+-        public FluidState getFluidState() {
++        public final FluidState getFluidState() { // Paper - Perf: Final for inlining
+             return this.fluidState;
+         }
+ 
+-        public boolean isRandomlyTicking() {
++        public final boolean isRandomlyTicking() { // Paper - Perf: Final for inlining
+             return this.isRandomlyTicking;
          }
  
 @@ -873,6 +_,7 @@

@@ -64,3 +64,46 @@
              Pair<Vec3i, Vec3i> pair = AbstractMinecart.exits(railshape);
              Vec3i vec3i = pair.getFirst();
              Vec3i vec3i1 = pair.getSecond();
+@@ -378,8 +_,22 @@
+                         && !(entity1 instanceof AbstractMinecart)
+                         && !this.minecart.isVehicle()
+                         && !entity1.isPassenger()) {
++                        // CraftBukkit start
++                        org.bukkit.event.vehicle.VehicleEntityCollisionEvent collisionEvent = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent(
++                            (org.bukkit.entity.Vehicle) this.minecart.getBukkitEntity(), entity1.getBukkitEntity()
++                        );
++                        if (!collisionEvent.callEvent()) continue;
++                        // CraftBukkit end
+                         entity1.startRiding(this.minecart);
+                     } else {
++                        // CraftBukkit start
++                        if (!this.minecart.isPassengerOfSameVehicle(entity)) {
++                            org.bukkit.event.vehicle.VehicleEntityCollisionEvent collisionEvent = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent(
++                                (org.bukkit.entity.Vehicle) this.minecart.getBukkitEntity(), entity.getBukkitEntity()
++                            );
++                            if (!collisionEvent.callEvent()) continue;
++                        }
++                        // CraftBukkit end
+                         entity1.push(this.minecart);
+                     }
+                 }
+@@ -409,11 +_,18 @@
+ 
+     @Override
+     public double getMaxSpeed(ServerLevel p_376436_) {
++        // CraftBukkit start
++        Double maxSpeed = this.minecart.maxSpeed;
++        if (maxSpeed != null) {
++            return this.minecart.isInWater() ? maxSpeed / 2.0D : maxSpeed;
++        }
++        // CraftBukkit end
+         return this.minecart.isInWater() ? 0.2 : 0.4;
+     }
+ 
+     @Override
+     public double getSlowdownFactor() {
+-        return this.minecart.isVehicle() ? 0.997 : 0.96;
++        if (this.minecart.frictionState == net.kyori.adventure.util.TriState.FALSE) return 1; // Paper
++        return this.minecart.isVehicle() || !this.minecart.slowWhenEmpty ? 0.997 : 0.96; // CraftBukkit - add !this.slowWhenEmpty
+     }
+ }

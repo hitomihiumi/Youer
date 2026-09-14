@@ -26,7 +26,15 @@
                  }
              }
          }
-@@ -96,7 +_,8 @@
+@@ -89,14 +_,15 @@
+ 
+     public void growCrops(Level p_52264_, BlockPos p_52265_, BlockState p_52266_) {
+         int i = Math.min(this.getMaxAge(), this.getAge(p_52266_) + this.getBonemealAgeIncrease(p_52264_));
+-        p_52264_.setBlock(p_52265_, this.getStateForAge(i), 2);
++        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_52264_, p_52265_, this.getStateForAge(i), 2); // CraftBukkit
+     }
+ 
+     protected int getBonemealAgeIncrease(Level p_52262_) {
          return Mth.nextInt(p_52262_.random, 2, 5);
      }
  

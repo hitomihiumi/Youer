@@ -12,7 +12,7 @@
      private final BlockEntityType<?> type;
      @Nullable
      public Level level;
-@@ -44,6 +_,8 @@
+@@ -44,12 +_,15 @@
      protected boolean remove;
      private BlockState blockState;
      private DataComponentMap components = DataComponentMap.EMPTY;
@@ -21,7 +21,14 @@
  
      public BlockEntity(BlockEntityType<?> p_155228_, BlockPos p_155229_, BlockState p_155230_) {
          this.type = p_155228_;
-@@ -59,7 +_,7 @@
+         this.worldPosition = p_155229_.immutable();
+         this.validateBlockState(p_155230_);
+         this.blockState = p_155230_;
++        this.persistentDataContainer = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(DATA_TYPE_REGISTRY); // Paper - always init
+     }
+ 
+     private void validateBlockState(BlockState p_353132_) {
+@@ -59,13 +_,14 @@
      }
  
      public boolean isValidBlockState(BlockState p_353131_) {
@@ -30,6 +37,21 @@
      }
  
      public static BlockPos getPosFromTag(ChunkPos p_412201_, CompoundTag p_187473_) {
+         int i = p_187473_.getIntOr("x", 0);
+         int j = p_187473_.getIntOr("y", 0);
+         int k = p_187473_.getIntOr("z", 0);
++        if (chunkPos != null) { // Paper - allow reading non-validated pos from tag - used to parse block entities on items
+         int l = SectionPos.blockToSectionCoord(i);
+         int i1 = SectionPos.blockToSectionCoord(k);
+         if (l != p_412201_.x || i1 != p_412201_.z) {
+@@ -73,6 +_,7 @@
+             i = p_412201_.getBlockX(SectionPos.sectionRelative(i));
+             k = p_412201_.getBlockZ(SectionPos.sectionRelative(k));
+         }
++        } // Paper - allow reading non-validated pos from tag - used to parse block entities on items
+ 
+         return new BlockPos(i, j, k);
+     }
 @@ -91,6 +_,8 @@
      }
  
@@ -51,6 +73,18 @@
      }
  
      public final CompoundTag saveWithFullMetadata(HolderLookup.Provider p_323767_) {
+@@ -140,6 +_,11 @@
+     public void saveWithoutMetadata(ValueOutput p_422668_) {
+         this.saveAdditional(p_422668_);
+         p_422668_.store("components", DataComponentMap.CODEC, this.components);
++        // CraftBukkit start - store container
++        if (!this.persistentDataContainer.isEmpty()) {
++            p_422668_.store("PublicBukkitValues", CompoundTag.CODEC, this.persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
+     }
+ 
+     public final CompoundTag saveCustomOnly(HolderLookup.Provider p_338656_) {
 @@ -238,10 +_,14 @@
  
      public void setRemoved() {
@@ -99,6 +133,30 @@
      @Deprecated
      public void setBlockState(BlockState p_155251_) {
          this.validateBlockState(p_155251_);
+@@ -287,6 +_,12 @@
+     }
+ 
+     public final void applyComponents(DataComponentMap p_330364_, DataComponentPatch p_338381_) {
++        // CraftBukkit start
++        this.applyComponentsSet(p_330364_, p_338381_);
++    }
++
++    public final Set<DataComponentType<?>> applyComponentsSet(DataComponentMap p_330364_, DataComponentPatch p_338381_) {
++        // CraftBukkit end
+         final Set<DataComponentType<?>> set = new HashSet<>();
+         set.add(DataComponents.BLOCK_ENTITY_DATA);
+         set.add(DataComponents.BLOCK_STATE);
+@@ -307,6 +_,10 @@
+         });
+         DataComponentPatch datacomponentpatch = p_338381_.forget(set::contains);
+         this.components = datacomponentpatch.split().added();
++        // CraftBukkit start
++        set.remove(DataComponents.BLOCK_ENTITY_DATA); // Remove as never actually added by applyImplicitComponents
++        return set;
++        // CraftBukkit end
+     }
+ 
+     protected void collectImplicitComponents(DataComponentMap.Builder p_338210_) {
 @@ -340,10 +_,38 @@
          return new BlockEntity.BlockEntityPathElement(this);
      }

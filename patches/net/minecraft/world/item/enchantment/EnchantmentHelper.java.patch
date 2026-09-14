@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/enchantment/EnchantmentHelper.java
 +++ b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
-@@ -47,7 +_,19 @@
+@@ -47,14 +_,32 @@
  import org.apache.commons.lang3.mutable.MutableObject;
  
  public class EnchantmentHelper {
@@ -20,6 +20,20 @@
          ItemEnchantments itemenchantments = p_44845_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
          return itemenchantments.getLevel(p_346179_);
      }
+ 
+     public static ItemEnchantments updateEnchantments(ItemStack p_331034_, Consumer<ItemEnchantments.Mutable> p_332031_) {
++    // Paper start - allowing updating enchantments on items without component
++        return updateEnchantments(p_331034_, p_332031_, false);
++    }
++
++    public static ItemEnchantments updateEnchantments(ItemStack p_331034_, Consumer<ItemEnchantments.Mutable> p_332031_, final boolean createComponentIfMissing) {
++    // Paper end - allowing updating enchantments on items without component
+         DataComponentType<ItemEnchantments> datacomponenttype = getComponentType(p_331034_);
+-        ItemEnchantments itemenchantments = p_331034_.get(datacomponenttype);
++        ItemEnchantments itemenchantments = createComponentIfMissing ? p_331034_.getOrDefault(datacomponenttype, ItemEnchantments.EMPTY) : p_331034_.get(datacomponenttype); // Paper - allowing updating enchantments on items without component
+         if (itemenchantments == null) {
+             return ItemEnchantments.EMPTY;
+         } else {
 @@ -128,6 +_,12 @@
      public static void runIterationOnItem(ItemStack p_345425_, EnchantmentHelper.EnchantmentVisitor p_345023_) {
          ItemEnchantments itemenchantments = p_345425_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);

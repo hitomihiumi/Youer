@@ -1,5 +1,24 @@
 --- a/net/minecraft/core/dispenser/EquipmentDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/EquipmentDispenseItemBehavior.java
+@@ -14,10 +_,17 @@
+ 
+     @Override
+     protected ItemStack execute(BlockSource p_371344_, ItemStack p_371463_) {
+-        return dispenseEquipment(p_371344_, p_371463_) ? p_371463_ : super.execute(p_371344_, p_371463_);
++        return dispenseEquipment(p_371344_, p_371463_, this) ? p_371463_ : super.execute(p_371344_, p_371463_); // Paper - fix possible StackOverflowError
+     }
+ 
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper
+     public static boolean dispenseEquipment(BlockSource p_371324_, ItemStack p_371227_) {
++        // Paper start
++        return dispenseEquipment(p_371324_, p_371227_, null);
++    }
++
++    public static boolean dispenseEquipment(BlockSource p_371324_, ItemStack p_371227_, @javax.annotation.Nullable DispenseItemBehavior currentBehavior) {
++        // Paper end
+         BlockPos blockpos = p_371324_.pos().relative(p_371324_.state().getValue(DispenserBlock.FACING));
+         List<LivingEntity> list = p_371324_.level()
+             .getEntitiesOfClass(LivingEntity.class, new AABB(blockpos), p_371713_ -> p_371713_.canEquipWithDispenser(p_371227_));
 @@ -26,6 +_,8 @@
          } else {
              LivingEntity livingentity = list.getFirst();

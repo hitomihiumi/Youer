@@ -43,7 +43,48 @@
      public static ItemStack getHeldProjectile(LivingEntity p_43011_, Predicate<ItemStack> p_43012_) {
          if (p_43012_.test(p_43011_.getItemInHand(InteractionHand.OFF_HAND))) {
              return p_43011_.getItemInHand(InteractionHand.OFF_HAND);
-@@ -91,7 +_,7 @@
+@@ -50,6 +_,7 @@
+         float p_331445_,
+         boolean p_331107_,
+         @Nullable LivingEntity p_331167_
++        ,float drawStrength // Paper - Pass draw strength
+     ) {
+         float f = EnchantmentHelper.processProjectileSpread(p_346125_, p_330646_, p_330728_, 0.0F);
+         float f1 = p_331726_.size() == 1 ? 0.0F : 2.0F * f / (p_331726_.size() - 1);
+@@ -62,12 +_,26 @@
+                 float f4 = f2 + f3 * ((i + 1) / 2) * f1;
+                 f3 = -f3;
+                 int j = i;
+-                Projectile.spawnProjectile(
+-                    this.createProjectile(p_346125_, p_330728_, p_330646_, itemstack, p_331107_),
+-                    p_346125_,
+-                    itemstack,
+-                    p_360045_ -> this.shootProjectile(p_330728_, p_360045_, j, p_331007_, p_331445_, f4, p_331167_)
+-                );
++                // CraftBukkit start
++                Projectile projectile = this.createProjectile(level, shooter, weapon, itemStack, isCrit);
++                this.shootProjectile(shooter, projectile, i1, velocity, inaccuracy, f4, target);
++
++                org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(shooter, weapon, itemStack, projectile, hand, drawStrength, true);
++                if (event.isCancelled()) {
++                    event.getProjectile().remove();
++                    return;
++                }
++
++                if (event.getProjectile() == projectile.getBukkitEntity()) {
++                    if (Projectile.spawnProjectile(
++                        projectile,
++                        level,
++                        itemStack
++                    ).isRemoved()) {
++                        return;
++                    }
++                }
++                // CraftBukkit end
+                 p_330646_.hurtAndBreak(this.getDurabilityUse(itemstack), p_330728_, LivingEntity.getSlotForHand(p_331152_));
+                 if (p_330646_.isEmpty()) {
+                     break;
+@@ -91,10 +_,15 @@
              abstractarrow.setCritArrow(true);
          }
  
@@ -52,6 +93,23 @@
      }
  
      protected static List<ItemStack> draw(ItemStack p_331565_, ItemStack p_330406_, LivingEntity p_330823_) {
++        // Paper start
++        return draw(p_331565_, p_330406_, p_330823_, true);
++    }
++    protected static List<ItemStack> draw(ItemStack p_331565_, ItemStack p_330406_, LivingEntity p_330823_, boolean consume) {
++        // Paper end
+         if (p_330406_.isEmpty()) {
+             return List.of();
+         } else {
+@@ -103,7 +_,7 @@
+             ItemStack itemstack1 = p_330406_.copy();
+ 
+             for (int j = 0; j < i; j++) {
+-                ItemStack itemstack = useAmmo(p_331565_, j == 0 ? p_330406_ : itemstack1, p_330823_, j > 0);
++                ItemStack itemstack = useAmmo(p_331565_, j == 0 ? p_330406_ : itemstack1, p_330823_, j > 0 || !consume); // Paper
+                 if (!itemstack.isEmpty()) {
+                     list.add(itemstack);
+                 }
 @@ -114,7 +_,8 @@
      }
  

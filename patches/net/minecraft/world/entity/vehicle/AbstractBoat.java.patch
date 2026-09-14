@@ -1,5 +1,80 @@
 --- a/net/minecraft/world/entity/vehicle/AbstractBoat.java
 +++ b/net/minecraft/world/entity/vehicle/AbstractBoat.java
+@@ -80,6 +_,15 @@
+     private Leashable.LeashData leashData;
+     private final Supplier<Item> dropItem;
+ 
++    // CraftBukkit start
++    // PAIL: Some of these haven't worked since a few updates, and since 1.9 they are less and less applicable.
++    public double maxSpeed = 0.4D;
++    public double occupiedDeceleration = 0.2D;
++    public double unoccupiedDeceleration = -1;
++    public boolean landBoats = false;
++    private org.bukkit.Location lastLocation;
++    // CraftBukkit end
++
+     public AbstractBoat(EntityType<? extends AbstractBoat> p_376844_, Level p_376177_, Supplier<Item> p_376258_) {
+         super(p_376844_, p_376177_);
+         this.dropItem = p_376258_;
+@@ -121,7 +_,7 @@
+     }
+ 
+     @Override
+-    public boolean isPushable() {
++    public boolean isCollidable(boolean ignoreClimbing) { // Paper - Climbing should not bypass cramming gamerule
+         return true;
+     }
+ 
+@@ -176,11 +_,30 @@
+ 
+     @Override
+     public void push(Entity p_376864_) {
++        if (!this.level().paperConfig().collisions.allowVehicleCollisions && this.level().paperConfig().collisions.onlyPlayersCollide && !(p_376864_ instanceof Player)) return; // Paper - Collision option for requiring a player participant
+         if (p_376864_ instanceof AbstractBoat) {
+             if (p_376864_.getBoundingBox().minY < this.getBoundingBox().maxY) {
++                // CraftBukkit start
++                if (!this.isPassengerOfSameVehicle(p_376864_)) {
++                    org.bukkit.event.vehicle.VehicleEntityCollisionEvent event = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent(
++                        (org.bukkit.entity.Vehicle) this.getBukkitEntity(),
++                        p_376864_.getBukkitEntity()
++                    );
++                    if (!event.callEvent()) return;
++                }
++                // CraftBukkit end
+                 super.push(p_376864_);
+             }
+         } else if (p_376864_.getBoundingBox().minY <= this.getBoundingBox().minY) {
++            // CraftBukkit start
++            if (!this.isPassengerOfSameVehicle(p_376864_)) {
++                org.bukkit.event.vehicle.VehicleEntityCollisionEvent event = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent(
++                    (org.bukkit.entity.Vehicle) this.getBukkitEntity(),
++                    p_376864_.getBukkitEntity()
++                );
++                if (!event.callEvent()) return;
++            }
++            // CraftBukkit end
+             super.push(p_376864_);
+         }
+     }
+@@ -247,6 +_,18 @@
+             this.setDeltaMovement(Vec3.ZERO);
+         }
+ 
++        // CraftBukkit start
++        org.bukkit.Location to = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.position(), this.level().getWorld(), this.getYRot(), this.getXRot());
++        org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
++
++        new org.bukkit.event.vehicle.VehicleUpdateEvent(vehicle).callEvent();
++
++        if (this.lastLocation != null && !this.lastLocation.equals(to)) {
++            org.bukkit.event.vehicle.VehicleMoveEvent event = new org.bukkit.event.vehicle.VehicleMoveEvent(vehicle, this.lastLocation, to);
++            event.callEvent();
++        }
++        this.lastLocation = vehicle.getLocation();
++        // CraftBukkit end
+         this.applyEffectsFromBlocks();
+         this.applyEffectsFromBlocks();
+         this.tickBubbleColumn();
 @@ -398,6 +_,7 @@
              float f = this.getGroundFriction();
              if (f > 0.0F) {
@@ -44,6 +119,30 @@
                          if (!fluidstate.isSource()) {
                              return AbstractBoat.Status.UNDER_FLOWING_WATER;
                          }
+@@ -555,7 +_,7 @@
+             this.waterLevel = this.getY(1.0);
+             double d2 = this.getWaterLevelAbove() - this.getBbHeight() + 0.101;
+             if (this.level().noCollision(this, this.getBoundingBox().move(0.0, d2 - this.getY(), 0.0))) {
+-                this.setPos(this.getX(), d2, this.getZ());
++                this.move(MoverType.SELF, new Vec3(0.0D, d2 - this.getY(), 0.0D)); // Paper - Fix some exploit with boats // TODO Still needed?
+                 this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 0.0, 1.0));
+                 this.lastYd = 0.0;
+             }
+@@ -716,12 +_,12 @@
+     }
+ 
+     @Override
+-    public void remove(Entity.RemovalReason p_376469_) {
++    public void remove(Entity.RemovalReason p_376469_, @Nullable org.bukkit.event.entity.EntityRemoveEvent.Cause eventCause) { // CraftBukkit - add Bukkit remove cause
+         if (!this.level().isClientSide && p_376469_.shouldDestroy() && this.isLeashed()) {
+             this.dropLeash();
+         }
+ 
+-        super.remove(p_376469_);
++        super.remove(p_376469_, eventCause); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override
 @@ -730,7 +_,7 @@
          if (!this.isPassenger()) {
              if (p_376924_) {

@@ -33,3 +33,74 @@
          return p_262154_.getBlockState(p_261493_.below()).is(BlockTags.BAMBOO_PLANTABLE_ON);
      }
  
+@@ -158,7 +_,7 @@
+     public boolean isValidBonemealTarget(LevelReader p_262065_, BlockPos p_262033_, BlockState p_261700_) {
+         int i = this.getHeightAboveUpToMax(p_262065_, p_262033_);
+         int j = this.getHeightBelowUpToMax(p_262065_, p_262033_);
+-        return i + j + 1 < 16 && p_262065_.getBlockState(p_262033_.above(i)).getValue(STAGE) != 1;
++        return i + j + 1 < ((Level) p_262065_).paperConfig().maxGrowthHeight.bamboo.max && p_262065_.getBlockState(p_262033_.above(i)).getValue(STAGE) != 1; // Paper - Configurable cactus/bamboo/reed growth height
+     }
+ 
+     @Override
+@@ -176,7 +_,7 @@
+         for (int i1 = 0; i1 < l; i1++) {
+             BlockPos blockpos = p_261955_.above(i);
+             BlockState blockstate = p_261845_.getBlockState(blockpos);
+-            if (k >= 16 || blockstate.getValue(STAGE) == 1 || !p_261845_.isEmptyBlock(blockpos.above())) {
++            if (k >= p_261845_.paperConfig().maxGrowthHeight.bamboo.max || !blockstate.is(Blocks.BAMBOO) || blockstate.getValue(BambooStalkBlock.STAGE) == 1 || !p_261845_.isEmptyBlock(blockpos.above())) { // CraftBukkit - If the BlockSpreadEvent was cancelled, we have no bamboo here // Paper - Configurable cactus/bamboo/reed growth height
+                 return;
+             }
+ 
+@@ -191,27 +_,38 @@
+         BlockPos blockpos = p_262109_.below(2);
+         BlockState blockstate1 = p_262076_.getBlockState(blockpos);
+         BambooLeaves bambooleaves = BambooLeaves.NONE;
++        boolean shouldUpdateOthers = false; // CraftBukkit
+         if (p_261759_ >= 1) {
+             if (!blockstate.is(Blocks.BAMBOO) || blockstate.getValue(LEAVES) == BambooLeaves.NONE) {
+                 bambooleaves = BambooLeaves.SMALL;
+             } else if (blockstate.is(Blocks.BAMBOO) && blockstate.getValue(LEAVES) != BambooLeaves.NONE) {
+                 bambooleaves = BambooLeaves.LARGE;
+                 if (blockstate1.is(Blocks.BAMBOO)) {
+-                    p_262076_.setBlock(p_262109_.below(), blockstate.setValue(LEAVES, BambooLeaves.SMALL), 3);
+-                    p_262076_.setBlock(blockpos, blockstate1.setValue(LEAVES, BambooLeaves.NONE), 3);
++                    // CraftBukkit start - moved down
++                    // level.setBlock(pos.below(), blockState.setValue(LEAVES, BambooLeaves.SMALL), 3);
++                    // level.setBlock(blockPos, blockState1.setValue(LEAVES, BambooLeaves.NONE), 3);
++                    shouldUpdateOthers = true;
++                    // CraftBukkit end
+                 }
+             }
+         }
+ 
+         int i = p_261855_.getValue(AGE) != 1 && !blockstate1.is(Blocks.BAMBOO) ? 0 : 1;
+-        int j = (p_261759_ < 11 || !(p_261633_.nextFloat() < 0.25F)) && p_261759_ != 15 ? 0 : 1;
+-        p_262076_.setBlock(p_262109_.above(), this.defaultBlockState().setValue(AGE, i).setValue(LEAVES, bambooleaves).setValue(STAGE, j), 3);
++        int j = (age < p_262076_.paperConfig().maxGrowthHeight.bamboo.min || random.nextFloat() >= 0.25F) && age != (p_262076_.paperConfig().maxGrowthHeight.bamboo.max - 1) ? 0 : 1; // Paper - Configurable cactus/bamboo/reed growth height
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_262076_, p_262109_, p_262109_.above(), this.defaultBlockState().setValue(AGE, i).setValue(LEAVES, bambooleaves).setValue(STAGE, j), 3)) {
++            if (shouldUpdateOthers) {
++                p_262076_.setBlock(p_262109_.below(), blockState.setValue(BambooStalkBlock.LEAVES, BambooLeaves.SMALL), 3);
++                p_262076_.setBlock(blockPos, blockState1.setValue(BambooStalkBlock.LEAVES, BambooLeaves.NONE), 3);
++            }
++        }
++        // CraftBukkit end
+     }
+ 
+     protected int getHeightAboveUpToMax(BlockGetter p_261541_, BlockPos p_261593_) {
+         int i = 0;
+ 
+-        while (i < 16 && p_261541_.getBlockState(p_261593_.above(i + 1)).is(Blocks.BAMBOO)) {
++        while (i < ((Level) p_261541_).paperConfig().maxGrowthHeight.bamboo.max && p_261541_.getBlockState(p_261593_.above(i + 1)).is(Blocks.BAMBOO)) { // Paper - Configurable cactus/bamboo/reed growth height
+             i++;
+         }
+ 
+@@ -221,7 +_,7 @@
+     protected int getHeightBelowUpToMax(BlockGetter p_261927_, BlockPos p_261481_) {
+         int i = 0;
+ 
+-        while (i < 16 && p_261927_.getBlockState(p_261481_.below(i + 1)).is(Blocks.BAMBOO)) {
++        while (i < ((Level) p_261927_).paperConfig().maxGrowthHeight.bamboo.max && p_261927_.getBlockState(p_261481_.below(i + 1)).is(Blocks.BAMBOO)) { // Paper - Configurable cactus/bamboo/reed growth height
+             i++;
+         }
+ 

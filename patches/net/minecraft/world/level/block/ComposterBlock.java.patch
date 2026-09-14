@@ -43,6 +43,21 @@
              BlockState blockstate = addItem(p_270919_, p_270087_, p_270284_, p_270678_, p_270253_);
              p_270253_.shrink(1);
              return blockstate;
+@@ -286,6 +_,14 @@
+     }
+ 
+     public static BlockState extractProduce(Entity p_270467_, BlockState p_51999_, Level p_52000_, BlockPos p_52001_) {
++        // CraftBukkit start
++        if (p_270467_ != null && !(p_270467_ instanceof Player)) {
++            BlockState emptyState = ComposterBlock.empty(p_270467_, p_51999_, org.bukkit.craftbukkit.util.DummyGeneratorAccess.INSTANCE, p_52001_);
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_270467_, p_52001_, emptyState)) {
++                return p_51999_;
++            }
++        }
++        // CraftBukkit end
+         if (!p_52000_.isClientSide) {
+             Vec3 vec3 = Vec3.atLowerCornerWithOffset(p_52001_, 0.5, 1.01, 0.5).offsetRandom(p_52000_.random, 0.7F);
+             ItemEntity itementity = new ItemEntity(p_52000_, vec3.x(), vec3.y(), vec3.z(), new ItemStack(Items.BONE_MEAL));
 @@ -307,7 +_,7 @@
  
      static BlockState addItem(@Nullable Entity p_270464_, BlockState p_270603_, LevelAccessor p_270151_, BlockPos p_270547_, ItemStack p_270354_) {
@@ -52,6 +67,31 @@
          if ((i != 0 || !(f > 0.0F)) && !(p_270151_.getRandom().nextDouble() < f)) {
              return p_270603_;
          } else {
+@@ -357,13 +_,14 @@
+         if (i == 8) {
+             return new ComposterBlock.OutputContainer(p_51956_, p_51957_, p_51958_, new ItemStack(Items.BONE_MEAL));
+         } else {
+-            return (WorldlyContainer)(i < 7 ? new ComposterBlock.InputContainer(p_51956_, p_51957_, p_51958_) : new ComposterBlock.EmptyContainer());
++            return (WorldlyContainer)(i < 7 ? new ComposterBlock.InputContainer(p_51956_, p_51957_, p_51958_) : new ComposterBlock.EmptyContainer(p_51957_, p_51958_)); // CraftBukkit - empty generatoraccess, blockposition
+         }
+     }
+ 
+     public static class EmptyContainer extends SimpleContainer implements WorldlyContainer {
+-        public EmptyContainer() {
++        public EmptyContainer(LevelAccessor levelAccessor, BlockPos blockPos) { // CraftBukkit
+             super(0);
++            this.bukkitOwner = new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(levelAccessor, blockPos, this); // CraftBukkit
+         }
+ 
+         @Override
+@@ -390,6 +_,7 @@
+ 
+         public InputContainer(BlockState p_52022_, LevelAccessor p_52023_, BlockPos p_52024_) {
+             super(1);
++            this.bukkitOwner = new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(level, pos, this); // CraftBukkit
+             this.state = p_52022_;
+             this.level = p_52023_;
+             this.pos = p_52024_;
 @@ -407,7 +_,7 @@
  
          @Override
@@ -61,6 +101,26 @@
          }
  
          @Override
+@@ -421,6 +_,11 @@
+             if (!itemstack.isEmpty()) {
+                 this.changed = true;
+                 BlockState blockstate = ComposterBlock.addItem(null, this.state, this.level, this.pos, itemstack);
++                // Paper start - Add CompostItemEvent and EntityCompostItemEvent
++                if (blockstate == null) {
++                    return;
++                }
++                // Paper end - Add CompostItemEvent and EntityCompostItemEvent
+                 this.level.levelEvent(1500, this.pos, blockstate != this.state ? 1 : 0);
+                 this.removeItemNoUpdate(0);
+             }
+@@ -435,6 +_,7 @@
+ 
+         public OutputContainer(BlockState p_52042_, LevelAccessor p_52043_, BlockPos p_52044_, ItemStack p_52045_) {
+             super(p_52045_);
++            this.bukkitOwner = new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(level, pos, this); // Paper
+             this.state = p_52042_;
+             this.level = p_52043_;
+             this.pos = p_52044_;
 @@ -465,5 +_,11 @@
              ComposterBlock.empty(null, this.state, this.level, this.pos);
              this.changed = true;

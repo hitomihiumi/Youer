@@ -38,6 +38,27 @@
      @Override
      protected BodyRotationControl createBodyControl() {
          return new Creaking.CreakingBodyRotationControl(this);
+@@ -192,9 +_,9 @@
+     }
+ 
+     @Override
+-    public void push(double p_388562_, double p_388936_, double p_387604_) {
++    public void push(double p_388562_, double p_388936_, double p_387604_, @Nullable Entity pushingEntity) { // Paper - add push source entity param
+         if (this.canMove()) {
+-            super.push(p_388562_, p_388936_, p_387604_);
++            super.push(p_388562_, p_388936_, p_387604_, pushingEntity); // Paper - add push source entity param
+         }
+     }
+ 
+@@ -311,7 +_,7 @@
+         }
+ 
+         this.makeSound(this.getDeathSound());
+-        this.remove(Entity.RemovalReason.DISCARDED);
++        this.remove(Entity.RemovalReason.DISCARDED, null); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     public void creakingDeathEffects(DamageSource p_389615_) {
 @@ -432,17 +_,17 @@
      }
  
@@ -57,6 +78,18 @@
 -    protected SoundEvent getDeathSound() {
 +    public SoundEvent getDeathSound() {
          return SoundEvents.CREAKING_DEATH;
+     }
+ 
+@@ -464,9 +_,9 @@
+     }
+ 
+     @Override
+-    public void knockback(double p_379489_, double p_380324_, double p_379735_) {
++    public void knockback(double p_379489_, double p_380324_, double p_379735_, @Nullable Entity attacker, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause cause) { // Paper - knockback events
+         if (this.canMove()) {
+-            super.knockback(p_379489_, p_380324_, p_379735_);
++            super.knockback(p_379489_, p_380324_, p_379735_, attacker, cause); // Paper - knockback events
+         }
      }
  
 @@ -485,7 +_,8 @@

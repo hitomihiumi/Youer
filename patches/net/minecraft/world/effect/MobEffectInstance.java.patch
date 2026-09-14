@@ -1,5 +1,15 @@
 --- a/net/minecraft/world/effect/MobEffectInstance.java
 +++ b/net/minecraft/world/effect/MobEffectInstance.java
+@@ -220,8 +_,7 @@
+             return false;
+         } else {
+             int i = this.isInfiniteDuration() ? p_393795_.tickCount : this.duration;
+-            if (this.effect.value().shouldApplyEffectTickThisTick(i, this.amplifier)
+-                && !this.effect.value().applyEffectTick(p_394250_, p_393795_, this.amplifier)) {
++            if (this.effect.value().shouldApplyEffectTickThisTick(i, this.amplifier) && new io.papermc.paper.event.entity.EntityEffectTickEvent(p_393795_.getBukkitLivingEntity(), org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftHolderToBukkit(this.effect), this.amplifier).callEvent() && !this.effect.value().applyEffectTick(p_394250_, p_393795_, this.amplifier)) { // Paper - Add EntityEffectTickEvent
+                 return false;
+             } else {
+                 this.tickDownDuration();
 @@ -338,11 +_,11 @@
                  .compareFalseFirst(this.isAmbient(), p_19566_.isAmbient())
                  .compareFalseFirst(this.isInfiniteDuration(), p_19566_.isInfiniteDuration())
@@ -14,3 +24,21 @@
                  .result();
      }
  
+@@ -420,7 +_,7 @@
+                     .apply(p_324063_, MobEffectInstance.Details::create)
+             )
+         );
+-        public static final StreamCodec<ByteBuf, MobEffectInstance.Details> STREAM_CODEC = StreamCodec.recursive(
++        public static final StreamCodec<net.minecraft.network.FriendlyByteBuf, MobEffectInstance.Details> STREAM_CODEC = StreamCodec.recursive( // Paper - Track codec depth
+             p_329990_ -> StreamCodec.composite(
+                 ByteBufCodecs.VAR_INT,
+                 MobEffectInstance.Details::amplifier,
+@@ -432,7 +_,7 @@
+                 MobEffectInstance.Details::showParticles,
+                 ByteBufCodecs.BOOL,
+                 MobEffectInstance.Details::showIcon,
+-                p_329990_.apply(ByteBufCodecs::optional),
++                p_329990_.apply(ByteBufCodecs::increaseDepth).apply(ByteBufCodecs::optional), // Paper - Track codec depth
+                 MobEffectInstance.Details::hiddenEffect,
+                 MobEffectInstance.Details::new
+             )

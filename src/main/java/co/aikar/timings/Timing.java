@@ -39,6 +39,7 @@ public interface Timing extends AutoCloseable {
      * @return Timing
      */
     @NotNull
+    @io.papermc.paper.annotation.DoNotUse // Purpur - Remove Timings
     Timing startTiming();
 
     /**
@@ -46,6 +47,7 @@ public interface Timing extends AutoCloseable {
      *
      * Will automatically be called when this Timing is used with try-with-resources
      */
+    @io.papermc.paper.annotation.DoNotUse // Purpur - Remove Timings
     void stopTiming();
 
     /**
@@ -56,6 +58,7 @@ public interface Timing extends AutoCloseable {
      * @return Timing
      */
     @NotNull
+    @io.papermc.paper.annotation.DoNotUse // Purpur - Remove Timings
     Timing startTimingIfSync();
 
     /**
@@ -65,12 +68,14 @@ public interface Timing extends AutoCloseable {
      *
      * But only if we are on the primary thread.
      */
+    @io.papermc.paper.annotation.DoNotUse // Purpur - Remove Timings
     void stopTimingIfSync();
 
     /**
      * @deprecated Doesn't do anything - Removed
      */
     @Deprecated
+    @io.papermc.paper.annotation.DoNotUse // Purpur - Remove Timings
     void abort();
 
     /**
@@ -82,5 +87,6 @@ public interface Timing extends AutoCloseable {
     TimingHandler getTimingHandler();
 
     @Override
+    @io.papermc.paper.annotation.DoNotUse // Purpur - Remove Timings
     void close();
 }

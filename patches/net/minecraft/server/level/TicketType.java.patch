@@ -12,3 +12,12 @@
      public static final long NO_TIMEOUT = 0L;
      public static final TicketType START = register("start", 0L, false, TicketType.TicketUse.LOADING_AND_SIMULATION);
      public static final TicketType DRAGON = register("dragon", 0L, false, TicketType.TicketUse.LOADING_AND_SIMULATION);
+@@ -27,7 +_,7 @@
+     }
+ 
+     public boolean hasTimeout() {
+-        return this.timeout != 0L;
++        return this.timeout() != 0L; // Paper - chunk-gc config
+     }
+ 
+     public static enum TicketUse {

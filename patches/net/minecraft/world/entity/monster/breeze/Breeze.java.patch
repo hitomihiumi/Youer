@@ -29,3 +29,11 @@
          this.getBrain().tick(p_376422_, this);
          profilerfiller.popPush("breezeActivityUpdate");
          BreezeAi.updateActivity(this);
+@@ -251,6 +_,7 @@
+ 
+     @Override
+     public boolean canAttackType(EntityType<?> p_312806_) {
++        if (this.getTarget() != null) return this.getTarget().getType() == p_312806_; // SPIGOT-7957: Allow attack if target from brain was set
+         return p_312806_ == EntityType.PLAYER || p_312806_ == EntityType.IRON_GOLEM;
+     }
+ 

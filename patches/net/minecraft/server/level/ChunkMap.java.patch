@@ -1,6 +1,94 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -398,6 +_,7 @@
+@@ -150,6 +_,33 @@
+     public int serverViewDistance;
+     private final WorldGenContext worldGenContext;
+ 
++    // CraftBukkit start - recursion-safe executor for Chunk loadCallback() and unloadCallback()
++    public final CallbackExecutor callbackExecutor = new CallbackExecutor();
++    public static final class CallbackExecutor implements java.util.concurrent.Executor, Runnable {
++
++        private final java.util.Queue<Runnable> queue = new java.util.ArrayDeque<>();
++
++        @Override
++        public void execute(Runnable runnable) {
++            this.queue.add(runnable);
++        }
++
++        @Override
++        public void run() {
++            Runnable task;
++            while ((task = this.queue.poll()) != null) {
++                task.run();
++            }
++        }
++    };
++    // CraftBukkit end
++
++    // Paper start
++    public final ChunkHolder getUnloadingChunkHolder(int chunkX, int chunkZ) {
++        return this.pendingUnloads.get(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ));
++    }
++    // Paper end
++
+     public ChunkMap(
+         ServerLevel p_214836_,
+         LevelStorageSource.LevelStorageAccess p_214837_,
+@@ -177,13 +_,19 @@
+         this.level = p_214836_;
+         RegistryAccess registryaccess = p_214836_.registryAccess();
+         long i = p_214836_.getSeed();
+-        if (p_214843_ instanceof NoiseBasedChunkGenerator noisebasedchunkgenerator) {
++        // CraftBukkit start - SPIGOT-7051: It's a rigged game! Use delegate for random state creation, otherwise it is not so random.
++        ChunkGenerator randomGenerator = p_214843_;
++        if (randomGenerator instanceof org.bukkit.craftbukkit.generator.CustomChunkGenerator customChunkGenerator) {
++            randomGenerator = customChunkGenerator.getDelegate();
++        }
++        if (randomGenerator instanceof NoiseBasedChunkGenerator noisebasedchunkgenerator) {
++        // CraftBukkit end
+             this.randomState = RandomState.create(noisebasedchunkgenerator.generatorSettings().value(), registryaccess.lookupOrThrow(Registries.NOISE), i);
+         } else {
+             this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), registryaccess.lookupOrThrow(Registries.NOISE), i);
+         }
+ 
+-        this.chunkGeneratorState = p_214843_.createState(registryaccess.lookupOrThrow(Registries.STRUCTURE_SET), this.randomState, i);
++        this.chunkGeneratorState = p_214843_.createState(registryaccess.lookupOrThrow(Registries.STRUCTURE_SET), this.randomState, i, level.spigotConfig); // Spigot
+         this.mainThreadExecutor = p_214841_;
+         ConsecutiveExecutor consecutiveexecutor1 = new ConsecutiveExecutor(p_214840_, "worldgen");
+         this.progressListener = p_214844_;
+@@ -214,6 +_,12 @@
+         this.chunksToEagerlySave.add(p_381702_.toLong());
+     }
+ 
++    // Paper start
++    public int getMobCountNear(final ServerPlayer player, final net.minecraft.world.entity.MobCategory mobCategory) {
++        return -1;
++    }
++    // Paper end
++
+     protected ChunkGenerator generator() {
+         return this.worldGenContext.generator();
+     }
+@@ -354,9 +_,9 @@
+                 }
+             );
+         stringbuilder.append("Updating:").append(System.lineSeparator());
+-        this.updatingChunkMap.values().forEach(consumer);
++        ca.spottedleaf.moonrise.common.PlatformHooks.get().getUpdatingChunkHolders(this.level).forEach(consumer); // Paper
+         stringbuilder.append("Visible:").append(System.lineSeparator());
+-        this.visibleChunkMap.values().forEach(consumer);
++        ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolders(this.level).forEach(consumer); // Paper
+         CrashReport crashreport = CrashReport.forThrowable(p_203752_, "Chunk loading");
+         CrashReportCategory crashreportcategory = crashreport.addCategory("Chunk loading");
+         crashreportcategory.setDetail("Details", p_203753_);
+@@ -392,12 +_,14 @@
+                     p_140179_.setTicketLevel(p_140178_);
+                 } else {
+                     p_140179_ = new ChunkHolder(new ChunkPos(p_140177_), p_140178_, this.level, this.lightEngine, this::onLevelChange, this);
++                    ca.spottedleaf.moonrise.common.PlatformHooks.get().onChunkHolderCreate(this.level, p_140179_); // Paper
+                 }
+ 
+                 this.updatingChunkMap.put(p_140177_, p_140179_);
                  this.modified = true;
              }
  
@@ -8,6 +96,34 @@
              return p_140179_;
          }
      }
+@@ -420,8 +_,8 @@
+ 
+     protected void saveAllChunks(boolean p_140319_) {
+         if (p_140319_) {
+-            List<ChunkHolder> list = this.visibleChunkMap
+-                .values()
++            List<ChunkHolder> list = ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolders(this.level) // Paper - moonrise
++                //.values() // Paper - moonrise
+                 .stream()
+                 .filter(ChunkHolder::wasAccessibleSinceLastSave)
+                 .peek(ChunkHolder::refreshAccessibility)
+@@ -447,7 +_,7 @@
+             this.nextChunkSaveTime.clear();
+             long i = Util.getMillis();
+ 
+-            for (ChunkHolder chunkholder : this.visibleChunkMap.values()) {
++            for (ChunkHolder chunkholder : ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolders(this.level)) { // Paper
+                 this.saveChunkIfNeeded(chunkholder, i);
+             }
+         }
+@@ -468,6 +_,7 @@
+     public boolean hasWork() {
+         return this.lightEngine.hasLightWork()
+             || !this.pendingUnloads.isEmpty()
++            || ca.spottedleaf.moonrise.common.PlatformHooks.get().hasAnyChunkHolders(this.level) // Paper - moonrise
+             || !this.updatingChunkMap.isEmpty()
+             || this.poiManager.hasWork()
+             || !this.toDrop.isEmpty()
 @@ -527,12 +_,15 @@
              } else {
                  ChunkAccess chunkaccess = p_140183_.getLatestChunk();
@@ -24,6 +140,17 @@
                          this.level.unload(levelchunk1);
                      }
  
+@@ -540,7 +_,9 @@
+                     this.lightEngine.tryScheduleUpdate();
+                     this.progressListener.onStatusChange(chunkaccess.getPos(), null);
+                     this.nextChunkSaveTime.remove(chunkaccess.getPos().toLong());
+-                }
++                } else if (removed) { // Paper start
++                    ca.spottedleaf.moonrise.common.PlatformHooks.get().onChunkHolderDelete(this.level, chunkHolder);
++                } // Paper end
+             }
+         }, this.unloadQueue::add).whenComplete((p_381764_, p_381765_) -> {
+             if (p_381765_ != null) {
 @@ -577,6 +_,7 @@
                  Profiler.get().incrementCounter("chunkLoad");
                  if (p_372662_.isPresent()) {
@@ -52,6 +179,60 @@
          p_294215_.connection.chunkSender.dropChunk(p_294215_, p_294758_);
      }
  
+@@ -857,7 +_,7 @@
+     }
+ 
+     public int size() {
+-        return this.visibleChunkMap.size();
++        return ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolderCount(this.level); // Paper
+     }
+ 
+     public net.minecraft.server.level.DistanceManager getDistanceManager() {
+@@ -865,7 +_,7 @@
+     }
+ 
+     protected Iterable<ChunkHolder> getChunks() {
+-        return Iterables.unmodifiableIterable(this.visibleChunkMap.values());
++        return Iterables.unmodifiableIterable(ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolders(this.level)); // Paper
+     }
+ 
+     void dumpChunks(Writer p_140275_) throws IOException {
+@@ -888,14 +_,12 @@
+             .addColumn("fluid_ticks")
+             .build(p_140275_);
+ 
+-        for (Entry<ChunkHolder> entry : this.visibleChunkMap.long2ObjectEntrySet()) {
+-            long i = entry.getLongKey();
++        for (ChunkHolder entry : ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolders(this.level)) { // Paper - Moonrise
++            long i = entry.pos.toLong(); // Paper - Moonrise
+             ChunkPos chunkpos = new ChunkPos(i);
+-            ChunkHolder chunkholder = entry.getValue();
++            ChunkHolder chunkholder = entry; // Paper - Moonrise
+             Optional<ChunkAccess> optional = Optional.ofNullable(chunkholder.getLatestChunk());
+-            Optional<LevelChunk> optional1 = optional.flatMap(
+-                p_214932_ -> p_214932_ instanceof LevelChunk ? Optional.of((LevelChunk)p_214932_) : Optional.empty()
+-            );
++            Optional<LevelChunk> optional1 = optional.flatMap(p_214932_ -> p_214932_ instanceof LevelChunk ? Optional.of((LevelChunk)p_214932_) : Optional.empty());
+             csvoutput.writeRow(
+                 chunkpos.x,
+                 chunkpos.z,
+@@ -933,11 +_,13 @@
+     }
+ 
+     private CompletableFuture<Optional<CompoundTag>> readChunk(ChunkPos p_214964_) {
+-        return this.read(p_214964_).thenApplyAsync(p_214907_ -> p_214907_.map(this::upgradeChunkTag), Util.backgroundExecutor().forName("upgradeChunk"));
++        return this.read(p_214964_).thenApplyAsync(p_214907_ -> p_214907_.map(tag -> upgradeChunkTag(tag, p_214964_)), Util.backgroundExecutor().forName("upgradeChunk")); // CraftBukkit
+     }
+ 
+-    private CompoundTag upgradeChunkTag(CompoundTag p_214948_) {
+-        return this.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, p_214948_, this.generator().getTypeNameForDataFixer());
++    // CraftBukkit start
++    private CompoundTag upgradeChunkTag(CompoundTag p_214948_, ChunkPos pos) {
++        return this.upgradeChunkTag(this.level.getTypeKey(), this.overworldDataStorage, p_214948_, this.generator().getTypeNameForDataFixer(), pos, this.level);
++    // CraftBukkit end
+     }
+ 
+     void collectSpawningChunks(List<LevelChunk> p_401784_) {
 @@ -947,7 +_,7 @@
              ChunkHolder chunkholder = this.visibleChunkMap.get(longiterator.nextLong());
              if (chunkholder != null) {
@@ -80,6 +261,30 @@
      private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos p_363995_) {
          for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
              if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_)) {
+@@ -989,7 +_,7 @@
+             Builder<ServerPlayer> builder = ImmutableList.builder();
+ 
+             for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
+-                if (this.playerIsCloseEnoughForSpawning(serverplayer, p_183889_)) {
++                if (this.playerIsCloseEnoughForSpawning(serverplayer, p_183889_, 16384.0D)) { // Spigot
+                     builder.add(serverplayer);
+                 }
+             }
+@@ -998,12 +_,12 @@
+         }
+     }
+ 
+-    private boolean playerIsCloseEnoughForSpawning(ServerPlayer p_183752_, ChunkPos p_183753_) {
++    private boolean playerIsCloseEnoughForSpawning(ServerPlayer p_183752_, ChunkPos p_183753_, double range) { // Spigot
+         if (p_183752_.isSpectator()) {
+             return false;
+         } else {
+             double d0 = euclideanDistanceSquared(p_183753_, p_183752_.position());
+-            return d0 < 16384.0;
++            return d0 < range; // Spigot
+         }
+     }
+ 
 @@ -1079,6 +_,7 @@
                  this.playerMap.unIgnorePlayer(p_140185_);
              }
@@ -97,6 +302,14 @@
              EntityType<?> entitytype = p_140200_.getType();
              int i = entitytype.clientTrackingRange() * 16;
              if (i != 0) {
+@@ -1156,6 +_,7 @@
+     }
+ 
+     protected void removeEntity(Entity p_140332_) {
++        org.spigotmc.AsyncCatcher.catchOp("entity untrack"); // Spigot
+         if (p_140332_ instanceof ServerPlayer serverplayer) {
+             this.updatePlayerStatus(serverplayer, false);
+ 
 @@ -1260,6 +_,20 @@
          });
      }
@@ -118,6 +331,67 @@
      class DistanceManager extends net.minecraft.server.level.DistanceManager {
          protected DistanceManager(TicketStorage p_394597_, Executor p_140459_, Executor p_140460_) {
              super(p_394597_, p_140459_, p_140460_);
+@@ -1335,24 +_,47 @@
+         }
+ 
+         public void removePlayer(ServerPlayer p_140486_) {
++            org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
+             if (this.seenBy.remove(p_140486_.connection)) {
+                 this.serverEntity.removePairing(p_140486_);
+             }
+         }
+ 
+         public void updatePlayer(ServerPlayer p_140498_) {
++            org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
+             if (p_140498_ != this.entity) {
+-                Vec3 vec3 = p_140498_.position().subtract(this.entity.position());
++                // Paper start - remove allocation of Vec3D here
++                // Vec3 vec3 = player.position().subtract(this.entity.position());
++                double vec3_dx = p_140498_.getX() - this.entity.getX();
++                double vec3_dz = p_140498_.getZ() - this.entity.getZ();
++                // Paper end - remove allocation of Vec3D here
+                 int i = ChunkMap.this.getPlayerViewDistance(p_140498_);
+                 double d0 = Math.min(this.getEffectiveRange(), i * 16);
+-                double d1 = vec3.x * vec3.x + vec3.z * vec3.z;
++                double d1 = vec3_dx * vec3_dx + vec3_dz * vec3_dz; // Paper
+                 double d2 = d0 * d0;
+-                boolean flag = d1 <= d2
+-                    && this.entity.broadcastToPlayer(p_140498_)
+-                    && ChunkMap.this.isChunkTracked(p_140498_, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
++                // Paper start - Configurable entity tracking range by Y
++                boolean flag = d1 <= d2;
++                if (flag && level.paperConfig().entities.trackingRangeY.enabled) {
++                    double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
++                    if (rangeY != -1) {
++                        double vec3_dy = p_140498_.getY() - this.entity.getY();
++                        flag = vec3_dy * vec3_dy <= rangeY * rangeY;
++                    }
++                }
++                flag = flag && this.entity.broadcastToPlayer(p_140498_) && ChunkMap.this.isChunkTracked(p_140498_, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
++                // Paper end - Configurable entity tracking range by Y
++                // CraftBukkit start - respect vanish API
++                if (flag && !p_140498_.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
++                    flag = false;
++                }
++                // CraftBukkit end
+                 if (flag) {
+                     if (this.seenBy.add(p_140498_.connection)) {
++                        // Paper start - entity tracking events
++                        if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(p_140498_.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
+                         this.serverEntity.addPairing(p_140498_);
++                        }
++                        // Paper end - entity tracking events
+                     }
+                 } else if (this.seenBy.remove(p_140498_.connection)) {
+                     this.serverEntity.removePairing(p_140498_);
+@@ -1369,6 +_,7 @@
+ 
+             for (Entity entity : this.entity.getIndirectPassengers()) {
+                 int j = entity.getType().clientTrackingRange() * 16;
++                j = org.spigotmc.TrackingRange.getEntityTrackingRange(entity, j); // Paper
+                 if (j > i) {
+                     i = j;
+                 }
 @@ -1382,5 +_,20 @@
                  this.updatePlayer(serverplayer);
              }

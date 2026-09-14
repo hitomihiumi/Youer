@@ -1,5 +1,29 @@
 --- a/net/minecraft/world/level/block/TripWireBlock.java
 +++ b/net/minecraft/world/level/block/TripWireBlock.java
+@@ -74,6 +_,7 @@
+ 
+     @Override
+     public BlockState getStateForPlacement(BlockPlaceContext p_57606_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return this.defaultBlockState(); // Paper - place tripwire without updating
+         BlockGetter blockgetter = p_57606_.getLevel();
+         BlockPos blockpos = p_57606_.getClickedPos();
+         return this.defaultBlockState()
+@@ -94,6 +_,7 @@
+         BlockState p_57647_,
+         RandomSource p_374065_
+     ) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return state; // Paper - prevent tripwire from updating
+         return p_57646_.getAxis().isHorizontal()
+             ? p_57645_.setValue(PROPERTY_BY_DIRECTION.get(p_57646_), this.shouldConnectTo(p_57647_, p_57646_))
+             : super.updateShape(p_57645_, p_374437_, p_374214_, p_57649_, p_57646_, p_57650_, p_57647_, p_374065_);
+@@ -101,6 +_,7 @@
+ 
+     @Override
+     protected void onPlace(BlockState p_57659_, Level p_57660_, BlockPos p_57661_, BlockState p_57662_, boolean p_57663_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent adjacent tripwires from updating
+         if (!p_57662_.is(p_57659_.getBlock())) {
+             this.updateSource(p_57660_, p_57661_, p_57659_);
+         }
 @@ -115,7 +_,7 @@
  
      @Override
@@ -9,3 +33,60 @@
              p_57615_.setBlock(p_57616_, p_57617_.setValue(DISARMED, true), 260);
              p_57615_.gameEvent(p_57618_, GameEvent.SHEAR, p_57616_);
          }
+@@ -149,6 +_,8 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_57625_, Level p_57626_, BlockPos p_57627_, Entity p_57628_, InsideBlockEffectApplier p_405466_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent tripwires from detecting collision
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_57628_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_57626_, p_57627_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (!p_57626_.isClientSide) {
+             if (!p_57625_.getValue(POWERED)) {
+                 this.checkPressed(p_57626_, p_57627_, List.of(p_57628_));
+@@ -158,6 +_,7 @@
+ 
+     @Override
+     protected void tick(BlockState p_222598_, ServerLevel p_222599_, BlockPos p_222600_, RandomSource p_222601_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent tripwire pressed check
+         if (p_222599_.getBlockState(p_222600_).getValue(POWERED)) {
+             this.checkPressed(p_222599_, p_222600_);
+         }
+@@ -181,6 +_,39 @@
+                 }
+             }
+         }
++
++        // CraftBukkit start - Call interact even when triggering connected tripwire
++        if (poweredValue != flag && flag && blockState.getValue(TripWireBlock.ATTACHED)) {
++            org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++            boolean allowed = false;
++
++            // If all the events are cancelled block the tripwire trigger, else allow
++            for (Object object : entities) {
++                if (object != null) {
++                    org.bukkit.event.Cancellable cancellable;
++
++                    if (object instanceof Player) {
++                        cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) object, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
++                    } else if (object instanceof Entity) {
++                        cancellable = new org.bukkit.event.entity.EntityInteractEvent(((Entity) object).getBukkitEntity(), block);
++                        manager.callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++                    } else {
++                        continue;
++                    }
++
++                    if (!cancellable.isCancelled()) {
++                        allowed = true;
++                        break;
++                    }
++                }
++            }
++
++            if (!allowed) {
++                return;
++            }
++        }
++        // CraftBukkit end
+ 
+         if (flag1 != flag) {
+             blockstate = blockstate.setValue(POWERED, flag1);

@@ -1,5 +1,69 @@
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
+@@ -33,6 +_,14 @@
+ import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
+ 
++// CraftBukkit start
++import net.minecraft.world.entity.boss.EnderDragonPart;
++import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.Location;
++// CraftBukkit end
++
+ public class ServerExplosion implements Explosion {
+     private static final ExplosionDamageCalculator EXPLOSION_DAMAGE_CALCULATOR = new ExplosionDamageCalculator();
+     private static final int MAX_DROPS_PER_COMBINED_STACK = 16;
+@@ -47,6 +_,11 @@
+     private final DamageSource damageSource;
+     private final ExplosionDamageCalculator damageCalculator;
+     private final Map<Player, Vec3> hitPlayers = new HashMap<>();
++    // CraftBukkit - add field
++    public boolean wasCanceled = false;
++    public float yield;
++    // CraftBukkit end
++    public boolean excludeSourceFromDamage = true; // Paper - Allow explosions to damage source
+ 
+     public ServerExplosion(
+         ServerLevel p_361323_,
+@@ -66,6 +_,10 @@
+         this.blockInteraction = p_363174_;
+         this.damageSource = p_360713_ == null ? p_361323_.damageSources().explosion(this) : p_360713_;
+         this.damageCalculator = p_360818_ == null ? this.makeDamageCalculator(p_365060_) : p_360818_;
++        // Paper start - add yield
++        this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F;
++        this.yield = Double.isFinite(this.yield) ? this.yield : 0; // Paper - Don't allow infinite default yields
++        // Paper end - add yield
+     }
+ 
+     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity p_364459_) {
+@@ -139,7 +_,8 @@
+                         for (float f1 = 0.3F; f > 0.0F; f -= 0.22500001F) {
+                             BlockPos blockpos = BlockPos.containing(d4, d5, d6);
+                             BlockState blockstate = this.level.getBlockState(blockpos);
+-                            FluidState fluidstate = this.level.getFluidState(blockpos);
++                            if (!blockState.isDestroyable()) continue; // Paper - Protect Bedrock and End Portal/Frames from being destroyed
++                            FluidState fluidstate = blockState.getFluidState(); // Paper - Perf: Optimize call to getFluid for explosions
+                             if (!this.level.isInWorldBounds(blockpos)) {
+                                 break;
+                             }
+@@ -151,6 +_,15 @@
+ 
+                             if (f > 0.0F && this.damageCalculator.shouldBlockExplode(this, this.level, blockpos, blockstate, f)) {
+                                 set.add(blockpos);
++                                // Paper start - prevent headless pistons from forming
++                                if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && blockState.is(net.minecraft.world.level.block.Blocks.MOVING_PISTON)) {
++                                    net.minecraft.world.level.block.entity.BlockEntity extension = this.level.getBlockEntity(blockpos);
++                                    if (extension instanceof net.minecraft.world.level.block.piston.PistonMovingBlockEntity blockEntity && blockEntity.isSourcePiston()) {
++                                        net.minecraft.core.Direction direction = blockState.getValue(net.minecraft.world.level.block.piston.PistonHeadBlock.FACING);
++                                        set.add(blockpos.relative(direction.getOpposite()));
++                                    }
++                                }
++                                // Paper end - prevent headless pistons from forming
+                             }
+ 
+                             d4 += d0 * 0.3F;
 @@ -165,7 +_,12 @@
          return new ObjectArrayList<>(set);
      }
@@ -24,6 +88,53 @@
              if (!entity.ignoreExplosion(this)) {
                  double d0 = Math.sqrt(entity.distanceToSqr(this.center)) / f;
                  if (d0 <= 1.0) {
+@@ -188,15 +_,43 @@
+                         d3 /= d4;
+                         boolean flag = this.damageCalculator.shouldDamageEntity(this, entity);
+                         float f1 = this.damageCalculator.getKnockbackMultiplier(entity);
+-                        float f2 = !flag && f1 == 0.0F ? 0.0F : getSeenPercent(this.center, entity);
++                        float f2 = !flag && f1 == 0.0F ? 0.0F : this.getBlockDensity(this.center, entity); // Paper - Optimize explosions
+                         if (flag) {
+-                            entity.hurtServer(this.level, this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, f2));
++                            // CraftBukkit start
++
++                            // Special case ender dragon only give knockback if no damage is cancelled
++                            // Thinks to note:
++                            // - Setting a velocity to a EnderDragonPart is ignored (and therefore not needed)
++                            // - Damaging EnderDragonPart while forward the damage to EnderDragon
++                            // - Damaging EnderDragon does nothing
++                            // - EnderDragon hitbox always covers the other parts and is therefore always present
++                            if (entity instanceof EnderDragonPart) {
++                                continue;
++                            }
++
++                            entity.lastDamageCancelled = false;
++
++                            if (entity instanceof EnderDragon) {
++                                for (EnderDragonPart dragonPart : ((EnderDragon) entity).getSubEntities()) {
++                                    // Calculate damage separately for each EntityComplexPart
++                                    if (list.contains(dragonPart)) {
++                                        dragonPart.hurtServer(this.level, this.damageSource, this.damageCalculator.getEntityDamageAmount(this, dragonPart, f2));
++                                    }
++                                }
++                            } else {
++                                entity.hurtServer(this.level, this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, f2));
++                            }
++
++                            if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
++                                continue;
++                            }
++                            // CraftBukkit end
+                         }
+ 
+                         double d5 = (1.0 - d0) * f2 * f1;
+                         double d6;
+                         if (entity instanceof LivingEntity livingentity) {
+-                            d6 = d5 * (1.0 - livingentity.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE));
++                            d6 = entity instanceof Player && this.level.paperConfig().environment.disableExplosionKnockback ? 0 : d5 * (1.0 - livingentity.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)); // Paper
+                         } else {
+                             d6 = d5;
+                         }
 @@ -205,6 +_,7 @@
                          d2 *= d6;
                          d3 *= d6;
@@ -32,6 +143,76 @@
                          entity.push(vec3);
                          if (entity instanceof Player player && !player.isSpectator() && (!player.isCreative() || !player.getAbilities().flying)) {
                              this.hitPlayers.put(player, vec3);
+@@ -221,7 +_,56 @@
+         List<ServerExplosion.StackCollector> list = new ArrayList<>();
+         Util.shuffle(p_362013_, this.level.random);
+ 
++        // CraftBukkit start
++        Location location = CraftLocation.toBukkit(this.center, this.level.getWorld());
++        List<org.bukkit.block.Block> blockList = new ObjectArrayList<>();
++        for (int i1 = blocks.size() - 1; i1 >= 0; i1--) {
++            org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, blocks.get(i1));
++            if (!bblock.getType().isAir()) {
++                blockList.add(bblock);
++            }
++        }
++
++        List<org.bukkit.block.Block> bukkitBlocks;
++
++        if (this.source != null) {
++            org.bukkit.event.entity.EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this.source, blockList, this.yield, this.getBlockInteraction());
++            this.wasCanceled = event.isCancelled();
++            bukkitBlocks = event.blockList();
++            this.yield = event.getYield();
++        } else {
++            org.bukkit.block.Block block = location.getBlock();
++            org.bukkit.block.BlockState blockState = (this.damageSource.causingBlockSnapshot() != null) ? this.damageSource.causingBlockSnapshot() : block.getState();
++            org.bukkit.event.block.BlockExplodeEvent event = CraftEventFactory.callBlockExplodeEvent(block, blockState, blockList, this.yield, this.getBlockInteraction());
++            this.wasCanceled = event.isCancelled();
++            bukkitBlocks = event.blockList();
++            this.yield = event.getYield();
++        }
++
++        blocks.clear();
++        for (org.bukkit.block.Block bblock : bukkitBlocks) {
++            blocks.add(((org.bukkit.craftbukkit.block.CraftBlock) bblock).getPosition());
++        }
++
++        if (this.wasCanceled) {
++            return;
++        }
++        // CraftBukkit end
++
+         for (BlockPos blockpos : p_362013_) {
++            // CraftBukkit start - TNTPrimeEvent
++            BlockState state = this.level.getBlockState(blockpos);
++            Block block = state.getBlock();
++            if (level.getGameRules().getBoolean(GameRules.RULE_TNT_EXPLODES) && block instanceof net.minecraft.world.level.block.TntBlock) {
++                Entity sourceEntity = this.source == null ? null : this.source;
++                BlockPos sourceBlock = sourceEntity == null ? BlockPos.containing(this.center) : null;
++                if (!CraftEventFactory.callTNTPrimeEvent(this.level, blockpos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.EXPLOSION, sourceEntity, sourceBlock)) {
++                    this.level.sendBlockUpdated(blockpos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), state, 3); // Update the block on the client
++                    continue;
++                }
++            }
++            // CraftBukkit end
++
+             this.level
+                 .getBlockState(blockpos)
+                 .onExplosionHit(this.level, blockpos, this, (p_365090_, p_360493_) -> addOrAppendStack(list, p_365090_, p_360493_));
+@@ -235,7 +_,11 @@
+     private void createFire(List<BlockPos> p_362665_) {
+         for (BlockPos blockpos : p_362665_) {
+             if (this.level.random.nextInt(3) == 0 && this.level.getBlockState(blockpos).isAir() && this.level.getBlockState(blockpos.below()).isSolidRender()) {
+-                this.level.setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level, blockpos));
++                // CraftBukkit start - Ignition by explosion
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level, blockpos, this).isCancelled()) {
++                    this.level.setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level, blockpos));
++                }
++                // CraftBukkit end
+             }
+         }
+     }
 @@ -243,7 +_,7 @@
      public void explode() {
          this.level.gameEvent(this.source, GameEvent.EXPLODE, this.center);
@@ -41,3 +222,90 @@
          if (this.interactsWithBlocks()) {
              ProfilerFiller profilerfiller = Profiler.get();
              profilerfiller.push("explosion_blocks");
+@@ -338,4 +_,86 @@
+             }
+         }
+     }
++
++
++    // Paper start - Optimize explosions
++    private float getBlockDensity(Vec3 vec3d, Entity entity) {
++        if (!this.level.paperConfig().environment.optimizeExplosions) {
++            return getSeenPercent(vec3d, entity);
++        }
++        CacheKey key = new CacheKey(this, entity.getBoundingBox());
++        Float blockDensity = this.level.explosionDensityCache.get(key);
++        if (blockDensity == null) {
++            blockDensity = getSeenPercent(vec3d, entity);
++            this.level.explosionDensityCache.put(key, blockDensity);
++        }
++
++        return blockDensity;
++    }
++
++    static class CacheKey {
++        private final Level world;
++        private final double posX, posY, posZ;
++        private final double minX, minY, minZ;
++        private final double maxX, maxY, maxZ;
++
++        public CacheKey(Explosion explosion, AABB aabb) {
++            this.world = explosion.level();
++            this.posX = explosion.center().x;
++            this.posY = explosion.center().y;
++            this.posZ = explosion.center().z;
++            this.minX = aabb.minX;
++            this.minY = aabb.minY;
++            this.minZ = aabb.minZ;
++            this.maxX = aabb.maxX;
++            this.maxY = aabb.maxY;
++            this.maxZ = aabb.maxZ;
++        }
++
++        @Override
++        public boolean equals(Object o) {
++            if (this == o) return true;
++            if (o == null || getClass() != o.getClass()) return false;
++
++            CacheKey cacheKey = (CacheKey) o;
++
++            if (Double.compare(cacheKey.posX, posX) != 0) return false;
++            if (Double.compare(cacheKey.posY, posY) != 0) return false;
++            if (Double.compare(cacheKey.posZ, posZ) != 0) return false;
++            if (Double.compare(cacheKey.minX, minX) != 0) return false;
++            if (Double.compare(cacheKey.minY, minY) != 0) return false;
++            if (Double.compare(cacheKey.minZ, minZ) != 0) return false;
++            if (Double.compare(cacheKey.maxX, maxX) != 0) return false;
++            if (Double.compare(cacheKey.maxY, maxY) != 0) return false;
++            if (Double.compare(cacheKey.maxZ, maxZ) != 0) return false;
++            return world.equals(cacheKey.world);
++        }
++
++        @Override
++        public int hashCode() {
++            int result;
++            long temp;
++            result = world.hashCode();
++            temp = Double.doubleToLongBits(posX);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            temp = Double.doubleToLongBits(posY);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            temp = Double.doubleToLongBits(posZ);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            temp = Double.doubleToLongBits(minX);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            temp = Double.doubleToLongBits(minY);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            temp = Double.doubleToLongBits(minZ);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            temp = Double.doubleToLongBits(maxX);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            temp = Double.doubleToLongBits(maxY);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            temp = Double.doubleToLongBits(maxZ);
++            result = 31 * result + (int) (temp ^ (temp >>> 32));
++            return result;
++        }
++    }
++    // Paper end
+ }

@@ -44,7 +44,7 @@
          }
  
          @Override
-@@ -176,14 +_,20 @@
+@@ -176,19 +_,37 @@
          public void onTake(Player p_150499_, ItemStack p_150500_) {
              Optional<Holder<Potion>> optional = p_150500_.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY).potion();
              if (optional.isPresent() && p_150499_ instanceof ServerPlayer serverplayer) {
@@ -58,10 +58,27 @@
 +        @Deprecated // Neo: use the overload that takes PotionBrewing instead
          public static boolean mayPlaceItem(ItemStack p_39134_) {
              return p_39134_.is(Items.POTION) || p_39134_.is(Items.SPLASH_POTION) || p_39134_.is(Items.LINGERING_POTION) || p_39134_.is(Items.GLASS_BOTTLE);
-+        }
-+
-+        public static boolean mayPlaceItem(PotionBrewing potionBrewing, ItemStack p_39134_) {
-+            return potionBrewing.isInput(p_39134_) || p_39134_.is(Items.GLASS_BOTTLE);
          }
  
++        public static boolean mayPlaceItem(PotionBrewing potionBrewing, ItemStack p_39134_) {
++            return potionBrewing.isInput(p_39134_) || p_39134_.is(Items.GLASS_BOTTLE);
++        }
++
          @Override
+         public ResourceLocation getNoItemIcon() {
+             return BrewingStandMenu.EMPTY_SLOT_POTION;
+         }
+     }
++    // CraftBukkit start
++    @Override
++    public org.bukkit.craftbukkit.inventory.view.CraftBrewingStandView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
++        }
++
++        org.bukkit.craftbukkit.inventory.CraftInventoryBrewer inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryBrewer(this.brewingStand);
++        this.view = new org.bukkit.craftbukkit.inventory.view.CraftBrewingStandView(this.inventory.player.getBukkitEntity(), inventory, this);
++        return this.view;
++    }
++    // CraftBukkit end
+ }

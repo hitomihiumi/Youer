@@ -1,5 +1,19 @@
 --- a/net/minecraft/core/RegistrySetBuilder.java
 +++ b/net/minecraft/core/RegistrySetBuilder.java
+@@ -41,6 +_,13 @@
+         final Map<ResourceKey<T>, Holder.Reference<T>> p_312180_
+     ) {
+         return new RegistrySetBuilder.EmptyTagRegistryLookup<T>(p_326787_) {
++            // Paper start - add getValueForCopying method
++            @Override
++            public Optional<T> getValueForCopying(final ResourceKey<T> resourceKey) {
++                return this.get(resourceKey).map(Holder.Reference::value);
++            }
++            // Paper end - add getValueForCopying method
++
+             @Override
+             public ResourceKey<? extends Registry<? extends T>> key() {
+                 return p_312781_;
 @@ -72,6 +_,10 @@
          return this.add(p_256261_, Lifecycle.stable(), p_256010_);
      }
@@ -11,6 +25,20 @@
      private RegistrySetBuilder.BuildState createState(RegistryAccess p_256400_) {
          RegistrySetBuilder.BuildState registrysetbuilder$buildstate = RegistrySetBuilder.BuildState.create(
              p_256400_, this.entries.stream().map(RegistrySetBuilder.RegistryStub::key)
+@@ -121,6 +_,13 @@
+                     public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> p_326905_) {
+                         return getEntry(p_326905_).map(Entry::opsInfo);
+                     }
++
++                    // Paper start - add method to get the value for pre-filling builders in the reg mod API
++                    @Override
++                    public HolderLookup.Provider lookupForValueCopyViaBuilders() {
++                        throw new UnsupportedOperationException("Not implemented");
++                    }
++                    // Paper end - add method to get the value for pre-filling builders in the reg mod API
+                 });
+             }
+         };
 @@ -185,16 +_,22 @@
                  lazyholder.supplier = () -> cloner.clone((T)p_311483_.value(), p_312115_, p_311797_.getValue());
                  map.put(resourcekey, lazyholder);

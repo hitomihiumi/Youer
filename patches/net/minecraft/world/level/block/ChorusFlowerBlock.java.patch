@@ -24,6 +24,17 @@
                              if (blockstate1.is(Blocks.END_STONE)) {
                                  flag1 = true;
                              }
+@@ -95,8 +_,10 @@
+                 }
+ 
+                 if (flag && allNeighborsEmpty(p_220981_, blockpos, null) && p_220981_.isEmptyBlock(p_220982_.above(2))) {
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_220981_, p_220982_, blockpos, this.defaultBlockState().setValue(AGE, ageValue), 2)) { // CraftBukkit - add event
+                     p_220981_.setBlock(p_220982_, ChorusPlantBlock.getStateWithConnections(p_220981_, p_220982_, this.plant.defaultBlockState()), 2);
+                     this.placeGrownFlower(p_220981_, blockpos, i);
++                    } // CraftBukkit
+                 } else if (i < 4) {
+                     int l = p_220983_.nextInt(4);
+                     if (flag1) {
 @@ -124,6 +_,7 @@
                  } else {
                      this.placeDeadFlower(p_220981_, p_220982_);
@@ -41,3 +52,15 @@
          if (!blockstate.is(this.plant) && !blockstate.is(Blocks.END_STONE)) {
              if (!blockstate.isAir()) {
                  return false;
+@@ -258,6 +_,11 @@
+     protected void onProjectileHit(Level p_51654_, BlockState p_51655_, BlockHitResult p_51656_, Projectile p_51657_) {
+         BlockPos blockpos = p_51656_.getBlockPos();
+         if (p_51654_ instanceof ServerLevel serverlevel && p_51657_.mayInteract(serverlevel, blockpos) && p_51657_.mayBreak(serverlevel)) {
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_51657_, blockpos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
++                return;
++            }
++            // CraftBukkit end
+             p_51654_.destroyBlock(blockpos, true, p_51657_);
+         }
+     }

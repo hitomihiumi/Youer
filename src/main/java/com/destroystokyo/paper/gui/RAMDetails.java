@@ -61,6 +61,7 @@ public class RAMDetails extends JList<String> {
 
         // Follows CraftServer#getTPS
         double[] tps = new double[] {
+            server.tps5s.getAverage(), // Purpur - Add 5 second tps average in /tps
             server.tps1.getAverage(),
             server.tps5.getAverage(),
             server.tps15.getAverage()
@@ -73,7 +74,7 @@ public class RAMDetails extends JList<String> {
         vector.add("Memory use: " + (data.getUsedMem() / 1024L / 1024L) + " mb (" + (data.getFree() * 100L / data.getMax()) + "% free)");
         vector.add("Heap: " + (data.getTotal() / 1024L / 1024L) + " / " + (data.getMax() / 1024L / 1024L) + " mb");
         vector.add("Avg tick: " + DECIMAL_FORMAT.format((double)this.server.getAverageTickTimeNanos() / (double) TimeUtil.NANOSECONDS_PER_MILLISECOND) + " ms");
-        vector.add("TPS from last 1m, 5m, 15m: " + String.join(", ", tpsAvg));
+        vector.add("TPS from last 5s, 1m, 5m, 15m: " + String.join(", ", tpsAvg)); // Purpur - Add 5 second tps average in /tps
         setListData(vector);
     }
 

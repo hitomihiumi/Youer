@@ -45,6 +45,24 @@
      @Nullable
      public static SerializableChunkData parse(LevelHeightAccessor p_361938_, RegistryAccess p_365010_, CompoundTag p_362040_) {
          if (p_362040_.getString("Status").isEmpty()) {
+@@ -155,7 +_,7 @@
+             ListTag listtag2 = p_362040_.getListOrEmpty("sections");
+             List<SerializableChunkData.SectionData> list2 = new ArrayList<>(listtag2.size());
+             Registry<Biome> registry = p_365010_.lookupOrThrow(Registries.BIOME);
+-            Codec<PalettedContainerRO<Holder<Biome>>> codec = makeBiomeCodec(registry);
++            Codec<PalettedContainer<Holder<Biome>>> codec = makeBiomeCodecRW(registry); // CraftBukkit - read/write
+ 
+             for (int i1 = 0; i1 < listtag2.size(); i1++) {
+                 Optional<CompoundTag> optional = listtag2.getCompound(i1);
+@@ -175,7 +_,7 @@
+                                     Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES
+                                 )
+                             );
+-                        PalettedContainerRO<Holder<Biome>> palettedcontainerro = compoundtag.getCompound("biomes")
++                        PalettedContainer<Holder<Biome>> palettedcontainerro = compoundtag.getCompound("biomes") // CraftBukkit - read/write
+                             .map(
+                                 p_409533_ -> codec.parse(NbtOps.INSTANCE, p_409533_)
+                                     .promotePartial(p_361282_ -> logErrors(chunkpos, j1, p_361282_))
 @@ -197,6 +_,9 @@
                  }
              }
@@ -76,6 +94,19 @@
          } else {
              ProtoChunkTicks<Block> protochunkticks = ProtoChunkTicks.load(this.packedTicks.blocks());
              ProtoChunkTicks<Fluid> protochunkticks1 = ProtoChunkTicks.load(this.packedTicks.fluids());
+@@ -293,6 +_,12 @@
+             }
+         }
+ 
++        // CraftBukkit start - load chunk persistent data from nbt - SPIGOT-6814: Already load PDC here to account for 1.17 to 1.18 chunk upgrading.
++        if (this.persistentDataContainer instanceof CompoundTag compoundTag) {
++            chunkAccess.persistentDataContainer.putAll(compoundTag);
++        }
++        // CraftBukkit end
++
+         chunkaccess.setLightCorrect(this.lightCorrect);
+         EnumSet<Heightmap.Types> enumset = EnumSet.noneOf(Heightmap.Types.class);
+ 
 @@ -313,6 +_,10 @@
              chunkaccess.addPackedPostProcess(this.postProcessingSections[j], j);
          }
@@ -87,6 +118,19 @@
          if (chunktype == ChunkType.LEVELCHUNK) {
              return new ImposterProtoChunk((LevelChunk)chunkaccess, false);
          } else {
+@@ -344,6 +_,12 @@
+         );
+     }
+ 
++    // CraftBukkit start - read/write
++    private static Codec<PalettedContainer<Holder<Biome>>> makeBiomeCodecRW(Registry<Biome> biomeRegistry) {
++        return PalettedContainer.codecRW(biomeRegistry.asHolderIdMap(), biomeRegistry.holderByNameCodec(), PalettedContainer.Strategy.SECTION_BIOMES, biomeRegistry.getOrThrow(Biomes.PLAINS));
++    }
++    // CraftBukkit end
++
+     public static SerializableChunkData copyOf(ServerLevel p_365319_, ChunkAccess p_362284_) {
+         if (!p_362284_.canBeSerialized()) {
+             throw new IllegalArgumentException("Chunk can't be serialized: " + p_362284_);
 @@ -402,6 +_,17 @@
              CompoundTag compoundtag1 = packStructureData(
                  StructurePieceSerializationContext.fromLevel(p_365319_), chunkpos, p_362284_.getAllStarts(), p_362284_.getAllReferences()
@@ -131,3 +175,16 @@
          return compoundtag;
      }
  
+@@ -568,6 +_,12 @@
+             } else {
+                 StructureStart structurestart = StructureStart.loadStaticStart(p_360982_, compoundtag.getCompoundOrEmpty(s), p_362695_);
+                 if (structurestart != null) {
++                    // CraftBukkit start - load persistent data for structure start
++                    net.minecraft.nbt.Tag persistentBase = compoundOrEmpty.getCompoundOrEmpty(string).get("StructureBukkitValues");
++                    if (persistentBase instanceof CompoundTag compoundTag) {
++                        structurestart.persistentDataContainer.putAll(compoundTag);
++                    }
++                    // CraftBukkit end
+                     map.put(structure, structurestart);
+                 }
+             }

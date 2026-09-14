@@ -42,6 +42,86 @@
      public int brewTime;
      private boolean[] lastPotionCount;
      private Item ingredient;
+@@ -47,6 +_,7 @@
+             return switch (p_59038_) {
+                 case 0 -> BrewingStandBlockEntity.this.brewTime;
+                 case 1 -> BrewingStandBlockEntity.this.fuel;
++                case 2 -> BrewingStandBlockEntity.this.recipeBrewTime; // Paper - Add recipeBrewTime
+                 default -> 0;
+             };
+         }
+@@ -59,15 +_,20 @@
+                     break;
+                 case 1:
+                     BrewingStandBlockEntity.this.fuel = p_59041_;
++                // Paper start - Add recipeBrewTime
++                    break;
++                case 2:
++                    BrewingStandBlockEntity.this.recipeBrewTime = p_59041_;
++                    break;
++                // Paper end - Add recipeBrewTime
+             }
+         }
+ 
+         @Override
+         public int getCount() {
+-            return 2;
++            return 3; // Paper - Add recipeBrewTime
+         }
+     };
+-
+     public BrewingStandBlockEntity(BlockPos p_155283_, BlockState p_155284_) {
+         super(BlockEntityType.BREWING_STAND, p_155283_, p_155284_);
+     }
+@@ -95,8 +_,21 @@
+     public static void serverTick(Level p_155286_, BlockPos p_155287_, BlockState p_155288_, BrewingStandBlockEntity p_155289_) {
+         ItemStack itemstack = p_155289_.items.get(4);
+         if (p_155289_.fuel <= 0 && itemstack.is(ItemTags.BREWING_FUEL)) {
+-            p_155289_.fuel = 20;
+-            itemstack.shrink(1);
++            // CraftBukkit start
++            org.bukkit.event.inventory.BrewingStandFuelEvent event = new org.bukkit.event.inventory.BrewingStandFuelEvent(
++                org.bukkit.craftbukkit.block.CraftBlock.at(level, pos),
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack),
++                20
++            );
++            if (!event.callEvent()) {
++                return;
++            }
++
++            blockEntity.fuel = event.getFuelPower();
++            if (blockEntity.fuel > 0 && event.isConsuming()) {
++                itemstack.shrink(1);
++            }
++            // CraftBukkit end
+             setChanged(p_155286_, p_155287_, p_155288_);
+         }
+ 
+@@ -107,7 +_,7 @@
+             p_155289_.brewTime--;
+             boolean flag2 = p_155289_.brewTime == 0;
+             if (flag2 && flag) {
+-                doBrew(p_155286_, p_155287_, p_155289_.items);
++                doBrew(p_155286_, p_155287_, p_155289_.items, p_155289_); // CraftBukkit
+             } else if (!flag || !itemstack1.is(p_155289_.ingredient)) {
+                 p_155289_.brewTime = 0;
+             }
+@@ -115,7 +_,14 @@
+             setChanged(p_155286_, p_155287_, p_155288_);
+         } else if (flag && p_155289_.fuel > 0) {
+             p_155289_.fuel--;
+-            p_155289_.brewTime = 400;
++            // CraftBukkit start
++            org.bukkit.event.block.BrewingStartEvent event = new org.bukkit.event.block.BrewingStartEvent(
++                org.bukkit.craftbukkit.block.CraftBlock.at(level, pos),
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemStack1), 400);
++            event.callEvent();
++            p_155289_.recipeBrewTime = event.getRecipeBrewTime(); // Paper - use recipe brew time from event
++            p_155289_.brewTime = event.getBrewingTime(); // 400 -> event.getTotalBrewTime() // Paper - use brewing time from event
++            // CraftBukkit end
+             p_155289_.ingredient = itemstack1.getItem();
+             setChanged(p_155286_, p_155287_, p_155288_);
+         }
 @@ -167,6 +_,7 @@
      }
  

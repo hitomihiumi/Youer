@@ -258,4 +258,11 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
     public void restock() {
         getHandle().restock();
     }
+
+    // Purpur start - Lobotomize stuck villagers
+    @Override
+    public boolean isLobotomized() {
+        return getHandle().isLobotomized();
+    }
+    // Purpur end - Lobotomize stuck villagers
 }

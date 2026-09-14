@@ -103,7 +103,16 @@
              BlockState blockstate = Blocks.SNOW.defaultBlockState();
  
              for (int i = 0; i < 4; i++) {
-@@ -135,17 +_,25 @@
+@@ -107,7 +_,7 @@
+                 int l = Mth.floor(this.getZ() + (i / 2 % 2 * 2 - 1) * 0.25F);
+                 BlockPos blockpos = new BlockPos(j, k, l);
+                 if (this.level().getBlockState(blockpos).isAir() && blockstate.canSurvive(this.level(), blockpos)) {
+-                    this.level().setBlockAndUpdate(blockpos, blockstate);
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this.level(), blockpos, blockstate, 3, this)) continue; // CraftBukkit
+                     this.level().gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(this, blockstate));
+                 }
+             }
+@@ -135,27 +_,53 @@
  
      @Override
      protected InteractionResult mobInteract(Player p_29920_, InteractionHand p_29921_) {
@@ -134,6 +143,37 @@
          }
      }
  
+     @Override
+     public void shear(ServerLevel p_376257_, SoundSource p_29907_, ItemStack p_373004_) {
++        // Paper start - custom shear drops
++        this.shear(p_376257_, p_29907_, p_373004_, this.generateDefaultDrops(p_376257_, p_373004_));
++    }
++
++    @Override
++    public java.util.List<ItemStack> generateDefaultDrops(final ServerLevel serverLevel, final ItemStack p_373004_) {
++        final java.util.List<ItemStack> drops = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++        this.dropFromShearingLootTable(serverLevel, BuiltInLootTables.SHEAR_SNOW_GOLEM, p_373004_, (ignored, stack) -> {
++            drops.add(stack);
++        });
++        return drops;
++    }
++
++    @Override
++    public void shear(ServerLevel p_376257_, SoundSource p_29907_, ItemStack p_373004_, java.util.List<ItemStack> drops) {
++        // Paper end - custom shear drops
+         p_376257_.playSound(null, this, SoundEvents.SNOW_GOLEM_SHEAR, p_29907_, 1.0F, 1.0F);
+         this.setPumpkin(false);
+-        this.dropFromShearingLootTable(
+-            p_376257_, BuiltInLootTables.SHEAR_SNOW_GOLEM, p_373004_, (p_427085_, p_427086_) -> this.spawnAtLocation(p_427085_, p_427086_, this.getEyeHeight())
+-        );
++        drops.forEach(itemStack -> { // Paper - custom shear drops
++            this.forceDrops = true; // CraftBukkit
++            this.spawnAtLocation(level, itemStack, this.getEyeHeight());
++            this.forceDrops = false; // CraftBukkit
++        });
+     }
+ 
+     @Override
 @@ -178,19 +_,19 @@
  
      @Nullable

@@ -1,9 +1,19 @@
 --- a/net/minecraft/world/level/block/AbstractCauldronBlock.java
 +++ b/net/minecraft/world/level/block/AbstractCauldronBlock.java
-@@ -99,4 +_,22 @@
+@@ -57,7 +_,7 @@
+         ItemStack p_316791_, BlockState p_316287_, Level p_316530_, BlockPos p_316585_, Player p_316671_, InteractionHand p_316186_, BlockHitResult p_316294_
+     ) {
+         CauldronInteraction cauldroninteraction = this.interactions.map().get(p_316791_.getItem());
+-        return cauldroninteraction.interact(p_316287_, p_316530_, p_316585_, p_316671_, p_316186_, p_316791_);
++        return cauldroninteraction.interact(p_316287_, p_316530_, p_316585_, p_316671_, p_316186_, p_316791_, hitResult.getDirection()); // Paper - pass hit direction
+     }
+ 
+     @Override
+@@ -98,5 +_,23 @@
+     }
  
      protected void receiveStalactiteDrip(BlockState p_151975_, Level p_151976_, BlockPos p_151977_, Fluid p_151978_) {
-     }
++    }
 +
 +    @Override
 +    public void onPlace(BlockState p_51978_, Level p_51979_, BlockPos p_51980_, BlockState p_51981_, boolean p_51982_) {
@@ -21,5 +31,5 @@
 +        if (net.neoforged.neoforge.fluids.CauldronFluidContent.getForBlock(p_394241_.getBlockState(p_393520_).getBlock()) == null) {
 +            p_394241_.invalidateCapabilities(p_393520_);
 +        }
-+    }
+     }
  }

@@ -21,6 +21,15 @@
          );
          WorldLoader.PackConfig worldloader$packconfig = new WorldLoader.PackConfig(p_206609_, worlddataconfiguration, false, true);
          WorldLoader.InitConfig worldloader$initconfig = new WorldLoader.InitConfig(worldloader$packconfig, Commands.CommandSelection.DEDICATED, 4);
+@@ -136,6 +_,8 @@
+         boolean p_397578_
+     ) {
+         super(
++            null, // Paper
++            null, // Paper
+             p_206597_,
+             p_206598_,
+             p_206599_,
 @@ -152,10 +_,12 @@
      @Override
      public boolean initServer() {
@@ -64,3 +73,17 @@
          }
      }
  
+@@ -345,6 +_,13 @@
+     public boolean shouldInformAdmins() {
+         return false;
+     }
++
++    // Paper start
++    @Override
++    public org.bukkit.command.CommandSender getBukkitSender(final net.minecraft.commands.CommandSourceStack wrapper) {
++        throw new UnsupportedOperationException("Not supported.");
++    }
++    // Paper end
+ 
+     @Override
+     public boolean isSingleplayerOwner(GameProfile p_177617_) {

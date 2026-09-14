@@ -15,3 +15,36 @@
          BlockPos blockpos = BlockPos.containing(p_139018_, p_139019_, p_139020_);
          if (!Level.isInSpawnableBounds(blockpos)) {
              throw INVALID_POSITION.create();
+@@ -289,7 +_,31 @@
+             float f1 = p_139021_.contains(Relative.X_ROT) ? p_139023_ - p_139016_.getXRot() : p_139023_;
+             float f2 = Mth.wrapDegrees(f);
+             float f3 = Mth.wrapDegrees(f1);
+-            if (p_139016_.teleportTo(p_139017_, d0, d1, d2, p_139021_, f2, f3, true)) {
++            // CraftBukkit start - Teleport event
++            boolean result;
++            if (p_139016_ instanceof final net.minecraft.server.level.ServerPlayer player) {
++                result = player.teleportTo(p_139017_, d0, d1, d2, p_139021_, f2, f3, true, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND);
++            } else {
++                org.bukkit.Location to = new org.bukkit.Location(p_139017_.getWorld(), d0, d1, d2, f2, f3);
++                org.bukkit.event.entity.EntityTeleportEvent teleportEvent = new org.bukkit.event.entity.EntityTeleportEvent(p_139016_.getBukkitEntity(), p_139016_.getBukkitEntity().getLocation(), to);
++                p_139017_.getCraftServer().getPluginManager().callEvent(teleportEvent);
++                if (teleportEvent.isCancelled() || teleportEvent.getTo() == null) { // Paper
++                    return;
++                }
++                to = teleportEvent.getTo(); // Paper - actually track new location
++
++                d0 = to.getX();
++                d1 = to.getY();
++                d2 = to.getZ();
++                f2 = to.getYaw();
++                f3 = to.getPitch();
++                p_139017_ = ((org.bukkit.craftbukkit.CraftWorld) to.getWorld()).getHandle();
++
++                result = p_139016_.teleportTo(p_139017_, d0, d1, d2, p_139021_, f2, f3, true);
++            }
++
++            if (result) {
++                // CraftBukkit end
+                 if (p_380216_ != null) {
+                     p_380216_.perform(p_139015_, p_139016_);
+                 }

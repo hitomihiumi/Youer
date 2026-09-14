@@ -1,14 +1,30 @@
 --- a/net/minecraft/world/level/storage/TagValueInput.java
 +++ b/net/minecraft/world/level/storage/TagValueInput.java
-@@ -218,6 +_,11 @@
-         return this.context.lookup();
+@@ -37,6 +_,15 @@
+         this.input = p_421946_;
      }
  
++    // Paper start - utility methods
++    public static ValueInput createGlobal(
++        final ProblemReporter problemReporter,
++        final CompoundTag compoundTag
++    ) {
++        return create(problemReporter, net.minecraft.server.MinecraftServer.getServer().registryAccess(), compoundTag);
++    }
++    // Paper end - utility methods
++
+     public static ValueInput create(ProblemReporter p_422128_, HolderLookup.Provider p_421808_, CompoundTag p_421841_) {
+         return new TagValueInput(p_422128_, new ValueInputContextHelper(p_421808_, NbtOps.INSTANCE), p_421841_);
+     }
+@@ -216,6 +_,11 @@
+     @Override
+     public HolderLookup.Provider lookup() {
+         return this.context.lookup();
++    }
++
 +    @Override
 +    public java.util.Set<String> keySet() {
 +        return java.util.Collections.unmodifiableSet(input.keySet());
-+    }
-+
+     }
+ 
      private ValueInput wrapChild(String p_422021_, CompoundTag p_422689_) {
-         return (ValueInput)(p_422689_.isEmpty()
-             ? this.context.empty()

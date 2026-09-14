@@ -12,7 +12,7 @@
  
      public static MinecraftServerGui showFrameFor(final DedicatedServer p_139922_) {
          try {
-@@ -47,7 +_,7 @@
+@@ -47,18 +_,25 @@
          } catch (Exception exception) {
          }
  
@@ -21,7 +21,17 @@
          final MinecraftServerGui minecraftservergui = new MinecraftServerGui(p_139922_);
          jframe.setDefaultCloseOperation(2);
          jframe.add(minecraftservergui);
-@@ -58,7 +_,7 @@
+         jframe.pack();
+         jframe.setLocationRelativeTo(null);
+         jframe.setVisible(true);
++        // Paper start - Improve ServerGUI
++        jframe.setName("Minecraft server");
++        try {
++            jframe.setIconImage(javax.imageio.ImageIO.read(java.util.Objects.requireNonNull(MinecraftServerGui.class.getClassLoader().getResourceAsStream("logo.png"))));
++        } catch (java.io.IOException ignore) {
++        }
++        // Paper end - Improve ServerGUI
+         jframe.addWindowListener(new WindowAdapter() {
              @Override
              public void windowClosing(WindowEvent p_139944_) {
                  if (!minecraftservergui.isClosing.getAndSet(true)) {
@@ -30,6 +40,23 @@
                      p_139922_.halt(true);
                      minecraftservergui.runFinalizers();
                  }
+@@ -75,6 +_,7 @@
+         this.setLayout(new BorderLayout());
+ 
+         try {
++            this.add(this.buildOnboardingPanel(), "North"); // Paper - Add onboarding message for initial server start
+             this.add(this.buildChatPanel(), "Center");
+             this.add(this.buildInfoPanel(), "West");
+         } catch (Exception exception) {
+@@ -88,7 +_,7 @@
+ 
+     private JComponent buildInfoPanel() {
+         JPanel jpanel = new JPanel(new BorderLayout());
+-        StatsComponent statscomponent = new StatsComponent(this.server);
++        com.destroystokyo.paper.gui.GuiStatsComponent statscomponent = new com.destroystokyo.paper.gui.GuiStatsComponent(this.server); // Paper - Make GUI graph fancier
+         this.finalizers.add(statscomponent::close);
+         jpanel.add(statscomponent, "North");
+         jpanel.add(this.buildPlayerPanel(), "Center");
 @@ -105,7 +_,7 @@
  
      private JComponent buildChatPanel() {
@@ -104,6 +131,15 @@
          if (!SwingUtilities.isEventDispatchThread()) {
              SwingUtilities.invokeLater(() -> this.print(p_139915_, p_139916_, p_139917_));
          } else {
+@@ -163,7 +_,7 @@
+             }
+ 
+             try {
+-                document.insertString(document.getLength(), p_139917_, null);
++                document.insertString(document.getLength(), MinecraftServerGui.ANSI.matcher(p_139917_).replaceAll(""), null); // CraftBukkit
+             } catch (BadLocationException badlocationexception) {
+             }
+ 
 @@ -172,4 +_,16 @@
              }
          }

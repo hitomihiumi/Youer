@@ -221,6 +221,23 @@
              this.interestedAngleO = this.interestedAngle;
              if (this.isInterested()) {
                  this.interestedAngle = this.interestedAngle + (1.0F - this.interestedAngle) * 0.4F;
+@@ -427,6 +_,7 @@
+                 );
+             }
+         }
++        return true; // CraftBukkit // Paper - return false ONLY if event was cancelled
+     }
+ 
+     private boolean canArmorAbsorb(DamageSource p_406249_) {
+@@ -437,7 +_,7 @@
+     protected void applyTamingSideEffects() {
+         if (this.isTame()) {
+             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(40.0);
+-            this.setHealth(40.0F);
++            this.setHealth(this.getMaxHealth()); // CraftBukkit - 40.0 -> getMaxHealth()
+         } else {
+             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(8.0);
+         }
 @@ -459,10 +_,11 @@
          Item item = itemstack.getItem();
          if (this.isTame()) {
@@ -234,6 +251,32 @@
                  return InteractionResult.SUCCESS;
              }
  
+@@ -491,15 +_,24 @@
+                     this.setOrderedToSit(!this.isOrderedToSit());
+                     this.jumping = false;
+                     this.navigation.stop();
+-                    this.setTarget(null);
++                    this.setTarget(null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET); // CraftBukkit - reason
+                     return InteractionResult.SUCCESS.withoutItem();
+                 }
+ 
++
+                 return interactionresult;
+             }
+ 
++
+             DyeColor dyecolor = dyeitem.getDyeColor();
+             if (dyecolor != this.getCollarColor()) {
++                // Paper start - Add EntityDyeEvent and CollarColorable interface
++                final io.papermc.paper.event.entity.EntityDyeEvent event = new io.papermc.paper.event.entity.EntityDyeEvent(this.getBukkitEntity(), org.bukkit.DyeColor.getByWoolData((byte) dyecolor.getId()), (org.bukkit.entity.Player) p_406380_.getBukkitEntity());
++                if (!event.callEvent()) {
++                    return InteractionResult.FAIL;
++                }
++                dyecolor = DyeColor.byId(event.getColor().getWoolData());
++                // Paper end - Add EntityDyeEvent and CollarColorable interface
+                 this.setCollarColor(dyecolor);
+                 itemstack.consume(1, p_406380_);
+                 return InteractionResult.SUCCESS;
 @@ -508,13 +_,27 @@
              itemstack.consume(1, p_406380_);
              this.tryToTame(p_406380_);

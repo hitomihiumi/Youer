@@ -1,5 +1,70 @@
 --- a/net/minecraft/world/entity/projectile/FishingHook.java
 +++ b/net/minecraft/world/entity/projectile/FishingHook.java
+@@ -70,10 +_,26 @@
+     private final int lureSpeed;
+     private final InterpolationHandler interpolationHandler = new InterpolationHandler(this);
+ 
++    // CraftBukkit start - Extra variables to enable modification of fishing wait time, values are minecraft defaults
++    public int minWaitTime = 100;
++    public int maxWaitTime = 600;
++    public int minLureTime = 20;
++    public int maxLureTime = 80;
++    public float minLureAngle = 0.0F;
++    public float maxLureAngle = 360.0F;
++    public boolean applyLure = true;
++    public boolean rainInfluenced = true;
++    public boolean skyInfluenced = true;
++    // CraftBukkit end
++
+     private FishingHook(EntityType<? extends FishingHook> p_150141_, Level p_150142_, int p_150143_, int p_150144_) {
+         super(p_150141_, p_150142_);
+         this.luck = Math.max(0, p_150143_);
+         this.lureSpeed = Math.max(0, p_150144_);
++        // Paper start - Configurable fishing time ranges
++        this.minWaitTime = level.paperConfig().fishingTimeRange.minimum;
++        this.maxWaitTime = level.paperConfig().fishingTimeRange.maximum;
++        // Paper end - Configurable fishing time ranges
+     }
+ 
+     public FishingHook(EntityType<? extends FishingHook> p_150138_, Level p_150139_) {
+@@ -152,12 +_,12 @@
+         super.tick();
+         Player player = this.getPlayerOwner();
+         if (player == null) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         } else if (this.level().isClientSide || !this.shouldStopFishing(player)) {
+             if (this.onGround()) {
+                 this.life++;
+                 if (this.life >= 1200) {
+-                    this.discard();
++                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                     return;
+                 }
+             } else {
+@@ -175,12 +_,14 @@
+             if (this.currentState == FishingHook.FishHookState.FLYING) {
+                 if (this.hookedIn != null) {
+                     this.setDeltaMovement(Vec3.ZERO);
++                    new io.papermc.paper.event.entity.FishHookStateChangeEvent((org.bukkit.entity.FishHook) getBukkitEntity(), org.bukkit.entity.FishHook.HookState.HOOKED_ENTITY).callEvent(); // Paper - Add FishHookStateChangeEvent. #HOOKED_ENTITY
+                     this.currentState = FishingHook.FishHookState.HOOKED_IN_ENTITY;
+                     return;
+                 }
+ 
+                 if (flag) {
+                     this.setDeltaMovement(this.getDeltaMovement().multiply(0.3, 0.2, 0.3));
++                    new io.papermc.paper.event.entity.FishHookStateChangeEvent((org.bukkit.entity.FishHook) getBukkitEntity(), org.bukkit.entity.FishHook.HookState.BOBBING).callEvent(); // Paper - Add FishHookStateChangeEvent. #BOBBING
+                     this.currentState = FishingHook.FishHookState.BOBBING;
+                     return;
+                 }
+@@ -193,6 +_,7 @@
+                             this.setPos(this.hookedIn.getX(), this.hookedIn.getY(0.8), this.hookedIn.getZ());
+                         } else {
+                             this.setHookedEntity(null);
++                            new io.papermc.paper.event.entity.FishHookStateChangeEvent((org.bukkit.entity.FishHook) getBukkitEntity(), org.bukkit.entity.FishHook.HookState.UNHOOKED).callEvent(); // Paper - Add FishHookStateChangeEvent. #UNHOOKED
+                             this.currentState = FishingHook.FishHookState.FLYING;
+                         }
+                     }
 @@ -251,8 +_,8 @@
      private boolean shouldStopFishing(Player p_37137_) {
          ItemStack itemstack = p_37137_.getMainHandItem();
@@ -20,6 +85,44 @@
      }
  
      @Override
+@@ -294,11 +_,11 @@
+         ServerLevel serverlevel = (ServerLevel)this.level();
+         int i = 1;
+         BlockPos blockpos = p_37146_.above();
+-        if (this.random.nextFloat() < 0.25F && this.level().isRainingAt(blockpos)) {
++        if (this.rainInfluenced && this.random.nextFloat() < 0.25F && this.level().isRainingAt(blockpos)) { // CraftBukkit
+             i++;
+         }
+ 
+-        if (this.random.nextFloat() < 0.5F && !this.level().canSeeSky(blockpos)) {
++        if (this.skyInfluenced && this.random.nextFloat() < 0.5F && !this.level().canSeeSky(blockpos)) { // CraftBukkit
+             i--;
+         }
+ 
+@@ -308,6 +_,10 @@
+                 this.timeUntilLured = 0;
+                 this.timeUntilHooked = 0;
+                 this.getEntityData().set(DATA_BITING, false);
++                // CraftBukkit start
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) this.getPlayerOwner().getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.FAILED_ATTEMPT);
++                playerFishEvent.callEvent();
++                // CraftBukkit end
+             }
+         } else if (this.timeUntilHooked > 0) {
+             this.timeUntilHooked -= i;
+@@ -331,6 +_,12 @@
+                     serverlevel.sendParticles(ParticleTypes.FISHING, d0, d1, d2, 0, -f4, 0.01, f3, 1.0);
+                 }
+             } else {
++                // CraftBukkit start
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) this.getPlayerOwner().getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.BITE);
++                if (!playerFishEvent.callEvent()) {
++                    return;
++                }
++                // CraftBukkit end
+                 this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
+                 double d3 = this.getY() + 0.5;
+                 serverlevel.sendParticles(
 @@ -452,6 +_,7 @@
          Player player = this.getPlayerOwner();
          if (!this.level().isClientSide && player != null && !this.shouldStopFishing(player)) {
@@ -28,7 +131,7 @@
              if (this.hookedIn != null) {
                  this.pullEntity(this.hookedIn);
                  CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)player, p_37157_, this, Collections.emptyList());
-@@ -462,10 +_,17 @@
+@@ -462,22 +_,43 @@
                      .withParameter(LootContextParams.ORIGIN, this.position())
                      .withParameter(LootContextParams.TOOL, p_37157_)
                      .withParameter(LootContextParams.THIS_ENTITY, this)
@@ -45,7 +148,35 @@
 +                }
                  CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)player, p_37157_, this, list);
  
++
                  for (ItemStack itemstack : list) {
+                     ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);
++                    // CraftBukkit start
++                    org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), itementity.getBukkitEntity(), (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand), org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_FISH); // Paper - itemEntity may be null // Paper - Add hand parameter to PlayerFishEvent
++                    playerFishEvent.setExpToDrop(this.random.nextInt(6) + 1);
++                    if (!playerFishEvent.callEvent()) {
++                        return 0;
++                    }
++                    // CraftBukkit end
+                     double d0 = player.getX() - this.getX();
+                     double d1 = player.getY() - this.getY();
+                     double d2 = player.getZ() - this.getZ();
+                     double d3 = 0.1;
+                     itementity.setDeltaMovement(d0 * 0.1, d1 * 0.1 + Math.sqrt(Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2)) * 0.08, d2 * 0.1);
+                     this.level().addFreshEntity(itementity);
+-                    player.level()
+-                        .addFreshEntity(new ExperienceOrb(player.level(), player.getX(), player.getY() + 0.5, player.getZ() + 0.5, this.random.nextInt(6) + 1));
++                    if (playerFishEvent.getExpToDrop() > 0) { // CraftBukkit - custom exp
++                        player.level()
++                            .addFreshEntity(
++                                new ExperienceOrb(
++                                    player.level(), new net.minecraft.world.phys.Vec3(player.getX(), player.getY() + 0.5, player.getZ() + 0.5), net.minecraft.world.phys.Vec3.ZERO, playerFishEvent.getExpToDrop(), org.bukkit.entity.ExperienceOrb.SpawnReason.FISHING, this.getPlayerOwner(), this // Paper
++                                )
++                            );
++                    }
+                     if (itemstack.is(ItemTags.FISHES)) {
+                         player.awardStat(Stats.FISH_CAUGHT, 1);
+                     }
 @@ -491,6 +_,7 @@
              }
  
@@ -54,3 +185,24 @@
              return i;
          } else {
              return 0;
+@@ -520,9 +_,9 @@
+     }
+ 
+     @Override
+-    public void remove(Entity.RemovalReason p_150146_) {
++    public void remove(Entity.RemovalReason p_150146_, @Nullable org.bukkit.event.entity.EntityRemoveEvent.Cause cause) { // CraftBukkit - add Bukkit remove cause
+         this.updateOwnerInfo(null);
+-        super.remove(p_150146_);
++        super.remove(p_150146_, cause); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override
+@@ -570,7 +_,7 @@
+         if (this.getPlayerOwner() == null) {
+             int i = p_150150_.getData();
+             LOGGER.error("Failed to recreate fishing hook on client. {} (id: {}) is not a valid owner.", this.level().getEntity(i), i);
+-            this.discard();
++            this.discard(null); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
