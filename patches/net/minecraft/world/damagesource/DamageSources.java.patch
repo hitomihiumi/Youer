@@ -9,3 +9,26 @@
  
      public DamageSources(RegistryAccess p_270740_) {
          this.damageTypes = p_270740_.lookupOrThrow(Registries.DAMAGE_TYPE);
+@@ -70,7 +_,21 @@
+         this.stalagmite = this.source(DamageTypes.STALAGMITE);
+         this.outsideBorder = this.source(DamageTypes.OUTSIDE_BORDER);
+         this.genericKill = this.source(DamageTypes.GENERIC_KILL);
+-    }
++        this.scissors = this.source(DamageTypes.MAGIC).scissors(); // Purpur - Dont run with scissors!
++        this.stonecutter = this.source(DamageTypes.MAGIC).stonecutter(); // Purpur - Stonecutter damage
++    }
++
++    // Purpur start - Dont run with scissors!
++    public DamageSource scissors() {
++        return this.scissors;
++    }
++    // Purpur end - Dont run with scissors!
++
++    // Purpur start - Stonecutter damage
++    public DamageSource stonecutter() {
++        return this.stonecutter;
++    }
++    // Purpur end - Stonecutter damage
+ 
+     public DamageSource source(ResourceKey<DamageType> p_270957_) {
+         return new DamageSource(this.damageTypes.getOrThrow(p_270957_));

@@ -1,5 +1,27 @@
 --- a/com/mojang/math/OctahedralGroup.java
 +++ b/com/mojang/math/OctahedralGroup.java
+@@ -116,6 +_,12 @@
+         }
+     });
+ 
++    static {
++        for (OctahedralGroup octahedralGroup : values()) {
++            octahedralGroup.initializeRotationDirections(); // Paper - Avoid Lazy Initialization for Enum Fields
++        }
++    }
++
+     private OctahedralGroup(String p_56513_, SymmetricGroup3 p_56514_, boolean p_56515_, boolean p_56516_, boolean p_56517_) {
+         this.name = p_56513_;
+         this.invertX = p_56515_;
+@@ -153,7 +_,7 @@
+         return this.name;
+     }
+ 
+-    public Direction rotate(Direction p_56529_) {
++    public void initializeRotationDirections() { // Paper - Avoid Lazy Initialization for Enum Fields
+         if (this.rotatedDirections == null) {
+             this.rotatedDirections = Util.makeEnumMap(Direction.class, p_392468_ -> {
+                 Direction.Axis direction$axis = p_392468_.getAxis();
 @@ -164,6 +_,11 @@
              });
          }

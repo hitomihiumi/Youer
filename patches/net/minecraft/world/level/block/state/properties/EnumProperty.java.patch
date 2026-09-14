@@ -1,0 +1,12 @@
+--- a/net/minecraft/world/level/block/state/properties/EnumProperty.java
++++ b/net/minecraft/world/level/block/state/properties/EnumProperty.java
+@@ -57,8 +_,7 @@
+         return this.ordinalToIndex[p_373052_.ordinal()];
+     }
+ 
+-    @Override
+-    public boolean equals(Object p_61606_) {
++    public boolean equals_unused(Object p_61606_) { // Paper - Perf: Optimize hashCode/equals
+         if (this == p_61606_) {
+             return true;
+         } else {

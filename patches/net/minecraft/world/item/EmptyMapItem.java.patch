@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/item/EmptyMapItem.java
++++ b/net/minecraft/world/item/EmptyMapItem.java
+@@ -17,10 +_,16 @@
+     public InteractionResult use(Level p_41145_, Player p_41146_, InteractionHand p_41147_) {
+         ItemStack itemstack = p_41146_.getItemInHand(p_41147_);
+         if (p_41145_ instanceof ServerLevel serverlevel) {
++            org.bukkit.inventory.ItemStack emptyMap = itemstack.asBukkitCopy(); // Paper - PlayerMapFilledEvent
+             itemstack.consume(1, p_41146_);
+             p_41146_.awardStat(Stats.ITEM_USED.get(this));
+             serverlevel.playSound(null, p_41146_, SoundEvents.UI_CARTOGRAPHY_TABLE_TAKE_RESULT, p_41146_.getSoundSource(), 1.0F, 1.0F);
+             ItemStack $$6 = MapItem.create(serverlevel, p_41146_.getBlockX(), p_41146_.getBlockZ(), (byte)0, true, false);
++            // Paper start - PlayerMapFilledEvent
++            io.papermc.paper.event.player.PlayerMapFilledEvent event = new io.papermc.paper.event.player.PlayerMapFilledEvent((org.bukkit.entity.Player) p_41146_.getBukkitEntity(), emptyMap, org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror($$6));
++            event.callEvent();
++            $$6 = org.bukkit.craftbukkit.inventory.CraftItemStack.unwrap(event.getCreatedMap());
++            // Paper end - PlayerMapFilledEvent
+             if (itemstack.isEmpty()) {
+                 return InteractionResult.SUCCESS.heldItemTransformedTo($$6);
+             } else {

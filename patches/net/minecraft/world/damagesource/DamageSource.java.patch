@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/damagesource/DamageSource.java
 +++ b/net/minecraft/world/damagesource/DamageSource.java
-@@ -20,6 +_,92 @@
+@@ -20,6 +_,120 @@
      private final Entity directEntity;
      @Nullable
      private final Vec3 damageSourcePosition;
@@ -14,6 +14,8 @@
 +    @Nullable
 +    private org.bukkit.block.BlockState fromBlockSnapshot; // Captured block snapshot when the eventBlockDamager is not relevant (e.g. for bad respawn point explosions the block is already removed)
 +    private boolean critical; // Supports arrows and sweeping damage
++    private boolean scissors = false; // Purpur - Dont run with scissors!
++    private boolean stonecutter = false; // Purpur - Stonecutter damage
 +
 +    public DamageSource knownCause(final org.bukkit.event.entity.EntityDamageEvent.DamageCause cause) {
 +        final DamageSource damageSource = this.copy();
@@ -25,6 +27,30 @@
 +    public org.bukkit.event.entity.EntityDamageEvent.DamageCause knownCause() {
 +        return this.knownCause;
 +    }
++
++    // Purpur start - Dont run with scissors!
++    public DamageSource scissors() {
++        this.knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.SUICIDE);
++        this.scissors = true;
++        return this;
++    }
++
++    public boolean isScissors() {
++        return this.scissors;
++    }
++    // Purpur end - Dont run with scissors!
++
++    // Purpur start -  - Stonecutter damage
++    public DamageSource stonecutter() {
++        this.knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.CONTACT);
++        this.stonecutter = true;
++        return this;
++    }
++
++    public boolean isStonecutter() {
++        return this.stonecutter;
++    }
++    // Purpur end - Stonecutter damage
 +
 +    @Nullable
 +    public Entity eventEntityDamager() {
@@ -87,13 +113,35 @@
 +        damageSource.eventBlockDamager = this.eventBlockDamager;
 +        damageSource.fromBlockSnapshot = this.fromBlockSnapshot;
 +        damageSource.critical = this.critical;
++        damageSource.scissors = this.isScissors(); // Purpur - Dont run with scissors!
++        damageSource.stonecutter = this.isStonecutter(); // Purpur - Stonecutter damage
 +        return damageSource;
 +    }
 +    // CraftBukkit end
  
      @Override
      public String toString() {
-@@ -93,6 +_,10 @@
+@@ -83,16 +_,29 @@
+         } else {
+             Component component = this.causingEntity == null ? this.directEntity.getDisplayName() : this.causingEntity.getDisplayName();
+             ItemStack itemstack = this.causingEntity instanceof LivingEntity livingentity ? livingentity.getMainHandItem() : ItemStack.EMPTY;
+-            return !itemstack.isEmpty() && itemstack.has(DataComponents.CUSTOM_NAME)
++            return !itemstack.isEmpty() && (org.purpurmc.purpur.PurpurConfig.playerDeathsAlwaysShowItem || itemstack.has(DataComponents.CUSTOM_NAME)) // Purpur - always show item in player death messages
+                 ? Component.translatable(s + ".item", p_19343_.getDisplayName(), component, itemstack.getDisplayName())
+                 : Component.translatable(s, p_19343_.getDisplayName(), component);
+         }
+     }
+ 
++    // Purpur start - Component related conveniences
++    public Component getLocalizedDeathMessage(String str, LivingEntity entity) {
++        net.kyori.adventure.text.Component name = io.papermc.paper.adventure.PaperAdventure.asAdventure(entity.getDisplayName());
++        net.kyori.adventure.text.minimessage.tag.resolver.TagResolver template = net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.component("player", name);
++        net.kyori.adventure.text.Component component = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(str, template);
++        return io.papermc.paper.adventure.PaperAdventure.asVanilla(component);
++    }
++    // Purpur end - Component related conveniences
++
+     public String getMsgId() {
          return this.type().msgId();
      }
  

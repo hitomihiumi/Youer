@@ -1,0 +1,11 @@
+--- a/net/minecraft/gametest/framework/GameTestInfo.java
++++ b/net/minecraft/gametest/framework/GameTestInfo.java
+@@ -246,7 +_,7 @@
+             this.finish();
+             AABB aabb = this.getStructureBounds();
+             List<Entity> list = this.getLevel().getEntitiesOfClass(Entity.class, aabb.inflate(1.0), p_305655_ -> !(p_305655_ instanceof Player));
+-            list.forEach(p_305656_ -> p_305656_.remove(Entity.RemovalReason.DISCARDED));
++            list.forEach(p_305656_ -> p_305656_.remove(Entity.RemovalReason.DISCARDED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD)); // Paper
+         }
+     }
+ 

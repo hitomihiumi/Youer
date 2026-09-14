@@ -1,5 +1,18 @@
 --- a/net/minecraft/core/Direction.java
 +++ b/net/minecraft/core/Direction.java
+@@ -62,6 +_,12 @@
+         .sorted(Comparator.comparingInt(p_235683_ -> p_235683_.data2d))
+         .toArray(Direction[]::new);
+ 
++    // Paper start - Perf: Inline shift direction fields
++    private final int adjX;
++    private final int adjY;
++    private final int adjZ;
++    // Paper end - Perf: Inline shift direction fields
++
+     private Direction(
+         int p_122356_, int p_122357_, int p_122358_, String p_122359_, Direction.AxisDirection p_122360_, Direction.Axis p_122361_, Vec3i p_122362_
+     ) {
 @@ -74,6 +_,11 @@
          this.normal = p_122362_;
          this.normalVec3 = Vec3.atLowerCornerOf(p_122362_);

@@ -1,5 +1,14 @@
 --- a/net/minecraft/nbt/SnbtGrammar.java
 +++ b/net/minecraft/nbt/SnbtGrammar.java
+@@ -596,7 +_,7 @@
+             atom30, Term.repeatedWithTrailingSeparator(namedrule3, atom30, StringReaderTerms.character(',')), p_410706_ -> p_410706_.getOrThrow(atom30)
+         );
+         Atom<T> atom31 = Atom.of("map_literal");
+-        dictionary.put(atom31, Term.sequence(StringReaderTerms.character('{'), dictionary.named(atom30), StringReaderTerms.character('}')), p_409658_ -> {
++        dictionary.put(atom31, Term.sequence(StringReaderTerms.character('{'), Scope.increaseDepth(), dictionary.named(atom30), Scope.decreaseDepth(), StringReaderTerms.character('}')), p_409658_ -> { // Paper - track depth
+             List<Entry<String, T>> list = p_409658_.getOrThrow(atom30);
+             if (list.isEmpty()) {
+                 return t2;
 @@ -635,7 +_,9 @@
              atom35,
              Term.sequence(

@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/variant/StructureCheck.java
++++ b/net/minecraft/world/entity/variant/StructureCheck.java
+@@ -15,7 +_,7 @@
+     );
+ 
+     public boolean test(SpawnContext p_400042_) {
+-        return p_400042_.level().getLevel().structureManager().getStructureWithPieceAt(p_400042_.pos(), this.requiredStructures).isValid();
++        return p_400042_.level().getLevel().structureManager().getStructureWithPieceAt(p_400042_.pos(), this.requiredStructures, p_400042_.level()).isValid(); // Paper - Fix swamp hut cat generation deadlock
+     }
+ 
+     @Override

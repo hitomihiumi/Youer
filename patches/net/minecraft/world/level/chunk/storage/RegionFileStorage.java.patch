@@ -1,5 +1,27 @@
 --- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
+@@ -28,18 +_,19 @@
+         this.info = p_326161_;
+     }
+ 
+-    public RegionFile getRegionFile(ChunkPos p_63712_) throws IOException {
++    @org.jetbrains.annotations.Contract("_, false -> !null") @Nullable public RegionFile getRegionFile(ChunkPos p_63712_, boolean existingOnly) throws IOException { // CraftBukkit
+         long i = ChunkPos.asLong(p_63712_.getRegionX(), p_63712_.getRegionZ());
+         RegionFile regionfile = this.regionCache.getAndMoveToFirst(i);
+         if (regionfile != null) {
+             return regionfile;
+         } else {
+-            if (this.regionCache.size() >= 256) {
++            if (this.regionCache.size() >= io.papermc.paper.configuration.GlobalConfiguration.get().misc.regionFileCacheSize) { // Paper - Sanitise RegionFileCache and make configurable
+                 this.regionCache.removeLast().close();
+             }
+ 
+             FileUtil.createDirectoriesSafe(this.folder);
+             Path path = this.folder.resolve("r." + p_63712_.getRegionX() + "." + p_63712_.getRegionZ() + ".mca");
++            if (existingOnly && !java.nio.file.Files.exists(path)) return null; // CraftBukkit
+             RegionFile regionfile1 = new RegionFile(this.info, path, this.folder, this.sync);
+             this.regionCache.putAndMoveToFirst(i, regionfile1);
+             return regionfile1;
 @@ -48,7 +_,12 @@
  
      @Nullable
@@ -28,3 +50,12 @@
  
          try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(p_196957_)) {
              if (datainputstream != null) {
+@@ -73,7 +_,7 @@
+     }
+ 
+     public void write(ChunkPos p_63709_, @Nullable CompoundTag p_63710_) throws IOException {
+-        RegionFile regionfile = this.getRegionFile(p_63709_);
++        RegionFile regionfile = this.getRegionFile(p_63709_, false); // CraftBukkit
+         if (p_63710_ == null) {
+             regionfile.clear(p_63709_);
+         } else {

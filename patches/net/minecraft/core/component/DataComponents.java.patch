@@ -13,3 +13,12 @@
      );
      public static final DataComponentType<PotionContents> POTION_CONTENTS = register(
          "potion_contents", p_341836_ -> p_341836_.persistent(PotionContents.CODEC).networkSynchronized(PotionContents.STREAM_CODEC).cacheEncoding()
+@@ -295,7 +_,7 @@
+         "pot_decorations", p_341864_ -> p_341864_.persistent(PotDecorations.CODEC).networkSynchronized(PotDecorations.STREAM_CODEC).cacheEncoding()
+     );
+     public static final DataComponentType<ItemContainerContents> CONTAINER = register(
+-        "container", p_341846_ -> p_341846_.persistent(ItemContainerContents.CODEC).networkSynchronized(ItemContainerContents.STREAM_CODEC).cacheEncoding()
++        "container", p_341846_ -> p_341846_.persistent(ItemContainerContents.CODEC).networkSynchronized(io.papermc.paper.util.sanitizer.OversizedItemComponentSanitizer.CONTAINER).cacheEncoding() // Paper - sanitize container contents
+     );
+     public static final DataComponentType<BlockItemStateProperties> BLOCK_STATE = register(
+         "block_state",
