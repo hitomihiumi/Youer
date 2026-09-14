@@ -213,10 +213,10 @@ public final class PoiAccess {
         double closestDistanceSquared = maxDistanceSquared;
 
         final int lowerX = Mth.floor(sourcePosition.getX() - range) >> 4;
-        final int lowerY = WorldUtil.getMinSection(poiStorage.moonrise$getWorld());
+        final int lowerY = WorldUtil.getMinSection(poiStorage.levelHeightAccessor);
         final int lowerZ = Mth.floor(sourcePosition.getZ() - range) >> 4;
         final int upperX = Mth.floor(sourcePosition.getX() + range) >> 4;
-        final int upperY = WorldUtil.getMaxSection(poiStorage.moonrise$getWorld());
+        final int upperY = WorldUtil.getMaxSection(poiStorage.levelHeightAccessor);
         final int upperZ = Mth.floor(sourcePosition.getZ() + range) >> 4;
 
         final int centerX = sourcePosition.getX() >> 4;
@@ -456,10 +456,10 @@ public final class PoiAccess {
         double furthestDistanceSquared = maxDistanceSquared;
 
         final int lowerX = Mth.floor(sourcePosition.getX() - range) >> 4;
-        final int lowerY = WorldUtil.getMinSection(poiStorage.moonrise$getWorld());
+        final int lowerY = WorldUtil.getMinSection(poiStorage.levelHeightAccessor);
         final int lowerZ = Mth.floor(sourcePosition.getZ() - range) >> 4;
         final int upperX = Mth.floor(sourcePosition.getX() + range) >> 4;
-        final int upperY = WorldUtil.getMaxSection(poiStorage.moonrise$getWorld());
+        final int upperY = WorldUtil.getMaxSection(poiStorage.levelHeightAccessor);
         final int upperZ = Mth.floor(sourcePosition.getZ() + range) >> 4;
 
         final int centerX = sourcePosition.getX() >> 4;
@@ -733,10 +733,10 @@ public final class PoiAccess {
         // First up, we need to iterate the chunks
         // all the values here are in chunk sections
         final int lowerX = Mth.floor(sourcePosition.getX() - range) >> 4;
-        final int lowerY = Math.max(WorldUtil.getMinSection(poiStorage.moonrise$getWorld()), Mth.floor(sourcePosition.getY() - range) >> 4);
+        final int lowerY = Math.max(WorldUtil.getMinSection(poiStorage.levelHeightAccessor), Mth.floor(sourcePosition.getY() - range) >> 4);
         final int lowerZ = Mth.floor(sourcePosition.getZ() - range) >> 4;
         final int upperX = Mth.floor(sourcePosition.getX() + range) >> 4;
-        final int upperY = Math.min(WorldUtil.getMaxSection(poiStorage.moonrise$getWorld()), Mth.floor(sourcePosition.getY() + range) >> 4);
+        final int upperY = Math.min(WorldUtil.getMaxSection(poiStorage.levelHeightAccessor), Mth.floor(sourcePosition.getY() + range) >> 4);
         final int upperZ = Mth.floor(sourcePosition.getZ() + range) >> 4;
 
         // Vanilla iterates by x until max is reached then increases z

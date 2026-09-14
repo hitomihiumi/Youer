@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/entity/ai/village/poi/PoiSection.java
++++ b/net/minecraft/world/entity/ai/village/poi/PoiSection.java
+@@ -29,6 +_,12 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final Short2ObjectMap<PoiRecord> records = new Short2ObjectOpenHashMap<>();
+     private final Map<Holder<PoiType>, Set<PoiRecord>> byType = Maps.newHashMap();
++
++    // Youer - moonrise's PoiSection#getData() is excluded, but io.papermc.paper.util.PoiAccess
++    // needs to walk a section's records directly; same accessor, vanilla backing map.
++    public Map<Holder<PoiType>, Set<PoiRecord>> getData() {
++        return this.byType;
++    }
+     private final Runnable setDirty;
+     private boolean isValid;
+ 

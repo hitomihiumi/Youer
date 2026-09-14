@@ -5,7 +5,7 @@
      protected boolean triggerEvent(BlockState p_60192_, Level p_60193_, BlockPos p_60194_, int p_60195_, int p_60196_) {
          Direction direction = p_60192_.getValue(FACING);
 +        // Paper start - Protect Bedrock and End Portal/Frames from being destroyed; prevent retracting when we're facing the wrong way (we were replaced before retraction could occur)
-+        Direction directionQueuedAs = Direction.from3DDataValue(param & 7); // Paper - copied from below
++        Direction directionQueuedAs = Direction.from3DDataValue(p_60196_ & 7); // Paper - copied from below
 +        if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits && direction != directionQueuedAs) {
 +            return false;
 +        }
@@ -53,8 +53,8 @@
                              && !blockstate2.is(Blocks.PISTON)
                              && !blockstate2.is(Blocks.STICKY_PISTON)) {
 +                        // Paper start - Fix sticky pistons and BlockPistonRetractEvent; fire BlockPistonRetractEvent for sticky pistons retracting nothing (air)
-+                        if (id == TRIGGER_CONTRACT && blockState1.isAir()) {
-+                            if (!new org.bukkit.event.block.BlockPistonRetractEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_60193_, blockpos), java.util.Collections.emptyList(), org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction)).callEvent()) {
++                        if (p_60195_ == TRIGGER_CONTRACT && blockstate1.isAir()) {
++                            if (!new org.bukkit.event.block.BlockPistonRetractEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_60193_, p_60194_), java.util.Collections.emptyList(), org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction)).callEvent()) {
 +                                return false;
 +                            }
 +                        }
@@ -86,7 +86,7 @@
  
      public static boolean isPushable(BlockState p_60205_, Level p_60206_, BlockPos p_60207_, Direction p_60208_, boolean p_60209_, Direction p_60210_) {
 -        if (p_60207_.getY() < p_60206_.getMinY() || p_60207_.getY() > p_60206_.getMaxY() || !p_60206_.getWorldBorder().isWithinBounds(p_60207_)) {
-+        if (p_60207_.getY() < p_60206_.getMinY() || p_60207_.getY() > p_60206_.getMaxY() || !p_60206_.getWorldBorder().isWithinBounds(p_60207_) || !p_60206_.getWorldBorder().isWithinBounds(p_60207_.relative(movementDirection))) { // Paper - Fix piston world border check
++        if (p_60207_.getY() < p_60206_.getMinY() || p_60207_.getY() > p_60206_.getMaxY() || !p_60206_.getWorldBorder().isWithinBounds(p_60207_) || !p_60206_.getWorldBorder().isWithinBounds(p_60207_.relative(p_60210_))) { // Paper - Fix piston world border check
              return false;
          } else if (p_60205_.isAir()) {
              return true;
@@ -95,7 +95,7 @@
              Direction direction = p_60185_ ? p_60184_ : p_60184_.getOpposite();
              int i = 0;
 +            // CraftBukkit start
-+            final org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_60182_, pos);
++            final org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_60182_, p_60183_);
 +
 +            final List<BlockPos> moved = pistonstructureresolver.getToPush();
 +            final List<BlockPos> broken = pistonstructureresolver.getToDestroy();
@@ -114,24 +114,24 @@
 +                    }
 +
 +                    BlockPos pos = index < moved.size() ? moved.get(index) : broken.get(index - moved.size());
-+                    return org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++                    return org.bukkit.craftbukkit.block.CraftBlock.at(p_60182_, pos);
 +                }
 +            };
 +
 +            final org.bukkit.event.block.BlockPistonEvent event;
-+            if (extending) {
++            if (p_60185_) {
 +                event = new org.bukkit.event.block.BlockPistonExtendEvent(bukkitBlock, blocks, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
 +            } else {
 +                event = new org.bukkit.event.block.BlockPistonRetractEvent(bukkitBlock, blocks, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
 +            }
 +            if (!event.callEvent()) {
 +                for (BlockPos brokenPos : broken) {
-+                    level.sendBlockUpdated(brokenPos, Blocks.AIR.defaultBlockState(), level.getBlockState(brokenPos), Block.UPDATE_ALL);
++                    p_60182_.sendBlockUpdated(brokenPos, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(brokenPos), Block.UPDATE_ALL);
 +                }
 +                for (BlockPos movedPos : moved) {
-+                    level.sendBlockUpdated(movedPos, Blocks.AIR.defaultBlockState(), level.getBlockState(movedPos), Block.UPDATE_ALL);
++                    p_60182_.sendBlockUpdated(movedPos, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(movedPos), Block.UPDATE_ALL);
 +                    movedPos = movedPos.relative(direction);
-+                    level.sendBlockUpdated(movedPos, Blocks.AIR.defaultBlockState(), level.getBlockState(movedPos), Block.UPDATE_ALL);
++                    p_60182_.sendBlockUpdated(movedPos, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(movedPos), Block.UPDATE_ALL);
 +                }
 +                return false;
 +            }
@@ -142,7 +142,7 @@
                  BlockState blockstate1 = p_60182_.getBlockState(blockpos2);
                  BlockEntity blockentity = blockstate1.hasBlockEntity() ? p_60182_.getBlockEntity(blockpos2) : null;
 -                dropResources(blockstate1, p_60182_, blockpos2, blockentity);
-+                dropResources(blockstate1, p_60182_, blockpos2, blockentity, pos); // Paper - Add BlockBreakBlockEvent
++                dropResources(blockstate1, p_60182_, blockpos2, blockentity, p_60183_); // Paper - Add BlockBreakBlockEvent
                  if (!blockstate1.is(BlockTags.FIRE) && p_60182_.isClientSide()) {
                      p_60182_.levelEvent(2001, blockpos2, getId(blockstate1));
                  }
@@ -159,7 +159,7 @@
 +                // Paper start - fix a variety of piston desync dupes
 +                boolean allowDesync = io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPistonDuplication;
 +                BlockPos blockpos3;
-+                BlockPos oldPos = blockpos3 = toPush.get(i1);
++                BlockPos oldPos = blockpos3 = list.get(k);
 +                BlockState blockstate5 = allowDesync ? p_60182_.getBlockState(oldPos) : null;
 +                // Paper end - fix a variety of piston desync dupes
                  blockpos3 = blockpos3.relative(direction);
@@ -169,10 +169,10 @@
 -                p_60182_.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(blockpos3, blockstate7, list1.get(k), p_60184_, p_60185_, false));
 +                // Paper start - fix a variety of piston desync dupes
 +                if (!allowDesync) {
-+                    blockState1 = p_60182_.getBlockState(oldPos);
-+                    map.replace(oldPos, blockState1);
++                    blockstate5 = p_60182_.getBlockState(oldPos);
++                    map.replace(oldPos, blockstate5);
 +                }
-+                p_60182_.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(blockpos3, blockstate7, allowDesync ? list1.get(k) : blockState1, p_60184_, p_60185_, false));
++                p_60182_.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(blockpos3, blockstate7, allowDesync ? list1.get(k) : blockstate5, p_60184_, p_60185_, false));
 +                if (!allowDesync) {
 +                    p_60182_.setBlock(oldPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_MOVE_BY_PISTON | Block.UPDATE_SKIP_ON_PLACE); // set air to prevent later physics updates from seeing this block
 +                }

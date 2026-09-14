@@ -179,7 +179,7 @@
              setChanged(p_379747_, p_155015_, p_155016_);
          }
 +
-+        if (usedLavaFromUnderneath) event.items.set(1, ItemStack.EMPTY); // Purpur - Furnace uses lava from underneath
++        if (usedLavaFromUnderneath) p_155017_.items.set(1, ItemStack.EMPTY); // Purpur - Furnace uses lava from underneath
      }
  
      private static boolean canBurn(

@@ -35,9 +35,9 @@
 +        // Paper start - StructuresLocateEvent
 +        final org.bukkit.World bukkitWorld = p_223038_.getWorld();
 +        final org.bukkit.Location origin = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(p_223040_, p_223038_);
-+        final List<org.bukkit.generator.structure.Structure> apiStructures = structure.stream().map(Holder::value).map(nms -> org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(nms)).toList();
++        final List<org.bukkit.generator.structure.Structure> apiStructures = p_223039_.stream().map(Holder::value).map(nms -> org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(nms)).toList();
 +        if (!apiStructures.isEmpty()) {
-+            final io.papermc.paper.event.world.StructuresLocateEvent event = new io.papermc.paper.event.world.StructuresLocateEvent(bukkitWorld, origin, apiStructures, searchRadius, skipKnownStructures);
++            final io.papermc.paper.event.world.StructuresLocateEvent event = new io.papermc.paper.event.world.StructuresLocateEvent(bukkitWorld, origin, apiStructures, p_223041_, p_223042_);
 +            if (!event.callEvent()) {
 +                return null;
 +            }
@@ -45,9 +45,9 @@
 +                return Pair.of(io.papermc.paper.util.MCUtil.toBlockPos(event.getResult().pos()), p_223038_.registryAccess().lookupOrThrow(Registries.STRUCTURE).wrapAsHolder(org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraft(event.getResult().structure())));
 +            }
 +            p_223040_ = org.bukkit.craftbukkit.util.CraftLocation.toBlockPosition(event.getOrigin());
-+            searchRadius = event.getRadius();
-+            skipKnownStructures = event.shouldFindUnexplored();
-+            event = HolderSet.direct(api -> p_223038_.registryAccess().lookupOrThrow(Registries.STRUCTURE).wrapAsHolder(org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraft(api)), event.getStructures());
++            p_223041_ = event.getRadius();
++            p_223042_ = event.shouldFindUnexplored();
++            p_223039_ = HolderSet.direct(api -> p_223038_.registryAccess().lookupOrThrow(Registries.STRUCTURE).wrapAsHolder(org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraft(api)), event.getStructures());
 +        }
 +        // Paper end
          ChunkGeneratorStructureState chunkgeneratorstructurestate = p_223038_.getChunkSource().getGeneratorState();

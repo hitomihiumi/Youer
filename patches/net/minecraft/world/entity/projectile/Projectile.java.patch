@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
+@@ -44,6 +_,7 @@
+     public boolean hasBeenShot = false;
+     @Nullable
+     private Entity lastDeflectedBy;
++    protected boolean hitCancelled = false; // CraftBukkit
+ 
+     protected Projectile(EntityType<? extends Projectile> p_37248_, Level p_37249_) {
+         super(p_37248_, p_37249_);
 @@ -55,7 +_,20 @@
  
      public void setOwner(@Nullable Entity p_37263_) {
@@ -98,7 +106,7 @@
 -        p_360642_.applyOnProjectileSpawned(p_360523_, p_364956_);
 -        return p_360642_;
 -    }
-+        return new Delayed<>(projectile, level, p_364956_); // Paper - delayed projectile spawning
++        return new Delayed<>(p_360642_, p_360523_, p_364956_); // Paper - delayed projectile spawning
 +    }
 +
 +    // Paper start - delayed projectile spawning
@@ -193,7 +201,7 @@
              Entity entity = this.getOwner();
 +            // Paper start - Cancel hit for vanished entities
 +            if (entity instanceof net.minecraft.server.level.ServerPlayer) {
-+                org.bukkit.entity.Entity collided = target.getBukkitEntity();
++                org.bukkit.entity.Entity collided = p_37250_.getBukkitEntity();
 +                org.bukkit.entity.Player shooter = (org.bukkit.entity.Player) entity.getBukkitEntity();
 +                if (!shooter.canSee(collided)) {
 +                    return false;

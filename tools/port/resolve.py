@@ -8,7 +8,7 @@ Usage:
 Driven by javac: for each "cannot find symbol / variable X" it finds the
 enclosing method in the target, collects the parameters and the locals
 declared above the failing line, and picks the one whose declared type
-matches the name Paper used. Ambiguous cases are reported, never guessed.
+matches the name Paper used - by exact simple-name match, by suffix, or\nthrough a small table of Paper's type-to-name conventions. Ambiguous cases\nare reported, never guessed: a prefix rule was tried and removed, because\n`EntityTargetEvent event` matches the name `entity` under it.
 """
 import re, sys, os, collections
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -87,13 +87,6 @@ def candidates(lines, idx, logical=None):
         for rx in (DECL, FOREACH, INSTOF):
             for m in rx.finditer(lines[k]):
                 out.append((m.group("name"), m.group("type")))
-    # lambda parameters of any lambda that encloses the failing line
-    for k in range(start, idx + 1):
-        for m in re.finditer(r"\(([^()]*)\)\s*->", lines[k]):
-            for p in m.group(1).split(","):
-                p = p.strip()
-                if re.fullmatch(r"[A-Za-z_$][\w$]*", p):
-                    out.append((p, ""))
     return out
 
 
@@ -137,9 +130,6 @@ def pick(sym, cands):
     ends = [n for n, t in cands if simple(t).lower().endswith(s)]
     if len(set(ends)) == 1:
         return ends[0]
-    starts = [n for n, t in cands if s.startswith(simple(t).lower()) or simple(t).lower().startswith(s)]
-    if len(set(starts)) == 1:
-        return starts[0]
     for wanted in ALIASES.get(sym, ()):                 # exact type from the alias table
         hit = [n for n, t in cands if simple(t) == wanted]
         if len(set(hit)) == 1:

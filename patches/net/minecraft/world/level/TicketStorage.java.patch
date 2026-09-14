@@ -42,10 +42,12 @@
  
                  this.setDirty();
                  return true;
-@@ -274,11 +_,14 @@
+@@ -273,12 +_,15 @@
+     }
  
      public void deactivateTicketsOnClosing() {
-         this.removeTicketIf((p_428691_, p_394604_) -> p_394604_.getType() != TicketType.UNKNOWN, this.deactivatedTickets);
+-        this.removeTicketIf((p_428691_, p_394604_) -> p_394604_.getType() != TicketType.UNKNOWN, this.deactivatedTickets);
++        this.removeTicketIf((p_428691_, p_394604_) -> p_394604_.getType() != TicketType.UNKNOWN && p_394604_.getType() != TicketType.FUTURE_AWAIT, this.deactivatedTickets); // Paper
 +        blockForcedChunks.deactivateTicketsOnClosing();
 +        entityForcedChunks.deactivateTicketsOnClosing();
      }
@@ -73,7 +75,7 @@
      }
  
      public void replaceTicketLevelOfType(int p_393875_, TicketType p_394261_) {
-@@ -378,5 +_,26 @@
+@@ -378,5 +_,52 @@
      @FunctionalInterface
      public interface ChunkUpdated {
          void update(long p_393671_, int p_393764_, boolean p_393905_);
@@ -98,5 +100,31 @@
 +
 +    public boolean shouldForceNaturalSpawning(ChunkPos chunkPos) {
 +        return chunksWithForceNaturalSpawning.contains(chunkPos.toLong());
++    }
++
++    // Paper start
++    public boolean addPluginRegionTicket(final ChunkPos pos, final org.bukkit.plugin.Plugin value) {
++        // Keep inline with force loading
++        return addTicket(pos.toLong(), new Ticket(TicketType.PLUGIN_TICKET, net.minecraft.server.level.ChunkMap.FORCED_TICKET_LEVEL, value));
++    }
++
++    public boolean removePluginRegionTicket(final ChunkPos pos, final org.bukkit.plugin.Plugin value) {
++        // Keep inline with force loading
++        return removeTicket(pos.toLong(), new Ticket(TicketType.PLUGIN_TICKET, net.minecraft.server.level.ChunkMap.FORCED_TICKET_LEVEL, value));
++    }
++
++    public void removeAllPluginRegionTickets(TicketType ticketType, int ticketLevel, org.bukkit.plugin.Plugin ticketIdentifier) {
++        removeTicketIf((chunkKey, ticket) -> ticket.getType() == ticketType && ticket.getTicketLevel() == ticketLevel && ticket.getIdentifier() == ticketIdentifier, null);
++    }
++    // Paper end
++
++    // Youer - moonrise's ChunkHolderManager#getTicketsCopy() is excluded; the Bukkit
++    // layer only needs to walk every ticket, which vanilla's storage answers directly.
++    public Long2ObjectOpenHashMap<List<Ticket>> getTicketsCopy() {
++        final Long2ObjectOpenHashMap<List<Ticket>> copy = new Long2ObjectOpenHashMap<>();
++        for (final it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry<List<Ticket>> entry : Long2ObjectMaps.fastIterable(this.tickets)) {
++            copy.put(entry.getLongKey(), List.copyOf(entry.getValue()));
++        }
++        return copy;
      }
  }

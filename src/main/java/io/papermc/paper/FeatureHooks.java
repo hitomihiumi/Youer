@@ -64,69 +64,82 @@ public final class FeatureHooks {
 
             final Boolean shouldModify = chunk.getLevel().chunkPacketBlockController.shouldModify(player, chunk);
             player.connection.send(refreshPackets.computeIfAbsent(shouldModify, s -> { // Use connection to prevent creating firing event
-                return new ClientboundLevelChunkWithLightPacket(chunk, chunk.level.getLightEngine(), null, null, (Boolean) s);
+                return new ClientboundLevelChunkWithLightPacket(chunk, chunk.level.getLightEngine(), null, null); // Youer - Anti-Xray preset states not merged
             }));
         }
         // Paper end - Anti-Xray
     }
 
     public static PalettedContainer<BlockState> emptyPalettedBlockContainer() {
-        return new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES, null); // Paper - Anti-Xray - Add preset block states
+        return new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES); // Youer - Anti-Xray preset states not merged
     }
 
     public static Set<Long> getSentChunkKeys(final ServerPlayer player) {
-        return LongSets.unmodifiable(player.moonrise$getChunkLoader().getSentChunksRaw().clone()); // Paper - rewrite chunk system
+        // Youer - moonrise chunk loader excluded; vanilla's chunk tracking view carries the same set
+        final LongOpenHashSet keys = new LongOpenHashSet();
+        player.getChunkTrackingView().forEach(pos -> keys.add(pos.toLong()));
+        return LongSets.unmodifiable(keys);
     }
 
     public static Set<Chunk> getSentChunks(final ServerPlayer player) {
-        // Paper start - rewrite chunk system
-        if (player.moonrise$getChunkLoader() == null) {
-            return ObjectSets.EMPTY_SET;
-        }
-        final LongOpenHashSet rawChunkKeys = player.moonrise$getChunkLoader().getSentChunksRaw();
-        final ObjectSet<org.bukkit.Chunk> chunks = new ObjectOpenHashSet<>(rawChunkKeys.size());
+        // Youer - moonrise chunk loader excluded; walk vanilla's chunk tracking view
+        final ObjectSet<org.bukkit.Chunk> chunks = new ObjectOpenHashSet<>();
         final World world = player.level().getWorld();
-        final LongIterator iter = player.moonrise$getChunkLoader().getSentChunksRaw().longIterator();
-        while (iter.hasNext()) {
-            chunks.add(world.getChunkAt(iter.nextLong(), false));
-        }
-        // Paper end - rewrite chunk system
+        player.getChunkTrackingView().forEach(pos -> chunks.add(world.getChunkAt(pos.toLong(), false)));
         return ObjectSets.unmodifiable(chunks);
     }
 
     public static boolean isChunkSent(final ServerPlayer player, final long chunkKey) {
-        // Paper start - rewrite chunk system
-        return player.moonrise$getChunkLoader() != null && player.moonrise$getChunkLoader().getSentChunksRaw().contains(chunkKey);
-        // Paper end - rewrite chunk system
+        // Youer - moonrise chunk loader excluded
+        return player.getChunkTrackingView().contains(ChunkPos.getX(chunkKey), ChunkPos.getZ(chunkKey));
     }
 
     public static boolean isSpiderCollidingWithWorldBorder(final Spider spider) {
-        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isCollidingWithBorder(spider.level().getWorldBorder(), spider.getBoundingBox().inflate(ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON)); // Paper - rewrite collision system
+        // Youer - moonrise collision system excluded; vanilla's world border check is equivalent here
+        return !spider.level().getWorldBorder().isWithinBounds(spider.getBoundingBox().inflate(1.0E-7));
     }
 
     public static void dumpAllChunkLoadInfo(net.minecraft.server.MinecraftServer server, boolean isLongTimeout) {
-        ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.dumpAllChunkLoadInfo(server, isLongTimeout); // Paper - rewrite chunk system
+        // Youer - moonrise chunk task scheduler excluded; nothing to dump
     }
 
     private static void dumpEntity(final Entity entity) {
     }
 
     public static org.bukkit.entity.Entity[] getChunkEntities(net.minecraft.server.level.ServerLevel world, int chunkX, int chunkZ) {
-        return world.getChunkEntities(chunkX, chunkZ); // Paper - rewrite chunk system
+        // Youer - moonrise chunk system excluded; this is Paper's pre-moonrise implementation
+        world.getChunk(chunkX, chunkZ); // ensure fully loaded
+        final net.minecraft.world.level.entity.PersistentEntitySectionManager<net.minecraft.world.entity.Entity> entityManager = world.entityManager;
+        final long pair = ChunkPos.asLong(chunkX, chunkZ);
+        if (!entityManager.areEntitiesLoaded(pair)) {
+            entityManager.ensureChunkQueuedForLoad(pair);
+        }
+        return entityManager.getEntities(new ChunkPos(chunkX, chunkZ)).stream()
+            .map(net.minecraft.world.entity.Entity::getBukkitEntity)
+            .filter(java.util.Objects::nonNull).toArray(org.bukkit.entity.Entity[]::new);
     }
 
     public static java.util.Collection<org.bukkit.plugin.Plugin> getPluginChunkTickets(net.minecraft.server.level.ServerLevel world,
                                                                                        int x, int z) {
-        return world.moonrise$getChunkTaskScheduler().chunkHolderManager.getPluginChunkTickets(x, z); // Paper - rewrite chunk system
+        // Youer - moonrise chunk holder manager excluded; read vanilla's ticket storage
+        final java.util.List<net.minecraft.server.level.Ticket> tickets =
+            ((net.minecraft.server.level.DistanceManager) world.getChunkSource().chunkMap.distanceManager).ticketStorage.getTickets(ChunkPos.asLong(x, z));
+        final com.google.common.collect.ImmutableList.Builder<org.bukkit.plugin.Plugin> ret = com.google.common.collect.ImmutableList.builder();
+        for (final net.minecraft.server.level.Ticket ticket : tickets) {
+            if (ticket.getType() == net.minecraft.server.level.TicketType.PLUGIN_TICKET) {
+                ret.add((org.bukkit.plugin.Plugin) ticket.getIdentifier());
+            }
+        }
+        return ret.build();
     }
 
     public static Map<org.bukkit.plugin.Plugin, java.util.Collection<org.bukkit.Chunk>> getPluginChunkTickets(net.minecraft.server.level.ServerLevel world) {
         Map<org.bukkit.plugin.Plugin, com.google.common.collect.ImmutableList.Builder<Chunk>> ret = new HashMap<>();
-        net.minecraft.server.level.DistanceManager chunkDistanceManager = world.getChunkSource().chunkMap.distanceManager;
+        net.minecraft.server.level.DistanceManager chunkDistanceManager = (net.minecraft.server.level.DistanceManager) world.getChunkSource().chunkMap.distanceManager;
 
-        for (it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry<net.minecraft.util.SortedArraySet<net.minecraft.server.level.Ticket>> chunkTickets : chunkDistanceManager.moonrise$getChunkHolderManager().getTicketsCopy().long2ObjectEntrySet()) { // Paper - rewrite chunk system
+        for (it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry<java.util.List<net.minecraft.server.level.Ticket>> chunkTickets : chunkDistanceManager.ticketStorage.getTicketsCopy().long2ObjectEntrySet()) { // Youer - moonrise excluded; vanilla ticket storage
             long chunkKey = chunkTickets.getLongKey();
-            net.minecraft.util.SortedArraySet<net.minecraft.server.level.Ticket> tickets = chunkTickets.getValue(); // Paper - rewrite chunk system
+            java.util.List<net.minecraft.server.level.Ticket> tickets = chunkTickets.getValue();
 
             org.bukkit.Chunk chunk = null;
             for (net.minecraft.server.level.Ticket ticket : tickets) {
@@ -146,15 +159,15 @@ public final class FeatureHooks {
     }
 
     public static int getViewDistance(net.minecraft.server.level.ServerLevel world) {
-        return world.moonrise$getPlayerChunkLoader().getAPIViewDistance(); // Paper - rewrite chunk system
+        return world.getChunkSource().chunkMap.serverViewDistance; // Youer - moonrise player chunk loader excluded
     }
 
     public static int getSimulationDistance(net.minecraft.server.level.ServerLevel world) {
-        return world.moonrise$getPlayerChunkLoader().getAPITickDistance(); // Paper - rewrite chunk system
+        return ((net.minecraft.server.level.DistanceManager) world.getChunkSource().chunkMap.distanceManager).simulationDistance; // Youer - moonrise player chunk loader excluded
     }
 
     public static int getSendViewDistance(net.minecraft.server.level.ServerLevel world) {
-        return world.moonrise$getPlayerChunkLoader().getAPISendViewDistance(); // Paper - rewrite chunk system
+        return world.getChunkSource().chunkMap.serverViewDistance; // Youer - no separate send view distance without moonrise
     }
 
     public static void setViewDistance(net.minecraft.server.level.ServerLevel world, int distance) {
@@ -168,11 +181,11 @@ public final class FeatureHooks {
         if (distance < 2 || distance > 32) {
             throw new IllegalArgumentException("Simulation distance " + distance + " is out of range of [2, 32]");
         }
-        world.chunkSource.chunkMap.distanceManager.updateSimulationDistance(distance);
+        ((net.minecraft.server.level.DistanceManager) world.chunkSource.chunkMap.distanceManager).updateSimulationDistance(distance);
     }
 
     public static void setSendViewDistance(net.minecraft.server.level.ServerLevel world, int distance) {
-        world.chunkSource.setSendViewDistance(distance); // Paper - rewrite chunk system
+        world.chunkSource.chunkMap.setServerViewDistance(distance); // Youer - no separate send view distance without moonrise
     }
 
     public static void tickEntityManager(net.minecraft.server.level.ServerLevel world) {
@@ -187,16 +200,16 @@ public final class FeatureHooks {
         return Runnable::run; // Paper - rewrite chunk system
     }
 
+    // Youer - per-player view distances come from moonrise, which is excluded. The
+    // server-wide values stay in effect; these are no-ops rather than throwing, so a
+    // plugin that sets them keeps working against the server-wide distance.
     public static void setViewDistance(ServerPlayer player, int distance) {
-        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)player).moonrise$getViewDistanceHolder().setLoadViewDistance(distance == -1 ? distance : distance + 1); // Paper - rewrite chunk system
     }
 
     public static void setSimulationDistance(ServerPlayer player, int distance) {
-        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)player).moonrise$getViewDistanceHolder().setTickViewDistance(distance); // Paper - rewrite chunk system
     }
 
     public static void setSendViewDistance(ServerPlayer player, int distance) {
-        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)player).moonrise$getViewDistanceHolder().setSendViewDistance(distance); // Paper - rewrite chunk system
     }
 
 }

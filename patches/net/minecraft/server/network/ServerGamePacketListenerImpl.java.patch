@@ -1958,11 +1958,11 @@
 +                // null) could not be safely combined with Paper's async CompletableFuture<Component>-based chat decorator
 +                // pipeline below; the mod hook is dropped here since MinecraftServer.getChatDecorator()'s real signature
 +                // isn't available yet in this merge (MinecraftServer.java not yet ported) to attempt a bridging shim.
-+                CompletableFuture<FilteredText> completableFuture = this.filterTextPacket(signedMessage.signedContent()).thenApplyAsync(java.util.function.Function.identity(), this.server.chatExecutor); // CraftBukkit - async chat
-+                CompletableFuture<Component> componentFuture = this.server.getChatDecorator().decorate(this.player, null, signedMessage.decoratedContent()); // Paper - Adventure
++                CompletableFuture<FilteredText> completableFuture = this.filterTextPacket(playerchatmessage.signedContent()).thenApplyAsync(java.util.function.Function.identity(), this.server.chatExecutor); // CraftBukkit - async chat
++                CompletableFuture<Component> componentFuture = this.server.getChatDecorator().decorate(this.player, null, playerchatmessage.decoratedContent()); // Paper - Adventure
 +
 +                this.chatMessageChain.append(CompletableFuture.allOf(completableFuture, componentFuture), ($) -> { // Paper - Adventure
-+                    PlayerChatMessage playerChatMessage = $.withUnsignedContent(componentFuture.join()).filter(completableFuture.join().mask()); // Paper - Adventure
++                    PlayerChatMessage playerChatMessage = playerchatmessage.withUnsignedContent(componentFuture.join()).filter(completableFuture.join().mask()); // Paper - Adventure
 +                    this.broadcastChatMessage(playerChatMessage);
                  });
 -            });
