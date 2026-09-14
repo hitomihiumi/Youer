@@ -240,7 +240,13 @@
      }
  
      @Override
-@@ -203,12 +_,12 @@
+@@ -198,22 +_,22 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return SoundEvents.PHANTOM_AMBIENT;
      }
  
      @Override
@@ -253,6 +259,12 @@
 -    protected SoundEvent getDeathSound() {
 +    public SoundEvent getDeathSound() { // Youer - fix: LivingEntity.getDeathSound is public, can't narrow to protected in override
          return SoundEvents.PHANTOM_DEATH;
+     }
+ 
+     @Override
+-    protected float getSoundVolume() {
++    public float getSoundVolume() {
+         return 1.0F;
      }
  
 @@ -250,14 +_,19 @@

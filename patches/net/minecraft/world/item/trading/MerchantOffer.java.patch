@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/trading/MerchantOffer.java
 +++ b/net/minecraft/world/item/trading/MerchantOffer.java
-@@ -11,17 +_,18 @@
+@@ -11,19 +_,20 @@
  
  public class MerchantOffer {
      public static final Codec<MerchantOffer> CODEC = RecordCodecBuilder.create(
@@ -28,8 +28,11 @@
 +                Codec.INT.lenientOptionalFieldOf("xp", 1).forGetter(merchantOffer -> merchantOffer.xp)
 +                , Codec.BOOL.lenientOptionalFieldOf("Paper.IgnoreDiscounts", false).forGetter(merchantOffer -> merchantOffer.ignoreDiscounts) // Paper
              )
-             .apply(p_324269_, MerchantOffer::new)
+-            .apply(p_324269_, MerchantOffer::new)
++            .apply(instance, MerchantOffer::new)
      );
+     public static final StreamCodec<RegistryFriendlyByteBuf, MerchantOffer> STREAM_CODEC = StreamCodec.of(
+         MerchantOffer::writeToStream, MerchantOffer::createFromStream
 @@ -38,29 +_,46 @@
      public int demand;
      public float priceMultiplier;

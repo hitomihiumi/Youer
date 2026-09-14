@@ -57,6 +57,27 @@
          this.goalSelector.addGoal(1, new PanicGoal(this, 1.25));
          this.goalSelector.addGoal(3, new BreedGoal(this, 1.0));
          this.goalSelector.addGoal(4, new TemptGoal(this, 1.2, p_336182_ -> p_336182_.is(Items.CARROT_ON_A_STICK), false));
+@@ -120,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return SoundEvents.PIG_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_29502_) {
++    public SoundEvent getHurtSound(DamageSource p_29502_) {
+         return SoundEvents.PIG_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.PIG_DEATH;
+     }
+ 
 @@ -140,23 +_,36 @@
      }
  

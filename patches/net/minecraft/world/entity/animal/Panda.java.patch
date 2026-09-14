@@ -131,7 +131,7 @@
          }
  
          if (this.isLazy()) {
-@@ -610,43 +_,46 @@
+@@ -610,49 +_,52 @@
      }
  
      @Override
@@ -190,6 +190,29 @@
 -            return InteractionResult.PASS;
 +            return tryRide(player, hand); // Purpur - Ridables
          }
+     }
+ 
+     @Nullable
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         if (this.isAggressive()) {
+             return SoundEvents.PANDA_AGGRESSIVE_AMBIENT;
+         } else {
+@@ -672,13 +_,13 @@
+ 
+     @Nullable
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.PANDA_DEATH;
+     }
+ 
+     @Nullable
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_29142_) {
++    public SoundEvent getHurtSound(DamageSource p_29142_) {
+         return SoundEvents.PANDA_HURT;
      }
  
 @@ -859,7 +_,7 @@

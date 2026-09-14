@@ -17,6 +17,15 @@
              this.move(MoverType.SELF, this.getDeltaMovement());
              this.setDeltaMovement(this.getDeltaMovement().scale(0.9));
              if (this.getTarget() == null) {
+@@ -155,7 +_,7 @@
+     protected abstract SoundEvent getFlopSound();
+ 
+     @Override
+-    protected SoundEvent getSwimSound() {
++    public SoundEvent getSwimSound() {
+         return SoundEvents.FISH_SWIM;
+     }
+ 
 @@ -163,7 +_,7 @@
      protected void playStepSound(BlockPos p_27482_, BlockState p_27483_) {
      }

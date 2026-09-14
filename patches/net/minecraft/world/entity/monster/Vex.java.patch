@@ -103,6 +103,27 @@
      }
  
      @Override
+@@ -180,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return SoundEvents.VEX_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.VEX_DEATH;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_34023_) {
++    public SoundEvent getHurtSound(DamageSource p_34023_) {
+         return SoundEvents.VEX_HURT;
+     }
+ 
 @@ -293,34 +_,34 @@
          @Override
          public void start() {

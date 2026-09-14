@@ -40,9 +40,9 @@
 +        this.maxStack = size;
 +    }
 +    // CraftBukkit end
-     int litTimeRemaining;
+     public int litTimeRemaining;
      int litTotalTime;
-     int cookingTimer;
+     public int cookingTimer;
 @@ -68,9 +_,14 @@
          public int get(int p_58431_) {
              switch (p_58431_) {

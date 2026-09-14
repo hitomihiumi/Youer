@@ -192,7 +192,7 @@
              return getImitatedSound(list.get(p_218240_.nextInt(list.size())));
          } else {
              return SoundEvents.PARROT_AMBIENT;
-@@ -338,7 +_,9 @@
+@@ -338,16 +_,18 @@
      }
  
      private static SoundEvent getImitatedSound(EntityType<?> p_29409_) {
@@ -203,6 +203,17 @@
      }
  
      @Override
+-    protected SoundEvent getHurtSound(DamageSource p_29437_) {
++    public SoundEvent getHurtSound(DamageSource p_29437_) {
+         return SoundEvents.PARROT_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.PARROT_DEATH;
+     }
+ 
 @@ -382,8 +_,8 @@
      }
  

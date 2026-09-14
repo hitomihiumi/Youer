@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/Display.java
 +++ b/net/minecraft/world/entity/Display.java
-@@ -103,15 +_,15 @@
+@@ -103,53 +_,53 @@
      private Display.RenderState renderState;
      private final InterpolationHandler interpolation = new InterpolationHandler(this, 0);
  
@@ -15,12 +15,32 @@
      @Override
 -    public void onSyncedDataUpdated(EntityDataAccessor<?> p_270275_) {
 -        super.onSyncedDataUpdated(p_270275_);
+-        if (DATA_HEIGHT_ID.equals(p_270275_) || DATA_WIDTH_ID.equals(p_270275_)) {
 +    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
 +        super.onSyncedDataUpdated(key);
-         if (DATA_HEIGHT_ID.equals(p_270275_) || DATA_WIDTH_ID.equals(p_270275_)) {
++        if (DATA_HEIGHT_ID.equals(key) || DATA_WIDTH_ID.equals(key)) {
              this.updateCulling();
          }
-@@ -134,12 +_,12 @@
+ 
+-        if (DATA_TRANSFORMATION_INTERPOLATION_START_DELTA_TICKS_ID.equals(p_270275_)) {
++        if (DATA_TRANSFORMATION_INTERPOLATION_START_DELTA_TICKS_ID.equals(key)) {
+             this.updateStartTick = true;
+         }
+ 
+-        if (DATA_POS_ROT_INTERPOLATION_DURATION_ID.equals(p_270275_)) {
++        if (DATA_POS_ROT_INTERPOLATION_DURATION_ID.equals(key)) {
+             this.interpolation.setInterpolationLength(this.getPosRotInterpolationDuration());
+         }
+ 
+-        if (DATA_TRANSFORMATION_INTERPOLATION_DURATION_ID.equals(p_270275_)) {
++        if (DATA_TRANSFORMATION_INTERPOLATION_DURATION_ID.equals(key)) {
+             this.updateInterpolationDuration = true;
+         }
+ 
+-        if (RENDER_STATE_IDS.contains(p_270275_.id())) {
++        if (RENDER_STATE_IDS.contains(key.id())) {
+             this.updateRenderState = true;
+         }
      }
  
      @Override
@@ -31,12 +51,16 @@
  
 -    public static Transformation createTransformation(SynchedEntityData p_270278_) {
 -        Vector3f vector3f = p_270278_.get(DATA_TRANSLATION_ID);
+-        Quaternionf quaternionf = p_270278_.get(DATA_LEFT_ROTATION_ID);
+-        Vector3f vector3f1 = p_270278_.get(DATA_SCALE_ID);
+-        Quaternionf quaternionf1 = p_270278_.get(DATA_RIGHT_ROTATION_ID);
 +    public static Transformation createTransformation(SynchedEntityData synchedEntityData) {
 +        Vector3f vector3f = synchedEntityData.get(DATA_TRANSLATION_ID);
-         Quaternionf quaternionf = p_270278_.get(DATA_LEFT_ROTATION_ID);
-         Vector3f vector3f1 = p_270278_.get(DATA_SCALE_ID);
-         Quaternionf quaternionf1 = p_270278_.get(DATA_RIGHT_ROTATION_ID);
-@@ -148,8 +_,8 @@
++        Quaternionf quaternionf = synchedEntityData.get(DATA_LEFT_ROTATION_ID);
++        Vector3f vector3f1 = synchedEntityData.get(DATA_SCALE_ID);
++        Quaternionf quaternionf1 = synchedEntityData.get(DATA_RIGHT_ROTATION_ID);
+         return new Transformation(vector3f, quaternionf, vector3f1, quaternionf1);
+     }
  
      @Override
      public void tick() {
@@ -47,7 +71,7 @@
              this.stopRiding();
          }
  
-@@ -186,12 +_,12 @@
+@@ -186,64 +_,64 @@
          return this.interpolation;
      }
  
@@ -58,47 +82,107 @@
 -    protected void defineSynchedData(SynchedEntityData.Builder p_325924_) {
 -        p_325924_.define(DATA_POS_ROT_INTERPOLATION_DURATION_ID, 0);
 -        p_325924_.define(DATA_TRANSFORMATION_INTERPOLATION_START_DELTA_TICKS_ID, 0);
+-        p_325924_.define(DATA_TRANSFORMATION_INTERPOLATION_DURATION_ID, 0);
+-        p_325924_.define(DATA_TRANSLATION_ID, new Vector3f());
+-        p_325924_.define(DATA_SCALE_ID, new Vector3f(1.0F, 1.0F, 1.0F));
+-        p_325924_.define(DATA_RIGHT_ROTATION_ID, new Quaternionf());
+-        p_325924_.define(DATA_LEFT_ROTATION_ID, new Quaternionf());
+-        p_325924_.define(DATA_BILLBOARD_RENDER_CONSTRAINTS_ID, Display.BillboardConstraints.FIXED.getId());
+-        p_325924_.define(DATA_BRIGHTNESS_OVERRIDE_ID, -1);
+-        p_325924_.define(DATA_VIEW_RANGE_ID, 1.0F);
+-        p_325924_.define(DATA_SHADOW_RADIUS_ID, 0.0F);
+-        p_325924_.define(DATA_SHADOW_STRENGTH_ID, 1.0F);
+-        p_325924_.define(DATA_WIDTH_ID, 0.0F);
+-        p_325924_.define(DATA_HEIGHT_ID, 0.0F);
+-        p_325924_.define(DATA_GLOW_COLOR_OVERRIDE_ID, -1);
 +    protected void defineSynchedData(SynchedEntityData.Builder builder) {
 +        builder.define(DATA_POS_ROT_INTERPOLATION_DURATION_ID, 0);
 +        builder.define(DATA_TRANSFORMATION_INTERPOLATION_START_DELTA_TICKS_ID, 0);
-         p_325924_.define(DATA_TRANSFORMATION_INTERPOLATION_DURATION_ID, 0);
-         p_325924_.define(DATA_TRANSLATION_ID, new Vector3f());
-         p_325924_.define(DATA_SCALE_ID, new Vector3f(1.0F, 1.0F, 1.0F));
-@@ -208,8 +_,8 @@
++        builder.define(DATA_TRANSFORMATION_INTERPOLATION_DURATION_ID, 0);
++        builder.define(DATA_TRANSLATION_ID, new Vector3f());
++        builder.define(DATA_SCALE_ID, new Vector3f(1.0F, 1.0F, 1.0F));
++        builder.define(DATA_RIGHT_ROTATION_ID, new Quaternionf());
++        builder.define(DATA_LEFT_ROTATION_ID, new Quaternionf());
++        builder.define(DATA_BILLBOARD_RENDER_CONSTRAINTS_ID, Display.BillboardConstraints.FIXED.getId());
++        builder.define(DATA_BRIGHTNESS_OVERRIDE_ID, -1);
++        builder.define(DATA_VIEW_RANGE_ID, 1.0F);
++        builder.define(DATA_SHADOW_RADIUS_ID, 0.0F);
++        builder.define(DATA_SHADOW_STRENGTH_ID, 1.0F);
++        builder.define(DATA_WIDTH_ID, 0.0F);
++        builder.define(DATA_HEIGHT_ID, 0.0F);
++        builder.define(DATA_GLOW_COLOR_OVERRIDE_ID, -1);
      }
  
      @Override
 -    protected void readAdditionalSaveData(ValueInput p_421584_) {
 -        this.setTransformation(p_421584_.read("transformation", Transformation.EXTENDED_CODEC).orElse(Transformation.identity()));
+-        this.setTransformationInterpolationDuration(p_421584_.getIntOr("interpolation_duration", 0));
+-        this.setTransformationInterpolationDelay(p_421584_.getIntOr("start_interpolation", 0));
+-        int i = p_421584_.getIntOr("teleport_duration", 0);
 +    protected void readAdditionalSaveData(ValueInput input) {
 +        this.setTransformation(input.read("transformation", Transformation.EXTENDED_CODEC).orElse(Transformation.identity()));
-         this.setTransformationInterpolationDuration(p_421584_.getIntOr("interpolation_duration", 0));
-         this.setTransformationInterpolationDelay(p_421584_.getIntOr("start_interpolation", 0));
-         int i = p_421584_.getIntOr("teleport_duration", 0);
-@@ -224,17 +_,17 @@
-         this.setBrightnessOverride(p_421584_.read("brightness", Brightness.CODEC).orElse(null));
++        this.setTransformationInterpolationDuration(input.getIntOr("interpolation_duration", 0));
++        this.setTransformationInterpolationDelay(input.getIntOr("start_interpolation", 0));
++        int i = input.getIntOr("teleport_duration", 0);
+         this.setPosRotInterpolationDuration(Mth.clamp(i, 0, 59));
+-        this.setBillboardConstraints(p_421584_.read("billboard", Display.BillboardConstraints.CODEC).orElse(Display.BillboardConstraints.FIXED));
+-        this.setViewRange(p_421584_.getFloatOr("view_range", 1.0F));
+-        this.setShadowRadius(p_421584_.getFloatOr("shadow_radius", 0.0F));
+-        this.setShadowStrength(p_421584_.getFloatOr("shadow_strength", 1.0F));
+-        this.setWidth(p_421584_.getFloatOr("width", 0.0F));
+-        this.setHeight(p_421584_.getFloatOr("height", 0.0F));
+-        this.setGlowColorOverride(p_421584_.getIntOr("glow_color_override", -1));
+-        this.setBrightnessOverride(p_421584_.read("brightness", Brightness.CODEC).orElse(null));
++        this.setBillboardConstraints(input.read("billboard", Display.BillboardConstraints.CODEC).orElse(Display.BillboardConstraints.FIXED));
++        this.setViewRange(input.getFloatOr("view_range", 1.0F));
++        this.setShadowRadius(input.getFloatOr("shadow_radius", 0.0F));
++        this.setShadowStrength(input.getFloatOr("shadow_strength", 1.0F));
++        this.setWidth(input.getFloatOr("width", 0.0F));
++        this.setHeight(input.getFloatOr("height", 0.0F));
++        this.setGlowColorOverride(input.getIntOr("glow_color_override", -1));
++        this.setBrightnessOverride(input.read("brightness", Brightness.CODEC).orElse(null));
      }
  
 -    public void setTransformation(Transformation p_270186_) {
 -        this.entityData.set(DATA_TRANSLATION_ID, p_270186_.getTranslation());
 -        this.entityData.set(DATA_LEFT_ROTATION_ID, p_270186_.getLeftRotation());
+-        this.entityData.set(DATA_SCALE_ID, p_270186_.getScale());
+-        this.entityData.set(DATA_RIGHT_ROTATION_ID, p_270186_.getRightRotation());
 +    public void setTransformation(Transformation transformation) {
 +        this.entityData.set(DATA_TRANSLATION_ID, transformation.getTranslation());
 +        this.entityData.set(DATA_LEFT_ROTATION_ID, transformation.getLeftRotation());
-         this.entityData.set(DATA_SCALE_ID, p_270186_.getScale());
-         this.entityData.set(DATA_RIGHT_ROTATION_ID, p_270186_.getRightRotation());
++        this.entityData.set(DATA_SCALE_ID, transformation.getScale());
++        this.entityData.set(DATA_RIGHT_ROTATION_ID, transformation.getRightRotation());
      }
  
      @Override
 -    protected void addAdditionalSaveData(ValueOutput p_422542_) {
 -        p_422542_.store("transformation", Transformation.EXTENDED_CODEC, createTransformation(this.entityData));
 -        p_422542_.store("billboard", Display.BillboardConstraints.CODEC, this.getBillboardConstraints());
+-        p_422542_.putInt("interpolation_duration", this.getTransformationInterpolationDuration());
+-        p_422542_.putInt("teleport_duration", this.getPosRotInterpolationDuration());
+-        p_422542_.putFloat("view_range", this.getViewRange());
+-        p_422542_.putFloat("shadow_radius", this.getShadowRadius());
+-        p_422542_.putFloat("shadow_strength", this.getShadowStrength());
+-        p_422542_.putFloat("width", this.getWidth());
+-        p_422542_.putFloat("height", this.getHeight());
+-        p_422542_.putInt("glow_color_override", this.getGlowColorOverride());
+-        p_422542_.storeNullable("brightness", Brightness.CODEC, this.getBrightnessOverride());
 +    protected void addAdditionalSaveData(ValueOutput output) {
-+        output.store("p_270186_", Transformation.EXTENDED_CODEC, createTransformation(this.entityData));
++        output.store("transformation", Transformation.EXTENDED_CODEC, createTransformation(this.entityData));
 +        output.store("billboard", Display.BillboardConstraints.CODEC, this.getBillboardConstraints());
-         p_422542_.putInt("interpolation_duration", this.getTransformationInterpolationDuration());
-         p_422542_.putInt("teleport_duration", this.getPosRotInterpolationDuration());
-         p_422542_.putFloat("view_range", this.getViewRange());
++        output.putInt("interpolation_duration", this.getTransformationInterpolationDuration());
++        output.putInt("teleport_duration", this.getPosRotInterpolationDuration());
++        output.putFloat("view_range", this.getViewRange());
++        output.putFloat("shadow_radius", this.getShadowRadius());
++        output.putFloat("shadow_strength", this.getShadowStrength());
++        output.putFloat("width", this.getWidth());
++        output.putFloat("height", this.getHeight());
++        output.putInt("glow_color_override", this.getGlowColorOverride());
++        output.storeNullable("brightness", Brightness.CODEC, this.getBrightnessOverride());
+     }
+ 
+     public AABB getBoundingBoxForCulling() {
 @@ -269,40 +_,40 @@
          return this.renderState;
      }
@@ -247,9 +331,9 @@
 +        this.noCulling = width == 0.0F || height == 0.0F;
 +        float f = width / 2.0F;
 +        double x = this.getX();
-+        double p_270983_ = this.getY();
-+        double p_270419_ = this.getZ();
-+        this.cullingBoundingBox = new AABB(p_270091_ - f, p_270983_, p_270419_ - f, p_270091_ + f, p_270983_ + height, z + f);
++        double y = this.getY();
++        double z = this.getZ();
++        this.cullingBoundingBox = new AABB(x - f, y, z - f, x + f, y + height, z + f);
      }
  
      @Override
@@ -532,7 +616,7 @@
 -        public float get(float p_277511_) {
 -            return Mth.lerp(p_277511_, this.previous, this.current);
 +        public float get(float partialTick) {
-+            return Mth.lerp(p_277708_, this.previous, this.current);
++            return Mth.lerp(partialTick, this.previous, this.current);
          }
      }
  
@@ -588,7 +672,7 @@
                  this.updateRenderState = true;
              }
          }
-@@ -718,58 +_,58 @@
+@@ -718,66 +_,66 @@
              return this.entityData.get(DATA_TEXT_ID);
          }
  
@@ -662,13 +746,26 @@
 +            byte b = loadFlag((byte)0, input, "shadow", (byte)1);
 +            b = loadFlag(b, input, "see_through", (byte)2);
 +            b = loadFlag(b, input, "default_background", (byte)4);
-+            Optional<Display.TextDisplay.Align> optional = p_421899_.read("alignment", Display.TextDisplay.Align.CODEC);
++            Optional<Display.TextDisplay.Align> optional = input.read("alignment", Display.TextDisplay.Align.CODEC);
              if (optional.isPresent()) {
 -                b0 = switch ((Display.TextDisplay.Align)optional.get()) {
+-                    case CENTER -> b0;
+-                    case LEFT -> (byte)(b0 | 8);
+-                    case RIGHT -> (byte)(b0 | 16);
 +                b = switch ((Display.TextDisplay.Align)optional.get()) {
-                     case CENTER -> b0;
-                     case LEFT -> (byte)(b0 | 8);
-                     case RIGHT -> (byte)(b0 | 16);
++                    case CENTER -> b;
++                    case LEFT -> (byte)(b | 8);
++                    case RIGHT -> (byte)(b | 16);
+                 };
+             }
+ 
+-            this.setFlags(b0);
+-            Optional<Component> optional1 = p_422293_.read("text", ComponentSerialization.CODEC);
++            this.setFlags(b);
++            Optional<Component> optional1 = input.read("text", ComponentSerialization.CODEC);
+             if (optional1.isPresent()) {
+                 try {
+                     if (this.level() instanceof ServerLevel serverlevel) {
 @@ -793,28 +_,28 @@
              }
          }
@@ -710,7 +807,7 @@
 +            storeFlag(flags, output, "shadow", (byte)1);
 +            storeFlag(flags, output, "see_through", (byte)2);
 +            storeFlag(flags, output, "default_background", (byte)4);
-+            p_421586_.store("alignment", Display.TextDisplay.Align.CODEC, getAlign(p_270879_));
++            output.store("alignment", Display.TextDisplay.Align.CODEC, getAlign(flags));
 +        }
 +
 +        @Override
@@ -727,8 +824,8 @@
 -        private Display.TextDisplay.TextRenderState createInterpolatedTextRenderState(Display.TextDisplay.TextRenderState p_278000_, float p_277646_) {
 -            int i = p_278000_.backgroundColor.get(p_277646_);
 -            int j = p_278000_.textOpacity.get(p_277646_);
-+        private Display.TextDisplay.TextRenderState createInterpolatedTextRenderState(Display.TextDisplay.TextRenderState renderState, float p_277967_) {
-+            int i = renderState.backgroundColor.get(p_277967_);
++        private Display.TextDisplay.TextRenderState createInterpolatedTextRenderState(Display.TextDisplay.TextRenderState renderState, float partialTick) {
++            int i = renderState.backgroundColor.get(partialTick);
 +            int i1 = renderState.textOpacity.get(partialTick);
              return new Display.TextDisplay.TextRenderState(
                  this.getText(),

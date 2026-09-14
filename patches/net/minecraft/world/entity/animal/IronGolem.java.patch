@@ -101,6 +101,21 @@
          this.readPersistentAngerSaveData(this.level(), p_422588_);
      }
  
+@@ -251,12 +_,12 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_28872_) {
++    public SoundEvent getHurtSound(DamageSource p_28872_) {
+         return SoundEvents.IRON_GOLEM_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.IRON_GOLEM_DEATH;
+     }
+ 
 @@ -264,16 +_,17 @@
      protected InteractionResult mobInteract(Player p_28861_, InteractionHand p_28862_) {
          ItemStack itemstack = p_28861_.getItemInHand(p_28862_);

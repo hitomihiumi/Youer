@@ -7,7 +7,7 @@
 -        .xmap(GossipContainer::new, p_404372_ -> p_404372_.unpack().toList());
 +        .xmap(GossipContainer::new, gossipContainer -> gossipContainer.decompress()); // Paper - Perf: Remove streams from hot code
      public static final int DISCARD_THRESHOLD = 2;
-     private final Map<UUID, GossipContainer.EntityGossips> gossips = new HashMap<>();
+     public final Map<UUID, GossipContainer.EntityGossips> gossips = new HashMap<>();
  
 @@ -66,8 +_,22 @@
          return this.gossips.entrySet().stream().flatMap(p_26185_ -> p_26185_.getValue().unpack(p_26185_.getKey()));
@@ -33,7 +33,10 @@
          if (list.isEmpty()) {
              return Collections.emptyList();
          } else {
-@@ -177,13 +_,24 @@
+@@ -174,16 +_,27 @@
+         return gossipcontainer;
+     }
+ 
 -    static class EntityGossips {
 +    public static class EntityGossips { // Paper - Add villager reputation API
          final Object2IntMap<GossipType> entries = new Object2IntOpenHashMap<>();

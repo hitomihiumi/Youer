@@ -96,3 +96,27 @@
                  this.gameEvent(GameEvent.ENTITY_INTERACT);
                  this.playSound(SoundEvents.ARMADILLO_BRUSH);
              }
+@@ -337,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return this.isScared() ? null : SoundEvents.ARMADILLO_AMBIENT;
+     }
+ 
+@@ -347,12 +_,12 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.ARMADILLO_DEATH;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_316220_) {
++    public SoundEvent getHurtSound(DamageSource p_316220_) {
+         return this.isScared() ? SoundEvents.ARMADILLO_HURT_REDUCED : SoundEvents.ARMADILLO_HURT;
+     }
+ 

@@ -1,7 +1,7 @@
 --- a/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
 @@ -48,12 +_,26 @@
-     private ClientInformation clientInformation;
+     public ClientInformation clientInformation;
      @Nullable
      private SynchronizeRegistriesTask synchronizeRegistriesTask;
 +    public io.papermc.paper.connection.PaperPlayerConfigurationConnection paperConnection; // Paper

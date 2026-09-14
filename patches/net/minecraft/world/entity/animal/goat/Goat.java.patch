@@ -45,6 +45,27 @@
      @Override
      protected Brain.Provider<Goat> brainProvider() {
          return Brain.provider(MEMORY_TYPES, SENSOR_TYPES);
+@@ -146,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return this.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_AMBIENT : SoundEvents.GOAT_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_149387_) {
++    public SoundEvent getHurtSound(DamageSource p_149387_) {
+         return this.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_HURT : SoundEvents.GOAT_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return this.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_DEATH : SoundEvents.GOAT_DEATH;
+     }
+ 
 @@ -191,6 +_,7 @@
      protected void customServerAiStep(ServerLevel p_376813_) {
          ProfilerFiller profilerfiller = Profiler.get();

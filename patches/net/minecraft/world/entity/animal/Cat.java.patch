@@ -74,6 +74,30 @@
          this.targetSelector.addGoal(1, new NonTameRandomTargetGoal<>(this, Rabbit.class, false, null));
          this.targetSelector.addGoal(1, new NonTameRandomTargetGoal<>(this, Turtle.class, false, Turtle.BABY_ON_LAND_SELECTOR));
      }
+@@ -220,7 +_,7 @@
+ 
+     @Nullable
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         if (this.isTame()) {
+             if (this.isInLove()) {
+                 return SoundEvents.CAT_PURR;
+@@ -242,12 +_,12 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_28160_) {
++    public SoundEvent getHurtSound(DamageSource p_28160_) {
+         return SoundEvents.CAT_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.CAT_DEATH;
+     }
+ 
 @@ -358,6 +_,14 @@
          }
      }

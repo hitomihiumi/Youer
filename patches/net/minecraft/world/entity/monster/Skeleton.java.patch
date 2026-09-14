@@ -67,6 +67,27 @@
      }
  
      @Override
+@@ -107,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return SoundEvents.SKELETON_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_33579_) {
++    public SoundEvent getHurtSound(DamageSource p_33579_) {
+         return SoundEvents.SKELETON_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.SKELETON_DEATH;
+     }
+ 
 @@ -134,4 +_,64 @@
              this.spawnAtLocation(p_348477_, Items.SKELETON_SKULL);
          }

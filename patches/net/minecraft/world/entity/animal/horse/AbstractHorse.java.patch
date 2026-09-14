@@ -106,7 +106,7 @@
              }
  
              if (this.isVehicle() && this.canGallop) {
-@@ -397,7 +_,7 @@
+@@ -397,11 +_,11 @@
      }
  
      public int getMaxTemper() {
@@ -115,6 +115,11 @@
      }
  
      @Override
+-    protected float getSoundVolume() {
++    public float getSoundVolume() {
+         return 0.8F;
+     }
+ 
 @@ -456,7 +_,7 @@
              j = 5;
              if (!this.level().isClientSide && this.isTamed() && this.getAge() == 0 && !this.isInLove()) {

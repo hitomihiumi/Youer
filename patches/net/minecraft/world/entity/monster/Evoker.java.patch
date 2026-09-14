@@ -59,6 +59,27 @@
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this, Raider.class).setAlertOthers());
          this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true).setUnseenMemoryTicks(300));
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false).setUnseenMemoryTicks(300));
+@@ -88,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return SoundEvents.EVOKER_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.EVOKER_DEATH;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_32654_) {
++    public SoundEvent getHurtSound(DamageSource p_32654_) {
+         return SoundEvents.EVOKER_HURT;
+     }
+ 
 @@ -252,7 +_,7 @@
                          serverlevel.getScoreboard().addPlayerToTeam(vex.getScoreboardName(), playerteam);
                      }

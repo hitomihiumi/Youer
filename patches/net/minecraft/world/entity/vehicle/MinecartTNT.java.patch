@@ -25,6 +25,15 @@
              this.fuse--;
              this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
          } else if (this.fuse == 0) {
+@@ -91,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected Item getDropItem() {
++    public Item getDropItem() {
+         return Items.TNT_MINECART;
+     }
+ 
 @@ -104,24 +_,35 @@
          this.explode(null, p_38689_);
      }

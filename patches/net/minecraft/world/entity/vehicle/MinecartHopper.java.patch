@@ -22,6 +22,15 @@
                      return true;
                  }
              }
+@@ -116,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected Item getDropItem() {
++    public Item getDropItem() {
+         return Items.HOPPER_MINECART;
+     }
+ 
 @@ -141,4 +_,11 @@
      public AbstractContainerMenu createMenu(int p_38601_, Inventory p_38602_) {
          return new HopperMenu(p_38601_, p_38602_, this);

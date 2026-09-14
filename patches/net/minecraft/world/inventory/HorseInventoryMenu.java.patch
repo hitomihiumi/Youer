@@ -6,9 +6,9 @@
      private final Container horseContainer;
 -    private final AbstractHorse horse;
 +    public final AbstractHorse horse; // Youer - fix: widen visibility to match Paper (used by CraftHumanEntity)
-     private static final int SLOT_SADDLE = 0;
+     public static final int SLOT_SADDLE = 0;
      public static final int SLOT_BODY_ARMOR = 1;
-     private static final int SLOT_HORSE_INVENTORY_START = 2;
+     public static final int SLOT_HORSE_INVENTORY_START = 2;
 +    // CraftBukkit start
 +    private @javax.annotation.Nullable org.bukkit.craftbukkit.inventory.CraftInventoryView view;
 +    private final Inventory inventory;

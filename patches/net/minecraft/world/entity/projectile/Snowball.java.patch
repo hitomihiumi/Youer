@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/projectile/Snowball.java
 +++ b/net/minecraft/world/entity/projectile/Snowball.java
+@@ -28,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected Item getDefaultItem() {
++    public Item getDefaultItem() {
+         return Items.SNOWBALL;
+     }
+ 
 @@ -61,7 +_,7 @@
          super.onHit(p_37406_);
          if (!this.level().isClientSide) {

@@ -1,5 +1,26 @@
 --- a/net/minecraft/world/entity/monster/breeze/Breeze.java
 +++ b/net/minecraft/world/entity/monster/breeze/Breeze.java
+@@ -204,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.BREEZE_DEATH;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_312252_) {
++    public SoundEvent getHurtSound(DamageSource p_312252_) {
+         return SoundEvents.BREEZE_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return this.onGround() ? SoundEvents.BREEZE_IDLE_GROUND : SoundEvents.BREEZE_IDLE_AIR;
+     }
+ 
 @@ -235,6 +_,7 @@
      protected void customServerAiStep(ServerLevel p_376422_) {
          ProfilerFiller profilerfiller = Profiler.get();

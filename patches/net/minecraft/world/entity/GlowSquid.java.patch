@@ -48,3 +48,24 @@
      @Override
      protected ParticleOptions getInkParticle() {
          return ParticleTypes.GLOW_SQUID_INK;
+@@ -50,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return SoundEvents.GLOW_SQUID_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_147124_) {
++    public SoundEvent getHurtSound(DamageSource p_147124_) {
+         return SoundEvents.GLOW_SQUID_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.GLOW_SQUID_DEATH;
+     }
+ 

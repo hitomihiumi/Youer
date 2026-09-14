@@ -1107,7 +1107,7 @@
              return false;
 @@ -1734,31 +_,60 @@
  
-     protected void removeEntitiesOnShoulder() {
+     public void removeEntitiesOnShoulder() {
          if (this.timeEntitySatOnShoulder + 20L < this.level().getGameTime()) {
 -            this.respawnEntityOnShoulder(this.getShoulderEntityLeft());
 +            // CraftBukkit start

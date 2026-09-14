@@ -162,6 +162,27 @@
              if (flag2) {
                  this.level().gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(this));
                  if (!this.isSilent()) {
+@@ -300,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return this.isCreepy() ? SoundEvents.ENDERMAN_SCREAM : SoundEvents.ENDERMAN_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_32527_) {
++    public SoundEvent getHurtSound(DamageSource p_32527_) {
+         return SoundEvents.ENDERMAN_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.ENDERMAN_DEATH;
+     }
+ 
 @@ -351,25 +_,32 @@
      public boolean hurtServer(ServerLevel p_376680_, DamageSource p_376597_, float p_376796_) {
          if (this.isInvulnerableTo(p_376680_, p_376597_)) {

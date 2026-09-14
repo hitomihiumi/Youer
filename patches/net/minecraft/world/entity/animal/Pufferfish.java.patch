@@ -86,12 +86,24 @@
              this.playSound(SoundEvents.PUFFER_FISH_STING, 1.0F, 1.0F);
          }
      }
-@@ -152,7 +_,7 @@
+@@ -152,17 +_,17 @@
                  serverplayer.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.PUFFER_FISH_STING, 0.0F));
              }
  
 -            p_29617_.addEffect(new MobEffectInstance(MobEffects.POISON, 60 * i, 0), this);
 +            p_29617_.addEffect(new MobEffectInstance(MobEffects.POISON, 60 * i, 0), this, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
          }
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.PUFFER_FISH_DEATH;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_29628_) {
++    public SoundEvent getHurtSound(DamageSource p_29628_) {
+         return SoundEvents.PUFFER_FISH_HURT;
      }
  

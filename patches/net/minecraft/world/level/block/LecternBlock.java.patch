@@ -57,7 +57,12 @@
      }
  
      private static void updateBelow(Level p_54545_, BlockPos p_54546_, BlockState p_54547_) {
-@@ -243,11 +_,10 @@
+@@ -239,15 +_,14 @@
+ 
+     @Nullable
+     @Override
+-    protected MenuProvider getMenuProvider(BlockState p_54571_, Level p_54572_, BlockPos p_54573_) {
++    public MenuProvider getMenuProvider(BlockState p_54571_, Level p_54572_, BlockPos p_54573_) {
          return !p_54571_.getValue(HAS_BOOK) ? null : super.getMenuProvider(p_54571_, p_54572_, p_54573_);
      }
  

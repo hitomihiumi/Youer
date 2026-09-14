@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/Cod.java
 +++ b/net/minecraft/world/entity/animal/Cod.java
-@@ -13,6 +_,39 @@
+@@ -13,23 +_,56 @@
          super(p_28276_, p_28277_);
      }
  
@@ -40,3 +40,23 @@
      @Override
      public ItemStack getBucketItemStack() {
          return new ItemStack(Items.COD_BUCKET);
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return SoundEvents.COD_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.COD_DEATH;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_28281_) {
++    public SoundEvent getHurtSound(DamageSource p_28281_) {
+         return SoundEvents.COD_HURT;
+     }
+ 

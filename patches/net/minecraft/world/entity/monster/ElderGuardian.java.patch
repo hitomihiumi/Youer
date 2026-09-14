@@ -41,6 +41,27 @@
      public static AttributeSupplier.Builder createAttributes() {
          return Guardian.createAttributes().add(Attributes.MOVEMENT_SPEED, 0.3F).add(Attributes.ATTACK_DAMAGE, 8.0).add(Attributes.MAX_HEALTH, 80.0);
      }
+@@ -41,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return this.isInWater() ? SoundEvents.ELDER_GUARDIAN_AMBIENT : SoundEvents.ELDER_GUARDIAN_AMBIENT_LAND;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_32468_) {
++    public SoundEvent getHurtSound(DamageSource p_32468_) {
+         return this.isInWater() ? SoundEvents.ELDER_GUARDIAN_HURT : SoundEvents.ELDER_GUARDIAN_HURT_LAND;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return this.isInWater() ? SoundEvents.ELDER_GUARDIAN_DEATH : SoundEvents.ELDER_GUARDIAN_DEATH_LAND;
+     }
+ 
 @@ -65,7 +_,7 @@
          super.customServerAiStep(p_376897_);
          if ((this.tickCount + this.getId()) % 1200 == 0) {

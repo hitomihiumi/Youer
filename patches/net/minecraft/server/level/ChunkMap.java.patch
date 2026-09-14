@@ -91,7 +91,7 @@
 @@ -1130,7 +_,7 @@
      }
  
-     protected void addEntity(Entity p_140200_) {
+     public void addEntity(Entity p_140200_) {
 -        if (!(p_140200_ instanceof EnderDragonPart)) {
 +        if (!(p_140200_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
              EntityType<?> entitytype = p_140200_.getType();

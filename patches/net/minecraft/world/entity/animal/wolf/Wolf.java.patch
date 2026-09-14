@@ -171,7 +171,7 @@
          this.readPersistentAngerSaveData(this.level(), p_421669_);
          p_421669_.read("sound_variant", ResourceKey.codec(Registries.WOLF_SOUND_VARIANT))
              .flatMap(p_427093_ -> this.registryAccess().lookupOrThrow(Registries.WOLF_SOUND_VARIANT).get((ResourceKey<WolfSoundVariant>)p_427093_))
-@@ -268,6 +_,10 @@
+@@ -268,11 +_,15 @@
          }
  
          this.setSoundVariant(WolfSoundVariants.pickRandomSoundVariant(this.registryAccess(), p_406251_.getRandom()));
@@ -180,6 +180,33 @@
 +        this.updatePathfinders(false);
 +        // Purpur end - Configurable chance for wolves to spawn rabid
          return super.finalizeSpawn(p_406251_, p_406357_, p_406333_, p_406273_);
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         if (this.isAngry()) {
+             return this.getSoundVariant().value().growlSound().value();
+         } else if (this.random.nextInt(3) == 0) {
+@@ -285,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_406243_) {
++    public SoundEvent getHurtSound(DamageSource p_406243_) {
+         return this.canArmorAbsorb(p_406243_) ? SoundEvents.WOLF_ARMOR_DAMAGE : this.getSoundVariant().value().hurtSound().value();
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return this.getSoundVariant().value().deathSound().value();
+     }
+ 
+     @Override
+-    protected float getSoundVolume() {
++    public float getSoundVolume() {
+         return 0.4F;
      }
  
 @@ -318,6 +_,11 @@

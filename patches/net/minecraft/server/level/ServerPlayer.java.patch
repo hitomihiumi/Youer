@@ -1497,6 +1497,15 @@
  
      @Override
      public void displayClientMessage(Component p_9154_, boolean p_9155_) {
+@@ -1469,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected void completeUsingItem() {
++    public void completeUsingItem() {
+         if (!this.useItem.isEmpty() && this.isUsingItem()) {
+             this.connection.send(new ClientboundEntityEventPacket(this, (byte)9));
+             super.completeUsingItem();
 @@ -1495,12 +_,12 @@
          this.onUpdateAbilities();
          if (p_9017_) {

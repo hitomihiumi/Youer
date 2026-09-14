@@ -1283,7 +1283,7 @@
 +    }
 +    // Paper end - copied from above split by relevant part
  
-     private void playSecondaryHurtSound(DamageSource p_394182_) {
+     public void playSecondaryHurtSound(DamageSource p_394182_) {
          if (p_394182_.is(DamageTypes.THORNS)) {
 @@ -1325,10 +_,10 @@
      protected Player resolvePlayerResponsibleForDamage(DamageSource p_388609_) {

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
 +++ b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
-@@ -50,17 +_,20 @@
+@@ -50,19 +_,22 @@
      public static final int TRACKED_DECORATION_LIMIT = 256;
      private static final String FRAME_PREFIX = "frame-";
      public static final Codec<MapItemSavedData> CODEC = RecordCodecBuilder.create(
@@ -30,8 +30,11 @@
 +                    .forGetter(mapItemSavedData -> List.copyOf(mapItemSavedData.bannerMarkers.values())),
 +                MapFrame.CODEC.listOf().optionalFieldOf("frames", List.of()).forGetter(mapItemSavedData -> List.copyOf(mapItemSavedData.frameMarkers.values()))
              )
-             .apply(p_400959_, MapItemSavedData::new)
+-            .apply(p_400959_, MapItemSavedData::new)
++            .apply(instance, MapItemSavedData::new)
      );
+     public int centerX;
+     public int centerZ;
 @@ -72,6 +_,7 @@
      public byte scale;
      public byte[] colors = new byte[16384];

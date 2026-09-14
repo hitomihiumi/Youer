@@ -7,23 +7,14 @@
 -            p_352292_.getPositionBase().x(),
 -            p_352292_.getPositionBase().y(),
 -            p_352292_.getPositionBase().z(),
-+            // Paper start - fix p_131481_ tracker desync
++            // Paper start - fix entity tracker desync
 +            p_131481_.trackingPosition().x(),
 +            p_131481_.trackingPosition().y(),
 +            p_131481_.trackingPosition().z(),
-+            // Paper end - fix p_131481_ tracker desync
++            // Paper end - fix entity tracker desync
              p_352292_.getLastSentXRot(),
              p_352292_.getLastSentYRot(),
              p_131481_.getType(),
-@@ -54,7 +_,7 @@
-         );
-     }
- 
--    public ClientboundAddEntityPacket(Entity p_237558_, int p_237559_, BlockPos p_237560_) {
-+    public ClientboundAddEntityPacket(Entity p_131481_, int data, BlockPos p_237560_) {
-         this(
-             p_237558_.getId(),
-             p_237558_.getUUID(),
 @@ -98,36 +_,36 @@
          this.za = (int)(Mth.clamp(p_237555_.z, -3.9, 3.9) * 8000.0);
      }

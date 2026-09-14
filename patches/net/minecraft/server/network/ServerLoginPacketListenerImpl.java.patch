@@ -18,13 +18,13 @@
      private final byte[] challenge;
      final MinecraftServer server;
 @@ -54,21 +_,36 @@
-     private volatile ServerLoginPacketListenerImpl.State state = ServerLoginPacketListenerImpl.State.HELLO;
+     public volatile ServerLoginPacketListenerImpl.State state = ServerLoginPacketListenerImpl.State.HELLO;
      private int tick;
      @Nullable
 -    String requestedUsername;
 +    public String requestedUsername; // Paper
      @Nullable
-     private GameProfile authenticatedProfile;
+     public GameProfile authenticatedProfile;
      private final String serverId = "";
 -    private final boolean transferred;
 +    public final boolean transferred; // Paper

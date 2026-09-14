@@ -14,7 +14,7 @@
 +
      public static final int DEFAULT_RANDOM_TICK_SPEED = 3;
      static final Logger LOGGER = LogUtils.getLogger();
-     private static final Map<GameRules.Key<?>, GameRules.Type<?>> GAME_RULE_TYPES = Maps.newTreeMap(Comparator.comparing(p_46218_ -> p_46218_.id));
+     public static final Map<GameRules.Key<?>, GameRules.Type<?>> GAME_RULE_TYPES = Maps.newTreeMap(Comparator.comparing(p_46218_ -> p_46218_.id));
 @@ -87,11 +_,11 @@
          "sendCommandFeedback", GameRules.Category.CHAT, GameRules.BooleanValue.create(true)
      );

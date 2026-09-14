@@ -289,7 +289,7 @@
  
 @@ -470,7 +_,7 @@
  
-     private void updateDemand() {
+     public void updateDemand() {
          for (MerchantOffer merchantoffer : this.getOffers()) {
 -            merchantoffer.updateDemand();
 +            merchantoffer.updateDemand(this.level().purpurConfig.villagerMinimumDemand); // Purpur - Configurable minimum demand for trades
@@ -312,6 +312,30 @@
                  double d0 = 0.3 + 0.0625 * k;
                  int j = (int)Math.floor(d0 * merchantoffer1.getBaseCostA().getCount());
                  merchantoffer1.addToSpecialPriceDiff(-Math.max(j, 1));
+@@ -546,7 +_,7 @@
+ 
+     @Nullable
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         if (this.isSleeping()) {
+             return null;
+         } else {
+@@ -555,12 +_,12 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_35498_) {
++    public SoundEvent getHurtSound(DamageSource p_35498_) {
+         return SoundEvents.VILLAGER_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.VILLAGER_DEATH;
+     }
+ 
 @@ -595,7 +_,7 @@
          }
  

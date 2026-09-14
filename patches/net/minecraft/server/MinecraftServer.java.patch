@@ -1333,7 +1333,7 @@
 +        this.server.spark.tickStart(); // Paper - spark
 +        new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
          this.tickCount++;
-+        net.neoforged.neoforge.event.EventHooks.fireServerTickPre(p_129871_, this);
++        net.neoforged.neoforge.event.EventHooks.fireServerTickPre(hasTimeLeft, this);
          this.tickRateManager.tick();
 -        this.tickChildren(p_129871_);
 -        if (i - this.lastServerStatus >= STATUS_EXPIRE_TIME_NANOS) {

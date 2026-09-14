@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/ThrownEgg.java
 +++ b/net/minecraft/world/entity/projectile/ThrownEgg.java
-@@ -59,34 +_,69 @@
+@@ -59,39 +_,74 @@
      }
  
      @Override
@@ -82,3 +82,9 @@
          }
      }
  
+     @Override
+-    protected Item getDefaultItem() {
++    public Item getDefaultItem() {
+         return Items.EGG;
+     }
+ }

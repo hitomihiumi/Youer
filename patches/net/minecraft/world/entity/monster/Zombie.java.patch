@@ -323,6 +323,27 @@
              }
          }
  
+@@ -372,17 +_,17 @@
+     }
+ 
+     @Override
+-    protected SoundEvent getAmbientSound() {
++    public SoundEvent getAmbientSound() {
+         return SoundEvents.ZOMBIE_AMBIENT;
+     }
+ 
+     @Override
+-    protected SoundEvent getHurtSound(DamageSource p_34327_) {
++    public SoundEvent getHurtSound(DamageSource p_34327_) {
+         return SoundEvents.ZOMBIE_HURT;
+     }
+ 
+     @Override
+-    protected SoundEvent getDeathSound() {
++    public SoundEvent getDeathSound() {
+         return SoundEvents.ZOMBIE_DEATH;
+     }
+ 
 @@ -424,6 +_,7 @@
          p_421674_.putBoolean("CanBreakDoors", this.canBreakDoors());
          p_421674_.putInt("InWaterTime", this.isInWater() ? this.inWaterTime : -1);
