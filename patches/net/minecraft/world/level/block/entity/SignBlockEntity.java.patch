@@ -43,7 +43,7 @@
          }
      }
  
-@@ -141,20 +_,42 @@
+@@ -141,20 +_,58 @@
          return this.setText(p_277877_.apply(signtext), p_277426_);
      }
  
@@ -53,18 +53,34 @@
 -            Style style = p_277359_.getMessage(i, p_277396_.isTextFilteringEnabled()).getStyle();
 -            if (p_277396_.isTextFilteringEnabled()) {
 -                p_277359_ = p_277359_.setMessage(i, Component.literal(filteredtext.filteredOrEmpty()).setStyle(style));
++    // Purpur start - Signs allow color codes
++    private Component translateColors(org.bukkit.entity.Player player, String line, Style style) {
++        if (level.purpurConfig.signAllowColors) {
++            if (player.hasPermission("purpur.sign.color")) line = line.replaceAll("(?i)&([0-9a-fr])", "\u00a7$1");
++            if (player.hasPermission("purpur.sign.style")) line = line.replaceAll("(?i)&([l-or])", "\u00a7$1");
++            if (player.hasPermission("purpur.sign.magic")) line = line.replaceAll("(?i)&([kr])", "\u00a7$1");
++
++            return io.papermc.paper.adventure.PaperAdventure.asVanilla(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line));
++        } else {
++            return Component.literal(line).setStyle(style);
++        }
++    }
++    // Purpur end - Signs allow color codes
++
 +    private SignText setMessages(Player player, List<FilteredText> filteredText, SignText text, boolean front) { // CraftBukkit
 +        SignText originalText = text; // CraftBukkit
 +        for (int i = 0; i < filteredText.size(); i++) {
 +            FilteredText filteredText1 = filteredText.get(i);
 +            Style style = text.getMessage(i, player.isTextFilteringEnabled()).getStyle();
++
++            org.bukkit.entity.Player craftPlayer =  (org.bukkit.craftbukkit.entity.CraftPlayer) player.getBukkitEntity(); // Purpur - Signs allow color codes
 +            if (player.isTextFilteringEnabled()) {
-+                text = text.setMessage(i, Component.literal(net.minecraft.util.StringUtil.filterText(filteredText1.filteredOrEmpty())).setStyle(style)); // Paper - filter sign text to chat only
++                text = text.setMessage(i, translateColors(craftPlayer, net.minecraft.util.StringUtil.filterText(filteredText1.filteredOrEmpty()), style)); // Paper - filter sign text to chat only // Purpur - Signs allow color codes
              } else {
 -                p_277359_ = p_277359_.setMessage(
 -                    i, Component.literal(filteredtext.raw()).setStyle(style), Component.literal(filteredtext.filteredOrEmpty()).setStyle(style)
 +                text = text.setMessage(
-+                    i, Component.literal(filteredText1.raw()).setStyle(style), Component.literal(net.minecraft.util.StringUtil.filterText(filteredText1.filteredOrEmpty())).setStyle(style) // Paper - filter sign text to chat only
++                    i, translateColors(craftPlayer, net.minecraft.util.StringUtil.filterText(filteredText1.raw()), style), translateColors(craftPlayer, net.minecraft.util.StringUtil.filterText(filteredText1.filteredOrEmpty()), style) // Paper - filter sign text to chat only // Purpur - Signs allow color codes
                  );
              }
          }

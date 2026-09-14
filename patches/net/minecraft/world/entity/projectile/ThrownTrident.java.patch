@@ -20,7 +20,14 @@
          this.entityData.set(ID_LOYALTY, this.getLoyaltyFromItem(p_338255_));
          this.entityData.set(ID_FOIL, p_338255_.hasFoil());
      }
-@@ -70,10 +_,10 @@
+@@ -64,16 +_,16 @@
+ 
+         Entity entity = this.getOwner();
+         int i = this.entityData.get(ID_LOYALTY);
+-        if (i > 0 && (this.dealtDamage || this.isNoPhysics()) && entity != null) {
++        if (i > 0 && (this.dealtDamage || this.isNoPhysics() || (level().purpurConfig.tridentLoyaltyVoidReturnHeight < 0.0D && getY() < level().purpurConfig.tridentLoyaltyVoidReturnHeight)) && entity != null) { // Purpur - Add option to allow loyalty on tridents to work in the void
+             if (!this.isAcceptibleReturnOwner()) {
+                 if (this.level() instanceof ServerLevel serverlevel && this.pickup == AbstractArrow.Pickup.ALLOWED) {
                      this.spawnAtLocation(serverlevel, this.getPickupItem(), 0.1F);
                  }
  

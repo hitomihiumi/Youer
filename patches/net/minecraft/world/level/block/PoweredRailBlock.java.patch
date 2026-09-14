@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/PoweredRailBlock.java
 +++ b/net/minecraft/world/level/block/PoweredRailBlock.java
-@@ -22,8 +_,19 @@
+@@ -22,20 +_,31 @@
          return CODEC;
      }
  
@@ -20,7 +20,12 @@
          this.registerDefaultState(this.stateDefinition.any().setValue(SHAPE, RailShape.NORTH_SOUTH).setValue(POWERED, false).setValue(WATERLOGGED, false));
      }
  
-@@ -35,7 +_,7 @@
+     protected boolean findPoweredRailSignal(Level p_55220_, BlockPos p_55221_, BlockState p_55222_, boolean p_55223_, int p_55224_) {
+-        if (p_55224_ >= 8) {
++        if (p_55224_ >= level.purpurConfig.railActivationRange) { // Purpur - Config for powered rail activation distance
+             return false;
+         } else {
+             int i = p_55221_.getX();
              int j = p_55221_.getY();
              int k = p_55221_.getZ();
              boolean flag = true;

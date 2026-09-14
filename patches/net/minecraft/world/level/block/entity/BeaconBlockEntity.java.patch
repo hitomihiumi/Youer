@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/entity/BeaconBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BeaconBlockEntity.java
+@@ -126,6 +_,7 @@
+         int j = p_155109_.getY();
+         int k = p_155109_.getZ();
+         BlockPos blockpos;
++        boolean isTintedGlass = false; // Purpur - allow beacon effects when covered by tinted glass
+         if (p_155111_.lastCheckY < j) {
+             blockpos = p_155109_;
+             p_155111_.checkingBeamSections = Lists.newArrayList();
 @@ -141,8 +_,8 @@
  
          for (int i1 = 0; i1 < 10 && blockpos.getY() <= l; i1++) {

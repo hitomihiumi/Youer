@@ -9,6 +9,14 @@
              DoublePlantBlock.preventDropFromBottomPart(p_52755_, p_52756_, p_52757_, p_52758_);
          }
  
+@@ -206,6 +_,7 @@
+     protected InteractionResult useWithoutItem(BlockState p_52769_, Level p_52770_, BlockPos p_52771_, Player p_52772_, BlockHitResult p_52774_) {
+         if (!this.type.canOpenByHand()) {
+             return InteractionResult.PASS;
++        } else if (requiresRedstone(level, state, pos)) { return InteractionResult.CONSUME; // Purpur - Option to make doors require redstone
+         } else {
+             p_52769_ = p_52769_.cycle(OPEN);
+             p_52770_.setBlock(p_52771_, p_52769_, 10);
 @@ -228,16 +_,29 @@
      }
  
@@ -47,3 +55,22 @@
          }
      }
  
+@@ -286,4 +_,18 @@
+     public static boolean isWoodenDoor(BlockState p_52818_) {
+         return p_52818_.getBlock() instanceof DoorBlock doorblock && doorblock.type().canOpenByHand();
+     }
++
++    // Purpur start - Option to make doors require redstone
++    public static boolean requiresRedstone(Level level, BlockState state, BlockPos pos) {
++        if (level.purpurConfig.doorRequiresRedstone.contains(state.getBlock())) {
++            // force update client
++            BlockPos otherPos = pos.relative(state.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN);
++            BlockState otherState = level.getBlockState(otherPos);
++            level.sendBlockUpdated(pos, state, state, 3);
++            level.sendBlockUpdated(otherPos, otherState, otherState, 3);
++            return true;
++        }
++        return false;
++    }
++    // Purpur end - Option to make doors require redstone
+ }

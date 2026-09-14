@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 public abstract class SimpleProviderStorage<T> implements ProviderStorage<T> {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
 
     protected final List<PluginProvider<T>> providers = new ArrayList<>();
     protected ProviderLoadingStrategy<T> strategy;

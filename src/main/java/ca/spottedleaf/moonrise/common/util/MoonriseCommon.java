@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 public final class MoonriseCommon {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
 
     public static final PrioritisedThreadPool WORKER_POOL = new PrioritisedThreadPool(
             new Consumer<>() {

@@ -12,6 +12,23 @@
      private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> p_368669_, EntityType.Builder<T> p_368714_) {
          return Registry.register(BuiltInRegistries.ENTITY_TYPE, p_368669_, p_368714_.build(p_368669_));
      }
+@@ -1105,6 +_,16 @@
+         return register(vanillaEntityId(p_20635_), p_20636_);
+     }
+ 
++    // Purpur start - PlayerSetSpawnerTypeWithEggEvent
++    public static EntityType<?> getFromBukkitType(org.bukkit.entity.EntityType bukkitType) {
++        return getFromKey(ResourceLocation.parse(bukkitType.getKey().toString()));
++    }
++
++    public static EntityType<?> getFromKey(ResourceLocation location) {
++        return BuiltInRegistries.ENTITY_TYPE.getValue(location);
++    }
++    // Purpur end - PlayerSetSpawnerTypeWithEggEvent
++
+     public static ResourceLocation getKey(EntityType<?> p_20614_) {
+         return BuiltInRegistries.ENTITY_TYPE.getKey(p_20614_);
+     }
 @@ -1129,6 +_,29 @@
          Optional<ResourceKey<LootTable>> p_368696_,
          FeatureFlagSet p_273518_
@@ -210,7 +227,24 @@
                      p_331752_.loadInto(p_20623_);
                  }
              }
-@@ -1326,10 +_,21 @@
+@@ -1281,6 +_,16 @@
+         return this.category;
+     }
+ 
++    // Purpur start - PlayerSetSpawnerTypeWithEggEvent
++    public String getName() {
++        return BuiltInRegistries.ENTITY_TYPE.getKey(this).getPath();
++    }
++
++    public String getTranslatedName() {
++        return getDescription().getString();
++    }
++    // Purpur end - PlayerSetSpawnerTypeWithEggEvent
++
+     public String getDescriptionId() {
+         return this.descriptionId;
+     }
+@@ -1326,10 +_,25 @@
      }
  
      public static Optional<Entity> create(ValueInput p_422014_, Level p_20644_, EntitySpawnReason p_360780_) {
@@ -231,7 +265,11 @@
 +                entity.load(input);
 +            },
 +            // Paper end - Don't fire sync event during generation
-+            () -> LOGGER.warn("Skipping Entity with id {}", input.getStringOr("id", "[invalid]"))
++            // Purpur start - log skipped entity's position
++            () -> {LOGGER.warn("Skipping Entity with id {}", input.getStringOr("id", "[invalid]"));
++                EntityType.LOGGER.warn("Location: {} {}", level.getWorld().getName(), input.read("Pos", net.minecraft.world.phys.Vec3.CODEC).orElse(net.minecraft.world.phys.Vec3.ZERO));
++            }
++            // Purpur end - log skipped entity's position
          );
      }
  

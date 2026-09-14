@@ -1,6 +1,13 @@
 --- a/net/minecraft/world/entity/projectile/AbstractArrow.java
 +++ b/net/minecraft/world/entity/projectile/AbstractArrow.java
-@@ -82,32 +_,39 @@
+@@ -76,38 +_,46 @@
+     public ItemStack pickupItemStack = this.getDefaultPickupItem();
+     @Nullable
+     public ItemStack firedFromWeapon = null;
++    public net.minecraft.world.item.enchantment.ItemEnchantments actualEnchantments = net.minecraft.world.item.enchantment.ItemEnchantments.EMPTY; // Purpur - Add an option to fix MC-3304 projectile looting
+ 
+     protected AbstractArrow(EntityType<? extends AbstractArrow> p_331098_, Level p_331626_) {
+         super(p_331098_, p_331626_);
      }
  
      protected AbstractArrow(
@@ -107,7 +114,7 @@
                  this.hasImpulse = true;
                  if (this.getPierceLevel() > 0 && projectiledeflection == ProjectileDeflection.NONE) {
                      continue;
-@@ -309,13 +_,26 @@
+@@ -309,23 +_,36 @@
          }
      }
  
@@ -135,8 +142,11 @@
      }
  
      private void startFalling() {
-@@ -325,7 +_,7 @@
-         this.life = 0;
+         this.setInGround(false);
+         Vec3 vec3 = this.getDeltaMovement();
+         this.setDeltaMovement(vec3.multiply(this.random.nextFloat() * 0.2F, this.random.nextFloat() * 0.2F, this.random.nextFloat() * 0.2F));
+-        this.life = 0;
++        if (this.level().purpurConfig.arrowMovementResetsDespawnCounter) this.life = 0; // Purpur - Arrows should not reset despawn counter
      }
  
 -    protected boolean isInGround() {
@@ -315,6 +325,19 @@
 +                p_346111_.push(vec3.x, 0.1, vec3.z, this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
              }
          }
+     }
+@@ -540,6 +_,12 @@
+         return this.firedFromWeapon;
+     }
+ 
++    // Purpur start - Add an option to fix MC-3304 projectile looting
++    public void setActualEnchantments(net.minecraft.world.item.enchantment.ItemEnchantments actualEnchantments) {
++        this.actualEnchantments = actualEnchantments;
++    }
++    // Purpur end - Add an option to fix MC-3304 projectile looting
++
+     protected SoundEvent getDefaultHitGroundSoundEvent() {
+         return SoundEvents.ARROW_HIT;
      }
 @@ -598,22 +_,42 @@
      }

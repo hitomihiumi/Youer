@@ -29,6 +29,15 @@
              }
  
              p_55042_.setBlock(p_55043_, p_55041_.setValue(POWERED, flag), 3);
+@@ -97,7 +_,7 @@
+     }
+ 
+     private void playNote(@Nullable Entity p_261664_, BlockState p_261606_, Level p_261819_, BlockPos p_262042_) {
+-        if (p_261606_.getValue(INSTRUMENT).worksAboveNoteBlock() || p_261819_.getBlockState(p_262042_.above()).isAir()) {
++        if (p_261819_.purpurConfig.noteBlockIgnoreAbove || p_261606_.getValue(INSTRUMENT).worksAboveNoteBlock() || p_261819_.getBlockState(p_262042_.above()).isAir()) { // Purpur - Config to allow Note Block sounds when blocked
+             p_261819_.blockEvent(p_262042_, this, 0, 0);
+             p_261819_.gameEvent(p_261664_, GameEvent.NOTE_BLOCK_PLAY, p_262042_);
+         }
 @@ -115,7 +_,11 @@
      @Override
      protected InteractionResult useWithoutItem(BlockState p_316441_, Level p_316774_, BlockPos p_316344_, Player p_316884_, BlockHitResult p_316631_) {

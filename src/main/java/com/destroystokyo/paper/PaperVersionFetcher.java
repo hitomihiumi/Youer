@@ -32,7 +32,7 @@ import static net.kyori.adventure.text.format.TextColor.color;
 
 @DefaultQualifier(NonNull.class)
 public class PaperVersionFetcher implements VersionFetcher {
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
     private static final int DISTANCE_ERROR = -1;
     private static final int DISTANCE_UNKNOWN = -2;
     private static final String DOWNLOAD_PAGE = "https://papermc.io/downloads/paper";

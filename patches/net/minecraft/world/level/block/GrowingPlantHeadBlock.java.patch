@@ -1,6 +1,18 @@
 --- a/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
 +++ b/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
-@@ -42,13 +_,33 @@
+@@ -32,34 +_,54 @@
+ 
+     @Override
+     public BlockState getStateForPlacement(RandomSource p_374460_) {
+-        return this.defaultBlockState().setValue(AGE, p_374460_.nextInt(25));
++        return this.defaultBlockState().setValue(AGE, getMaxGrowthAge() == 0 ? 0 : p_374460_.nextInt(getMaxGrowthAge())); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+     }
+ 
+     @Override
+     protected boolean isRandomlyTicking(BlockState p_53961_) {
+-        return p_53961_.getValue(AGE) < 25;
++        return p_53961_.getValue(AGE) < getMaxGrowthAge(); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+     }
  
      @Override
      protected void randomTick(BlockState p_221350_, ServerLevel p_221351_, BlockPos p_221352_, RandomSource p_221353_) {
@@ -36,3 +48,39 @@
  
      protected BlockState getGrowIntoState(BlockState p_221347_, RandomSource p_221348_) {
          return p_221347_.cycle(AGE);
+     }
+ 
+     public BlockState getMaxAgeState(BlockState p_187439_) {
+-        return p_187439_.setValue(AGE, 25);
++        return p_187439_.setValue(AGE, getMaxGrowthAge()); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+     }
+ 
+     public boolean isMaxAge(BlockState p_187441_) {
+-        return p_187441_.getValue(AGE) == 25;
++        return p_187441_.getValue(AGE) >= getMaxGrowthAge(); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+     }
+ 
+     protected BlockState updateBodyAfterConvertedFromHead(BlockState p_153329_, BlockState p_153330_) {
+@@ -117,13 +_,13 @@
+     @Override
+     public void performBonemeal(ServerLevel p_221337_, RandomSource p_221338_, BlockPos p_221339_, BlockState p_221340_) {
+         BlockPos blockpos = p_221339_.relative(this.growthDirection);
+-        int i = Math.min(p_221340_.getValue(AGE) + 1, 25);
++        int i = Math.min(p_221340_.getValue(AGE) + 1, getMaxGrowthAge()); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+         int j = this.getBlocksToGrowWhenBonemealed(p_221338_);
+ 
+         for (int k = 0; k < j && this.canGrowInto(p_221337_.getBlockState(blockpos)); k++) {
+             p_221337_.setBlockAndUpdate(blockpos, p_221340_.setValue(AGE, i));
+             blockpos = blockpos.relative(this.growthDirection);
+-            i = Math.min(i + 1, 25);
++            i = Math.min(i + 1, getMaxGrowthAge()); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+         }
+     }
+ 
+@@ -135,4 +_,6 @@
+     protected GrowingPlantHeadBlock getHeadBlock() {
+         return this;
+     }
++
++    public abstract int getMaxGrowthAge(); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+ }

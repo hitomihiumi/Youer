@@ -8,6 +8,15 @@
                  serverlevel.getBlockEntity(p_222178_, BlockEntityType.SCULK_SHRIEKER).ifPresent(p_222163_ -> p_222163_.tryShriek(serverlevel, serverplayer));
              }
          }
+@@ -117,7 +_,7 @@
+     @Nullable
+     @Override
+     public BlockState getStateForPlacement(BlockPlaceContext p_222171_) {
+-        return this.defaultBlockState().setValue(WATERLOGGED, p_222171_.getLevel().getFluidState(p_222171_.getClickedPos()).getType() == Fluids.WATER);
++        return this.defaultBlockState().setValue(WATERLOGGED, p_222171_.getLevel().getFluidState(p_222171_.getClickedPos()).getType() == Fluids.WATER).setValue(SculkShriekerBlock.CAN_SUMMON, p_222171_.getLevel().purpurConfig.sculkShriekerCanSummonDefault); // Purpur - Config for sculk shrieker can_summon state
+     }
+ 
+     @Override
 @@ -128,9 +_,24 @@
      @Override
      protected void spawnAfterBreak(BlockState p_222192_, ServerLevel p_222193_, BlockPos p_222194_, ItemStack p_222195_, boolean p_222196_) {

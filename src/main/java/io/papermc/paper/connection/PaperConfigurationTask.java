@@ -13,7 +13,7 @@ import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import org.slf4j.Logger;
 
 public class PaperConfigurationTask implements ConfigurationTask {
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
 
     private static final ExecutorService CONFIGURATION_POOL = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("Configuration Thread #%d")
         .setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build());

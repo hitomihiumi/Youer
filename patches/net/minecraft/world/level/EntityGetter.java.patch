@@ -14,6 +14,15 @@
      @Nullable
      default Player getNearestPlayer(double p_45919_, double p_45920_, double p_45921_, double p_45922_, @Nullable Predicate<Entity> p_45923_) {
          double d0 = -1.0;
+@@ -102,7 +_,7 @@
+ 
+     default boolean hasNearbyAlivePlayer(double p_45915_, double p_45916_, double p_45917_, double p_45918_) {
+         for (Player player : this.players()) {
+-            if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player)) {
++            if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player) && EntitySelector.notAfk.test(player)) { // Purpur - AFK API
+                 double d0 = player.distanceToSqr(p_45915_, p_45916_, p_45917_);
+                 if (p_45918_ < 0.0 || d0 < p_45918_ * p_45918_) {
+                     return true;
 @@ -124,4 +_,11 @@
  
          return null;

@@ -1,5 +1,44 @@
 --- a/net/minecraft/world/entity/npc/CatSpawner.java
 +++ b/net/minecraft/world/entity/npc/CatSpawner.java
+@@ -26,7 +_,7 @@
+         if (p_35332_ && p_35330_.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+             this.nextTick--;
+             if (this.nextTick <= 0) {
+-                this.nextTick = 1200;
++                this.nextTick = level.purpurConfig.catSpawnDelay; // Purpur - Cat spawning options
+                 Player player = p_35330_.getRandomPlayer();
+                 if (player != null) {
+                     RandomSource randomsource = p_35330_.random;
+@@ -49,9 +_,12 @@
+     }
+ 
+     private void spawnInVillage(ServerLevel p_35327_, BlockPos p_35328_) {
+-        int i = 48;
+-        if (p_35327_.getPoiManager().getCountInRange(p_219610_ -> p_219610_.is(PoiTypes.HOME), p_35328_, 48, PoiManager.Occupancy.IS_OCCUPIED) > 4L) {
+-            List<Cat> list = p_35327_.getEntitiesOfClass(Cat.class, new AABB(p_35328_).inflate(48.0, 8.0, 48.0));
++        // Purpur start - Cat spawning options
++        int range = p_35327_.purpurConfig.catSpawnVillageScanRange;
++        if (range <= 0) return;
++        if (p_35327_.getPoiManager().getCountInRange(holder -> holder.is(PoiTypes.HOME), p_35328_, range, PoiManager.Occupancy.IS_OCCUPIED) > 4L) {
++            List<Cat> list = p_35327_.getEntitiesOfClass(Cat.class, new AABB(p_35328_).inflate(range, 8.0, range));
++        // Purpur end - Cat spawning options
+             if (list.size() < 5) {
+                 this.spawnCat(p_35328_, p_35327_, false);
+             }
+@@ -59,8 +_,11 @@
+     }
+ 
+     private void spawnInHut(ServerLevel p_35337_, BlockPos p_35338_) {
+-        int i = 16;
+-        List<Cat> list = p_35337_.getEntitiesOfClass(Cat.class, new AABB(p_35338_).inflate(16.0, 8.0, 16.0));
++        // Purpur start - Cat spawning options
++        int range = p_35337_.purpurConfig.catSpawnSwampHutScanRange;
++        if (range <= 0) return;
++        List<Cat> list = p_35337_.getEntitiesOfClass(Cat.class, new AABB(p_35338_).inflate(range, 8.0, range));
++        // Purpur end - Cat spawning options
+         if (list.isEmpty()) {
+             this.spawnCat(p_35338_, p_35337_, true);
+         }
 @@ -69,12 +_,12 @@
      private void spawnCat(BlockPos p_35334_, ServerLevel p_35335_, boolean p_399883_) {
          Cat cat = EntityType.CAT.create(p_35335_, EntitySpawnReason.NATURAL);

@@ -70,7 +70,7 @@
          PlaceCommand.register(this.dispatcher);
          PlaySoundCommand.register(this.dispatcher);
          RandomCommand.register(this.dispatcher);
-@@ -221,27 +_,27 @@
+@@ -221,46 +_,52 @@
          RotateCommand.register(this.dispatcher);
          SayCommand.register(this.dispatcher);
          ScheduleCommand.register(this.dispatcher);
@@ -108,11 +108,12 @@
          WeatherCommand.register(this.dispatcher);
          WorldBorderCommand.register(this.dispatcher);
          if (JvmProfiler.INSTANCE.isAvailable()) {
-@@ -249,18 +_,18 @@
+             JfrCommand.register(this.dispatcher);
          }
  
-         if (SharedConstants.IS_RUNNING_IN_IDE) {
+-        if (SharedConstants.IS_RUNNING_IN_IDE) {
 -            RaidCommand.register(this.dispatcher, p_230944_);
++        if (org.purpurmc.purpur.PurpurConfig.registerMinecraftDebugCommands || SharedConstants.IS_RUNNING_IN_IDE) { // Purpur - register minecraft debug commands
 +            RaidCommand.register(this.dispatcher, context);
              DebugPathCommand.register(this.dispatcher);
              DebugMobSpawningCommand.register(this.dispatcher);
@@ -127,12 +128,28 @@
          }
  
 -        if (p_230943_.includeDedicated) {
++        // Purpur start - register disabled minecraft commands
++        if (org.purpurmc.purpur.PurpurConfig.registerMinecraftDisabledCommands) {
++            net.minecraft.server.commands.ChaseCommand.register(this.dispatcher);
++        }
++        // Purpur end - register disabled minecraft commands
++
 +        if (selection.includeDedicated) {
              BanIpCommands.register(this.dispatcher);
              BanListCommands.register(this.dispatcher);
              BanPlayerCommands.register(this.dispatcher);
-@@ -278,10 +_,47 @@
+@@ -276,12 +_,57 @@
+             StopCommand.register(this.dispatcher);
+             TransferCommand.register(this.dispatcher);
              WhitelistCommand.register(this.dispatcher);
++            org.purpurmc.purpur.command.CreditsCommand.register(this.dispatcher); // Purpur - Add credits command
++            org.purpurmc.purpur.command.DemoCommand.register(this.dispatcher); // Purpur - Add demo command
++            org.purpurmc.purpur.command.PingCommand.register(this.dispatcher); // Purpur - Add ping command
++            org.purpurmc.purpur.command.UptimeCommand.register(this.dispatcher); // Purpur - Add uptime command
++            org.purpurmc.purpur.command.TPSBarCommand.register(this.dispatcher); // Purpur - Implement TPSBar
++            org.purpurmc.purpur.command.CompassCommand.register(this.dispatcher); // Purpur - Add compass command
++            org.purpurmc.purpur.command.RamBarCommand.register(this.dispatcher); // Purpur - Add rambar command
++            org.purpurmc.purpur.command.RamCommand.register(this.dispatcher); // Purpur - Add ram command
          }
  
 -        if (p_230943_.includeIntegrated) {
@@ -334,7 +351,7 @@
              }
  
              return null;
-@@ -394,27 +_,120 @@
+@@ -394,27 +_,123 @@
          }
      }
  
@@ -405,6 +422,7 @@
 +    private void runSync(ServerPlayer player, java.util.Collection<String> bukkit, RootCommandNode<CommandSourceStack> rootCommandNode) {
 +        // Paper end - Perf: Async command map building
 +        new com.destroystokyo.paper.event.brigadier.AsyncPlayerSendCommandsEvent<CommandSourceStack>(player.getBukkitEntity(), (RootCommandNode) rootCommandNode, true).callEvent(); // Paper - Brigadier API
++        if (org.bukkit.event.player.PlayerCommandSendEvent.getHandlerList().getRegisteredListeners().length > 0) { // Purpur - Skip events if there's no listeners
 +        org.bukkit.event.player.PlayerCommandSendEvent event = new org.bukkit.event.player.PlayerCommandSendEvent(player.getBukkitEntity(), new java.util.LinkedHashSet<>(bukkit));
 +        event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
@@ -415,6 +433,8 @@
 +            }
 +        }
 +        // CraftBukkit end
++        } // Purpur - Skip events if there's no listeners
++
 +        player.connection.send(new ClientboundCommandsPacket(rootCommandNode, COMMAND_NODE_INSPECTOR));
 +    }
 +

@@ -1,5 +1,14 @@
 --- a/net/minecraft/server/commands/EnchantCommand.java
 +++ b/net/minecraft/server/commands/EnchantCommand.java
+@@ -71,7 +_,7 @@
+ 
+     private static int enchant(CommandSourceStack p_249815_, Collection<? extends Entity> p_248848_, Holder<Enchantment> p_251252_, int p_249941_) throws CommandSyntaxException {
+         Enchantment enchantment = p_251252_.value();
+-        if (p_249941_ > enchantment.getMaxLevel()) {
++        if (!org.purpurmc.purpur.PurpurConfig.allowUnsafeEnchantCommand && p_249941_ > enchantment.getMaxLevel()) { // Purpur - Config to allow unsafe enchants
+             throw ERROR_LEVEL_TOO_HIGH.create(p_249941_, enchantment.getMaxLevel());
+         } else {
+             int i = 0;
 @@ -80,7 +_,7 @@
                  if (entity instanceof LivingEntity livingentity) {
                      ItemStack itemstack = livingentity.getMainHandItem();

@@ -9,6 +9,22 @@
      );
      public static final Block DETECTOR_RAIL = register(
          "detector_rail", DetectorRailBlock::new, BlockBehaviour.Properties.of().noCollission().strength(0.7F).sound(SoundType.METAL)
+@@ -6560,6 +_,7 @@
+         BlockBehaviour.Properties.of()
+             .mapColor(MapColor.PLANT)
+             .forceSolidOff()
++            .randomTicks() // Purpur - Chance for azalea blocks to grow into trees naturally
+             .instabreak()
+             .sound(SoundType.AZALEA)
+             .noOcclusion()
+@@ -6571,6 +_,7 @@
+         BlockBehaviour.Properties.of()
+             .mapColor(MapColor.PLANT)
+             .forceSolidOff()
++            .randomTicks() // Purpur - Chance for azalea blocks to grow into trees naturally
+             .instabreak()
+             .sound(SoundType.FLOWERING_AZALEA)
+             .noOcclusion()
 @@ -7047,7 +_,8 @@
      static {
          for (Block block : BuiltInRegistries.BLOCK) {

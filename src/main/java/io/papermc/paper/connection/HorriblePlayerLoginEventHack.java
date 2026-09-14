@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 @NullMarked
 public class HorriblePlayerLoginEventHack {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
     private static boolean nagged = false;
 
     public static void warnReenterConfiguration() {

@@ -40,6 +40,15 @@
                  int i = 0;
                  i += this.getExperienceFromItem(GrindstoneMenu.this.repairSlots.getItem(0));
                  i += this.getExperienceFromItem(GrindstoneMenu.this.repairSlots.getItem(1));
+@@ -96,7 +_,7 @@
+                 for (Entry<Holder<Enchantment>> entry : itemenchantments.entrySet()) {
+                     Holder<Enchantment> holder = entry.getKey();
+                     int j = entry.getIntValue();
+-                    if (!holder.is(EnchantmentTags.CURSE)) {
++                    if (!org.purpurmc.purpur.PurpurConfig.grindstoneIgnoredEnchants.contains(holder.value())) { // Purpur - Config for grindstones
+                         i += holder.value().getMinCost(j);
+                     }
+                 }
 @@ -116,6 +_,8 @@
      }
  
@@ -66,3 +75,37 @@
              }
  
              this.mergeEnchantsFrom(itemstack, p_332686_);
+@@ -193,6 +_,23 @@
+         }
+ 
+         p_332709_.set(DataComponents.REPAIR_COST, i);
++
++        // Purpur start - Config for grindstones
++        net.minecraft.core.component.DataComponentPatch.Builder builder = net.minecraft.core.component.DataComponentPatch.builder();
++        if (org.purpurmc.purpur.PurpurConfig.grindstoneRemoveAttributes) {
++            p_332709_.getComponents().forEach(typedDataComponent -> {
++                if (GRINDSTONE_REMOVE_ATTRIBUTES_REMOVAL_LIST.contains(typedDataComponent.type())) {
++                    builder.remove(typedDataComponent.type());
++                }
++            });
++        }
++        if (org.purpurmc.purpur.PurpurConfig.grindstoneRemoveDisplay) {
++            builder.remove(DataComponents.CUSTOM_NAME);
++            builder.remove(DataComponents.LORE);
++        }
++        p_332709_.applyComponents(builder.build());
++        // Purpur end - Config for grindstones
++
+         return p_332709_;
+     }
+ 
+@@ -248,7 +_,9 @@
+                 return ItemStack.EMPTY;
+             }
+ 
++            this.activeQuickItem = itemStack; // Purpur - Grindstone API
+             slot.onTake(p_39588_, itemstack1);
++            this.activeQuickItem = null; // Purpur - Grindstone API
+         }
+ 
+         return itemstack;

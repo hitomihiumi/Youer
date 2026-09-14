@@ -19,3 +19,11 @@
              p_221841_.setBlock(p_221842_, p_221840_.setValue(POWERED, true), 2);
              p_221841_.scheduleTick(p_221842_, this, 2);
          }
+@@ -71,6 +_,7 @@
+         RandomSource p_374161_
+     ) {
+         if (p_55118_.getValue(FACING) == p_55119_ && !p_55118_.getValue(POWERED)) {
++            if (!level.getWorldBorder().world.purpurConfig.disableObserverClocks || !(neighborState.getBlock() instanceof ObserverBlock) || neighborState.getValue(ObserverBlock.FACING).getOpposite() != p_55119_) // Purpur - Add Option for disable observer clocks
+             this.startSignal(p_374557_, p_374458_, p_55122_);
+         }
+ 

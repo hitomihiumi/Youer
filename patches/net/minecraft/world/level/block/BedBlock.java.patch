@@ -37,7 +37,7 @@
 -                Vec3 vec3 = p_49517_.getCenter();
 -                p_49516_.explode(null, p_49516_.damageSources().badRespawnPointExplosion(vec3), null, vec3, 5.0F, true, Level.ExplosionInteraction.BLOCK);
 +                Vec3 center = pos.getCenter();
-+                level.explode(null, level.damageSources().badRespawnPointExplosion(center), null, center, 5.0F, true, Level.ExplosionInteraction.BLOCK);
++                if (level.purpurConfig.bedExplode) level.explode(null, level.damageSources().badRespawnPointExplosion(center), null, center, (float) level.purpurConfig.bedExplosionPower, level.purpurConfig.bedExplosionFire, level.purpurConfig.bedExplosionEffect); // Purpur - Implement bed explosion options
                  return InteractionResult.SUCCESS_SERVER;
 -            } else if (p_49515_.getValue(OCCUPIED)) {
 -                if (!this.kickVillagerOutOfBed(p_49516_, p_49517_)) {
@@ -91,7 +91,7 @@
 +        }
 +
 +        Vec3 center = pos.getCenter();
-+        level.explode(null, level.damageSources().badRespawnPointExplosion(center).causingBlockSnapshot(blockState), null, center, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
++        if (level.purpurConfig.bedExplode) level.explode(null, level.damageSources().badRespawnPointExplosion(center).causingBlockSnapshot(blockState), null, center, (float) level.purpurConfig.bedExplosionPower, level.purpurConfig.bedExplosionFire, level.purpurConfig.bedExplosionEffect); // CraftBukkit - add state // Purpur - Implement bed explosion options
 +        return InteractionResult.SUCCESS_SERVER;
 +     }
 +    // CraftBukkit end
@@ -99,6 +99,15 @@
      public static boolean canSetSpawn(Level p_49489_) {
          return p_49489_.dimensionType().bedWorks();
      }
+@@ -134,7 +_,7 @@
+ 
+     @Override
+     public void fallOn(Level p_152169_, BlockState p_152170_, BlockPos p_152171_, Entity p_152172_, double p_398028_) {
+-        super.fallOn(p_152169_, p_152170_, p_152171_, p_152172_, p_398028_ * 0.5);
++        super.fallOn(p_152169_, p_152170_, p_152171_, p_152172_, p_398028_); // Purpur - Configurable block fall damage modifiers
+     }
+ 
+     @Override
 @@ -302,6 +_,11 @@
          if (!p_49499_.isClientSide) {
              BlockPos blockpos = p_49500_.relative(p_49501_.getValue(FACING));

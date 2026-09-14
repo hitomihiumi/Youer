@@ -27,7 +27,19 @@
          return SoundEvents.HOSTILE_DEATH;
      }
  
-@@ -92,7 +_,7 @@
+@@ -88,11 +_,19 @@
+     }
+ 
+     public static boolean isDarkEnoughToSpawn(ServerLevelAccessor p_219010_, BlockPos p_219011_, RandomSource p_219012_) {
++        // Purpur start - Config to disable hostile mob spawn on ice
++        if (!p_219010_.getMinecraftWorld().purpurConfig.mobsSpawnOnPackedIce || !p_219010_.getMinecraftWorld().purpurConfig.mobsSpawnOnBlueIce) {
++            net.minecraft.world.level.block.state.BlockState spawnBlock = p_219010_.getBlockState(p_219011_.below());
++            if ((!p_219010_.getMinecraftWorld().purpurConfig.mobsSpawnOnPackedIce && spawnBlock.is(net.minecraft.world.level.block.Blocks.PACKED_ICE)) || (!p_219010_.getMinecraftWorld().purpurConfig.mobsSpawnOnBlueIce && spawnBlock.is(net.minecraft.world.level.block.Blocks.BLUE_ICE))) {
++                return false;
++            }
++        }
++        // Purpur end - Config to disable hostile mob spawn on ice
+         if (p_219010_.getBrightness(LightLayer.SKY, p_219011_) > p_219012_.nextInt(32)) {
              return false;
          } else {
              DimensionType dimensiontype = p_219010_.dimensionType();

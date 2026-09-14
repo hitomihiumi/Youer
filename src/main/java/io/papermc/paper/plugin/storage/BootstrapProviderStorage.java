@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 
 public class BootstrapProviderStorage extends SimpleProviderStorage<PluginBootstrap> {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
 
     public BootstrapProviderStorage() {
         super(new ModernPluginLoadingStrategy<>(new ProviderConfiguration<>() {

@@ -9,3 +9,12 @@
          return blockstate.is(this) || blockstate.is(Blocks.BIG_DRIPLEAF_STEM) || blockstate.is(BlockTags.BIG_DRIPLEAF_PLACEABLE);
      }
  
+@@ -239,7 +_,7 @@
+             playTiltSound(p_152284_, p_152285_, p_152287_);
+         }
+ 
+-        int i = DELAY_UNTIL_NEXT_TILT_STATE.getInt(p_152286_);
++        int i = level.purpurConfig.bigDripleafTiltDelay.getOrDefault(p_152286_, -1); // Purpur - Big dripleaf tilt delay
+         if (i != -1) {
+             p_152284_.scheduleTick(p_152285_, this, i);
+         }

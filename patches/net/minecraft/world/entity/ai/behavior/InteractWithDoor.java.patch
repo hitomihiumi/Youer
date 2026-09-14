@@ -1,7 +1,11 @@
 --- a/net/minecraft/world/entity/ai/behavior/InteractWithDoor.java
 +++ b/net/minecraft/world/entity/ai/behavior/InteractWithDoor.java
-@@ -59,6 +_,12 @@
-                             if (blockstate.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201959_ -> p_201959_.getBlock() instanceof DoorBlock)) {
+@@ -56,9 +_,15 @@
+                             Node node1 = path.getNextNode();
+                             BlockPos blockpos = node.asBlockPos();
+                             BlockState blockstate = p_258469_.getBlockState(blockpos);
+-                            if (blockstate.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201959_ -> p_201959_.getBlock() instanceof DoorBlock)) {
++                            if (blockstate.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201959_ -> p_201959_.getBlock() instanceof DoorBlock)&& !DoorBlock.requiresRedstone(entity.level(), blockstate, blockPos)) { // Purpur - Option to make doors require redstone
                                  DoorBlock doorblock = (DoorBlock)blockstate.getBlock();
                                  if (!doorblock.isOpen(blockstate)) {
 +                                    // CraftBukkit start - entities opening doors
@@ -13,8 +17,12 @@
                                      doorblock.setOpen(p_258470_, p_258469_, blockstate, blockpos, true);
                                  }
  
-@@ -70,6 +_,12 @@
-                             if (blockstate1.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201957_ -> p_201957_.getBlock() instanceof DoorBlock)) {
+@@ -67,9 +_,15 @@
+ 
+                             BlockPos blockpos1 = node1.asBlockPos();
+                             BlockState blockstate1 = p_258469_.getBlockState(blockpos1);
+-                            if (blockstate1.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201957_ -> p_201957_.getBlock() instanceof DoorBlock)) {
++                            if (blockstate1.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201957_ -> p_201957_.getBlock() instanceof DoorBlock) && !DoorBlock.requiresRedstone(entity.level(), blockstate1, blockPos1)) { // Purpur - Option to make doors require redstone
                                  DoorBlock doorblock1 = (DoorBlock)blockstate1.getBlock();
                                  if (!doorblock1.isOpen(blockstate1)) {
 +                                    // CraftBukkit start - entities opening doors
@@ -26,3 +34,12 @@
                                      doorblock1.setOpen(p_258470_, p_258469_, blockstate1, blockpos1, true);
                                      optional = rememberDoorToClose(p_258461_, optional, p_258469_, blockpos1);
                                  }
+@@ -107,7 +_,7 @@
+                     iterator.remove();
+                 } else {
+                     BlockState blockstate = p_260343_.getBlockState(blockpos);
+-                    if (!blockstate.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201952_ -> p_201952_.getBlock() instanceof DoorBlock)) {
++                    if (!blockstate.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201952_ -> p_201952_.getBlock() instanceof DoorBlock) || DoorBlock.requiresRedstone(entity.level(), blockstate, blockPos)) { // Purpur - Option to make doors require redstone
+                         iterator.remove();
+                     } else {
+                         DoorBlock doorblock = (DoorBlock)blockstate.getBlock();

@@ -13,7 +13,7 @@
              p_316238_.consume(1, p_316853_);
              p_316766_.playSound(null, p_316227_, SoundEvents.CAKE_ADD_CANDLE, SoundSource.BLOCKS, 1.0F, 1.0F);
              p_316766_.setBlockAndUpdate(p_316227_, CandleCakeBlock.byCandle(candleblock));
-@@ -83,19 +_,38 @@
+@@ -83,19 +_,39 @@
          return eat(p_316406_, p_316218_, p_316481_, p_316212_);
      }
  
@@ -45,6 +45,7 @@
 +            org.bukkit.event.entity.FoodLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFoodLevelChangeEvent(player, 2 + oldFoodLevel);
 +
 +            if (!event.isCancelled()) {
++                if (player.level().purpurConfig.playerBurpWhenFull && event.getFoodLevel() == 20 && oldFoodLevel < 20) player.burpDelay = player.level().purpurConfig.playerBurpDelay; // Purpur - Burp after eating food fills hunger bar completely
 +                player.getFoodData().eat(event.getFoodLevel() - oldFoodLevel, 0.1F);
 +            }
 +

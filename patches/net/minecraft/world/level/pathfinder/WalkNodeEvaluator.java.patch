@@ -22,6 +22,15 @@
          Block block = blockstate.getBlock();
          if (blockstate.isAir()) {
              return PathType.OPEN;
+@@ -503,7 +_,7 @@
+             return PathType.TRAPDOOR;
+         } else if (blockstate.is(Blocks.POWDER_SNOW)) {
+             return PathType.POWDER_SNOW;
+-        } else if (blockstate.is(Blocks.CACTUS) || blockstate.is(Blocks.SWEET_BERRY_BUSH)) {
++        } else if (blockstate.is(Blocks.CACTUS) || blockstate.is(Blocks.SWEET_BERRY_BUSH) || blockstate.is(Blocks.STONECUTTER)) { // Purpur - Stonecutter damage
+             return PathType.DAMAGE_OTHER;
+         } else if (blockstate.is(Blocks.HONEY_BLOCK)) {
+             return PathType.STICKY_HONEY;
 @@ -511,6 +_,8 @@
              return PathType.COCOA;
          } else if (!blockstate.is(Blocks.WITHER_ROSE) && !blockstate.is(Blocks.POINTED_DRIPSTONE)) {

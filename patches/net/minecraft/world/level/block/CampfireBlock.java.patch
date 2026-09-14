@@ -11,6 +11,15 @@
          }
  
          super.entityInside(p_51269_, p_51270_, p_51271_, p_51272_, p_405507_);
+@@ -124,7 +_,7 @@
+         return this.defaultBlockState()
+             .setValue(WATERLOGGED, flag)
+             .setValue(SIGNAL_FIRE, this.isSmokeSource(levelaccessor.getBlockState(blockpos.below())))
+-            .setValue(LIT, !flag)
++            .setValue(LIT, level.getMinecraftWorld().purpurConfig.campFireLitWhenPlaced && !flag) // Purpur - Campfire option for lit when placed
+             .setValue(FACING, p_51240_.getHorizontalDirection());
+     }
+ 
 @@ -227,6 +_,11 @@
              && p_51247_.mayInteract(serverlevel, blockpos)
              && !p_51245_.getValue(LIT)

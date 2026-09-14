@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/item/CrossbowItem.java
 +++ b/net/minecraft/world/item/CrossbowItem.java
+@@ -67,7 +_,7 @@
+         ItemStack itemstack = p_40921_.getItemInHand(p_40922_);
+         ChargedProjectiles chargedprojectiles = itemstack.get(DataComponents.CHARGED_PROJECTILES);
+         if (chargedprojectiles != null && !chargedprojectiles.isEmpty()) {
+-            this.performShooting(p_40920_, p_40921_, p_40922_, itemstack, getShootingPower(chargedprojectiles), 1.0F, null);
++            this.performShooting(p_40920_, p_40921_, p_40922_, itemstack, getShootingPower(chargedprojectiles), (float) p_40920_.purpurConfig.crossbowProjectileOffset, null); // Purpur - Projectile offset config
+             return InteractionResult.CONSUME;
+         } else if (!p_40921_.getProjectile(itemstack).isEmpty()) {
+             this.startSoundPlayed = false;
 @@ -89,10 +_,17 @@
          return getPowerForTime(i, p_40875_, p_40877_) >= 1.0F && isCharged(p_40875_);
      }

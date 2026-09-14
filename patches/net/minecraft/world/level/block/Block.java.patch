@@ -106,6 +106,32 @@
      public float getExplosionResistance() {
          return this.explosionResistance;
      }
+@@ -404,7 +_,15 @@
+     }
+ 
+     public void setPlacedBy(Level p_49847_, BlockPos p_49848_, BlockState p_49849_, @Nullable LivingEntity p_49850_, ItemStack p_49851_) {
+-    }
++        this.placer = placer; // Purpur - Store placer on Block when placed
++    }
++
++    // Purpur start - Store placer on Block when placed
++    @Nullable protected LivingEntity placer = null;
++    public void forgetPlacer() {
++        this.placer = null;
++    }
++    // Purpur end - Store placer on Block when placed
+ 
+     public boolean isPossibleToRespawnInThis(BlockState p_279289_) {
+         return !p_279289_.isSolid() && !p_279289_.liquid();
+@@ -415,7 +_,7 @@
+     }
+ 
+     public void fallOn(Level p_152426_, BlockState p_152427_, BlockPos p_152428_, Entity p_152429_, double p_397222_) {
+-        p_152429_.causeFallDamage(p_397222_, 1.0F, p_152429_.damageSources().fall());
++        p_152429_.causeFallDamage(p_397222_ * fallDistanceMultiplier, fallDamageMultiplier, p_152429_.damageSources().fall()); // Purpur - Configurable block fall damage modifiers
+     }
+ 
+     public void updateEntityMovementAfterFallOn(BlockGetter p_49821_, Entity p_49822_) {
 @@ -451,6 +_,7 @@
      public void handlePrecipitation(BlockState p_152450_, Level p_152451_, BlockPos p_152452_, Biome.Precipitation p_152453_) {
      }

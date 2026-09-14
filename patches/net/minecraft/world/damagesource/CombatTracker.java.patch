@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/damagesource/CombatTracker.java
 +++ b/net/minecraft/world/damagesource/CombatTracker.java
+@@ -55,7 +_,7 @@
+ 
+     private Component getMessageForAssistedFall(Entity p_289547_, Component p_289532_, String p_289555_, String p_289548_) {
+         ItemStack itemstack = p_289547_ instanceof LivingEntity livingentity ? livingentity.getMainHandItem() : ItemStack.EMPTY;
+-        return !itemstack.isEmpty() && itemstack.has(DataComponents.CUSTOM_NAME)
++        return !itemstack.isEmpty() && (org.purpurmc.purpur.PurpurConfig.playerDeathsAlwaysShowItem || itemstack.has(DataComponents.CUSTOM_NAME)) // Purpur - always show item in player death messages
+             ? Component.translatable(p_289555_, this.mob.getDisplayName(), p_289532_, itemstack.getDisplayName())
+             : Component.translatable(p_289548_, this.mob.getDisplayName(), p_289532_);
+     }
 @@ -92,6 +_,11 @@
              DamageSource damagesource = combatentry.source();
              CombatEntry combatentry1 = this.getMostSignificantFall();
@@ -12,3 +21,19 @@
              if (deathmessagetype == DeathMessageType.FALL_VARIANTS && combatentry1 != null) {
                  return this.getFallMessage(combatentry1, damagesource.getEntity());
              } else if (deathmessagetype == DeathMessageType.INTENTIONAL_GAME_DESIGN) {
+@@ -99,6 +_,15 @@
+                 Component component = ComponentUtils.wrapInSquareBrackets(Component.translatable(s + ".link")).withStyle(INTENTIONAL_GAME_DESIGN_STYLE);
+                 return Component.translatable(s + ".message", this.mob.getDisplayName(), component);
+             } else {
++                // Purpur start - Dont run with scissors!
++                if (damageSource.isScissors()) {
++                    return damageSource.getLocalizedDeathMessage(org.purpurmc.purpur.PurpurConfig.deathMsgRunWithScissors, this.mob);
++                // Purpur start - Stonecutter damage
++                } else if (damageSource.isStonecutter()) {
++                    return damageSource.getLocalizedDeathMessage(org.purpurmc.purpur.PurpurConfig.deathMsgStonecutter, this.mob);
++                // Purpur end - Stonecutter damage
++                }
++                // Purpur end - Dont run with scissors!
+                 return damagesource.getLocalizedDeathMessage(this.mob);
+             }
+         }

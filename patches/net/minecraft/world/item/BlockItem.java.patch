@@ -14,18 +14,46 @@
                          SoundSource.BLOCKS,
                          (soundtype.getVolume() + 1.0F) / 2.0F,
                          soundtype.getPitch() * 0.8F
-@@ -94,8 +_,14 @@
+@@ -94,10 +_,16 @@
          }
      }
  
 +    @Deprecated //Forge: Use more sensitive version {@link BlockItem#getPlaceSound(BlockState, IBlockReader, BlockPos, Entity) }
      protected SoundEvent getPlaceSound(BlockState p_40588_) {
          return p_40588_.getSoundType().getPlaceSound();
-+    }
-+
+     }
+ 
 +    //Forge: Sensitive version of BlockItem#getPlaceSound
 +    protected SoundEvent getPlaceSound(BlockState state, Level world, BlockPos pos, Player entity) {
 +        return state.getSoundType(world, pos, entity).getPlaceSound();
++    }
++
+     @Nullable
+     public BlockPlaceContext updatePlacementContext(BlockPlaceContext p_40609_) {
+         return p_40609_;
+@@ -112,7 +_,16 @@
+     }
+ 
+     protected boolean updateCustomBlockEntityTag(BlockPos p_40597_, Level p_40598_, @Nullable Player p_40599_, ItemStack p_40600_, BlockState p_40601_) {
+-        return updateCustomBlockEntityTag(p_40598_, p_40599_, p_40597_, p_40600_);
++        // Purpur start - Persistent BlockEntity Lore and DisplayName
++        boolean handled = updateCustomBlockEntityTag(p_40598_, p_40599_, p_40597_, p_40600_);
++        if (p_40598_.purpurConfig.persistentTileEntityLore) {
++            BlockEntity blockEntity1 = p_40598_.getBlockEntity(p_40597_);
++            if (blockEntity1 != null) {
++                blockEntity1.setPersistentLore(p_40600_.getOrDefault(DataComponents.LORE, net.minecraft.world.item.component.ItemLore.EMPTY));
++            }
++        }
++        return handled;
++        // Purpur end - Persistent BlockEntity Lore and DisplayName
      }
  
      @Nullable
+@@ -209,6 +_,7 @@
+     public void onDestroyed(ItemEntity p_150700_) {
+         ItemContainerContents itemcontainercontents = p_150700_.getItem().set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+         if (itemcontainercontents != null) {
++            if (itemEntity.level().purpurConfig.shulkerBoxItemDropContentsWhenDestroyed && this.getBlock() instanceof ShulkerBoxBlock) // Purpur - option to disable shulker box items from dropping contents when destroyed
+             ItemUtils.onContainerDestroyed(p_150700_, itemcontainercontents.nonEmptyItemsCopy());
+         }
+     }

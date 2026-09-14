@@ -9,6 +9,23 @@
              }
  
              @Override
+@@ -70,6 +_,16 @@
+                 return EnchantmentMenu.EMPTY_SLOT_LAPIS_LAZULI;
+             }
+         });
++        // Purpur start - Enchantment Table Persists Lapis
++        access.execute((level, pos) -> {
++            if (level.purpurConfig.enchantmentTableLapisPersists) {
++                net.minecraft.world.level.block.entity.BlockEntity blockEntity = level.getBlockEntity(pos);
++                if (blockEntity instanceof net.minecraft.world.level.block.entity.EnchantingTableBlockEntity enchantmentTable) {
++                    this.getSlot(1).set(new ItemStack(Items.LAPIS_LAZULI, enchantmentTable.getLapis()));
++                }
++            }
++        });
++        // Purpur end - Enchantment Table Persists Lapis
+         this.addStandardInventorySlots(p_39458_, 8, 84);
+         this.addDataSlot(DataSlot.shared(this.costs, 0));
+         this.addDataSlot(DataSlot.shared(this.costs, 1));
 @@ -90,23 +_,24 @@
              if (!itemstack.isEmpty() && itemstack.isEnchantable()) {
                  this.access.execute((p_344366_, p_344367_) -> {
@@ -56,6 +73,15 @@
  
                                  itemstack1.consume(i, p_39465_);
                                  if (itemstack1.isEmpty()) {
+@@ -215,7 +_,7 @@
+     @Override
+     public void removed(Player p_39488_) {
+         super.removed(p_39488_);
+-        this.access.execute((p_39469_, p_39470_) -> this.clearContainer(p_39488_, this.enchantSlots));
++        this.access.execute((p_39469_, p_39470_) -> {if (p_39469_.purpurConfig.enchantmentTableLapisPersists) this.getSlot(1).set(ItemStack.EMPTY);this.clearContainer(p_39488_, this.enchantSlots);}); // Purpur - Enchantment Table Persists Lapis
+     }
+ 
+     @Override
 @@ -238,7 +_,7 @@
                  if (!this.moveItemStackTo(itemstack1, 2, 38, true)) {
                      return ItemStack.EMPTY;

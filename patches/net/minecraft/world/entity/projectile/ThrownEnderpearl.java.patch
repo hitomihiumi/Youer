@@ -20,7 +20,7 @@
  
          for (int i = 0; i < 32; i++) {
              this.level()
-@@ -113,51 +_,59 @@
+@@ -113,51 +_,60 @@
                  );
          }
  
@@ -49,11 +49,12 @@
 +                            return;
 +                        }
 +                        // CraftBukkit end
-+                        if (this.random.nextFloat() < 0.05F && serverLevel.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
++                        if (this.random.nextFloat() < serverLevel.purpurConfig.enderPearlEndermiteChance && serverLevel.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) { // Purpur - Configurable Ender Pearl RNG
 +                            Endermite endermite = EntityType.ENDERMITE.create(serverLevel, EntitySpawnReason.TRIGGERED);
                              if (endermite != null) {
 -                                endermite.snapTo(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot());
 -                                serverlevel.addFreshEntity(endermite);
++                                endermite.setPlayerSpawned(true); // Purpur - Add back player spawned endermite API
 +                                endermite.snapTo(preTeleportX, preTeleportY, preTeleportZ, preTeleportYRot, preTeleportXRot); // Paper - spawn endermite at pre teleport position as teleport has been moved up
 +                                serverLevel.addFreshEntity(endermite, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.ENDER_PEARL);
                              }

@@ -26,7 +26,7 @@ import org.slf4j.Logger;
  */
 public class FileProviderSource implements ProviderSource<Path, Path> {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
     private final Function<Path, String> contextChecker;
     private final boolean applyRemap;
 

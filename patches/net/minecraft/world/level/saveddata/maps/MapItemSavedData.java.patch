@@ -35,7 +35,7 @@
      );
      public int centerX;
      public int centerZ;
-@@ -72,6 +_,7 @@
+@@ -72,12 +_,21 @@
      public byte scale;
      public byte[] colors = new byte[16384];
      public boolean locked;
@@ -43,20 +43,20 @@
      public final List<MapItemSavedData.HoldingPlayer> carriedBy = Lists.newArrayList();
      public final Map<Player, MapItemSavedData.HoldingPlayer> carriedByPlayers = Maps.newHashMap();
      private final Map<String, MapBanner> bannerMarkers = Maps.newHashMap();
-@@ -79,6 +_,13 @@
+     public final Map<String, MapDecoration> decorations = Maps.newLinkedHashMap();
      private final Map<String, MapFrame> frameMarkers = Maps.newHashMap();
      private int trackedDecorationCount;
- 
++    public boolean isExplorerMap; // Purpur - Explorer Map API
++
 +    // CraftBukkit start
 +    public final org.bukkit.craftbukkit.map.CraftMapView mapView;
 +    private final org.bukkit.craftbukkit.CraftServer server;
 +    public java.util.UUID uniqueId;
 +    public MapId id;
 +    // CraftBukkit end
-+
+ 
      public static SavedDataType<MapItemSavedData> type(MapId p_401062_) {
          return new SavedDataType<>(p_401062_.key(), () -> {
-             throw new IllegalStateException("Should never create an empty map saved data");
 @@ -95,7 +_,29 @@
          this.trackingPosition = p_164771_;
          this.unlimitedTracking = p_164772_;

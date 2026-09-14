@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
-@@ -53,6 +_,13 @@
+@@ -53,6 +_,19 @@
      @Nullable
      public UUID target;
      public final float bobOffs;
@@ -11,6 +11,12 @@
 +    public boolean canMobPickup = true; // Paper - Item#canEntityPickup
 +    private int despawnRate = -1; // Paper - Alternative item-despawn-rate
 +    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
++    // Purpur start - Item entity immunities
++    public boolean immuneToCactus = false;
++    public boolean immuneToExplosion = false;
++    public boolean immuneToFire = false;
++    public boolean immuneToLightning = false;
++    // Purpur end - Item entity immunities
  
      public ItemEntity(EntityType<? extends ItemEntity> p_31991_, Level p_31992_) {
          super(p_31991_, p_31992_);
@@ -193,7 +199,24 @@
          }
      }
  
-@@ -287,12 +_,17 @@
+@@ -280,19 +_,33 @@
+ 
+     @Override
+     public final boolean hurtServer(ServerLevel p_376942_, DamageSource p_376452_, float p_376562_) {
+-        if (this.isInvulnerableToBase(p_376452_)) {
++        // Purpur start - Item entity immunities
++        if (
++            (immuneToCactus && p_376452_.is(net.minecraft.world.damagesource.DamageTypes.CACTUS)) ||
++            (immuneToFire && (p_376452_.is(net.minecraft.tags.DamageTypeTags.IS_FIRE) || p_376452_.is(net.minecraft.world.damagesource.DamageTypes.ON_FIRE) || p_376452_.is(net.minecraft.world.damagesource.DamageTypes.IN_FIRE))) ||
++            (immuneToLightning && p_376452_.is(net.minecraft.world.damagesource.DamageTypes.LIGHTNING_BOLT)) ||
++            (immuneToExplosion && p_376452_.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION))
++        ) {
++            return false;
++        } else if (this.isInvulnerableToBase(p_376452_)) {
++        // Purpur end - Item entity immunities
+             return false;
+         } else if (!p_376942_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && p_376452_.getEntity() instanceof Mob) {
+             return false;
          } else if (!this.getItem().canBeHurtBy(p_376452_)) {
              return false;
          } else {
@@ -359,11 +382,17 @@
              }
          }
      }
-@@ -376,6 +_,7 @@
+@@ -376,6 +_,13 @@
  
      public void setItem(ItemStack p_32046_) {
          this.getEntityData().set(DATA_ITEM, p_32046_);
 +        this.despawnRate = this.level().paperConfig().entities.spawning.altItemDespawnRate.enabled ? this.level().paperConfig().entities.spawning.altItemDespawnRate.items.getOrDefault(p_32046_.getItem(), this.level().spigotConfig.itemDespawnRate) : this.level().spigotConfig.itemDespawnRate; // Paper - Alternative item-despawn-rate
++        // Purpur start - Item entity immunities
++        if (level().purpurConfig.itemImmuneToCactus.contains(p_32046_.getItem())) immuneToCactus = true;
++        if (level().purpurConfig.itemImmuneToExplosion.contains(p_32046_.getItem())) immuneToExplosion = true;
++        if (level().purpurConfig.itemImmuneToFire.contains(p_32046_.getItem())) immuneToFire = true;
++        if (level().purpurConfig.itemImmuneToLightning.contains(p_32046_.getItem())) immuneToLightning = true;
++        // level end - Item entity immunities
      }
  
      @Override

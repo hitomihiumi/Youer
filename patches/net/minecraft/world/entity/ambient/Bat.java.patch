@@ -64,3 +64,20 @@
                  this.setResting(false);
              }
  
+@@ -229,7 +_,7 @@
+         } else {
+             int i = p_218100_.getMaxLocalRawBrightness(p_218102_);
+             int j = 4;
+-            if (isHalloween()) {
++            if (Bat.isHalloweenSeason(level.getMinecraftWorld())) { // Purpur - Halloween options and optimizations
+                 j = 7;
+             } else if (p_218103_.nextBoolean()) {
+                 return false;
+@@ -245,6 +_,7 @@
+         }
+     }
+ 
++    public static boolean isHalloweenSeason(Level level) { return level.purpurConfig.forceHalloweenSeason || isHalloween(); } // Purpur - Halloween options and optimizations
+     private static boolean isHalloween() {
+         LocalDate localdate = LocalDate.now();
+         int i = localdate.get(ChronoField.DAY_OF_MONTH);

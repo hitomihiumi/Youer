@@ -92,3 +92,22 @@
              if (traderllama != null) {
                  traderllama.setLeashedTo(p_35919_, true);
              }
+@@ -131,7 +_,17 @@
+             int j = p_35930_.getX() + this.random.nextInt(p_35931_ * 2) - p_35931_;
+             int k = p_35930_.getZ() + this.random.nextInt(p_35931_ * 2) - p_35931_;
+             int l = p_35929_.getHeight(Heightmap.Types.WORLD_SURFACE, j, k);
+-            BlockPos blockpos1 = new BlockPos(j, l, k);
++            // Purpur start - Allow toggling special MobSpawners per world - allow traders to spawn below nether roof
++            BlockPos.MutableBlockPos blockpos1 = new BlockPos.MutableBlockPos(j, l, k);
++            if (level.dimensionType().hasCeiling()) {
++                do {
++                    blockpos1.relative(net.minecraft.core.Direction.DOWN);
++                } while (!level.getBlockState(blockpos1).isAir());
++                do {
++                    blockpos1.relative(net.minecraft.core.Direction.DOWN);
++                } while (level.getBlockState(blockpos1).isAir() && blockpos1.getY() > 0);
++            }
++            // Purpur end - Allow toggling special MobSpawners per world
+             if (spawnplacementtype.isSpawnPositionOk(p_35929_, blockpos1, EntityType.WANDERING_TRADER)) {
+                 blockpos = blockpos1;
+                 break;

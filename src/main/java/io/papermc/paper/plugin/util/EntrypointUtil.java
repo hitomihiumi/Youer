@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 
 public final class EntrypointUtil {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
 
     public static <I, C> void registerProvidersFromSource(ProviderSource<I, C> source, I contextInput) {
         try {

@@ -1,5 +1,88 @@
 --- a/net/minecraft/server/gui/MinecraftServerGui.java
 +++ b/net/minecraft/server/gui/MinecraftServerGui.java
+@@ -40,6 +_,11 @@
+     private Thread logAppenderThread;
+     private final Collection<Runnable> finalizers = Lists.newArrayList();
+     final AtomicBoolean isClosing = new AtomicBoolean();
++    // Purpur start - GUI Improvements
++    private final CommandHistory history = new CommandHistory();
++    private String currentCommand = "";
++    private int historyIndex = 0;
++    // Purpur end - GUI Improvements
+ 
+     public static MinecraftServerGui showFrameFor(final DedicatedServer p_139922_) {
+         try {
+@@ -47,7 +_,7 @@
+         } catch (Exception exception) {
+         }
+ 
+-        final JFrame jframe = new JFrame("Minecraft server");
++        final JFrame jframe = new JFrame("Purpur Minecraft server"); // Purpur - Improve GUI
+         final MinecraftServerGui minecraftservergui = new MinecraftServerGui(p_139922_);
+         jframe.setDefaultCloseOperation(2);
+         jframe.add(minecraftservergui);
+@@ -58,7 +_,7 @@
+             @Override
+             public void windowClosing(WindowEvent p_139944_) {
+                 if (!minecraftservergui.isClosing.getAndSet(true)) {
+-                    jframe.setTitle("Minecraft server - shutting down!");
++                    jframe.setTitle("Purpur Minecraft server - shutting down!"); // Purpur - Improve GUI
+                     p_139922_.halt(true);
+                     minecraftservergui.runFinalizers();
+                 }
+@@ -105,7 +_,7 @@
+ 
+     private JComponent buildChatPanel() {
+         JPanel jpanel = new JPanel(new BorderLayout());
+-        JTextArea jtextarea = new JTextArea();
++        org.purpurmc.purpur.gui.JColorTextPane jtextarea = new org.purpurmc.purpur.gui.JColorTextPane(); // Purpur - GUI Improvements
+         JScrollPane jscrollpane = new JScrollPane(jtextarea, 22, 30);
+         jtextarea.setEditable(false);
+         jtextarea.setFont(MONOSPACED);
+@@ -114,10 +_,43 @@
+             String s = jtextfield.getText().trim();
+             if (!s.isEmpty()) {
+                 this.server.handleConsoleInput(s, this.server.createCommandSourceStack());
++                // Purpur start - GUI Improvements
++                history.add(s);
++                historyIndex = -1;
++                // Purpur end - GUI Improvements
+             }
+ 
+             jtextfield.setText("");
+         });
++        // Purpur start - GUI Improvements
++        jtextfield.getInputMap().put(javax.swing.KeyStroke.getKeyStroke("UP"), "up");
++        jtextfield.getInputMap().put(javax.swing.KeyStroke.getKeyStroke("DOWN"), "down");
++        jtextfield.getActionMap().put("up", new javax.swing.AbstractAction() {
++            @Override
++            public void actionPerformed(java.awt.event.ActionEvent actionEvent) {
++                if (historyIndex < 0) {
++                    currentCommand = jtextfield.getText();
++                }
++                if (historyIndex < history.size() - 1) {
++                    jtextfield.setText(history.get(++historyIndex));
++                }
++            }
++        });
++        jtextfield.getActionMap().put("down", new javax.swing.AbstractAction() {
++            @Override
++            public void actionPerformed(java.awt.event.ActionEvent actionEvent) {
++                if (historyIndex >= 0) {
++                    if (historyIndex == 0) {
++                        --historyIndex;
++                        jtextfield.setText(currentCommand);
++                    } else {
++                        --historyIndex;
++                        jtextfield.setText(history.get(historyIndex));
++                    }
++                }
++            }
++        });
++        // Purpur end - GUI Improvements
+         jtextarea.addFocusListener(new FocusAdapter() {
+             @Override
+             public void focusGained(FocusEvent p_139949_) {
 @@ -137,8 +_,10 @@
          return jpanel;
      }
@@ -21,3 +104,20 @@
          if (!SwingUtilities.isEventDispatchThread()) {
              SwingUtilities.invokeLater(() -> this.print(p_139915_, p_139916_, p_139917_));
          } else {
+@@ -172,4 +_,16 @@
+             }
+         }
+     }
++
++    // Purpur start - GUI Improvements
++    public static class CommandHistory extends java.util.LinkedList<String> {
++        @Override
++        public boolean add(String command) {
++            if (size() > 1000) {
++                remove();
++            }
++            return super.offerFirst(command);
++        }
++    }
++    // Purpur end - GUI Improvements
+ }

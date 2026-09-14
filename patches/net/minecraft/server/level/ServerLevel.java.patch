@@ -345,7 +345,7 @@
 -        int i = this.getGameRules().getInt(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE);
 -        if (this.sleepStatus.areEnoughSleeping(i) && this.sleepStatus.areEnoughDeepSleeping(i, this.players)) {
 +        int _int = this.getGameRules().getInt(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE);
-+        if (this.sleepStatus.areEnoughSleeping(_int) && this.sleepStatus.areEnoughDeepSleeping(_int, this.players)) {
++        if (this.purpurConfig.playersSkipNight && this.sleepStatus.areEnoughSleeping(_int) && this.sleepStatus.areEnoughDeepSleeping(_int, this.players)) { // Purpur - Config for skipping night
 +            // Paper start - create time skip event - move up calculations
 +            final long newDayTime = this.levelData.getDayTime() + 24000L;
 +            org.bukkit.event.world.TimeSkipEvent event = new org.bukkit.event.world.TimeSkipEvent(
@@ -505,7 +505,7 @@
      }
  
      protected void tickTime() {
-@@ -435,7 +_,7 @@
+@@ -435,14 +_,29 @@
              this.serverLevelData.getScheduledEvents().tick(this.server, i);
              Profiler.get().pop();
              if (this.serverLevelData.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
@@ -514,6 +514,29 @@
              }
          }
      }
++
+ 
+     public void setDayTime(long p_8616_) {
+         this.serverLevelData.setDayTime(p_8616_);
+-    }
++        // Purpur start - Configurable daylight cycle
++        this.preciseTime = p_8616_;
++        this.forceTime = false;
++    }
++    public void setDayTime(double i) {
++        this.serverLevelData.setDayTime((long) i);
++        this.forceTime = true;
++        // Purpur end - Configurable daylight cycle
++    }
++
++    // Purpur start - Configurable daylight cycle
++    public boolean isForceTime() {
++        return this.forceTime;
++    }
++    // Purpur end - Configurable daylight cycle
+ 
+     public void tickCustomSpawners(boolean p_8800_, boolean p_8801_) {
+         for (CustomSpawner customspawner : this.customSpawners) {
 @@ -455,33 +_,38 @@
          this.players.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList()).forEach(p_184116_ -> p_184116_.stopSleepInBed(false, false));
      }
@@ -634,12 +657,40 @@
          }
  
          if (this.isRaining()) {
-@@ -554,10 +_,10 @@
+@@ -552,12 +_,38 @@
+                 if (blockstate.is(Blocks.SNOW)) {
+                     int j = blockstate.getValue(SnowLayerBlock.LAYERS);
                      if (j < Math.min(i, 8)) {
++                        // Purpur start - Smooth snow accumulation
++                        boolean canSnow = true;
++                        // Ensure snow doesn't get more than N layers taller than its neighbors
++                        // We only need to check blocks that are taller than the minimum step height
++                        if (org.purpurmc.purpur.PurpurConfig.smoothSnowAccumulationStep > 0 && j >= org.purpurmc.purpur.PurpurConfig.smoothSnowAccumulationStep) {
++                            int layersValueMin = j - org.purpurmc.purpur.PurpurConfig.smoothSnowAccumulationStep;
++                            for (Direction direction : Direction.Plane.HORIZONTAL) {
++                                BlockPos blockPosNeighbor = blockpos.relative(direction);
++                                BlockState blockStateNeighbor = this.getBlockState(blockPosNeighbor);
++                                if (blockStateNeighbor.is(Blocks.SNOW)) {
++                                    // Special check for snow layers, if neighbors are too short, don't accumulate
++                                    int layersValueNeighbor = blockStateNeighbor.getValue(SnowLayerBlock.LAYERS);
++                                    if (layersValueNeighbor <= layersValueMin) {
++                                        canSnow = false;
++                                        break;
++                                    }
++                                } else if (!Block.isFaceFull(blockStateNeighbor.getCollisionShape(this, blockPosNeighbor), direction.getOpposite())) {
++                                    // Since our layer is tall enough already, if we have a non-full neighbor block, don't accumulate
++                                    canSnow = false;
++                                    break;
++                                }
++                            }
++                        }
++                        if (canSnow) {
++                        // Purpur end - Smooth snow accumulation
                          BlockState blockstate1 = blockstate.setValue(SnowLayerBlock.LAYERS, j + 1);
                          Block.pushEntitiesUp(blockstate, blockstate1, this, blockpos);
 -                        this.setBlockAndUpdate(blockpos, blockstate1);
 +                        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, blockpos, blockstate1, 3, null); // CraftBukkit
++                        } // Purpur - Smooth snow accumulation
                      }
                  } else {
 -                    this.setBlockAndUpdate(blockpos, Blocks.SNOW.defaultBlockState());
@@ -690,6 +741,37 @@
              }
          }
      }
+@@ -617,11 +_,30 @@
+                 int i = this.getGameRules().getInt(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE);
+                 Component component;
+                 if (this.sleepStatus.areEnoughSleeping(i)) {
++                    // Purpur start - Customizable sleeping actionbar messages
++                    if (org.purpurmc.purpur.PurpurConfig.sleepSkippingNight.isBlank()) {
++                        return;
++                    }
++                    if (!org.purpurmc.purpur.PurpurConfig.sleepSkippingNight.equalsIgnoreCase("default")) {
++                        component = io.papermc.paper.adventure.PaperAdventure.asVanilla(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(org.purpurmc.purpur.PurpurConfig.sleepSkippingNight));
++                    } else
++                    // Purpur end - Customizable sleeping actionbar messages
+                     component = Component.translatable("sleep.skipping_night");
+                 } else {
++                    // Purpur start - Customizable sleeping actionbar messages
++                    if (org.purpurmc.purpur.PurpurConfig.sleepingPlayersPercent.isBlank()) {
++                        return;
++                    }
++                    if (!org.purpurmc.purpur.PurpurConfig.sleepingPlayersPercent.equalsIgnoreCase("default")) {
++                        component = io.papermc.paper.adventure.PaperAdventure.asVanilla(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(org.purpurmc.purpur.PurpurConfig.sleepingPlayersPercent,
++                            net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.parsed("count", Integer.toString(this.sleepStatus.amountSleeping())),
++                            net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.parsed("total", Integer.toString(this.sleepStatus.sleepersNeeded(i)))));
++                    } else
++                    // Purpur end - Customizable sleeping actionbar messages
+                     component = Component.translatable("sleep.players_sleeping", this.sleepStatus.amountSleeping(), this.sleepStatus.sleepersNeeded(i));
+                 }
+ 
++
+                 for (ServerPlayer serverplayer : this.players) {
+                     serverplayer.displayClientMessage(component, true);
+                 }
 @@ -644,47 +_,47 @@
      }
  
@@ -1986,7 +2068,7 @@
 +            // Spigot start
 +            if (entity.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(entity instanceof ServerPlayer) || entity.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
 +                // Paper start - Fix merchant inventory not closing on entity removal
-+                if (entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null) {
++                if (!entity.level().purpurConfig.playerVoidTrading && entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null) { // Purpur - Allow void trading
 +                    merchant.getTrader().closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED);
 +                }
 +                // Paper end - Fix merchant inventory not closing on entity removal

@@ -17,7 +17,7 @@
 +    public void afterDestroy(Level level, BlockPos pos, ItemStack stack) {
 +        // Paper end - Improve Block#breakNaturally API
 +        if (!EnchantmentHelper.hasTag(stack, EnchantmentTags.PREVENTS_ICE_MELTING)) {
-+            if (level.dimensionType().ultraWarm()) {
++            if (level.isNether() || (level.isTheEnd() && !org.purpurmc.purpur.PurpurConfig.allowWaterPlacementInTheEnd)) { // Purpur - Add allow water in end world option
 +                level.removeBlock(pos, false);
                  return;
              }
@@ -31,15 +31,17 @@
              }
          }
      }
-@@ -55,6 +_,11 @@
+@@ -55,7 +_,12 @@
      }
  
      protected void melt(BlockState p_54169_, Level p_54170_, BlockPos p_54171_) {
+-        if (p_54170_.dimensionType().ultraWarm()) {
 +        // CraftBukkit start
 +        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_54170_, p_54171_, p_54170_.dimensionType().ultraWarm() ? Blocks.AIR.defaultBlockState() : Blocks.WATER.defaultBlockState()).isCancelled()) {
 +            return;
 +        }
 +        // CraftBukkit end
-         if (p_54170_.dimensionType().ultraWarm()) {
++        if (p_54170_.isNether() || (p_54170_.isTheEnd() && !org.purpurmc.purpur.PurpurConfig.allowWaterPlacementInTheEnd)) { // Purpur - Add allow water in end world option
              p_54170_.removeBlock(p_54171_, false);
          } else {
+             p_54170_.setBlockAndUpdate(p_54171_, meltsInto());

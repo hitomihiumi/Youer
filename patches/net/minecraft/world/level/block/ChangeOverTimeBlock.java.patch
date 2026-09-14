@@ -9,3 +9,12 @@
          }
      }
  
+@@ -51,7 +_,7 @@
+         }
+ 
+         float f = (float)(k + 1) / (k + j + 1);
+-        float f1 = f * f * this.getChanceModifier();
++        float f1 = level.purpurConfig.disableOxidationProximityPenalty ? this.getChanceModifier() :f * f * this.getChanceModifier();// Purpur - option to disable the copper oxidation proximity penalty
+         return p_308890_.nextFloat() < f1 ? this.getNext(p_309150_) : Optional.empty();
+     }
+ }

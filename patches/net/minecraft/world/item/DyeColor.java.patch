@@ -18,12 +18,10 @@
          this.textureDiffuseColor = ARGB.opaque(p_41048_);
          this.fireworkColor = p_41050_;
      }
-@@ -110,6 +_,36 @@
-     @Override
-     public String getSerializedName() {
+@@ -112,6 +_,36 @@
          return this.name;
-+    }
-+
+     }
+ 
 +    /**
 +     * Gets the tag key representing the set of items which provide this dye color.
 +     * @return A {@link net.minecraft.tags.TagKey<Item>} representing the set of items which provide this dye color.
@@ -52,6 +50,19 @@
 +        }
 +
 +        return null;
-     }
- 
++    }
++
      public static DyeColor getMixedColor(ServerLevel p_386897_, DyeColor p_388832_, DyeColor p_386710_) {
+         CraftingInput craftinginput = makeCraftColorInput(p_388832_, p_386710_);
+         return p_386897_.recipeAccess()
+@@ -127,4 +_,10 @@
+     private static CraftingInput makeCraftColorInput(DyeColor p_388241_, DyeColor p_387649_) {
+         return CraftingInput.of(2, 1, List.of(new ItemStack(DyeItem.byColor(p_388241_)), new ItemStack(DyeItem.byColor(p_387649_))));
+     }
++
++    // Purpur start - Shulker spawn from bullet options
++    public static DyeColor random(net.minecraft.util.RandomSource random) {
++        return values()[random.nextInt(values().length)];
++    }
++    // Purpur end - Shulker spawn from bullet options
+ }

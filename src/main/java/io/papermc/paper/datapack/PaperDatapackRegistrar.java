@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 @NullMarked
 public class PaperDatapackRegistrar implements PaperRegistrar<BootstrapContext>, DatapackRegistrar {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
 
     private final PackDetector<Pack.ResourcesSupplier> detector;
     public final Map<String, Pack> discoveredPacks;

@@ -48,7 +48,7 @@ public final class PluginRemapper {
     private static final String EXTRA_PLUGINS = "extra-plugins";
     private static final String REMAP_CLASSPATH = "remap-classpath";
     private static final String REVERSED_MAPPINGS = "mappings/reversed";
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
 
     private final ExecutorService threadPool;
     private final ReobfServer reobf;

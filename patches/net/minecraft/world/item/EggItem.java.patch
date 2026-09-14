@@ -18,7 +18,7 @@
 -            Projectile.spawnProjectileFromRotation(ThrownEgg::new, serverlevel, itemstack, p_41129_, 0.0F, 1.5F, 1.0F);
 -        }
 +        // Paper start
-+        final Projectile.Delayed<ThrownEgg> thrownegg = Projectile.spawnProjectileFromRotationDelayed(ThrownEgg::new, (ServerLevel) p_41128_, itemstack, p_41129_, 0.0F, EggItem.PROJECTILE_SHOOT_POWER, 1.0F);
++        final Projectile.Delayed<ThrownEgg> thrownegg = Projectile.spawnProjectileFromRotationDelayed(ThrownEgg::new, (ServerLevel) p_41128_, itemstack, p_41129_, 0.0F, EggItem.PROJECTILE_SHOOT_POWER, (float) p_41128_.purpurConfig.eggProjectileOffset); // Purpur - Projectile offset config
 +        com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent event = new com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) p_41129_.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack), (org.bukkit.entity.Projectile) thrownegg.projectile().getBukkitEntity());
 +        if (event.callEvent() && thrownegg.attemptSpawn()) {
 +            if (event.shouldConsume()) {

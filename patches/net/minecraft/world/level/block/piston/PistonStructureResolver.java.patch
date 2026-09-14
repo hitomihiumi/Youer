@@ -28,7 +28,7 @@
      private boolean addBlockLine(BlockPos p_60434_, Direction p_60435_) {
          BlockState blockstate = this.level.getBlockState(p_60434_);
          if (blockstate.isAir()) {
-@@ -86,12 +_,13 @@
+@@ -86,18 +_,19 @@
              if (i + this.toPush.size() > 12) {
                  return false;
              } else {
@@ -45,6 +45,13 @@
                          || !PistonBaseBlock.isPushable(blockstate, this.level, blockpos, this.pushDirection, false, this.pushDirection.getOpposite())
                          || blockpos.equals(this.pistonPos)) {
                          break;
+                     }
+ 
+-                    if (++i + this.toPush.size() > 12) {
++                    if (++i + this.toPush.size() > this.level.purpurConfig.pistonBlockPushLimit) { // Purpur - Configurable piston push limit
+                         return false;
+                     }
+                 }
 @@ -119,7 +_,7 @@
  
                          for (int k = 0; k <= j + l; k++) {
@@ -54,6 +61,15 @@
                                  return false;
                              }
                          }
+@@ -142,7 +_,7 @@
+                         return true;
+                     }
+ 
+-                    if (this.toPush.size() >= 12) {
++                    if (this.toPush.size() >= this.level.purpurConfig.pistonBlockPushLimit) { // Purpur - Configurable piston push limit
+                         return false;
+                     }
+ 
 @@ -174,7 +_,7 @@
              if (direction.getAxis() != this.pushDirection.getAxis()) {
                  BlockPos blockpos = p_60432_.relative(direction);

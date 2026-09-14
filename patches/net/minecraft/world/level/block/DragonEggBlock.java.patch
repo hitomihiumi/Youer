@@ -1,12 +1,13 @@
 --- a/net/minecraft/world/level/block/DragonEggBlock.java
 +++ b/net/minecraft/world/level/block/DragonEggBlock.java
-@@ -45,30 +_,40 @@
+@@ -45,30 +_,41 @@
          this.teleport(p_52918_, p_52919_, p_52920_);
      }
  
 -    private void teleport(BlockState p_52936_, Level p_52937_, BlockPos p_52938_) {
 -        WorldBorder worldborder = p_52937_.getWorldBorder();
 +    private void teleport(BlockState state, Level level, BlockPos pos) {
++        if (!level.purpurConfig.dragonEggTeleport) return; // Purpur - Option to disable dragon egg teleporting
 +        WorldBorder worldBorder = level.getWorldBorder();
  
          for (int i = 0; i < 1000; i++) {

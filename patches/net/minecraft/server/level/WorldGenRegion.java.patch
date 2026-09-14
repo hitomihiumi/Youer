@@ -84,11 +84,12 @@
      @Override
      public boolean ensureCanWrite(BlockPos p_181031_) {
          int i = SectionPos.blockToSectionCoord(p_181031_.getX());
-@@ -257,6 +_,8 @@
+@@ -257,6 +_,9 @@
  
              return true;
          } else {
 +            // Paper start - Buffer OOB setBlock calls
++            if (!org.purpurmc.purpur.PurpurConfig.loggerSuppressSetBlockFarChunk) // Purpur - Logger settings (suppressing pointless logs)
 +            if (!hasSetFarWarned) {
              Util.logAndPauseIfInIde(
                  "Detected setBlock in a far chunk ["

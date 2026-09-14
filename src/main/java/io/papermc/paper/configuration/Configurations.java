@@ -33,7 +33,7 @@ import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 public abstract class Configurations<G, W> {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
     public static final String WORLD_DEFAULTS = "__world_defaults__";
     public static final ResourceLocation WORLD_DEFAULTS_KEY = ResourceLocation.fromNamespaceAndPath("configurations", WORLD_DEFAULTS);
     protected final Path globalFolder;

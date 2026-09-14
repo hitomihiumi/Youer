@@ -18,6 +18,24 @@
              if (optional.isEmpty()) {
                  return InteractionResult.PASS;
              } else {
+@@ -71,8 +_,15 @@
+                     CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger((ServerPlayer)player, blockpos, itemstack);
+                 }
+ 
+-                level.setBlock(blockpos, optional.get(), 11);
+-                level.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(player, optional.get()));
++                // Purpur start - Tool actionable options
++                level.setBlock(blockpos, state, 11);
++                actionable.drops().forEach((drop, chance) -> {
++                    if (level.random.nextDouble() < chance) {
++                        Block.popResourceFromFace(level, blockpos, context.getClickedFace(), new ItemStack(drop));
++                    }
++                });
++                level.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(player, state));
++                // Purpur end - Tool actionable options
+                 if (player != null) {
+                     itemstack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_40529_.getHand()));
+                 }
 @@ -89,20 +_,19 @@
              && !player.isSecondaryUseActive();
      }

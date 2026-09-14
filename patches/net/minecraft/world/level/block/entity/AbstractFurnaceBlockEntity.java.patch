@@ -104,6 +104,28 @@
          ContainerHelper.saveAllItems(p_421785_, this.items);
          p_421785_.store("RecipesUsed", RECIPES_USED_CODEC, this.recipesUsed);
      }
+@@ -148,6 +_,21 @@
+         }
+ 
+         ItemStack itemstack = p_155017_.items.get(1);
++        // Purpur start - Furnace uses lava from underneath
++        boolean usedLavaFromUnderneath = false;
++        if (level.purpurConfig.furnaceUseLavaFromUnderneath && !p_155017_.isLit() && itemstack.isEmpty() && !p_155017_.items.get(0).isEmpty() && level.getGameTime() % 20 == 0) {
++            BlockPos below = p_155017_.getBlockPos().below();
++            BlockState belowState = level.getBlockStateIfLoaded(below);
++            if (belowState != null && belowState.is(Blocks.LAVA)) {
++                net.minecraft.world.level.material.FluidState fluidState = belowState.getFluidState();
++                if (fluidState != null && fluidState.isSource()) {
++                    level.setBlock(below, Blocks.AIR.defaultBlockState(), 3);
++                    itemstack = Items.LAVA_BUCKET.getDefaultInstance();
++                    usedLavaFromUnderneath = true;
++                }
++            }
++        }
++        // Purpur end - Furnace uses lava from underneath
+         ItemStack itemstack1 = p_155017_.items.get(0);
+         boolean flag2 = !itemstack1.isEmpty();
+         boolean flag3 = !itemstack.isEmpty();
 @@ -166,11 +_,15 @@
                  p_155017_.litTotalTime = p_155017_.litTimeRemaining;
                  if (p_155017_.isLit()) {
@@ -121,6 +143,15 @@
                          }
                      }
                  }
+@@ -203,6 +_,8 @@
+         if (flag1) {
+             setChanged(p_379747_, p_155015_, p_155016_);
+         }
++
++        if (usedLavaFromUnderneath) furnace.items.set(1, ItemStack.EMPTY); // Purpur - Furnace uses lava from underneath
+     }
+ 
+     private static boolean canBurn(
 @@ -223,9 +_,9 @@
                  } else if (!ItemStack.isSameItemSameComponents(itemstack1, itemstack)) {
                      return false;

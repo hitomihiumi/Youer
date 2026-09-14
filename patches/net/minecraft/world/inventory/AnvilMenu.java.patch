@@ -1,5 +1,18 @@
 --- a/net/minecraft/world/inventory/AnvilMenu.java
 +++ b/net/minecraft/world/inventory/AnvilMenu.java
+@@ -23,6 +_,12 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import org.slf4j.Logger;
+ 
++// Purpur start - Anvil API
++import net.minecraft.network.protocol.game.ClientboundContainerSetDataPacket;
++import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
++import net.minecraft.server.level.ServerPlayer;
++// Purpur end - Anvil API
++
+ public class AnvilMenu extends ItemCombinerMenu {
+     public static final int INPUT_SLOT = 0;
+     public static final int ADDITIONAL_SLOT = 1;
 @@ -76,6 +_,16 @@
  
      @Override
@@ -62,6 +75,70 @@
                              flag1 = true;
                          }
  
+@@ -228,6 +_,54 @@
+                 if (!this.itemName.equals(itemstack.getHoverName().getString())) {
+                     k = 1;
+                     i += k;
++                    // Purpur start - Allow anvil colors
++                    if (this.player != null) {
++                        org.bukkit.craftbukkit.entity.CraftHumanEntity player = this.player.getBukkitEntity();
++                        String name = this.itemName;
++                        boolean removeItalics = false;
++                        if (player.hasPermission("purpur.anvil.remove_italics")) {
++                            if (name.startsWith("&r")) {
++                                name = name.substring(2);
++                                removeItalics = true;
++                            } else if (name.startsWith("<r>")) {
++                                name = name.substring(3);
++                                removeItalics = true;
++                            } else if (name.startsWith("<reset>")) {
++                                name = name.substring(7);
++                                removeItalics = true;
++                            }
++                        }
++                        if (this.player.level().purpurConfig.anvilAllowColors) {
++                            if (player.hasPermission("purpur.anvil.color")) {
++                                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(?i)&([0-9a-fr])").matcher(name);
++                                while (matcher.find()) {
++                                    String match = matcher.group(1);
++                                    name = name.replace("&" + match, "\u00a7" + match.toLowerCase(java.util.Locale.ROOT));
++                                }
++                                //name = name.replaceAll("(?i)&([0-9a-fr])", "\u00a7$1");
++                            }
++                            if (player.hasPermission("purpur.anvil.format")) {
++                                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(?i)&([k-or])").matcher(name);
++                                while (matcher.find()) {
++                                    String match = matcher.group(1);
++                                    name = name.replace("&" + match, "\u00a7" + match.toLowerCase(java.util.Locale.ROOT));
++                                }
++                                //name = name.replaceAll("(?i)&([l-or])", "\u00a7$1");
++                            }
++                        }
++                        net.kyori.adventure.text.Component component;
++                        if (this.player.level().purpurConfig.anvilColorsUseMiniMessage && player.hasPermission("purpur.anvil.minimessage")) {
++                            component = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(org.bukkit.ChatColor.stripColor(name));
++                        } else {
++                            component = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(name);
++                        }
++                        if (removeItalics) {
++                            component = component.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false);
++                        }
++                        itemStack.set(DataComponents.CUSTOM_NAME, io.papermc.paper.adventure.PaperAdventure.asVanilla(component));
++                    }
++                    else
++                    // Purpur end - Allow anvil colors
+                     itemstack1.set(DataComponents.CUSTOM_NAME, Component.literal(this.itemName));
+                 }
+             } else if (itemstack.has(DataComponents.CUSTOM_NAME)) {
+@@ -277,7 +_,7 @@
+     }
+ 
+     public static int calculateIncreasedRepairCost(int p_39026_) {
+-        return (int)Math.min(p_39026_ * 2L + 1L, 2147483647L);
++        return org.purpurmc.purpur.PurpurConfig.anvilCumulativeCost ? (int)Math.min(p_39026_ * 2L + 1L, 2147483647L) : 0; // Purpur - Make anvil cumulative cost configurable
+     }
+ 
+     public boolean setItemName(String p_288970_) {
 @@ -309,4 +_,11 @@
      public int getCost() {
          return this.cost.get();

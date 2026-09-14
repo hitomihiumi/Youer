@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/BlockPos.java
 +++ b/net/minecraft/core/BlockPos.java
-@@ -49,15 +_,17 @@
+@@ -49,15 +_,23 @@
      };
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final BlockPos ZERO = new BlockPos(0, 0, 0);
@@ -23,6 +23,12 @@
 +    private static final int X_OFFSET = 38;
 +    public static final int MAX_HORIZONTAL_COORDINATE = 33554431;
 +    // Paper end - Optimize Bit Operations by inlining
++
++    // Purpur start - Ridables
++    public BlockPos(net.minecraft.world.entity.Entity entity) {
++        super(entity.getBlockX(), entity.getBlockY(), entity.getBlockZ());
++    }
++    // Purpur end - Ridables
  
      public BlockPos(int p_121869_, int p_121870_, int p_121871_) {
          super(p_121869_, p_121870_, p_121871_);

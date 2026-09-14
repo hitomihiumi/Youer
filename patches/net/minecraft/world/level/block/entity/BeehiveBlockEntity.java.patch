@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
-@@ -84,6 +_,7 @@
+@@ -77,13 +_,14 @@
+         "leash",
+         "UUID"
+     );
+-    public static final int MAX_OCCUPANTS = 3;
++    public static final int MAX_OCCUPANTS = org.purpurmc.purpur.PurpurConfig.beeInsideBeeHive; // Purpur - Config to change max number of bees
+     private static final int MIN_TICKS_BEFORE_REENTERING_HIVE = 400;
+     private static final int MIN_OCCUPATION_TICKS_NECTAR = 2400;
+     public static final int MIN_OCCUPATION_TICKS_NECTARLESS = 600;
      public List<BeehiveBlockEntity.BeeData> stored = Lists.newArrayList();
      @Nullable
      public BlockPos savedFlowerPos;
@@ -26,11 +34,20 @@
                      } else {
                          bee.setStayOutOfHiveCountdown(400);
                      }
-@@ -135,10 +_,15 @@
+@@ -135,22 +_,54 @@
          }
      }
  
 -    private List<Entity> releaseAllOccupants(BlockState p_58760_, BeehiveBlockEntity.BeeReleaseStatus p_58761_) {
+-        List<Entity> list = Lists.newArrayList();
+-        this.stored
+-            .removeIf(p_330138_ -> releaseOccupant(this.level, this.worldPosition, p_58760_, p_330138_.toOccupant(), list, p_58761_, this.savedFlowerPos));
+-        if (!list.isEmpty()) {
+-            super.setChanged();
+-        }
+-
+-        return list;
+-    }
 +    private List<Entity> releaseAllOccupants(BlockState state, BeehiveBlockEntity.BeeReleaseStatus releaseStatus) {
 +        // CraftBukkit start - This allows us to bypass the night/rain/emergency check
 +        return this.releaseBees(state, releaseStatus, false);
@@ -38,17 +55,42 @@
 +
 +    public List<Entity> releaseBees(BlockState state, BeehiveBlockEntity.BeeReleaseStatus releaseStatus, boolean force) {
 +        // CraftBukkit end - This allows us to bypass t he night/rain/emergecny check
-         List<Entity> list = Lists.newArrayList();
--        this.stored
--            .removeIf(p_330138_ -> releaseOccupant(this.level, this.worldPosition, p_58760_, p_330138_.toOccupant(), list, p_58761_, this.savedFlowerPos));
++        List<Entity> list = Lists.newArrayList();
 +        this.stored.removeIf(data -> releaseOccupant(this.level, this.worldPosition, state, data.toOccupant(), list, releaseStatus, this.savedFlowerPos, force)); // CraftBukkit - This allows us to bypass t he night/rain/emergecny check
-         if (!list.isEmpty()) {
-             super.setChanged();
-         }
-@@ -151,6 +_,11 @@
++        if (!list.isEmpty()) {
++            super.setChanged();
++        }
++
++        return list;
++    }
++
++    // Purpur start - Stored Bee API
++    public List<Entity> releaseBee(BlockState iblockdata, BeehiveBlockEntity.BeeData data, BeehiveBlockEntity.BeeReleaseStatus tileentitybeehive_releasestatus, boolean force) {
++        List<Entity> list = Lists.newArrayList();
++
++        BeehiveBlockEntity.releaseOccupant(this.level, this.worldPosition, iblockdata, data.occupant, list, tileentitybeehive_releasestatus, this.savedFlowerPos, force);
++
++        if (!list.isEmpty()) {
++            stored.remove(data);
++
++            super.setChanged();
++        }
++
++        return list;
++    }
++    // Purpur end - Stored Bee API
+ 
+     @VisibleForDebug
+     public int getOccupantCount() {
          return this.stored.size();
      }
  
++    // Purpur start - Stored Bee API
++    public List<BeeData> getStored() {
++        return stored;
++    }
++    // Purpur end - Stored Bee API
++
 +    // Paper start - Add EntityBlockStorage clearEntities
 +    public void clearBees() {
 +        this.stored.clear();

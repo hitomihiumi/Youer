@@ -8,18 +8,29 @@
      public final double minX;
      public final double minY;
      public final double minZ;
-@@ -582,6 +_,14 @@
-             p_165883_.y + p_165885_ / 2.0,
-             p_165883_.z + p_165886_ / 2.0
+@@ -584,6 +_,14 @@
          );
-+    }
-+
+     }
+ 
 +    /**
 +     * {@return true if this AABB is infinite in all directions}
 +     */
 +    public boolean isInfinite() {
 +        return this == INFINITE || (Double.isInfinite(this.minX) && Double.isInfinite(this.minY) && Double.isInfinite(this.minZ)
 +                && Double.isInfinite(this.maxX) && Double.isInfinite(this.maxY) && Double.isInfinite(this.maxZ));
-     }
- 
++    }
++
      public static class Builder {
+         private float minX = Float.POSITIVE_INFINITY;
+         private float minY = Float.POSITIVE_INFINITY;
+@@ -605,4 +_,10 @@
+             return new AABB(this.minX, this.minY, this.minZ, this.maxX, this.maxY, this.maxZ);
+         }
+     }
++
++    // Purpur start - Stop squids floating on top of water - tuinity added method
++    public final AABB offsetY(double dy) {
++        return new AABB(this.minX, this.minY + dy, this.minZ, this.maxX, this.maxY + dy, this.maxZ);
++    }
++    // Purpur end - Stop squids floating on top of water
+ }

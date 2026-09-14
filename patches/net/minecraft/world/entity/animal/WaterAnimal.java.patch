@@ -1,13 +1,16 @@
 --- a/net/minecraft/world/entity/animal/WaterAnimal.java
 +++ b/net/minecraft/world/entity/animal/WaterAnimal.java
-@@ -72,6 +_,10 @@
+@@ -72,8 +_,11 @@
      ) {
          int i = p_218284_.getSeaLevel();
          int j = i - 13;
+-        return p_218286_.getY() >= j
+-            && p_218286_.getY() <= i
 +        // Paper start - Make water animal spawn height configurable
 +        i = p_218284_.getMinecraftWorld().paperConfig().entities.spawning.wateranimalSpawnHeight.maximum.or(i);
 +        j = p_218284_.getMinecraftWorld().paperConfig().entities.spawning.wateranimalSpawnHeight.minimum.or(j);
 +        // Paper end - Make water animal spawn height configurable
-         return p_218286_.getY() >= j
-             && p_218286_.getY() <= i
++        return ((spawnReason == EntitySpawnReason.SPAWNER && level.getMinecraftWorld().purpurConfig.spawnerFixMC238526) || (p_218286_.getY() >= i && p_218286_.getY() <= i)) // Purpur - MC-238526 - Fix spawner not spawning water animals correctly
              && p_218284_.getFluidState(p_218286_.below()).is(FluidTags.WATER)
+             && p_218284_.getBlockState(p_218286_.above()).is(Blocks.WATER);
+     }

@@ -1,6 +1,15 @@
 --- a/net/minecraft/world/item/BowItem.java
 +++ b/net/minecraft/world/item/BowItem.java
-@@ -32,6 +_,8 @@
+@@ -28,10 +_,17 @@
+             return false;
+         } else {
+             ItemStack itemstack = player.getProjectile(p_40667_);
++            //  Purpur start - Infinity bow settings
++            if (level.purpurConfig.infinityWorksWithoutArrows && itemstack.isEmpty() && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.INFINITY, p_40667_) > 0) {
++                itemstack = new ItemStack(Items.ARROW);
++            }
++            // Purpur end - Infinity bow settings
+             if (itemstack.isEmpty()) {
                  return false;
              } else {
                  int i = this.getUseDuration(p_40667_, p_40669_) - p_40670_;

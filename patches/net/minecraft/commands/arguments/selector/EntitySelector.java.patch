@@ -9,3 +9,46 @@
              throw EntityArgument.ERROR_SELECTORS_NOT_ALLOWED.create();
          }
      }
+@@ -191,26 +_,27 @@
+         this.checkPermissions(p_121167_);
+         if (this.playerName != null) {
+             ServerPlayer serverplayer2 = p_121167_.getServer().getPlayerList().getPlayerByName(this.playerName);
+-            return serverplayer2 == null ? List.of() : List.of(serverplayer2);
++            return serverplayer2 == null || !canSee(source, serverplayer2) ? List.of() : List.of(serverplayer2); // Purpur - Hide hidden players from entity selector
+         } else if (this.entityUUID != null) {
+             ServerPlayer serverplayer1 = p_121167_.getServer().getPlayerList().getPlayer(this.entityUUID);
+-            return serverplayer1 == null ? List.of() : List.of(serverplayer1);
++            return serverplayer1 == null || !canSee(source, serverplayer1) ? List.of() : List.of(serverplayer1); // Purpur - Hide hidden players from entity selector
+         } else {
+             Vec3 vec3 = this.position.apply(p_121167_.getPosition());
+             AABB aabb = this.getAbsoluteAabb(vec3);
+             Predicate<Entity> predicate = this.getPredicate(vec3, aabb, null);
+             if (this.currentEntity) {
+-                return p_121167_.getEntity() instanceof ServerPlayer serverplayer3 && predicate.test(serverplayer3) ? List.of(serverplayer3) : List.of();
++                return p_121167_.getEntity() instanceof ServerPlayer serverplayer3 && predicate.test(serverplayer3) && canSee(p_121167_, serverplayer3) ? List.of(serverplayer3) : List.of(); // Purpur - Hide hidden players from entity selector
+             } else {
+                 int i = this.getResultLimit();
+                 List<ServerPlayer> list;
+                 if (this.isWorldLimited()) {
+                     list = p_121167_.getLevel().getPlayers(predicate, i);
++                    list.removeIf(entityplayer3 -> !canSee(p_121167_, entityplayer3)); // Purpur - Hide hidden players from entity selector
+                 } else {
+                     list = new ObjectArrayList<>();
+ 
+                     for (ServerPlayer serverplayer : p_121167_.getServer().getPlayerList().getPlayers()) {
+-                        if (predicate.test(serverplayer)) {
++                        if (predicate.test(serverplayer) && canSee(source, serverplayer)) { // Purpur - Hide hidden players from entity selector
+                             list.add(serverplayer);
+                             if (list.size() >= i) {
+                                 return list;
+@@ -269,4 +_,10 @@
+     public static Component joinNames(List<? extends Entity> p_175104_) {
+         return ComponentUtils.formatList(p_175104_, Entity::getDisplayName);
+     }
++
++    // Purpur start - Hide hidden players from entity selector
++    private boolean canSee(CommandSourceStack sender, ServerPlayer target) {
++        return !org.purpurmc.purpur.PurpurConfig.hideHiddenPlayersFromEntitySelector || !(sender.getEntity() instanceof ServerPlayer player) || player.getBukkitEntity().canSee(target.getBukkitEntity());
++    }
++    // Purpur end - Hide hidden players from entity selector
+ }

@@ -21,7 +21,7 @@ import static io.papermc.paper.pluginremap.InsertManifestAttribute.addNamespaceM
 
 @DefaultQualifier(NonNull.class)
 final class ReobfServer {
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = io.papermc.paper.util.PaperLogUtils.getClassLogger();
 
     private final Path remapClasspathDir;
     private final CompletableFuture<Void> load;

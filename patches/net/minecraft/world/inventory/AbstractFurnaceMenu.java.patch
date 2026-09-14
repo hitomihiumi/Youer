@@ -38,6 +38,21 @@
          return this.container.stillValid(p_38974_);
      }
  
+@@ -104,7 +_,13 @@
+             } else if (p_38987_ != 1 && p_38987_ != 0) {
+                 if (this.canSmelt(itemstack1)) {
+                     if (!this.moveItemStackTo(itemstack1, 0, 1, false)) {
+-                        return ItemStack.EMPTY;
++                        // Purpur start - Added the ability to add combustible items
++                        if (this.isFuel(item)) {
++                            if (!this.moveItemStackTo(item, 1, 2, false)) {
++                                return ItemStack.EMPTY;
++                            }
++                        }
++                        // Purpur end - Added the ability to add combustible items
+                     }
+                 } else if (this.isFuel(itemstack1)) {
+                     if (!this.moveItemStackTo(itemstack1, 1, 2, false)) {
 @@ -142,7 +_,7 @@
      }
  

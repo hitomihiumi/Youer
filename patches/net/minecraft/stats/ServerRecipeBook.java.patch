@@ -57,3 +57,11 @@
              p_12808_.connection.send(new ClientboundRecipeBookRemovePacket(list));
          }
  
+@@ -103,6 +_,7 @@
+     private void loadRecipes(List<ResourceKey<Recipe<?>>> p_404832_, Consumer<ResourceKey<Recipe<?>>> p_12799_, Predicate<ResourceKey<Recipe<?>>> p_379754_) {
+         for (ResourceKey<Recipe<?>> resourcekey : p_404832_) {
+             if (!p_379754_.test(resourcekey)) {
++                if (!org.purpurmc.purpur.PurpurConfig.loggerSuppressUnrecognizedRecipeErrors) // Purpur - Logger settings (suppressing pointless logs)
+                 LOGGER.error("Tried to load unrecognized recipe: {} removed now.", resourcekey);
+             } else {
+                 p_12799_.accept(resourcekey);

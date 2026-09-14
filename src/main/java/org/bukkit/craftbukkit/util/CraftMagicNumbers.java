@@ -286,7 +286,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
         try {
             nmsStack.applyComponents(new ItemParser(Commands.createValidationContext(CraftRegistry.getMinecraftRegistry())).parse(new StringReader(arguments)).components());
         } catch (CommandSyntaxException ex) {
-            com.mojang.logging.LogUtils.getClassLogger().error("Exception modifying ItemStack", new Throwable(ex)); // Paper - show stack trace
+            io.papermc.paper.util.PaperLogUtils.getClassLogger().error("Exception modifying ItemStack", new Throwable(ex)); // Paper - show stack trace
         }
 
         stack.setItemMeta(CraftItemStack.getItemMeta(nmsStack));

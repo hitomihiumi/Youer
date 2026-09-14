@@ -31,13 +31,13 @@
 -                    player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, 260, 0, true, true));
 +    private static void applyEffects(Level level, BlockPos pos, List<BlockPos> positions) {
 +        // CraftBukkit start
-+        ConduitBlockEntity.applyEffects(level, pos, ConduitBlockEntity.getRange(positions));
++        ConduitBlockEntity.applyEffects(level, pos, ConduitBlockEntity.getRange(positions, level)); // Purpur - Conduit behavior configuration
 +    }
 +
-+    public static int getRange(List<BlockPos> positions) {
++    public static int getRange(List<BlockPos> positions, Level level) { // Purpur - Conduit behavior configuration
 +        // CraftBukkit end
 +        int size = positions.size();
-+        int i = size / 7 * 16;
++        int i = size / 7 * level.purpurConfig.conduitDistance; // Purpur - Conduit behavior configuration
 +        // CraftBukkit start
 +        return i;
 +    }
@@ -73,7 +73,7 @@
 +        EntityReference<LivingEntity> entityReference = updateDestroyTarget(blockEntity.destroyTarget, level, pos, canDestroy);
 +        LivingEntity livingEntity = EntityReference.get(entityReference, level, LivingEntity.class);
 +        if (damageTarget && livingEntity != null) { // CraftBukkit
-+            if (livingEntity.hurtServer(level, level.damageSources().magic().eventBlockDamager(level, pos), 4.0F)) // CraftBukkit - move up
++            if (livingEntity.hurtServer(level, level.damageSources().magic().eventBlockDamager(level, pos), level.purpurConfig.conduitDamageAmount)) // CraftBukkit - move up // Purpur - Conduit behavior configuration
 +            level.playSound(
 +                null, livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(), SoundEvents.CONDUIT_ATTACK_TARGET, SoundSource.BLOCKS, 1.0F, 1.0F
              );
@@ -89,3 +89,33 @@
          }
      }
  
+@@ -205,20 +_,26 @@
+             return selectNewTarget(p_423665_, p_155410_);
+         } else {
+             LivingEntity livingentity = EntityReference.get(p_423553_, p_423665_, LivingEntity.class);
+-            return livingentity != null && livingentity.isAlive() && p_155410_.closerThan(livingentity.blockPosition(), 8.0) ? p_423553_ : null;
++            return livingentity != null && livingentity.isAlive() && p_155410_.closerThan(livingentity.blockPosition(), level.purpurConfig.conduitDamageDistance) ? p_423553_ : null; // Purpur - Conduit behavior configuration
+         }
+     }
+ 
+     @Nullable
+     private static EntityReference<LivingEntity> selectNewTarget(ServerLevel p_423488_, BlockPos p_423513_) {
+         List<LivingEntity> list = p_423488_.getEntitiesOfClass(
+-            LivingEntity.class, getDestroyRangeAABB(p_423513_), p_427192_ -> p_427192_ instanceof Enemy && p_427192_.isInWaterOrRain()
++            LivingEntity.class, getDestroyRangeAABB(p_423513_, level), p_427192_ -> p_427192_ instanceof Enemy && p_427192_.isInWaterOrRain() // Purpur - Conduit behavior configuration
+         );
+         return list.isEmpty() ? null : new EntityReference<>(Util.getRandom(list, p_423488_.random));
+     }
+ 
+     public static AABB getDestroyRangeAABB(BlockPos p_155432_) {
+-        return new AABB(p_155432_).inflate(8.0);
++        // Purpur start - Conduit behavior configuration
++        return getDestroyRangeAABB(p_155432_, null);
++    }
++
++    private static AABB getDestroyRangeAABB(BlockPos p_155432_, Level level) {
++        // Purpur end - Conduit behavior configuration
++        return new AABB(p_155432_).inflate(level == null ? 8.0 : level.purpurConfig.conduitDamageDistance); // Purpur - Conduit behavior configuration
+     }
+ 
+     private static void animationTick(Level p_155419_, BlockPos p_155420_, List<BlockPos> p_155421_, @Nullable Entity p_155422_, int p_155423_) {

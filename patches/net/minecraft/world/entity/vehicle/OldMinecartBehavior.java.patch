@@ -27,6 +27,17 @@
          switch (railshape) {
              case ASCENDING_EAST:
                  this.setDeltaMovement(vec31.add(-d3, 0.0, 0.0));
+@@ -243,8 +_,8 @@
+             Vec3 vec37 = this.getDeltaMovement();
+             double d26 = vec37.horizontalDistance();
+             if (d26 > 0.01) {
+-                double d17 = 0.06;
+-                this.setDeltaMovement(vec37.add(vec37.x / d26 * 0.06, 0.0, vec37.z / d26 * 0.06));
++                double d14 = level.purpurConfig.poweredRailBoostModifier; // Purpur - Configurable powered rail boost modifier
++                this.setDeltaMovement(vec37.add(vec37.x / d26 * level.purpurConfig.poweredRailBoostModifier, 0.0, vec37.z / d26 * level.purpurConfig.poweredRailBoostModifier)); // Purpur - Configurable powered rail boost modifier
+             } else {
+                 Vec3 vec38 = this.getDeltaMovement();
+                 double d18 = vec38.x;
 @@ -281,9 +_,10 @@
              j--;
          }
