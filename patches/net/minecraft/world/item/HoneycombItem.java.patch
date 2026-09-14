@@ -27,7 +27,7 @@
              Player player = p_150869_.getPlayer();
              ItemStack itemstack = p_150869_.getItemInHand();
 +            // Paper start - EntityChangeBlockEvent
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(player, clickedPos, blockState1)) {
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(player, blockpos, blockstate)) {
 +                if (!player.isCreative()) {
 +                    player.containerMenu.forceHeldSlot(p_150869_.getHand());
 +                }

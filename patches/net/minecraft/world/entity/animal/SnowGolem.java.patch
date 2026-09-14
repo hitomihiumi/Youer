@@ -132,14 +132,14 @@
 +        // Purpur start - Snowman drop and put back pumpkin
 +        } else if (level().purpurConfig.snowGolemPutPumpkinBack && !hasPumpkin() && itemInHand.getItem() == Blocks.CARVED_PUMPKIN.asItem()) {
 +            setPumpkin(true);
-+            if (!player.getAbilities().instabuild) {
++            if (!p_29920_.getAbilities().instabuild) {
 +                itemInHand.shrink(1);
 +            }
 +            return InteractionResult.SUCCESS;
 +        // Purpur end - Snowman drop and put back pumpkin
          } else {
 -            return InteractionResult.PASS;
-+            return tryRide(player, hand); // Purpur - Ridables
++            return tryRide(p_29920_, p_29921_); // Purpur - Ridables
          }
      }
  

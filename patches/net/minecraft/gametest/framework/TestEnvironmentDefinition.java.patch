@@ -5,7 +5,7 @@
  
              for (TestEnvironmentDefinition.SetGameRules.Entry<Boolean, GameRules.BooleanValue> entry : this.boolRules) {
 -                gamerules.getRule(entry.key()).set(entry.value(), minecraftserver);
-+                gamerules.getRule(entry1.key()).set(entry1.value(), p_397170_); // Paper - per-world
++                gamerules.getRule(entry.key()).set(entry.value(), p_397170_); // Paper - per-world
              }
  
              for (TestEnvironmentDefinition.SetGameRules.Entry<Integer, GameRules.IntegerValue> entry1 : this.intRules) {
@@ -19,12 +19,12 @@
  
              for (TestEnvironmentDefinition.SetGameRules.Entry<Boolean, GameRules.BooleanValue> entry : this.boolRules) {
 -                gamerules.getRule(entry.key()).setFrom(GameRules.getType(entry.key()).createRule(), minecraftserver);
-+                gamerules.getRule(entry.key()).setFrom(GameRules.getType(entry.key()).createRule(), level); // Paper - per-world
++                gamerules.getRule(entry.key()).setFrom(GameRules.getType(entry.key()).createRule(), p_397717_); // Paper - per-world
              }
  
              for (TestEnvironmentDefinition.SetGameRules.Entry<Integer, GameRules.IntegerValue> entry1 : this.intRules) {
 -                gamerules.getRule(entry1.key()).setFrom(GameRules.getType(entry1.key()).createRule(), minecraftserver);
-+                gamerules.getRule(entry1.key()).setFrom(GameRules.getType(entry1.key()).createRule(), level); // Paper - per-world
++                gamerules.getRule(entry1.key()).setFrom(GameRules.getType(entry1.key()).createRule(), p_397717_); // Paper - per-world
              }
          }
  

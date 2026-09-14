@@ -63,7 +63,7 @@
  
                  if (flag) {
 -                    p_155582_.setCooldown(8);
-+                    p_155582_.setCooldown(level.spigotConfig.hopperTransfer); // Spigot
++                    p_155582_.setCooldown(p_155579_.spigotConfig.hopperTransfer); // Spigot
                      setChanged(p_155579_, p_155580_, p_155581_);
                      return true;
                  }
@@ -88,9 +88,9 @@
                          int j = itemstack.getCount();
 -                        ItemStack itemstack1 = addItem(p_326256_, container, p_326256_.removeItem(i, 1), direction);
 +                        // CraftBukkit start - Call event when pushing items into other inventories
-+                        ItemStack original = item.copy();
++                        ItemStack original = itemstack.copy();
 +                        org.bukkit.craftbukkit.inventory.CraftItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(
-+                            p_326256_.removeItem(i, level.spigotConfig.hopperAmount)
++                            p_326256_.removeItem(i, p_155563_.spigotConfig.hopperAmount)
 +                        ); // Spigot
 +
 +                        org.bukkit.inventory.Inventory destinationInventory;
@@ -111,7 +111,7 @@
 +                        );
 +                        if (!event.callEvent()) {
 +                            p_326256_.setItem(i, original);
-+                            p_326256_.setCooldown(level.spigotConfig.hopperTransfer); // Delay hopper checks // Spigot
++                            p_326256_.setCooldown(p_155563_.spigotConfig.hopperTransfer); // Delay hopper checks // Spigot
 +                            return false;
 +                        }
 +                        int origCount = event.getItem().getAmount(); // Spigot
@@ -126,8 +126,8 @@
                          itemstack.setCount(j);
 -                        if (j == 1) {
 +                        // Spigot start
-+                        item.shrink(origCount - itemStack.getCount());
-+                        if (j <= level.spigotConfig.hopperAmount) {
++                        itemstack1.shrink(origCount - itemstack1.getCount());
++                        if (j <= p_155563_.spigotConfig.hopperAmount) {
 +                            // Spigot end
                              p_326256_.setItem(i, itemstack);
                          }
@@ -154,7 +154,7 @@
  
              for (int i : getSlots(container, direction)) {
 -                if (tryTakeInItemFromSlot(p_155554_, container, i, direction)) {
-+                if (tryTakeInItemFromSlot(p_155554_, container, i, direction, level)) { // Spigot
++                if (tryTakeInItemFromSlot(p_155554_, container, i, direction, p_155553_)) { // Spigot
                      return true;
                  }
              }
@@ -176,7 +176,7 @@
              int i = itemstack.getCount();
 -            ItemStack itemstack1 = addItem(p_59356_, p_59355_, p_59356_.removeItem(p_59357_, 1), null);
 +            // CraftBukkit start - Call event on collection of items from inventories into the hopper
-+            ItemStack original = item.copy();
++            ItemStack original = itemstack.copy();
 +            org.bukkit.craftbukkit.inventory.CraftItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(
 +                p_59356_.removeItem(p_59357_, level.spigotConfig.hopperAmount) // Spigot
 +            );
@@ -219,7 +219,7 @@
              itemstack.setCount(i);
 -            if (i == 1) {
 +            // Spigot start
-+            item.shrink(origCount - itemStack.getCount());
++            itemstack1.shrink(origCount - itemstack1.getCount());
 +            if (i <= level.spigotConfig.hopperAmount) {
 +                // Spigot end
                  p_59356_.setItem(p_59357_, itemstack);
@@ -231,7 +231,7 @@
          boolean flag = false;
 +        // CraftBukkit start
 +        org.bukkit.event.inventory.InventoryPickupItemEvent event = new org.bukkit.event.inventory.InventoryPickupItemEvent(
-+            container.getOwner().getInventory(), (org.bukkit.entity.Item) item.getBukkitEntity()
++            p_59332_.getOwner().getInventory(), (org.bukkit.entity.Item) p_59333_.getBukkitEntity()
 +        );
 +        if (!event.callEvent()) {
 +            return false;

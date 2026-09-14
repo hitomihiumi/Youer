@@ -98,7 +98,7 @@
 -        p_360642_.applyOnProjectileSpawned(p_360523_, p_364956_);
 -        return p_360642_;
 -    }
-+        return new Delayed<>(projectile, level, stack); // Paper - delayed projectile spawning
++        return new Delayed<>(projectile, level, p_364956_); // Paper - delayed projectile spawning
 +    }
 +
 +    // Paper start - delayed projectile spawning

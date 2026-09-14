@@ -5,7 +5,7 @@
      ) {
          CauldronInteraction cauldroninteraction = this.interactions.map().get(p_316791_.getItem());
 -        return cauldroninteraction.interact(p_316287_, p_316530_, p_316585_, p_316671_, p_316186_, p_316791_);
-+        return cauldroninteraction.interact(p_316287_, p_316530_, p_316585_, p_316671_, p_316186_, p_316791_, hitResult.getDirection()); // Paper - pass hit direction
++        return cauldroninteraction.interact(p_316287_, p_316530_, p_316585_, p_316671_, p_316186_, p_316791_, p_316294_.getDirection()); // Paper - pass hit direction
      }
  
      @Override

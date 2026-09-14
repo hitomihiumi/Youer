@@ -40,7 +40,7 @@
          int i = p_187473_.getIntOr("x", 0);
          int j = p_187473_.getIntOr("y", 0);
          int k = p_187473_.getIntOr("z", 0);
-+        if (chunkPos != null) { // Paper - allow reading non-validated pos from tag - used to parse block entities on items
++        if (p_412201_ != null) { // Paper - allow reading non-validated pos from tag - used to parse block entities on items
          int l = SectionPos.blockToSectionCoord(i);
          int i1 = SectionPos.blockToSectionCoord(k);
          if (l != p_412201_.x || i1 != p_412201_.z) {

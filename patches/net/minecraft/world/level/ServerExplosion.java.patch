@@ -43,8 +43,8 @@
                              BlockPos blockpos = BlockPos.containing(d4, d5, d6);
                              BlockState blockstate = this.level.getBlockState(blockpos);
 -                            FluidState fluidstate = this.level.getFluidState(blockpos);
-+                            if (!blockState.isDestroyable()) continue; // Paper - Protect Bedrock and End Portal/Frames from being destroyed
-+                            FluidState fluidstate = blockState.getFluidState(); // Paper - Perf: Optimize call to getFluid for explosions
++                            if (!blockstate.isDestroyable()) continue; // Paper - Protect Bedrock and End Portal/Frames from being destroyed
++                            FluidState fluidstate = blockstate.getFluidState(); // Paper - Perf: Optimize call to getFluid for explosions
                              if (!this.level.isInWorldBounds(blockpos)) {
                                  break;
                              }
@@ -53,10 +53,10 @@
                              if (f > 0.0F && this.damageCalculator.shouldBlockExplode(this, this.level, blockpos, blockstate, f)) {
                                  set.add(blockpos);
 +                                // Paper start - prevent headless pistons from forming
-+                                if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && blockState.is(net.minecraft.world.level.block.Blocks.MOVING_PISTON)) {
++                                if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && blockstate.is(net.minecraft.world.level.block.Blocks.MOVING_PISTON)) {
 +                                    net.minecraft.world.level.block.entity.BlockEntity extension = this.level.getBlockEntity(blockpos);
 +                                    if (extension instanceof net.minecraft.world.level.block.piston.PistonMovingBlockEntity blockEntity && blockEntity.isSourcePiston()) {
-+                                        net.minecraft.core.Direction direction = blockState.getValue(net.minecraft.world.level.block.piston.PistonHeadBlock.FACING);
++                                        net.minecraft.core.Direction direction = blockstate.getValue(net.minecraft.world.level.block.piston.PistonHeadBlock.FACING);
 +                                        set.add(blockpos.relative(direction.getOpposite()));
 +                                    }
 +                                }

@@ -38,7 +38,7 @@
          this.markUnsaved();
 +        this.needsDecoration = true; // CraftBukkit
 +        // CraftBukkit start
-+        this.persistentDataContainer = chunk.persistentDataContainer; // SPIGOT-6814: copy PDC to account for 1.17 to 1.18 chunk upgrading.
++        this.persistentDataContainer = p_187946_.persistentDataContainer; // SPIGOT-6814: copy PDC to account for 1.17 to 1.18 chunk upgrading.
 +        // CraftBukkit end
      }
  

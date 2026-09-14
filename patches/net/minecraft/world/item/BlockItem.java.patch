@@ -33,7 +33,7 @@
                      level.gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(player, blockstate1));
                      itemstack.consume(1, player);
 -                    return InteractionResult.SUCCESS;
-+                    return InteractionResult.SUCCESS.configurePaper(e -> e.placedBlockAt(clickedPos.immutable())); // Paper - track placed block position from block item
++                    return InteractionResult.SUCCESS.configurePaper(e -> e.placedBlockAt(blockpos.immutable())); // Paper - track placed block position from block item
                  }
              }
          }
@@ -105,7 +105,7 @@
      public void onDestroyed(ItemEntity p_150700_) {
          ItemContainerContents itemcontainercontents = p_150700_.getItem().set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
          if (itemcontainercontents != null) {
-+            if (itemEntity.level().purpurConfig.shulkerBoxItemDropContentsWhenDestroyed && this.getBlock() instanceof ShulkerBoxBlock) // Purpur - option to disable shulker box items from dropping contents when destroyed
++            if (p_150700_.level().purpurConfig.shulkerBoxItemDropContentsWhenDestroyed && this.getBlock() instanceof ShulkerBoxBlock) // Purpur - option to disable shulker box items from dropping contents when destroyed
              ItemUtils.onContainerDestroyed(p_150700_, itemcontainercontents.nonEmptyItemsCopy());
          }
      }

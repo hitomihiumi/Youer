@@ -33,8 +33,8 @@
              if (d26 > 0.01) {
 -                double d17 = 0.06;
 -                this.setDeltaMovement(vec37.add(vec37.x / d26 * 0.06, 0.0, vec37.z / d26 * 0.06));
-+                double d14 = level.purpurConfig.poweredRailBoostModifier; // Purpur - Configurable powered rail boost modifier
-+                this.setDeltaMovement(vec37.add(vec37.x / d26 * level.purpurConfig.poweredRailBoostModifier, 0.0, vec37.z / d26 * level.purpurConfig.poweredRailBoostModifier)); // Purpur - Configurable powered rail boost modifier
++                double d14 = p_376285_.purpurConfig.poweredRailBoostModifier; // Purpur - Configurable powered rail boost modifier
++                this.setDeltaMovement(vec37.add(vec37.x / d26 * p_376285_.purpurConfig.poweredRailBoostModifier, 0.0, vec37.z / d26 * p_376285_.purpurConfig.poweredRailBoostModifier)); // Purpur - Configurable powered rail boost modifier
              } else {
                  Vec3 vec38 = this.getDeltaMovement();
                  double d18 = vec38.x;
@@ -77,9 +77,9 @@
                          entity1.startRiding(this.minecart);
                      } else {
 +                        // CraftBukkit start
-+                        if (!this.minecart.isPassengerOfSameVehicle(entity)) {
++                        if (!this.minecart.isPassengerOfSameVehicle(entity1)) {
 +                            org.bukkit.event.vehicle.VehicleEntityCollisionEvent collisionEvent = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent(
-+                                (org.bukkit.entity.Vehicle) this.minecart.getBukkitEntity(), entity.getBukkitEntity()
++                                (org.bukkit.entity.Vehicle) this.minecart.getBukkitEntity(), entity1.getBukkitEntity()
 +                            );
 +                            if (!collisionEvent.callEvent()) continue;
 +                        }

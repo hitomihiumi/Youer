@@ -91,11 +91,11 @@
              }
          }
 +        // Paper start - beacon activation/deactivation events
-+        if (originalLevels <= 0 && blockEntity.levels > 0) {
-+            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++        if (originalLevels <= 0 && p_155111_.levels > 0) {
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(p_155108_, pos);
 +            new io.papermc.paper.event.block.BeaconActivatedEvent(block).callEvent();
-+        } else if (originalLevels > 0 && blockEntity.levels <= 0) {
-+            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++        } else if (originalLevels > 0 && block.levels <= 0) {
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(p_155108_, pos);
 +            new io.papermc.paper.event.block.BeaconDeactivatedEvent(block).callEvent();
 +        }
 +        // Paper end - beacon activation/deactivation events

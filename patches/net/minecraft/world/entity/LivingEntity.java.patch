@@ -2547,7 +2547,7 @@
          }
  
          if (!this.level().isClientSide() || this.isLocalInstanceAuthoritative()) {
-@@ -2834,10 +_,10 @@
+@@ -2834,33 +_,90 @@
              this.calculateEntityAnimation(this instanceof FlyingAnimal);
          }
  
@@ -2562,8 +2562,11 @@
                  this.setTicksFrozen(Math.max(0, this.getTicksFrozen() - 2));
              }
  
-@@ -2847,20 +_,77 @@
-                 this.hurtServer(serverlevel, this.damageSources().freeze(), 1.0F);
+             this.removeFrost();
+             this.tryAddFrost();
+             if (this.tickCount % 40 == 0 && this.isFullyFrozen() && this.canFreeze()) {
+-                this.hurtServer(serverlevel, this.damageSources().freeze(), 1.0F);
++                this.hurtServer(serverLevel, this.damageSources().freeze(), 1.0F);
              }
  
 -            profilerfiller.pop();

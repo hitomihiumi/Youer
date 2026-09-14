@@ -5,7 +5,7 @@
                  && p_154045_ instanceof ThrownTrident
                  && p_154045_.getDeltaMovement().length() > 0.6) {
 +                // CraftBukkit start
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_154045_, blockPos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_154045_, blockpos, p_154043_.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
 +                    return;
 +                }
 +                // CraftBukkit end
@@ -17,7 +17,7 @@
      public void fallOn(Level p_154047_, BlockState p_154048_, BlockPos p_154049_, Entity p_154050_, double p_397761_) {
          if (p_154048_.getValue(TIP_DIRECTION) == Direction.UP && p_154048_.getValue(THICKNESS) == DripstoneThickness.TIP) {
 -            p_154050_.causeFallDamage(p_397761_ + 2.5, 2.0F, p_154047_.damageSources().stalagmite());
-+            p_154050_.causeFallDamage(p_397761_ + 2.5, 2.0F, p_154047_.damageSources().stalagmite().eventBlockDamager(p_154047_, pos)); // CraftBukkit
++            p_154050_.causeFallDamage(p_397761_ + 2.5, 2.0F, p_154047_.damageSources().stalagmite().eventBlockDamager(p_154047_, p_154049_)); // CraftBukkit
          } else {
              super.fallOn(p_154047_, p_154048_, p_154049_, p_154050_, p_397761_);
          }

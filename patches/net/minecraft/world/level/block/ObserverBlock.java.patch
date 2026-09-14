@@ -23,7 +23,7 @@
          RandomSource p_374161_
      ) {
          if (p_55118_.getValue(FACING) == p_55119_ && !p_55118_.getValue(POWERED)) {
-+            if (!level.getWorldBorder().world.purpurConfig.disableObserverClocks || !(neighborState.getBlock() instanceof ObserverBlock) || neighborState.getValue(ObserverBlock.FACING).getOpposite() != p_55119_) // Purpur - Add Option for disable observer clocks
++            if (!p_374557_.getWorldBorder().world.purpurConfig.disableObserverClocks || !(neighborState.getBlock() instanceof ObserverBlock) || neighborState.getValue(ObserverBlock.FACING).getOpposite() != p_55119_) // Purpur - Add Option for disable observer clocks
              this.startSignal(p_374557_, p_374458_, p_55122_);
          }
  

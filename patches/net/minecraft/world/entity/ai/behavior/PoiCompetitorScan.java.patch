@@ -30,7 +30,7 @@
 +                                        if (!other.isAlive()) {
 +                                            continue;
 +                                        }
-+                                        if (!competesForSameJobsite(globalPos, poi, otherVillager)) {
++                                        if (!competesForSameJobsite(globalpos, poi, otherVillager)) {
 +                                            continue;
 +                                        }
 +                                        winner = selectWinner(winner, otherVillager);

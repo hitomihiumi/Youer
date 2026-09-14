@@ -6,7 +6,7 @@
      public void stepOn(Level p_153777_, BlockPos p_153778_, BlockState p_153779_, Entity p_153780_) {
 -        if (!p_153780_.isSteppingCarefully() && p_153780_ instanceof LivingEntity) {
 -            p_153780_.hurt(p_153777_.damageSources().hotFloor(), 1.0F);
-+        if ((!p_153780_.isSteppingCarefully() || level.purpurConfig.magmaBlockDamageWhenSneaking) && p_153780_ instanceof LivingEntity) { // Purpur - Configurable damage settings for magma blocks
++        if ((!p_153780_.isSteppingCarefully() || p_153777_.purpurConfig.magmaBlockDamageWhenSneaking) && p_153780_ instanceof LivingEntity) { // Purpur - Configurable damage settings for magma blocks
 +            p_153780_.hurt(p_153777_.damageSources().hotFloor().eventBlockDamager(p_153777_, p_153778_), 1.0F); // CraftBukkit
          }
  

@@ -67,7 +67,7 @@
          if (!p_53373_.isClientSide) {
              boolean flag = p_53373_.hasNeighborSignal(p_53374_);
 +            // CraftBukkit start
-+            boolean oldPowered = state.getValue(FenceGateBlock.POWERED);
++            boolean oldPowered = p_312699_.getValue(FenceGateBlock.POWERED);
 +            if (oldPowered != flag) {
 +                int newPower = flag ? 15 : 0;
 +                int oldPower = oldPowered ? 15 : 0;

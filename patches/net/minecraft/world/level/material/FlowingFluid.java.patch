@@ -95,7 +95,7 @@
                  p_75997_ = fluidstate;
                  p_360412_ = Blocks.AIR.defaultBlockState();
 +                // CraftBukkit start
-+                org.bukkit.event.block.FluidLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFluidLevelChangeEvent(level, pos, p_360412_);
++                org.bukkit.event.block.FluidLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFluidLevelChangeEvent(p_376710_, p_75996_, p_360412_);
 +                if (event.isCancelled()) {
 +                    return;
 +                }
@@ -106,7 +106,7 @@
                  p_75997_ = fluidstate;
                  p_360412_ = fluidstate.createLegacyBlock();
 +                // CraftBukkit start
-+                org.bukkit.event.block.FluidLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFluidLevelChangeEvent(level, pos, p_360412_);
++                org.bukkit.event.block.FluidLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFluidLevelChangeEvent(p_376710_, p_75996_, p_360412_);
 +                if (event.isCancelled()) {
 +                    return;
 +                }

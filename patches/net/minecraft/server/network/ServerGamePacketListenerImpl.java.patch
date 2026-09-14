@@ -1962,7 +1962,7 @@
 +                CompletableFuture<Component> componentFuture = this.server.getChatDecorator().decorate(this.player, null, signedMessage.decoratedContent()); // Paper - Adventure
 +
 +                this.chatMessageChain.append(CompletableFuture.allOf(completableFuture, componentFuture), ($) -> { // Paper - Adventure
-+                    PlayerChatMessage playerChatMessage = signedMessage.withUnsignedContent(componentFuture.join()).filter(completableFuture.join().mask()); // Paper - Adventure
++                    PlayerChatMessage playerChatMessage = $.withUnsignedContent(componentFuture.join()).filter(completableFuture.join().mask()); // Paper - Adventure
 +                    this.broadcastChatMessage(playerChatMessage);
                  });
 -            });

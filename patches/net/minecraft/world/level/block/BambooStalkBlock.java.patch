@@ -76,7 +76,7 @@
          int i = p_261855_.getValue(AGE) != 1 && !blockstate1.is(Blocks.BAMBOO) ? 0 : 1;
 -        int j = (p_261759_ < 11 || !(p_261633_.nextFloat() < 0.25F)) && p_261759_ != 15 ? 0 : 1;
 -        p_262076_.setBlock(p_262109_.above(), this.defaultBlockState().setValue(AGE, i).setValue(LEAVES, bambooleaves).setValue(STAGE, j), 3);
-+        int j = (age < p_262076_.paperConfig().maxGrowthHeight.bamboo.min || random.nextFloat() >= 0.25F) && age != (p_262076_.paperConfig().maxGrowthHeight.bamboo.max - 1) ? 0 : 1; // Paper - Configurable cactus/bamboo/reed growth height
++        int j = (age < p_262076_.paperConfig().maxGrowthHeight.bamboo.min || p_261633_.nextFloat() >= 0.25F) && age != (p_262076_.paperConfig().maxGrowthHeight.bamboo.max - 1) ? 0 : 1; // Paper - Configurable cactus/bamboo/reed growth height
 +        // CraftBukkit start
 +        if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_262076_, p_262109_, p_262109_.above(), this.defaultBlockState().setValue(AGE, i).setValue(LEAVES, bambooleaves).setValue(STAGE, j), 3)) {
 +            if (shouldUpdateOthers) {

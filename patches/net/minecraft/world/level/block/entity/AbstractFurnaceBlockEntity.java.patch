@@ -110,13 +110,13 @@
          ItemStack itemstack = p_155017_.items.get(1);
 +        // Purpur start - Furnace uses lava from underneath
 +        boolean usedLavaFromUnderneath = false;
-+        if (level.purpurConfig.furnaceUseLavaFromUnderneath && !p_155017_.isLit() && itemstack.isEmpty() && !p_155017_.items.get(0).isEmpty() && level.getGameTime() % 20 == 0) {
++        if (p_379747_.purpurConfig.furnaceUseLavaFromUnderneath && !p_155017_.isLit() && itemstack.isEmpty() && !p_155017_.items.get(0).isEmpty() && p_379747_.getGameTime() % 20 == 0) {
 +            BlockPos below = p_155017_.getBlockPos().below();
-+            BlockState belowState = level.getBlockStateIfLoaded(below);
++            BlockState belowState = p_379747_.getBlockStateIfLoaded(below);
 +            if (belowState != null && belowState.is(Blocks.LAVA)) {
 +                net.minecraft.world.level.material.FluidState fluidState = belowState.getFluidState();
 +                if (fluidState != null && fluidState.isSource()) {
-+                    level.setBlock(below, Blocks.AIR.defaultBlockState(), 3);
++                    p_379747_.setBlock(below, Blocks.AIR.defaultBlockState(), 3);
 +                    itemstack = Items.LAVA_BUCKET.getDefaultInstance();
 +                    usedLavaFromUnderneath = true;
 +                }
@@ -179,7 +179,7 @@
              setChanged(p_379747_, p_155015_, p_155016_);
          }
 +
-+        if (usedLavaFromUnderneath) furnace.items.set(1, ItemStack.EMPTY); // Purpur - Furnace uses lava from underneath
++        if (usedLavaFromUnderneath) event.items.set(1, ItemStack.EMPTY); // Purpur - Furnace uses lava from underneath
      }
  
      private static boolean canBurn(

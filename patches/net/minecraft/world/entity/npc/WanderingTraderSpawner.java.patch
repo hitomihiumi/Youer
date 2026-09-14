@@ -99,13 +99,13 @@
 -            BlockPos blockpos1 = new BlockPos(j, l, k);
 +            // Purpur start - Allow toggling special MobSpawners per world - allow traders to spawn below nether roof
 +            BlockPos.MutableBlockPos blockpos1 = new BlockPos.MutableBlockPos(j, l, k);
-+            if (level.dimensionType().hasCeiling()) {
++            if (p_35929_.dimensionType().hasCeiling()) {
 +                do {
 +                    blockpos1.relative(net.minecraft.core.Direction.DOWN);
-+                } while (!level.getBlockState(blockpos1).isAir());
++                } while (!p_35929_.getBlockState(blockpos1).isAir());
 +                do {
 +                    blockpos1.relative(net.minecraft.core.Direction.DOWN);
-+                } while (level.getBlockState(blockpos1).isAir() && blockpos1.getY() > 0);
++                } while (p_35929_.getBlockState(blockpos1).isAir() && blockpos1.getY() > 0);
 +            }
 +            // Purpur end - Allow toggling special MobSpawners per world
              if (spawnplacementtype.isSpawnPositionOk(p_35929_, blockpos1, EntityType.WANDERING_TRADER)) {

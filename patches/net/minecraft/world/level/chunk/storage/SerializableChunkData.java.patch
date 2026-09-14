@@ -100,7 +100,7 @@
  
 +        // CraftBukkit start - load chunk persistent data from nbt - SPIGOT-6814: Already load PDC here to account for 1.17 to 1.18 chunk upgrading.
 +        if (this.persistentDataContainer instanceof CompoundTag compoundTag) {
-+            chunkAccess.persistentDataContainer.putAll(compoundTag);
++            chunkaccess.persistentDataContainer.putAll(compoundTag);
 +        }
 +        // CraftBukkit end
 +
@@ -180,7 +180,7 @@
                  StructureStart structurestart = StructureStart.loadStaticStart(p_360982_, compoundtag.getCompoundOrEmpty(s), p_362695_);
                  if (structurestart != null) {
 +                    // CraftBukkit start - load persistent data for structure start
-+                    net.minecraft.nbt.Tag persistentBase = compoundOrEmpty.getCompoundOrEmpty(string).get("StructureBukkitValues");
++                    net.minecraft.nbt.Tag persistentBase = compoundOrEmpty.getCompoundOrEmpty(s).get("StructureBukkitValues");
 +                    if (persistentBase instanceof CompoundTag compoundTag) {
 +                        structurestart.persistentDataContainer.putAll(compoundTag);
 +                    }

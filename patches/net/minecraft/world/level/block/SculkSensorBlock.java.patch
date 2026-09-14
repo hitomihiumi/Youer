@@ -6,11 +6,11 @@
              && sculksensorblockentity.getVibrationUser().canReceiveVibration(serverlevel, p_222133_, GameEvent.STEP, GameEvent.Context.of(p_222134_))) {
 +            // CraftBukkit start
 +            org.bukkit.event.Cancellable cancellable;
-+            if (entity instanceof net.minecraft.world.entity.player.Player player) {
++            if (p_222135_ instanceof net.minecraft.world.entity.player.Player player) {
 +                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(player, org.bukkit.event.block.Action.PHYSICAL, p_222133_, null, null, null);
 +            } else {
-+                cancellable = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, p_222133_));
-+                level.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++                cancellable = new org.bukkit.event.entity.EntityInteractEvent(p_222135_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_222132_, p_222133_));
++                p_222132_.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
 +            }
 +            if (cancellable.isCancelled()) {
 +                return;

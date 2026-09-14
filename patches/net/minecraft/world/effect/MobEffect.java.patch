@@ -21,7 +21,7 @@
      public void applyInstantenousEffect(
          ServerLevel p_376271_, @Nullable Entity p_19462_, @Nullable Entity p_19463_, LivingEntity p_19464_, int p_19465_, double p_19466_
      ) {
-+        if (!new io.papermc.paper.event.entity.EntityEffectTickEvent(entity.getBukkitLivingEntity(), org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftToBukkit(this), amplifier).callEvent()) { return; } // Paper - Add EntityEffectTickEvent
++        if (!new io.papermc.paper.event.entity.EntityEffectTickEvent(p_19467_.getBukkitLivingEntity(), org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftToBukkit(this), amplifier).callEvent()) { return; } // Paper - Add EntityEffectTickEvent
          this.applyEffectTick(p_376271_, p_19464_, p_19465_);
      }
  

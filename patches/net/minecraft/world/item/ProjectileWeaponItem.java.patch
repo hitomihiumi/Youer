@@ -62,10 +62,10 @@
 -                    p_360045_ -> this.shootProjectile(p_330728_, p_360045_, j, p_331007_, p_331445_, f4, p_331167_)
 -                );
 +                // CraftBukkit start
-+                Projectile projectile = this.createProjectile(level, shooter, weapon, itemStack, isCrit);
++                Projectile projectile = this.createProjectile(level, shooter, weapon, itemstack, isCrit);
 +                this.shootProjectile(shooter, projectile, i1, velocity, inaccuracy, f4, target);
 +
-+                org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(shooter, weapon, itemStack, projectile, hand, drawStrength, true);
++                org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(shooter, weapon, itemstack, projectile, hand, drawStrength, true);
 +                if (event.isCancelled()) {
 +                    event.getProjectile().remove();
 +                    return;
@@ -75,7 +75,7 @@
 +                    if (Projectile.spawnProjectile(
 +                        projectile,
 +                        level,
-+                        itemStack
++                        itemstack
 +                    ).isRemoved()) {
 +                        return;
 +                    }

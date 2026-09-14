@@ -10,7 +10,7 @@
 +        i = p_218284_.getMinecraftWorld().paperConfig().entities.spawning.wateranimalSpawnHeight.maximum.or(i);
 +        j = p_218284_.getMinecraftWorld().paperConfig().entities.spawning.wateranimalSpawnHeight.minimum.or(j);
 +        // Paper end - Make water animal spawn height configurable
-+        return ((spawnReason == EntitySpawnReason.SPAWNER && level.getMinecraftWorld().purpurConfig.spawnerFixMC238526) || (p_218286_.getY() >= i && p_218286_.getY() <= i)) // Purpur - MC-238526 - Fix spawner not spawning water animals correctly
++        return ((p_362406_ == EntitySpawnReason.SPAWNER && level.getMinecraftWorld().purpurConfig.spawnerFixMC238526) || (p_218286_.getY() >= i && p_218286_.getY() <= i)) // Purpur - MC-238526 - Fix spawner not spawning water animals correctly
              && p_218284_.getFluidState(p_218286_.below()).is(FluidTags.WATER)
              && p_218284_.getBlockState(p_218286_.above()).is(Blocks.WATER);
      }

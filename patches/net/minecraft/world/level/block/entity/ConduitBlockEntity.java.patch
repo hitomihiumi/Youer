@@ -102,7 +102,7 @@
      private static EntityReference<LivingEntity> selectNewTarget(ServerLevel p_423488_, BlockPos p_423513_) {
          List<LivingEntity> list = p_423488_.getEntitiesOfClass(
 -            LivingEntity.class, getDestroyRangeAABB(p_423513_), p_427192_ -> p_427192_ instanceof Enemy && p_427192_.isInWaterOrRain()
-+            LivingEntity.class, getDestroyRangeAABB(p_423513_, level), p_427192_ -> p_427192_ instanceof Enemy && p_427192_.isInWaterOrRain() // Purpur - Conduit behavior configuration
++            LivingEntity.class, getDestroyRangeAABB(p_423513_, p_423488_), p_427192_ -> p_427192_ instanceof Enemy && p_427192_.isInWaterOrRain() // Purpur - Conduit behavior configuration
          );
          return list.isEmpty() ? null : new EntityReference<>(Util.getRandom(list, p_423488_.random));
      }

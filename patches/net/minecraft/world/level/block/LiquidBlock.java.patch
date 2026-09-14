@@ -39,7 +39,7 @@
          RandomSource p_374563_
      ) {
 -        if (p_54723_.getFluidState().isSource() || p_54725_.getFluidState().isSource()) {
-+        if (level.getWorldBorder().world.purpurConfig.tickFluids && p_54723_.getFluidState().isSource() || p_54725_.getFluidState().isSource()) { // Purpur - Tick fluids config
++        if (p_374418_.getWorldBorder().world.purpurConfig.tickFluids && p_54723_.getFluidState().isSource() || p_54725_.getFluidState().isSource()) { // Purpur - Tick fluids config
              p_374542_.scheduleTick(p_54727_, p_54723_.getFluidState().getType(), this.fluid.getTickDelay(p_374418_));
          }
  

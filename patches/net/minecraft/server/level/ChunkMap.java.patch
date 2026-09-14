@@ -146,7 +146,7 @@
                      this.nextChunkSaveTime.remove(chunkaccess.getPos().toLong());
 -                }
 +                } else if (removed) { // Paper start
-+                    ca.spottedleaf.moonrise.common.PlatformHooks.get().onChunkHolderDelete(this.level, chunkHolder);
++                    ca.spottedleaf.moonrise.common.PlatformHooks.get().onChunkHolderDelete(this.level, p_140183_);
 +                } // Paper end
              }
          }, this.unloadQueue::add).whenComplete((p_381764_, p_381765_) -> {

@@ -56,9 +56,9 @@
          }
 +
 +        // CraftBukkit start - Call interact even when triggering connected tripwire
-+        if (poweredValue != flag && flag && blockState.getValue(TripWireBlock.ATTACHED)) {
-+            org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
-+            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++        if (poweredValue != flag && flag && blockstate.getValue(TripWireBlock.ATTACHED)) {
++            org.bukkit.plugin.PluginManager manager = p_371409_.getCraftServer().getPluginManager();
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(p_371409_, p_371396_);
 +            boolean allowed = false;
 +
 +            // If all the events are cancelled block the tripwire trigger, else allow
@@ -67,7 +67,7 @@
 +                    org.bukkit.event.Cancellable cancellable;
 +
 +                    if (object instanceof Player) {
-+                        cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) object, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
++                        cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) object, org.bukkit.event.block.Action.PHYSICAL, p_371396_, null, null, null);
 +                    } else if (object instanceof Entity) {
 +                        cancellable = new org.bukkit.event.entity.EntityInteractEvent(((Entity) object).getBukkitEntity(), block);
 +                        manager.callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);

@@ -17,7 +17,7 @@
          }
 -
 +        // Paper start - Add config to disable ender dragon legacy check
-+        if (data == EndDragonFight.Data.DEFAULT && !level.paperConfig().entities.spawning.scanForLegacyEnderDragon) {
++        if (p_289768_ == EndDragonFight.Data.DEFAULT && !level.paperConfig().entities.spawning.scanForLegacyEnderDragon) {
 +            this.needsStateScanning = false;
 +            this.dragonKilled = true;
 +        }
@@ -144,13 +144,13 @@
 +            // Paper start - Perf: Do crystal-portal proximity check before entity lookup
 +            if (placedEndCrystalPos != null && !level.paperConfig().misc.allowRemoteEnderDragonRespawning) {
 +                // The end crystal must be 0 or 1 higher than the portal origin
-+                int dy = placedEndCrystalPos.getY() - blockPos.getY();
++                int dy = placedEndCrystalPos.getY() - blockpos.getY();
 +                if (dy != 0 && dy != 1) {
 +                    return false;
 +                }
 +                // The end crystal must be within a distance of 1 in one planar direction, and 3 in the other
-+                int dx = placedEndCrystalPos.getX() - blockPos.getX();
-+                int dz = placedEndCrystalPos.getZ() - blockPos.getZ();
++                int dx = placedEndCrystalPos.getX() - blockpos.getX();
++                int dz = placedEndCrystalPos.getZ() - blockpos.getZ();
 +                if (!((dx >= -1 && dx <= 1 && dz >= -3 && dz <= 3) || (dx >= -3 && dx <= 3 && dz >= -1 && dz <= 1))) {
 +                    return false;
 +                }

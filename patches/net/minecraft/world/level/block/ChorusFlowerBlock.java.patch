@@ -57,7 +57,7 @@
          BlockPos blockpos = p_51656_.getBlockPos();
          if (p_51654_ instanceof ServerLevel serverlevel && p_51657_.mayInteract(serverlevel, blockpos) && p_51657_.mayBreak(serverlevel)) {
 +            // CraftBukkit start
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_51657_, blockpos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_51657_, blockpos, p_51655_.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
 +                return;
 +            }
 +            // CraftBukkit end

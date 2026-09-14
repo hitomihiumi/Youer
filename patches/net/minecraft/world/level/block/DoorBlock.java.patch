@@ -13,7 +13,7 @@
      protected InteractionResult useWithoutItem(BlockState p_52769_, Level p_52770_, BlockPos p_52771_, Player p_52772_, BlockHitResult p_52774_) {
          if (!this.type.canOpenByHand()) {
              return InteractionResult.PASS;
-+        } else if (requiresRedstone(level, state, pos)) { return InteractionResult.CONSUME; // Purpur - Option to make doors require redstone
++        } else if (requiresRedstone(p_52770_, p_52769_, p_52771_)) { return InteractionResult.CONSUME; // Purpur - Option to make doors require redstone
          } else {
              p_52769_ = p_52769_.cycle(OPEN);
              p_52770_.setBlock(p_52771_, p_52769_, 10);

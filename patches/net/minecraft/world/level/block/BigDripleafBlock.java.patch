@@ -5,7 +5,7 @@
      @Override
      protected void onProjectileHit(Level p_152228_, BlockState p_152229_, BlockHitResult p_152230_, Projectile p_152231_) {
 -        this.setTiltAndScheduleTick(p_152229_, p_152228_, p_152230_.getBlockPos(), Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN);
-+        this.setTiltAndScheduleTick(p_152229_, p_152228_, p_152230_.getBlockPos(), Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN, projectile); // CraftBukkit
++        this.setTiltAndScheduleTick(p_152229_, p_152228_, p_152230_.getBlockPos(), Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN, p_152231_); // CraftBukkit
      }
  
      @Override
@@ -28,17 +28,17 @@
 -                this.setTiltAndScheduleTick(p_152266_, p_152267_, p_152268_, Tilt.UNSTABLE, null);
 +                // CraftBukkit start - tilt dripleaf
 +                org.bukkit.event.Cancellable cancellable;
-+                if (entity instanceof net.minecraft.world.entity.player.Player player) {
++                if (p_152269_ instanceof net.minecraft.world.entity.player.Player player) {
 +                    cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(player, org.bukkit.event.block.Action.PHYSICAL, p_152268_, null, null, null);
 +                } else {
-+                    cancellable = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_152267_, p_152268_));
++                    cancellable = new org.bukkit.event.entity.EntityInteractEvent(p_152269_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_152267_, p_152268_));
 +                    p_152267_.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
 +                }
 +
 +                if (cancellable.isCancelled()) {
 +                    return;
 +                }
-+                this.setTiltAndScheduleTick(p_152266_, p_152267_, p_152268_, Tilt.UNSTABLE, null, entity);
++                this.setTiltAndScheduleTick(p_152266_, p_152267_, p_152268_, Tilt.UNSTABLE, null, p_152269_);
 +                // CraftBukkit end
              }
          }

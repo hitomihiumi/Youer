@@ -28,7 +28,7 @@
                  simplecontainer.removeItemType(Items.WHEAT, i1);
                  ItemStack itemstack = simplecontainer.addItem(new ItemStack(Items.BREAD, l));
                  if (!itemstack.isEmpty()) {
-+                    villager.forceDrops = true; // Paper - Add missing forceDrop toggles
++                    p_24803_.forceDrops = true; // Paper - Add missing forceDrop toggles
                      p_24803_.spawnAtLocation(p_376900_, itemstack, 0.5F);
 +                    p_24803_.forceDrops = false; // Paper - Add missing forceDrop toggles
                  }

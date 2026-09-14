@@ -27,7 +27,7 @@
          } else {
 +            // CraftBukkit start
 +            // We only want the TransformerGeneratorAccess at certain locations because in here are many "block update" calls that shouldn't be transformed
-+            ServerLevelAccessor wrappedAccess = serverLevel;
++            ServerLevelAccessor wrappedAccess = p_230329_;
 +            org.bukkit.craftbukkit.util.CraftStructureTransformer structureTransformer = null;
 +            if (wrappedAccess instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
 +                serverLevel = transformerAccess.getDelegate();
@@ -56,16 +56,16 @@
  
 +                            // CraftBukkit start
 +                            if (structureTransformer != null) {
-+                                org.bukkit.craftbukkit.block.CraftBlockState craftBlockState = (org.bukkit.craftbukkit.block.CraftBlockState) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(serverLevel, blockPos, blockState, null);
-+                                if (structureBlockInfo.nbt != null && craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> entityState) {
-+                                    entityState.loadData(structureBlockInfo.nbt);
++                                org.bukkit.craftbukkit.block.CraftBlockState craftBlockState = (org.bukkit.craftbukkit.block.CraftBlockState) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(serverLevel, blockpos, blockstate, null);
++                                if (structuretemplate$structureblockinfo.nbt != null && craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> entityState) {
++                                    entityState.loadData(structuretemplate$structureblockinfo.nbt);
 +                                    if (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftLootable<?> craftLootable) {
-+                                        craftLootable.setSeed(random.nextLong());
++                                        craftLootable.setSeed(p_230333_.nextLong());
 +                                    }
 +                                }
 +                                craftBlockState = structureTransformer.transformCraftState(craftBlockState);
-+                                blockState = craftBlockState.getHandle();
-+                                structureBlockInfo = new StructureTemplate.StructureBlockInfo(blockPos, blockState, (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState ? craftBlockEntityState.getSnapshotNBT() : null));
++                                blockstate = craftBlockState.getHandle();
++                                structuretemplate$structureblockinfo = new StructureTemplate.StructureBlockInfo(blockPos, blockstate, (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState ? craftBlockEntityState.getSnapshotNBT() : null));
 +                            }
 +                            // CraftBukkit end
 +

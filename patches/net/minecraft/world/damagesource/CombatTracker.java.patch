@@ -51,11 +51,11 @@
                  return Component.translatable(s + ".message", this.mob.getDisplayName(), component);
              } else {
 +                // Purpur start - Dont run with scissors!
-+                if (damageSource.isScissors()) {
-+                    return damageSource.getLocalizedDeathMessage(org.purpurmc.purpur.PurpurConfig.deathMsgRunWithScissors, this.mob);
++                if (damagesource.isScissors()) {
++                    return damagesource.getLocalizedDeathMessage(org.purpurmc.purpur.PurpurConfig.deathMsgRunWithScissors, this.mob);
 +                // Purpur start - Stonecutter damage
-+                } else if (damageSource.isStonecutter()) {
-+                    return damageSource.getLocalizedDeathMessage(org.purpurmc.purpur.PurpurConfig.deathMsgStonecutter, this.mob);
++                } else if (damagesource.isStonecutter()) {
++                    return damagesource.getLocalizedDeathMessage(org.purpurmc.purpur.PurpurConfig.deathMsgStonecutter, this.mob);
 +                // Purpur end - Stonecutter damage
 +                }
 +                // Purpur end - Dont run with scissors!

@@ -21,7 +21,7 @@
      public void tick(ServerLevel p_401204_) {
          this.tick++;
 +        // Purpur start - Raid cooldown setting
-+        if (level.purpurConfig.raidCooldownSeconds != 0 && this.tick % 20 == 0) {
++        if (p_401204_.purpurConfig.raidCooldownSeconds != 0 && this.tick % 20 == 0) {
 +            com.google.common.collect.ImmutableMap.copyOf(playerCooldowns).forEach((uuid, i) -> {
 +                if (i < 1) {
 +                    playerCooldowns.remove(uuid);
@@ -49,13 +49,13 @@
 +                    // }
 +
 +                    if (!raid.isStarted() || (raid.isInProgress() && raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel())) { // CraftBukkit - fixed a bug with raid: players could add up Bad Omen level even when the raid had finished
-+                        if (serverLevel.purpurConfig.raidCooldownSeconds != 0 && playerCooldowns.containsKey(player.getUUID())) return null; // Purpur - Raid cooldown setting
++                        if (serverlevel.purpurConfig.raidCooldownSeconds != 0 && playerCooldowns.containsKey(p_37964_.getUUID())) return null; // Purpur - Raid cooldown setting
 +                        // CraftBukkit start
 +                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callRaidTriggerEvent(serverlevel, raid, p_37964_)) {
 +                            p_37964_.removeEffect(net.minecraft.world.effect.MobEffects.RAID_OMEN);
 +                            return null;
 +                        }
-+                        if (serverLevel.purpurConfig.raidCooldownSeconds != 0) playerCooldowns.put(player.getUUID(), serverLevel.purpurConfig.raidCooldownSeconds); // Purpur - Raid cooldown setting
++                        if (serverlevel.purpurConfig.raidCooldownSeconds != 0) playerCooldowns.put(p_37964_.getUUID(), serverlevel.purpurConfig.raidCooldownSeconds); // Purpur - Raid cooldown setting
 +
 +                        if (!raid.isStarted() && !this.raidMap.containsValue(raid)) {
 +                            this.raidMap.put(this.getUniqueId(), raid);

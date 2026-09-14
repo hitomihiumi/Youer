@@ -20,7 +20,7 @@
 -                0.5F,
 -                Mth.randomBetween(randomsource, 0.9F, 1.0F)
 -            );
-+            player.getFoodData().eat(this, stack, (net.minecraft.server.level.ServerPlayer) player); // CraftBukkit
++            player.getFoodData().eat(this, p_366556_, (net.minecraft.server.level.ServerPlayer) player); // CraftBukkit
 +            // Purpur start - Burp delay - moved to Player#tick()
 +            //level.playSound(
 +            //    null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 0.5F, Mth.randomBetween(random, 0.9F, 1.0F)

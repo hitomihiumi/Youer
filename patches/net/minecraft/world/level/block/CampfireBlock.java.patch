@@ -16,7 +16,7 @@
              .setValue(WATERLOGGED, flag)
              .setValue(SIGNAL_FIRE, this.isSmokeSource(levelaccessor.getBlockState(blockpos.below())))
 -            .setValue(LIT, !flag)
-+            .setValue(LIT, level.getMinecraftWorld().purpurConfig.campFireLitWhenPlaced && !flag) // Purpur - Campfire option for lit when placed
++            .setValue(LIT, levelaccessor.getMinecraftWorld().purpurConfig.campFireLitWhenPlaced && !flag) // Purpur - Campfire option for lit when placed
              .setValue(FACING, p_51240_.getHorizontalDirection());
      }
  

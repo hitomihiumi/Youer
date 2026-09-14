@@ -22,7 +22,7 @@
  
      protected boolean findPoweredRailSignal(Level p_55220_, BlockPos p_55221_, BlockState p_55222_, boolean p_55223_, int p_55224_) {
 -        if (p_55224_ >= 8) {
-+        if (p_55224_ >= level.purpurConfig.railActivationRange) { // Purpur - Config for powered rail activation distance
++        if (p_55224_ >= p_55220_.purpurConfig.railActivationRange) { // Purpur - Config for powered rail activation distance
              return false;
          } else {
              int i = p_55221_.getX();

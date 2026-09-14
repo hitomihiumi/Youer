@@ -7,7 +7,7 @@
 -        return super.getGrowIntoState(p_220935_, p_220936_).setValue(BERRIES, p_220936_.nextFloat() < 0.11F);
 -    }
 +    // Paper start - Fix Spigot growth modifiers
-+        return this.getGrowIntoState(state, random, null);
++        return this.getGrowIntoState(p_220935_, p_220936_, null);
 +    }
 +    @Override
 +    protected BlockState getGrowIntoState(BlockState state, RandomSource random, @javax.annotation.Nullable Level level) {

@@ -35,7 +35,7 @@
                  .setValue(MovingPistonBlock.TYPE, this.isSticky ? PistonType.STICKY : PistonType.DEFAULT);
 +            // Paper start - Fix sticky pistons and BlockPistonRetractEvent; Move empty piston retract call to fix multiple event fires
 +            if (!this.isSticky) {
-+                if (!new org.bukkit.event.block.BlockPistonRetractEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), java.util.Collections.emptyList(), org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction)).callEvent()) {
++                if (!new org.bukkit.event.block.BlockPistonRetractEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_60193_, p_60194_), java.util.Collections.emptyList(), org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction)).callEvent()) {
 +                    return false;
 +                }
 +            }
@@ -54,7 +54,7 @@
                              && !blockstate2.is(Blocks.STICKY_PISTON)) {
 +                        // Paper start - Fix sticky pistons and BlockPistonRetractEvent; fire BlockPistonRetractEvent for sticky pistons retracting nothing (air)
 +                        if (id == TRIGGER_CONTRACT && blockState1.isAir()) {
-+                            if (!new org.bukkit.event.block.BlockPistonRetractEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), java.util.Collections.emptyList(), org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction)).callEvent()) {
++                            if (!new org.bukkit.event.block.BlockPistonRetractEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_60193_, blockpos), java.util.Collections.emptyList(), org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction)).callEvent()) {
 +                                return false;
 +                            }
 +                        }
@@ -95,10 +95,10 @@
              Direction direction = p_60185_ ? p_60184_ : p_60184_.getOpposite();
              int i = 0;
 +            // CraftBukkit start
-+            final org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++            final org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_60182_, pos);
 +
-+            final List<BlockPos> moved = pistonStructureResolver.getToPush();
-+            final List<BlockPos> broken = pistonStructureResolver.getToDestroy();
++            final List<BlockPos> moved = pistonstructureresolver.getToPush();
++            final List<BlockPos> broken = pistonstructureresolver.getToDestroy();
 +
 +            List<org.bukkit.block.Block> blocks = new java.util.AbstractList<>() {
 +

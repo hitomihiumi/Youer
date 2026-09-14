@@ -5,7 +5,7 @@
              this.nextTick--;
              if (this.nextTick <= 0) {
 -                this.nextTick = 1200;
-+                this.nextTick = level.purpurConfig.catSpawnDelay; // Purpur - Cat spawning options
++                this.nextTick = p_35330_.purpurConfig.catSpawnDelay; // Purpur - Cat spawning options
                  Player player = p_35330_.getRandomPlayer();
                  if (player != null) {
                      RandomSource randomsource = p_35330_.random;

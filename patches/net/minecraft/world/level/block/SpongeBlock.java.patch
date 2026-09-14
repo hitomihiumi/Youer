@@ -41,7 +41,7 @@
 +        // CraftBukkit start
 +        java.util.List<org.bukkit.craftbukkit.block.CraftBlockState> snapshots = blockList.getSnapshotBlocks(); // Is a clone
 +        if (!snapshots.isEmpty()) {
-+            final org.bukkit.block.Block sponge = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++            final org.bukkit.block.Block sponge = org.bukkit.craftbukkit.block.CraftBlock.at(p_56808_, p_56809_);
 +
 +            org.bukkit.event.block.SpongeAbsorbEvent event = new org.bukkit.event.block.SpongeAbsorbEvent(sponge, (java.util.List<org.bukkit.block.BlockState>) (java.util.List) snapshots);
 +            if (!event.callEvent()) {
@@ -50,17 +50,17 @@
 +
 +            for (org.bukkit.craftbukkit.block.CraftBlockState snapshot : snapshots) {
 +                BlockPos blockPos = snapshot.getPosition();
-+                BlockState blockState = level.getBlockState(blockPos);
-+                FluidState fluidState = level.getFluidState(blockPos);
++                BlockState blockState = p_56808_.getBlockState(blockPos);
++                FluidState fluidState = p_56808_.getFluidState(blockPos);
 +
 +                if (!fluidState.is(FluidTags.WATER)) {
-+                } else if (blockState.getBlock() instanceof BucketPickup bucketPickup && !bucketPickup.pickupBlock(null, level, blockPos, blockState).isEmpty()) {
++                } else if (blockState.getBlock() instanceof BucketPickup bucketPickup && !bucketPickup.pickupBlock(null, p_56808_, blockPos, blockState).isEmpty()) {
 +                } else if (blockState.getBlock() instanceof LiquidBlock) {
 +                } else if (blockState.is(Blocks.KELP) || blockState.is(Blocks.KELP_PLANT) || blockState.is(Blocks.SEAGRASS) || blockState.is(Blocks.TALL_SEAGRASS)) {
-+                    BlockEntity blockEntity = blockState.hasBlockEntity() ? level.getBlockEntity(blockPos) : null;
++                    BlockEntity blockEntity = blockState.hasBlockEntity() ? p_56808_.getBlockEntity(blockPos) : null;
 +
 +                    if (snapshot.getHandle().isAir()) {
-+                        dropResources(blockState, level, blockPos, blockEntity);
++                        dropResources(blockState, p_56808_, blockPos, blockEntity);
 +                    }
 +                }
 +                snapshot.place(snapshot.getFlags());
