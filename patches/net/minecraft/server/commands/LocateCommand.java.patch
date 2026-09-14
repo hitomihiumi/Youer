@@ -1,0 +1,10 @@
+--- a/net/minecraft/server/commands/LocateCommand.java
++++ b/net/minecraft/server/commands/LocateCommand.java
+@@ -204,6 +_,6 @@
+     private static float dist(int p_137854_, int p_137855_, int p_137856_, int p_137857_) {
+         int i = p_137856_ - p_137854_;
+         int j = p_137857_ - p_137855_;
+-        return Mth.sqrt(i * i + j * j);
++        return (float) Math.hypot(i, j); // Paper - Fix MC-177381
+     }
+ }

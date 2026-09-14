@@ -1,0 +1,11 @@
+--- a/net/minecraft/advancements/critereon/LocationPredicate.java
++++ b/net/minecraft/advancements/critereon/LocationPredicate.java
+@@ -45,7 +_,7 @@
+     public boolean matches(ServerLevel p_52618_, double p_52619_, double p_52620_, double p_52621_) {
+         if (this.position.isPresent() && !this.position.get().matches(p_52619_, p_52620_, p_52621_)) {
+             return false;
+-        } else if (this.dimension.isPresent() && this.dimension.get() != p_52618_.dimension()) {
++        } else if (this.dimension.isPresent() && this.dimension.get() != (io.papermc.paper.configuration.GlobalConfiguration.get().misc.strictAdvancementDimensionCheck ? p_52618_.dimension() : org.bukkit.craftbukkit.util.CraftDimensionUtil.getMainDimensionKey(p_52618_))) { // Paper - Add option for strict advancement dimension checks
+             return false;
+         } else {
+             BlockPos blockpos = BlockPos.containing(p_52619_, p_52620_, p_52621_);

@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/entity/vehicle/AbstractChestBoat.java
++++ b/net/minecraft/world/entity/vehicle/AbstractChestBoat.java
+@@ -66,12 +_,12 @@
+     }
+ 
+     @Override
+-    public void remove(Entity.RemovalReason p_376764_) {
++    public void remove(Entity.RemovalReason p_376764_, @Nullable org.bukkit.event.entity.EntityRemoveEvent.Cause cause) { // CraftBukkit - add Bukkit remove cause
+         if (!this.level().isClientSide && p_376764_.shouldDestroy()) {
+             Containers.dropContents(this.level(), this, this);
+         }
+ 
+-        super.remove(p_376764_);
++        super.remove(p_376764_, cause); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override
+@@ -94,8 +_,8 @@
+ 
+     @Override
+     public void openCustomInventoryScreen(Player p_376437_) {
+-        p_376437_.openMenu(this);
+-        if (p_376437_.level() instanceof ServerLevel serverlevel) {
++        // Paper - fix inventory open cancel - moved into below if
++        if (p_376437_.level() instanceof ServerLevel serverlevel && p_376437_.openMenu(this).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             this.gameEvent(GameEvent.CONTAINER_OPEN, p_376437_);
+             PiglinAi.angerNearbyPiglins(serverlevel, p_376437_, true);
+         }

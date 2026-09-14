@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/item/MobBucketItem.java
++++ b/net/minecraft/world/item/MobBucketItem.java
+@@ -50,7 +_,7 @@
+         }
+ 
+         if (mob != null) {
+-            p_151142_.addFreshEntityWithPassengers(mob);
++            p_151142_.addFreshEntityWithPassengers(mob, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BUCKET); // Paper - Add SpawnReason
+             mob.playAmbientSound();
+         }
+     }

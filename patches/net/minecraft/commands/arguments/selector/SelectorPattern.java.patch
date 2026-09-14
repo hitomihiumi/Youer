@@ -1,0 +1,11 @@
+--- a/net/minecraft/commands/arguments/selector/SelectorPattern.java
++++ b/net/minecraft/commands/arguments/selector/SelectorPattern.java
+@@ -13,7 +_,7 @@
+             EntitySelectorParser entityselectorparser = new EntitySelectorParser(new StringReader(p_361421_), true);
+             return DataResult.success(new SelectorPattern(p_361421_, entityselectorparser.parse()));
+         } catch (CommandSyntaxException commandsyntaxexception) {
+-            return DataResult.error(() -> "Invalid selector component: " + p_361421_ + ": " + commandsyntaxexception.getMessage());
++            return DataResult.error(() -> "Invalid selector component"); // Paper - limit selector error message
+         }
+     }
+ 

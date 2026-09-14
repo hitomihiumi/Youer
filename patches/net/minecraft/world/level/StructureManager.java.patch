@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/level/StructureManager.java
++++ b/net/minecraft/world/level/StructureManager.java
+@@ -48,7 +_,13 @@
+     }
+ 
+     public List<StructureStart> startsForStructure(ChunkPos p_220478_, Predicate<Structure> p_220479_) {
+-        Map<Structure, LongSet> map = this.level.getChunk(p_220478_.x, p_220478_.z, ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
++        // Paper start - Fix swamp hut cat generation deadlock
++        return this.startsForStructure(p_220478_, p_220479_, null);
++    }
++
++    public List<StructureStart> startsForStructure(ChunkPos p_220478_, Predicate<Structure> p_220479_, @Nullable ServerLevelAccessor levelAccessor) {
++        Map<Structure, LongSet> map = (levelAccessor == null ? this.level : levelAccessor).getChunk(p_220478_.x, p_220478_.z, ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
++        // Paper end - Fix swamp hut cat generation deadlock
+         Builder<StructureStart> builder = ImmutableList.builder();
+ 
+         for (Entry<Structure, LongSet> entry : map.entrySet()) {

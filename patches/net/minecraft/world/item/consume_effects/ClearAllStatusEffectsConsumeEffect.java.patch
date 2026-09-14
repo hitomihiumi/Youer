@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/item/consume_effects/ClearAllStatusEffectsConsumeEffect.java
++++ b/net/minecraft/world/item/consume_effects/ClearAllStatusEffectsConsumeEffect.java
+@@ -18,7 +_,15 @@
+     }
+ 
+     @Override
+-    public boolean apply(Level p_366806_, ItemStack p_366692_, LivingEntity p_366699_) {
+-        return p_366699_.removeAllEffects();
++    // CraftBukkit start
++    public boolean apply(Level p_366806_, ItemStack p_366692_, LivingEntity p_366699_, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
++        // Purpur start - Option to toggle milk curing bad omen
++        net.minecraft.world.effect.MobEffectInstance badOmen = p_366699_.getEffect(net.minecraft.world.effect.MobEffects.BAD_OMEN);
++        if (!p_366806_.purpurConfig.milkCuresBadOmen && p_366692_.is(net.minecraft.world.item.Items.MILK_BUCKET) && badOmen != null) {
++            return p_366699_.removeAllEffects(cause) && p_366699_.addEffect(badOmen);
++        }
++        // Purpur end - Option to toggle milk curing bad omen
++        return p_366699_.removeAllEffects(cause);
++        // CraftBukkit end
+     }
+ }

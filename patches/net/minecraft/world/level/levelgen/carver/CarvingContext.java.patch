@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/levelgen/carver/CarvingContext.java
++++ b/net/minecraft/world/level/levelgen/carver/CarvingContext.java
+@@ -27,9 +_,9 @@
+         LevelHeightAccessor p_224847_,
+         NoiseChunk p_224848_,
+         RandomState p_224849_,
+-        SurfaceRules.RuleSource p_224850_
++        SurfaceRules.RuleSource p_224850_, @javax.annotation.Nullable net.minecraft.world.level.Level serverLevel  // Paper - Flat bedrock generator settings
+     ) {
+-        super(p_224845_, p_224847_);
++        super(p_224845_, p_224847_, serverLevel); // Paper - Flat bedrock generator settings
+         this.registryAccess = p_224846_;
+         this.noiseChunk = p_224848_;
+         this.randomState = p_224849_;

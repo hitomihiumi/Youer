@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator.java
++++ b/net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator.java
+@@ -231,7 +_,7 @@
+     @Override
+     public void buildSurface(WorldGenRegion p_224232_, StructureManager p_224233_, RandomState p_224234_, ChunkAccess p_224235_) {
+         if (!SharedConstants.debugVoidTerrain(p_224235_.getPos())) {
+-            WorldGenerationContext worldgenerationcontext = new WorldGenerationContext(this, p_224232_);
++            WorldGenerationContext worldgenerationcontext = new WorldGenerationContext(this, p_224232_, p_224232_.getMinecraftWorld()); // Paper - Flat bedrock generator settings
+             this.buildSurface(
+                 p_224235_,
+                 worldgenerationcontext,

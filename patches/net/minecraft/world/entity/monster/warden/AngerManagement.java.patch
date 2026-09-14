@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/monster/warden/AngerManagement.java
++++ b/net/minecraft/world/entity/monster/warden/AngerManagement.java
+@@ -147,7 +_,7 @@
+ 
+     public int increaseAnger(Entity p_219269_, int p_219270_) {
+         boolean flag = !this.angerBySuspect.containsKey(p_219269_);
+-        int i = this.angerBySuspect.computeInt(p_219269_, (p_219259_, p_219260_) -> Math.min(150, (p_219260_ == null ? 0 : p_219260_) + p_219270_));
++        int i = this.angerBySuspect.computeInt(p_219269_, (p_219259_, p_219260_) -> Math.min(150, (p_219260_ == null ? 0 : p_219260_) + p_219270_)); // Paper - diff on change (Warden#increaseAngerAt WardenAngerChangeEvent)
+         if (flag) {
+             int j = this.angerByUuid.removeInt(p_219269_.getUUID());
+             i += j;

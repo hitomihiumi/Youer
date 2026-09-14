@@ -1,0 +1,33 @@
+--- a/net/minecraft/core/Direction.java
++++ b/net/minecraft/core/Direction.java
+@@ -74,6 +_,11 @@
+         this.normal = p_122362_;
+         this.normalVec3 = Vec3.atLowerCornerOf(p_122362_);
+         this.normalVec3f = new Vector3f(p_122362_.getX(), p_122362_.getY(), p_122362_.getZ());
++        // Paper start - Perf: Inline shift direction fields
++        this.adjX = p_122362_.getX();
++        this.adjY = p_122362_.getY();
++        this.adjZ = p_122362_.getZ();
++        // Paper end - Perf: Inline shift direction fields
+     }
+ 
+     public static Direction[] orderedByNearest(Entity p_122383_) {
+@@ -246,15 +_,15 @@
+     }
+ 
+     public int getStepX() {
+-        return this.normal.getX();
++        return this.adjX; // Paper - Perf: Inline shift direction fields
+     }
+ 
+     public int getStepY() {
+-        return this.normal.getY();
++        return this.adjY; // Paper - Perf: Inline shift direction fields
+     }
+ 
+     public int getStepZ() {
+-        return this.normal.getZ();
++        return this.adjZ; // Paper - Perf: Inline shift direction fields
+     }
+ 
+     public Vector3f step() {

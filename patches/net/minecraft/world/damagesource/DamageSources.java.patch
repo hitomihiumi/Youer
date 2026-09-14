@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/damagesource/DamageSources.java
++++ b/net/minecraft/world/damagesource/DamageSources.java
+@@ -42,6 +_,8 @@
+     private final DamageSource stalagmite;
+     private final DamageSource outsideBorder;
+     private final DamageSource genericKill;
++    private final DamageSource scissors; // Purpur - Dont run with scissors!
++    private final DamageSource stonecutter; // Purpur - Stonecutter damage
+ 
+     public DamageSources(RegistryAccess p_270740_) {
+         this.damageTypes = p_270740_.lookupOrThrow(Registries.DAMAGE_TYPE);

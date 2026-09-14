@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/ThrownSplashPotion.java
 +++ b/net/minecraft/world/entity/projectile/ThrownSplashPotion.java
-@@ -31,7 +_,7 @@
+@@ -31,18 +_,19 @@
      }
  
      @Override
@@ -9,3 +9,60 @@
          return Items.SPLASH_POTION;
      }
  
+     @Override
+-    public void onHitAsPotion(ServerLevel p_399483_, ItemStack p_400156_, HitResult p_422131_) {
++    public boolean onHitAsPotion(ServerLevel p_399483_, ItemStack p_400156_, HitResult p_422131_) { // Paper - More projectile API
+         PotionContents potioncontents = p_400156_.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
+         float f = p_400156_.getOrDefault(DataComponents.POTION_DURATION_SCALE, 1.0F);
+         Iterable<MobEffectInstance> iterable = potioncontents.getAllEffects();
+         AABB aabb = this.getBoundingBox().move(p_422131_.getLocation().subtract(this.position()));
+         AABB aabb1 = aabb.inflate(4.0, 2.0, 4.0);
+         List<LivingEntity> list = this.level().getEntitiesOfClass(LivingEntity.class, aabb1);
++        java.util.Map<org.bukkit.entity.LivingEntity, Double> affected = new java.util.HashMap<>(); // CraftBukkit
+         float f1 = ProjectileUtil.computeMargin(this);
+         if (!list.isEmpty()) {
+             Entity entity = this.getEffectSource();
+@@ -51,8 +_,25 @@
+                 if (livingentity.isAffectedByPotions()) {
+                     double d0 = aabb.distanceToSqr(livingentity.getBoundingBox().inflate(f1));
+                     if (d0 < 16.0) {
+-                        double d1 = 1.0 - Math.sqrt(d0) / 4.0;
+-
++                        double d1 = 1.0 - Math.sqrt(d0) / 4.0; // Paper - diff on change, used when calling the splash event for water splash potions
++                        // CraftBukkit start
++                        affected.put(livingentity.getBukkitLivingEntity(), d1);
++                    }
++                }
++            }
++        }
++        org.bukkit.event.entity.PotionSplashEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPotionSplashEvent(this, p_422131_, affected);
++        if (!event.isCancelled() && !list.isEmpty()) { // do not process effects if there are no effects to process
++            Entity entity = this.getEffectSource();
++            for (org.bukkit.entity.LivingEntity victim : event.getAffectedEntities()) {
++                if (!(victim instanceof org.bukkit.craftbukkit.entity.CraftLivingEntity craftLivingEntity)) {
++                    continue;
++                }
++                LivingEntity livingentity = craftLivingEntity.getHandle();
++                double d1 = event.getIntensity(victim);
++                {
++                    {
++                        // CraftBukkit end
+                         for (MobEffectInstance mobeffectinstance : iterable) {
+                             Holder<MobEffect> holder = mobeffectinstance.getEffect();
+                             if (holder.value().isInstantenous()) {
+@@ -63,7 +_,7 @@
+                                     holder, i, mobeffectinstance.getAmplifier(), mobeffectinstance.isAmbient(), mobeffectinstance.isVisible()
+                                 );
+                                 if (!mobeffectinstance1.endsWithin(20)) {
+-                                    livingentity.addEffect(mobeffectinstance1, entity);
++                                    livingentity.addEffect(mobeffectinstance1, entity, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.POTION_SPLASH); // CraftBukkit
+                                 }
+                             }
+                         }
+@@ -71,5 +_,6 @@
+                 }
+             }
+         }
++        return !event.isCancelled(); // Paper - Fix potions splash events
+     }
+ }

@@ -1,0 +1,37 @@
+--- a/net/minecraft/world/level/chunk/storage/RegionFile.java
++++ b/net/minecraft/world/level/chunk/storage/RegionFile.java
+@@ -82,6 +_,14 @@
+                     if (l != 0) {
+                         int i1 = getSectorNumber(l);
+                         int j1 = getNumSectors(l);
++                        // Spigot start
++                        if (j1 == 255) {
++                            // We're maxed out, so we need to read the proper length from the section
++                            ByteBuffer realLen = ByteBuffer.allocate(4);
++                            this.file.read(realLen, i1 * 4096);
++                            j1 = (realLen.getInt(0) + 4) / 4096 + 1;
++                        }
++                        // Spigot end
+                         if (i1 < 2) {
+                             LOGGER.warn("Region file {} has invalid sector at index: {}; sector {} overlaps with header", p_63633_, k, i1);
+                             this.offsets.put(k, 0);
+@@ -260,6 +_,7 @@
+                     return true;
+                 }
+             } catch (IOException ioexception) {
++                com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(ioexception); // Paper - ServerExceptionEvent
+                 return false;
+             }
+         }
+@@ -331,6 +_,11 @@
+         try (FileChannel filechannel = FileChannel.open(path, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+             p_63664_.position(5);
+             filechannel.write(p_63664_);
++            // Paper start - ServerExceptionEvent
++        } catch (Throwable throwable) {
++            com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(throwable);
++            throw throwable;
++            // Paper end - ServerExceptionEvent
+         }
+ 
+         return () -> Files.move(path, p_63663_, StandardCopyOption.REPLACE_EXISTING);

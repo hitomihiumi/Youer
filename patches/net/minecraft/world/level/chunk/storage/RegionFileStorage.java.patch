@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
++++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
+@@ -48,7 +_,12 @@
+ 
+     @Nullable
+     public CompoundTag read(ChunkPos p_63707_) throws IOException {
+-        RegionFile regionfile = this.getRegionFile(p_63707_);
++        // CraftBukkit start - SPIGOT-5680: There's no good reason to preemptively create files on read, save that for writing
++        RegionFile regionfile = this.getRegionFile(p_63707_, true);
++        if (regionfile == null) {
++            return null;
++        }
++        // CraftBukkit end
+ 
+         CompoundTag compoundtag;
+         try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(p_63707_)) {

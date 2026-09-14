@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
+@@ -155,6 +_,7 @@
+ 
+     @Override
+     protected void loadAdditional(ValueInput p_421695_) {
++        super.loadAdditional(p_421695_); // Paper - load the PDC
+         p_421695_.read("data", TestInstanceBlockEntity.Data.CODEC).ifPresent(this::set);
+     }
+ 
+@@ -314,7 +_,7 @@
+     }
+ 
+     private void removeEntities() {
+-        this.level.getEntities(null, this.getStructureBounds()).stream().filter(p_399456_ -> !(p_399456_ instanceof Player)).forEach(Entity::discard);
++        this.level.getEntities(null, this.getStructureBounds()).stream().filter(p_399456_ -> !(p_399456_ instanceof Player)).forEach((p_399456_) -> p_399456_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD)); // Paper
+     }
+ 
+     private void forceLoadChunks() {

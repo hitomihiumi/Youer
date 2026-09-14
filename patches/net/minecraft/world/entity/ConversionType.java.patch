@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/ConversionType.java
++++ b/net/minecraft/world/entity/ConversionType.java
+@@ -24,7 +_,7 @@
+ 
+                 for (Entity entity1 : p_371774_.getPassengers()) {
+                     entity1.stopRiding();
+-                    entity1.remove(Entity.RemovalReason.DISCARDED);
++                    entity1.remove(Entity.RemovalReason.DISCARDED, org.bukkit.event.entity.EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
+                 }
+ 
+                 entity.startRiding(p_371774_);

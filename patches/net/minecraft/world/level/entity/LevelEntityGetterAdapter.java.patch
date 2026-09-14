@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/entity/LevelEntityGetterAdapter.java
++++ b/net/minecraft/world/level/entity/LevelEntityGetterAdapter.java
+@@ -8,7 +_,7 @@
+ 
+ public class LevelEntityGetterAdapter<T extends EntityAccess> implements LevelEntityGetter<T> {
+     private final EntityLookup<T> visibleEntities;
+-    private final EntitySectionStorage<T> sectionStorage;
++    public final EntitySectionStorage<T> p_156944_; // Paper - public
+ 
+     public LevelEntityGetterAdapter(EntityLookup<T> p_156943_, EntitySectionStorage<T> p_156944_) {
+         this.visibleEntities = p_156943_;

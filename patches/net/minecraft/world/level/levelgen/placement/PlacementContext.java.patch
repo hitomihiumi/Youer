@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/levelgen/placement/PlacementContext.java
++++ b/net/minecraft/world/level/levelgen/placement/PlacementContext.java
+@@ -17,7 +_,7 @@
+     private final Optional<PlacedFeature> topFeature;
+ 
+     public PlacementContext(WorldGenLevel p_191818_, ChunkGenerator p_191819_, Optional<PlacedFeature> p_191820_) {
+-        super(p_191819_, p_191818_);
++        super(p_191819_, p_191818_, p_191818_.getLevel()); // Paper - Flat bedrock generator settings
+         this.level = p_191818_;
+         this.generator = p_191819_;
+         this.topFeature = p_191820_;

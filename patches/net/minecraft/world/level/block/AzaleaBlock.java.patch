@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/level/block/AzaleaBlock.java
++++ b/net/minecraft/world/level/block/AzaleaBlock.java
+@@ -50,6 +_,20 @@
+ 
+     @Override
+     public void performBonemeal(ServerLevel p_220707_, RandomSource p_220708_, BlockPos p_220709_, BlockState p_220710_) {
++        // Purpur start - Chance for azalea blocks to grow into trees naturally
++        growTree(p_220707_, p_220708_, p_220709_, p_220710_);
++    }
++
++    @Override
++    public void randomTick(net.minecraft.world.level.block.state.BlockState p_220710_, ServerLevel world, BlockPos p_220709_, RandomSource p_220708_) {
++        double chance = p_220710_.getBlock() == Blocks.FLOWERING_AZALEA ? world.purpurConfig.floweringAzaleaGrowthChance : world.purpurConfig.azaleaGrowthChance;
++        if (chance > 0.0D && world.getMaxLocalRawBrightness(p_220709_.above()) > 9 && p_220708_.nextDouble() < chance) {
++            growTree(world, p_220708_, p_220709_, p_220710_);
++        }
++    }
++
++    private void growTree(ServerLevel p_220707_, RandomSource p_220708_, BlockPos p_220709_, net.minecraft.world.level.block.state.BlockState p_220710_) {
++        // Purpur end - Chance for azalea blocks to grow into trees naturally
+         TreeGrower.AZALEA.growTree(p_220707_, p_220707_.getChunkSource().getGenerator(), p_220709_, p_220710_, p_220708_);
+     }
+ 

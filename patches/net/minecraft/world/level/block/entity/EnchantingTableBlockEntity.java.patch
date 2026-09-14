@@ -1,0 +1,33 @@
+--- a/net/minecraft/world/level/block/entity/EnchantingTableBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/EnchantingTableBlockEntity.java
+@@ -30,6 +_,7 @@
+     private static final RandomSource RANDOM = RandomSource.create();
+     @Nullable
+     private Component name;
++    private int lapis = 0; // Purpur - Enchantment Table Persists Lapis
+ 
+     public EnchantingTableBlockEntity(BlockPos p_340972_, BlockState p_340871_) {
+         super(BlockEntityType.ENCHANTING_TABLE, p_340972_, p_340871_);
+@@ -136,4 +_,22 @@
+     public void removeComponentsFromTag(ValueOutput p_422024_) {
+         p_422024_.discard("CustomName");
+     }
++
++    // Purpur start - Enchantment Table Persists Lapis
++    public int getLapis() {
++        return this.lapis;
++    }
++
++    public void setLapis(int lapis) {
++        this.lapis = lapis;
++    }
++
++    @Override
++    public void preRemoveSideEffects(BlockPos p_340972_, BlockState p_340871_) {
++        super.preRemoveSideEffects(p_340972_, p_340871_);
++        if (this.level != null && this.level.purpurConfig.enchantmentTableLapisPersists) {
++            net.minecraft.world.Containers.dropItemStack(this.level, p_340972_.getX(), p_340972_.getY(), p_340972_.getZ(), new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.LAPIS_LAZULI, this.getLapis()));
++        }
++    }
++    // Purpur end - Enchantment Table Persists Lapis
+ }

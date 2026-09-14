@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/ThrownLingeringPotion.java
 +++ b/net/minecraft/world/entity/projectile/ThrownLingeringPotion.java
-@@ -24,7 +_,7 @@
+@@ -24,12 +_,12 @@
      }
  
      @Override
@@ -9,3 +9,25 @@
          return Items.LINGERING_POTION;
      }
  
+     @Override
+-    public void onHitAsPotion(ServerLevel p_399902_, ItemStack p_400168_, HitResult p_421887_) {
++    public boolean onHitAsPotion(ServerLevel p_399902_, ItemStack p_400168_, HitResult p_421887_) { // Paper - More projectile API
+         AreaEffectCloud areaeffectcloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
+         if (this.getOwner() instanceof LivingEntity livingentity) {
+             areaeffectcloud.setOwner(livingentity);
+@@ -41,6 +_,15 @@
+         areaeffectcloud.setWaitTime(10);
+         areaeffectcloud.setRadiusPerTick(-areaeffectcloud.getRadius() / areaeffectcloud.getDuration());
+         areaeffectcloud.applyComponentsFromItemStack(p_400168_);
++        boolean noEffects = this.getItem().getOrDefault(net.minecraft.core.component.DataComponents.POTION_CONTENTS, net.minecraft.world.item.alchemy.PotionContents.EMPTY).hasEffects(); // Paper - Fix potions splash events
++        // CraftBukkit start
++        org.bukkit.event.entity.LingeringPotionSplashEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callLingeringPotionSplashEvent(this, p_421887_, areaeffectcloud);
++        if (!(event.isCancelled() || areaeffectcloud.isRemoved() || (!event.allowsEmptyCreation() && (noEffects && !areaeffectcloud.potionContents.hasEffects())))) { // Paper - don't spawn area effect cloud if the effects were empty and not changed during the event handling
+         p_399902_.addFreshEntity(areaeffectcloud);
++        } else {
++            areaeffectcloud.discard(null);
++        }
++        // CraftBukkit end
++        return !event.isCancelled(); // Paper - Fix potions splash events
+     }
+ }

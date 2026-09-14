@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/entity/ai/behavior/Behavior.java
++++ b/net/minecraft/world/entity/ai/behavior/Behavior.java
+@@ -14,6 +_,7 @@
+     private long endTimestamp;
+     private final int minDuration;
+     private final int maxDuration;
++    private final String configKey; // Paper - configurable behavior tick rate and timings
+ 
+     public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22528_) {
+         this(p_22528_, 60);
+@@ -36,6 +_,12 @@
+ 
+     @Override
+     public final boolean tryStart(ServerLevel p_22555_, E p_22556_, long p_22557_) {
++        // Paper start - configurable behavior tick rate and timings
++        int tickRate = java.util.Objects.requireNonNullElse(p_22555_.paperConfig().tickRates.behavior.get(p_22556_.getType(), this.configKey), -1);
++        if (tickRate > -1 && p_22557_ < this.endTimestamp + tickRate) {
++            return false;
++        }
++        // Paper end - configurable behavior tick rate and timings
+         if (this.hasRequiredMemories(p_22556_) && this.checkExtraStartConditions(p_22555_, p_22556_)) {
+             this.status = Behavior.Status.RUNNING;
+             int i = this.minDuration + p_22555_.getRandom().nextInt(this.maxDuration + 1 - this.minDuration);

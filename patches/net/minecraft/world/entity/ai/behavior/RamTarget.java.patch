@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/ai/behavior/RamTarget.java
++++ b/net/minecraft/world/entity/ai/behavior/RamTarget.java
+@@ -88,7 +_,7 @@
+             DamageSource damagesource1 = p_217366_.damageSources().mobAttack(p_217367_);
+             float f3 = livingentity.applyItemBlocking(p_217366_, damagesource1, f);
+             float f4 = f3 > 0.0F ? 0.5F : 1.0F;
+-            livingentity.knockback(f4 * f2 * this.getKnockbackForce.applyAsDouble(p_217367_), this.ramDirection.x(), this.ramDirection.z());
++            livingentity.knockback(f4 * f2 * this.getKnockbackForce.applyAsDouble(p_217367_), this.ramDirection.x(), this.ramDirection.z(), p_217367_, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+             this.finishRam(p_217366_, p_217367_);
+             p_217366_.playSound(null, p_217367_, this.getImpactSound.apply(p_217367_), SoundSource.NEUTRAL, 1.0F, 1.0F);
+         } else if (this.hasRammedHornBreakingBlock(p_217366_, p_217367_)) {

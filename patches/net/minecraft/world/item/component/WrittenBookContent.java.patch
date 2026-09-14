@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/item/component/WrittenBookContent.java
++++ b/net/minecraft/world/item/component/WrittenBookContent.java
+@@ -95,7 +_,7 @@
+ 
+     public static boolean resolveForItem(ItemStack p_394373_, CommandSourceStack p_393899_, @Nullable Player p_393825_) {
+         WrittenBookContent writtenbookcontent = p_394373_.get(DataComponents.WRITTEN_BOOK_CONTENT);
+-        if (writtenbookcontent != null && !writtenbookcontent.resolved()) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().itemValidation.resolveSelectorsInBooks && writtenbookcontent != null && !writtenbookcontent.resolved()) { // Paper - Disable component selector resolving in books by default
+             WrittenBookContent writtenbookcontent1 = writtenbookcontent.resolve(p_393899_, p_393825_);
+             if (writtenbookcontent1 != null) {
+                 p_394373_.set(DataComponents.WRITTEN_BOOK_CONTENT, writtenbookcontent1);

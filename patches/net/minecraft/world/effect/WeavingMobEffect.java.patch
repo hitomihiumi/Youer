@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/effect/WeavingMobEffect.java
++++ b/net/minecraft/world/effect/WeavingMobEffect.java
+@@ -46,6 +_,7 @@
+         }
+ 
+         for (BlockPos blockpos2 : set) {
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, blockpos2, Blocks.COBWEB.defaultBlockState())) continue; // Paper - Fire EntityChangeBlockEvent in more places
+             p_376905_.setBlock(blockpos2, Blocks.COBWEB.defaultBlockState(), 3);
+             p_376905_.levelEvent(3018, blockpos2, 0);
+         }

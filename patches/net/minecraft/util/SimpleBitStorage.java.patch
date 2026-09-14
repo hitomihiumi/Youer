@@ -1,0 +1,24 @@
+--- a/net/minecraft/util/SimpleBitStorage.java
++++ b/net/minecraft/util/SimpleBitStorage.java
+@@ -204,8 +_,8 @@
+     private final long mask;
+     private final int size;
+     private final int valuesPerLong;
+-    private final int divideMul;
+-    private final int divideAdd;
++    private final int divideMul; private final long divideMulUnsigned; // Paper - Perf: Optimize SimpleBitStorage; referenced in b(int) with 2 Integer.toUnsignedLong calls
++    private final int divideAdd; private final long divideAddUnsigned; // Paper - Perf: Optimize SimpleBitStorage
+     private final int divideShift;
+ 
+     public SimpleBitStorage(int p_198164_, int p_198165_, int[] p_198166_) {
+@@ -282,9 +_,7 @@
+     }
+ 
+     @Override
+-    public void set(int p_184742_, int p_184743_) {
+-        Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)p_184742_);
+-        Validate.inclusiveBetween(0L, this.mask, (long)p_184743_);
++    public final void set(int p_184742_, int p_184743_) { // Paper - Perf: Optimize SimpleBitStorage
+         int i = this.cellIndex(p_184742_);
+         long j = this.data[i];
+         int k = (p_184742_ - i * this.valuesPerLong) * this.bits;

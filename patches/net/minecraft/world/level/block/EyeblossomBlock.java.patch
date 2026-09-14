@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/level/block/EyeblossomBlock.java
++++ b/net/minecraft/world/level/block/EyeblossomBlock.java
+@@ -103,6 +_,7 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_382817_, Level p_383060_, BlockPos p_383146_, Entity p_383054_, InsideBlockEffectApplier p_405247_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_383054_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_383060_, p_383146_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (!p_383060_.isClientSide()
+             && p_383060_.getDifficulty() != Difficulty.PEACEFUL
+             && p_383054_ instanceof Bee bee

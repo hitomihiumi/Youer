@@ -1,0 +1,11 @@
+--- a/net/minecraft/gametest/framework/StructureUtils.java
++++ b/net/minecraft/gametest/framework/StructureUtils.java
+@@ -90,7 +_,7 @@
+         p_127852_.clearBlockEvents(boundingbox);
+         AABB aabb = AABB.of(boundingbox);
+         List<Entity> list = p_127852_.getEntitiesOfClass(Entity.class, aabb, p_177750_ -> !(p_177750_ instanceof Player));
+-        list.forEach(Entity::discard);
++        list.forEach(p_177750_ -> p_177750_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD)); // Paper
+     }
+ 
+     public static BlockPos getTransformedFarCorner(BlockPos p_308915_, Vec3i p_309132_, Rotation p_308895_) {

@@ -1,0 +1,20 @@
+--- a/net/minecraft/server/commands/ScheduleCommand.java
++++ b/net/minecraft/server/commands/ScheduleCommand.java
+@@ -34,7 +_,7 @@
+     );
+     private static final SimpleCommandExceptionType ERROR_MACRO = new SimpleCommandExceptionType(Component.translatableEscape("commands.schedule.macro"));
+     private static final SuggestionProvider<CommandSourceStack> SUGGEST_SCHEDULE = (p_138424_, p_138425_) -> SharedSuggestionProvider.suggest(
+-        p_138424_.getSource().getServer().getWorldData().overworldData().getScheduledEvents().getEventsIds(), p_138425_
++        p_138424_.getSource().getLevel().serverLevelData.getScheduledEvents().getEventsIds(), p_138425_ // Paper - Make schedule command per-world
+     );
+ 
+     public static void register(CommandDispatcher<CommandSourceStack> p_138420_) {
+@@ -103,7 +_,7 @@
+         } else {
+             long i = p_138429_.getLevel().getGameTime() + p_138431_;
+             ResourceLocation resourcelocation = p_138430_.getFirst();
+-            TimerQueue<MinecraftServer> timerqueue = p_138429_.getServer().getWorldData().overworldData().getScheduledEvents();
++            TimerQueue<MinecraftServer> timerqueue = p_138429_.getLevel().serverLevelData.overworldData().getScheduledEvents(); // CraftBukkit - SPIGOT-6667: Use world specific function timer
+             Optional<CommandFunction<CommandSourceStack>> optional = p_138430_.getSecond().left();
+             if (optional.isPresent()) {
+                 if (optional.get() instanceof MacroFunction) {

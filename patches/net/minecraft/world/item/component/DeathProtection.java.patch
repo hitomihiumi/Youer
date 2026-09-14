@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/item/component/DeathProtection.java
++++ b/net/minecraft/world/item/component/DeathProtection.java
+@@ -38,7 +_,7 @@
+ 
+     public void applyEffects(ItemStack p_372914_, LivingEntity p_373008_) {
+         for (ConsumeEffect consumeeffect : this.deathEffects) {
+-            consumeeffect.apply(p_373008_.level(), p_372914_, p_373008_);
++            consumeeffect.apply(p_373008_.level(), p_372914_, p_373008_, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.TOTEM); // CraftBukkit
+         }
+     }
+ }

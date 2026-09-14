@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/level/block/BaseCoralPlantTypeBlock.java
++++ b/net/minecraft/world/level/block/BaseCoralPlantTypeBlock.java
+@@ -39,6 +_,7 @@
+     }
+ 
+     protected static boolean scanForWater(BlockState p_49187_, BlockGetter p_49188_, BlockPos p_49189_) {
++        if (!((net.minecraft.world.level.LevelAccessor) p_49188_).getMinecraftWorld().purpurConfig.coralDieOutsideWater) return true; // Purpur - Config to not let coral die
+         if (p_49187_.getValue(WATERLOGGED)) {
+             return true;
+         } else {

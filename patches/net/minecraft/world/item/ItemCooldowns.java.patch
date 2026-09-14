@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/item/ItemCooldowns.java
++++ b/net/minecraft/world/item/ItemCooldowns.java
+@@ -56,6 +_,13 @@
+     }
+ 
+     public void addCooldown(ResourceLocation p_366429_, int p_366819_) {
++        // Paper start - Item cooldown events
++        this.addCooldown(p_366429_, p_366819_, true);
++    }
++
++    public void addCooldown(ResourceLocation p_366429_, int p_366819_, boolean callEvent) {
++        // Event called in server override
++        // Paper end - Item cooldown events
+         this.cooldowns.put(p_366429_, new ItemCooldowns.CooldownInstance(this.tickCount, this.tickCount + p_366819_));
+         this.onCooldownStarted(p_366429_, p_366819_);
+     }

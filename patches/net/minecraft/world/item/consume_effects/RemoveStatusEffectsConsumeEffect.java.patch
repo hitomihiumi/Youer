@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/item/consume_effects/RemoveStatusEffectsConsumeEffect.java
++++ b/net/minecraft/world/item/consume_effects/RemoveStatusEffectsConsumeEffect.java
+@@ -36,11 +_,11 @@
+     }
+ 
+     @Override
+-    public boolean apply(Level p_366881_, ItemStack p_366460_, LivingEntity p_366649_) {
++    public boolean apply(Level p_366881_, ItemStack p_366460_, LivingEntity p_366649_, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) { // CraftBukkit
+         boolean flag = false;
+ 
+         for (Holder<MobEffect> holder : this.effects) {
+-            if (p_366649_.removeEffect(holder)) {
++            if (p_366649_.removeEffect(holder, cause)) { // CraftBukkit
+                 flag = true;
+             }
+         }

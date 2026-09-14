@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/level/block/DriedGhastBlock.java
++++ b/net/minecraft/world/level/block/DriedGhastBlock.java
+@@ -104,10 +_,20 @@
+ 
+     private void tickWaterlogged(BlockState p_416629_, ServerLevel p_416363_, BlockPos p_415623_, RandomSource p_415835_) {
+         if (!this.isReadyToSpawn(p_416629_)) {
++            // Paper start - Call BlockGrowEvent
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_416363_, p_415623_, p_416629_.setValue(HYDRATION_LEVEL, this.getHydrationLevel(p_416629_) + 1), 2)) {
++                return;
++            }
++            // Paper end - Call BlockGrowEvent
+             p_416363_.playSound(null, p_415623_, SoundEvents.DRIED_GHAST_TRANSITION, SoundSource.BLOCKS, 1.0F, 1.0F);
+-            p_416363_.setBlock(p_415623_, p_416629_.setValue(HYDRATION_LEVEL, this.getHydrationLevel(p_416629_) + 1), 2);
++            // level.setBlock(pos, state.setValue(HYDRATION_LEVEL, this.getHydrationLevel(state) + 1), 2); // Paper - handled above
+             p_416363_.gameEvent(GameEvent.BLOCK_CHANGE, p_415623_, GameEvent.Context.of(p_416629_));
+         } else {
++            // Paper start - Call BlockFadeEvent
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_416363_, p_415623_, p_416629_.getFluidState().createLegacyBlock()).isCancelled()) {
++                return;
++            }
++            // Paper end - Call BlockFadeEvent
+             this.spawnGhastling(p_416363_, p_415623_, p_416629_);
+         }
+     }

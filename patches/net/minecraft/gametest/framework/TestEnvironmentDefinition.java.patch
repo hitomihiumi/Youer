@@ -1,0 +1,16 @@
+--- a/net/minecraft/gametest/framework/TestEnvironmentDefinition.java
++++ b/net/minecraft/gametest/framework/TestEnvironmentDefinition.java
+@@ -138,11 +_,11 @@
+             MinecraftServer minecraftserver = p_397170_.getServer();
+ 
+             for (TestEnvironmentDefinition.SetGameRules.Entry<Boolean, GameRules.BooleanValue> entry : this.boolRules) {
+-                gamerules.getRule(entry.key()).set(entry.value(), minecraftserver);
++                gamerules.getRule(entry1.key()).set(entry1.value(), p_397170_); // Paper - per-world
+             }
+ 
+             for (TestEnvironmentDefinition.SetGameRules.Entry<Integer, GameRules.IntegerValue> entry1 : this.intRules) {
+-                gamerules.getRule(entry1.key()).set(entry1.value(), minecraftserver);
++                gamerules.getRule(entry1.key()).set(entry1.value(), p_397170_); // Paper - per-world
+             }
+         }
+ 

@@ -1,0 +1,13 @@
+--- a/net/minecraft/world/entity/ai/targeting/TargetingConditions.java
++++ b/net/minecraft/world/entity/ai/targeting/TargetingConditions.java
+@@ -64,6 +_,10 @@
+             return false;
+         } else if (this.selector != null && !this.selector.test(p_26887_, p_376690_)) {
+             return false;
++        // Purpur start - AFK API
++        } else if (!p_376690_.purpurConfig.idleTimeoutTargetPlayer && p_26887_ instanceof net.minecraft.server.level.ServerPlayer player && player.isAfk()) {
++            return false;
++        // Purpur end - AFK API
+         } else {
+             if (p_26886_ == null) {
+                 if (this.isCombat && (!p_26887_.canBeSeenAsEnemy() || p_376690_.getDifficulty() == Difficulty.PEACEFUL)) {

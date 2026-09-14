@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/item/enchantment/effects/SpawnParticlesEffect.java
++++ b/net/minecraft/world/item/enchantment/effects/SpawnParticlesEffect.java
+@@ -59,8 +_,13 @@
+         Vec3 vec3 = p_345668_.getKnownMovement();
+         float f = p_345668_.getBbWidth();
+         float f1 = p_345668_.getBbHeight();
+-        p_345529_.sendParticles(
++        // Paper start - Hide soul speed particles for vanished players
++        p_345529_.sendParticlesSource(
++            p_345668_,
+             this.particle,
++            false,
++            false,
++        // Paper end - Hide soul speed particles for vanished players
+             this.horizontalPosition.getCoordinate(p_344842_.x(), p_344842_.x(), f, randomsource),
+             this.verticalPosition.getCoordinate(p_344842_.y(), p_344842_.y() + f1 / 2.0F, f1, randomsource),
+             this.horizontalPosition.getCoordinate(p_344842_.z(), p_344842_.z(), f, randomsource),

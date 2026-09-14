@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/item/enchantment/ItemEnchantments.java
++++ b/net/minecraft/world/item/enchantment/ItemEnchantments.java
+@@ -47,7 +_,7 @@
+ 
+         for (Entry<Holder<Enchantment>> entry : p_341287_.object2IntEntrySet()) {
+             int i = entry.getIntValue();
+-            if (i < 0 || i > 255) {
++            if (i < 0 || i > (org.purpurmc.purpur.PurpurConfig.clampEnchantLevels ? 255 : 32767)) { // Purpur - Add toggle for enchant level clamping
+                 throw new IllegalArgumentException("Enchantment " + entry.getKey() + " has invalid level " + i);
+             }
+         }
+@@ -124,7 +_,7 @@
+     }
+ 
+     public static class Mutable {
+-        private final Object2IntOpenHashMap<Holder<Enchantment>> enchantments = new Object2IntOpenHashMap<>();
++        private final it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<Holder<Enchantment>> p_330722_ = new it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<>(ENCHANTMENT_ORDER); // Paper
+ 
+         public Mutable(ItemEnchantments p_330722_) {
+             this.enchantments.putAll(p_330722_.enchantments);

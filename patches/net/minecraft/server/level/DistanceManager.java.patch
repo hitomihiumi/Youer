@@ -1,0 +1,28 @@
+--- a/net/minecraft/server/level/DistanceManager.java
++++ b/net/minecraft/server/level/DistanceManager.java
+@@ -72,6 +_,12 @@
+         }
+ 
+         if (!this.chunksToUpdateFutures.isEmpty()) {
++            // CraftBukkit start - SPIGOT-7780: Call chunk unload events before updateHighestAllowedStatus
++            for (final ChunkHolder chunkholder1 : this.chunksToUpdateFutures) {
++                chunkholder1.callEventIfUnloading(p_140806_);
++            }
++            // CraftBukkit end - SPIGOT-7780: Call chunk unload events before updateHighestAllowedStatus
++
+             for (ChunkHolder chunkholder1 : this.chunksToUpdateFutures) {
+                 chunkholder1.updateHighestAllowedStatus(p_140806_);
+             }
+@@ -119,8 +_,10 @@
+         ChunkPos chunkpos = p_140829_.chunk();
+         long i = chunkpos.toLong();
+         ObjectSet<ServerPlayer> objectset = this.playersPerChunk.get(i);
+-        objectset.remove(p_140830_);
+-        if (objectset.isEmpty()) {
++        // Paper start - some state corruption happens here, don't crash, clean up gracefully
++        if (objectset != null) objectset.remove(p_140830_);
++        if (objectset == null || objectset.isEmpty()) {
++        // Paper end - some state corruption happens here, don't crash, clean up gracefully
+             this.playersPerChunk.remove(i);
+             this.naturalSpawnChunkCounter.update(i, Integer.MAX_VALUE, false);
+             this.playerTicketManager.update(i, Integer.MAX_VALUE, false);

@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/redstone/ExperimentalRedstoneWireEvaluator.java
++++ b/net/minecraft/world/level/redstone/ExperimentalRedstoneWireEvaluator.java
+@@ -36,7 +_,16 @@
+             int i = entry.getIntValue();
+             int j = unpackPower(i);
+             BlockState blockstate = p_364203_.getBlockState(blockpos);
+-            if (blockstate.is(this.wireBlock) && !blockstate.getValue(RedStoneWireBlock.POWER).equals(j)) {
++            // CraftBukkit start
++            int oldPower = blockstate.getValue(RedStoneWireBlock.POWER); // Paper - Call BlockRedstoneEvent properly; get the previous power from the right state
++            if (oldPower != j) {
++                org.bukkit.event.block.BlockRedstoneEvent event = new org.bukkit.event.block.BlockRedstoneEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_364203_, blockpos), oldPower, j);
++                p_364203_.getCraftServer().getPluginManager().callEvent(event);
++
++                j = event.getNewCurrent();
++            }
++            if (blockstate.is(this.wireBlock) && oldPower != j) {
++                // CraftBukkit end
+                 int k = 2;
+                 if (!p_366757_ || !flag) {
+                     k |= 128;

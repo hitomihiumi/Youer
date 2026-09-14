@@ -1,0 +1,11 @@
+--- a/net/minecraft/server/commands/WaypointCommand.java
++++ b/net/minecraft/server/commands/WaypointCommand.java
+@@ -173,7 +_,7 @@
+     }
+ 
+     private static void mutateIcon(CommandSourceStack p_416169_, WaypointTransmitter p_416645_, Consumer<Waypoint.Icon> p_416385_) {
+-        ServerLevel serverlevel = p_416169_.getLevel();
++        ServerLevel serverlevel = (p_416645_ instanceof LivingEntity livingEntity) ? (net.minecraft.server.level.ServerLevel) livingEntity.level() : p_416169_.getLevel(); // Paper - MC-300685 use level of waypoint if it's a living entity for broadcast
+         serverlevel.getWaypointManager().untrackWaypoint(p_416645_);
+         p_416385_.accept(p_416645_.waypointIcon());
+         serverlevel.getWaypointManager().trackWaypoint(p_416645_);

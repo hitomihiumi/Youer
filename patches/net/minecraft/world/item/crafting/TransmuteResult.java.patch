@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/item/crafting/TransmuteResult.java
++++ b/net/minecraft/world/item/crafting/TransmuteResult.java
+@@ -46,8 +_,13 @@
+     }
+ 
+     public ItemStack apply(ItemStack p_393947_) {
++    // Paper start - Option to prevent data components copy
++        return apply(p_393947_, true);
++    }
++    public ItemStack apply(ItemStack p_393947_, boolean applyComponents) {
++    // Paper end - Option to prevent data components copy
+         ItemStack itemstack = p_393947_.transmuteCopy(this.item.value(), this.count);
+-        itemstack.applyComponents(this.components);
++        if (applyComponents) itemstack.applyComponents(this.components); // Paper - Option to prevent data components copy
+         return itemstack;
+     }
+ 

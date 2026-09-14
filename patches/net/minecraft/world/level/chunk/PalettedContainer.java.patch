@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/level/chunk/PalettedContainer.java
++++ b/net/minecraft/world/level/chunk/PalettedContainer.java
+@@ -106,7 +_,7 @@
+     }
+ 
+     @Override
+-    public int onResize(int p_63142_, T p_63143_) {
++    public synchronized int onResize(int p_63142_, T p_63143_) { // Paper - synchronize
+         PalettedContainer.Data<T> data = this.data;
+         PalettedContainer.Data<T> data1 = this.createOrReuseData(data, p_63142_);
+         data1.copyFrom(data.palette, data.storage);
+@@ -114,7 +_,7 @@
+         return data1.palette.idFor(p_63143_);
+     }
+ 
+-    public T getAndSet(int p_63092_, int p_63093_, int p_63094_, T p_63095_) {
++    public synchronized T getAndSet(int p_63092_, int p_63093_, int p_63094_, T p_63095_) { // Paper - synchronize
+         this.acquire();
+ 
+         Object object;
+@@ -170,7 +_,7 @@
+         intset.forEach(p_238274_ -> p_196880_.accept(palette.valueFor(p_238274_)));
+     }
+ 
+-    public void read(FriendlyByteBuf p_63119_) {
++    public synchronized void read(FriendlyByteBuf p_63119_) { // Paper - synchronize
+         this.acquire();
+ 
+         try {

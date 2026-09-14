@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/item/consume_effects/ApplyStatusEffectsConsumeEffect.java
++++ b/net/minecraft/world/item/consume_effects/ApplyStatusEffectsConsumeEffect.java
+@@ -47,14 +_,14 @@
+     }
+ 
+     @Override
+-    public boolean apply(Level p_366679_, ItemStack p_366517_, LivingEntity p_366435_) {
++    public boolean apply(Level p_366679_, ItemStack p_366517_, LivingEntity p_366435_, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) { // CraftBukkit
+         if (p_366435_.getRandom().nextFloat() >= this.probability) {
+             return false;
+         } else {
+             boolean flag = false;
+ 
+             for (MobEffectInstance mobeffectinstance : this.effects) {
+-                if (p_366435_.addEffect(new MobEffectInstance(mobeffectinstance))) {
++                if (p_366435_.addEffect(new MobEffectInstance(mobeffectinstance), cause)) { // CraftBukkit
+                     flag = true;
+                 }
+             }

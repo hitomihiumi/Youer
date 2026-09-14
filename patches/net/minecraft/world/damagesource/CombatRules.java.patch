@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/damagesource/CombatRules.java
++++ b/net/minecraft/world/damagesource/CombatRules.java
+@@ -15,7 +_,7 @@
+ 
+     public static float getDamageAfterAbsorb(LivingEntity p_345376_, float p_19273_, DamageSource p_338892_, float p_19274_, float p_19275_) {
+         float f = 2.0F + p_19275_ / 4.0F;
+-        float f1 = Mth.clamp(p_19274_ - p_19273_ / f, p_19274_ * 0.2F, 20.0F);
++        float f1 = Mth.clamp(p_19274_ - p_19273_ / f, p_19274_ * 0.2F, org.purpurmc.purpur.PurpurConfig.limitArmor ? 20F : Float.MAX_VALUE); // Purpur - Add attribute clamping and armor limit config
+         float f2 = f1 / 25.0F;
+         ItemStack itemstack = p_338892_.getWeaponItem();
+         float f3;

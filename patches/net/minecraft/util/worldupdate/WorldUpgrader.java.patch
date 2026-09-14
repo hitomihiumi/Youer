@@ -1,0 +1,20 @@
+--- a/net/minecraft/util/worldupdate/WorldUpgrader.java
++++ b/net/minecraft/util/worldupdate/WorldUpgrader.java
+@@ -87,7 +_,7 @@
+         boolean p_321700_
+     ) {
+         this.dimensions = p_323645_.lookupOrThrow(Registries.LEVEL_STEM);
+-        this.levels = this.dimensions.registryKeySet().stream().map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet());
++        this.levels = java.util.stream.Stream.of(p_249922_.dimensionType).map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet()); // CraftBukkit
+         this.eraseCache = p_250738_;
+         this.dataFixer = p_250273_;
+         this.levelStorage = p_249922_;
+@@ -365,7 +_,7 @@
+                 int i = ChunkStorage.getVersion(compoundtag);
+                 ChunkGenerator chunkgenerator = WorldUpgrader.this.dimensions.getValueOrThrow(Registries.levelToLevelStem(p_321488_)).generator();
+                 CompoundTag compoundtag1 = p_321581_.upgradeChunkTag(
+-                    p_321488_, () -> WorldUpgrader.this.overworldDataStorage, compoundtag, chunkgenerator.getTypeNameForDataFixer()
++                    Registries.levelToLevelStem(p_321488_), () -> WorldUpgrader.this.overworldDataStorage, compoundtag, chunkgenerator.getTypeNameForDataFixer(), p_321524_, null // CraftBukkit
+                 );
+                 ChunkPos chunkpos = new ChunkPos(compoundtag1.getIntOr("xPos", 0), compoundtag1.getIntOr("zPos", 0));
+                 if (!chunkpos.equals(p_321524_)) {

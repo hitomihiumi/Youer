@@ -1,0 +1,12 @@
+--- a/net/minecraft/nbt/SnbtGrammar.java
++++ b/net/minecraft/nbt/SnbtGrammar.java
+@@ -635,7 +_,9 @@
+             atom35,
+             Term.sequence(
+                 StringReaderTerms.character('['),
++                Scope.increaseDepth(), // Paper - track depth
+                 Term.alternative(Term.sequence(dictionary.named(atom33), StringReaderTerms.character(';'), dictionary.named(atom34)), dictionary.named(atom32)),
++                Scope.decreaseDepth(), // Paper - track depth
+                 StringReaderTerms.character(']')
+             ),
+             p_410065_ -> {

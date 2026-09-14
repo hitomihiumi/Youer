@@ -1,0 +1,14 @@
+--- a/com/mojang/math/OctahedralGroup.java
++++ b/com/mojang/math/OctahedralGroup.java
+@@ -164,6 +_,11 @@
+             });
+         }
+ 
++    // Paper start - Avoid Lazy Initialization for Enum Fields
++    }
++
++    public Direction rotate(Direction p_56529_) {
++    // Paper end - Avoid Lazy Initialization for Enum Fields
+         return this.rotatedDirections.get(p_56529_);
+     }
+ 

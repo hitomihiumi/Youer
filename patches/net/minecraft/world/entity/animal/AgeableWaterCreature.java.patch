@@ -1,0 +1,13 @@
+--- a/net/minecraft/world/entity/animal/AgeableWaterCreature.java
++++ b/net/minecraft/world/entity/animal/AgeableWaterCreature.java
+@@ -68,6 +_,10 @@
+     ) {
+         int i = p_360404_.getSeaLevel();
+         int j = i - 13;
++        // Paper start - Make water animal spawn height configurable
++        i = p_360404_.getMinecraftWorld().paperConfig().entities.spawning.wateranimalSpawnHeight.maximum.or(i);
++        j = p_360404_.getMinecraftWorld().paperConfig().entities.spawning.wateranimalSpawnHeight.minimum.or(j);
++        // Paper end - Make water animal spawn height configurable
+         return p_362596_.getY() >= j
+             && p_362596_.getY() <= i
+             && p_360404_.getFluidState(p_362596_.below()).is(FluidTags.WATER)

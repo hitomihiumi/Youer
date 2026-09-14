@@ -1,0 +1,9 @@
+--- a/net/minecraft/world/item/component/ConsumableListener.java
++++ b/net/minecraft/world/item/component/ConsumableListener.java
+@@ -6,4 +_,6 @@
+ 
+ public interface ConsumableListener {
+     void onConsume(Level p_366714_, LivingEntity p_366581_, ItemStack p_366512_, Consumable p_366630_);
++
++    default void cancelUsingItem(net.minecraft.server.level.ServerPlayer player, ItemStack p_366512_, java.util.List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> collectedPackets) {} // CraftBukkit // Paper - properly resend entities - collect packets for bundle
+ }

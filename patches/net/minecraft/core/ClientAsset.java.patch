@@ -1,0 +1,10 @@
+--- a/net/minecraft/core/ClientAsset.java
++++ b/net/minecraft/core/ClientAsset.java
+@@ -12,6 +_,6 @@
+     public static final StreamCodec<ByteBuf, ClientAsset> STREAM_CODEC = StreamCodec.composite(ResourceLocation.STREAM_CODEC, ClientAsset::id, ClientAsset::new);
+ 
+     public ClientAsset(ResourceLocation p_400237_) {
+-        this(p_400237_, p_400237_.withPath(p_399810_ -> "textures/" + p_399810_ + ".png"));
++        this(p_400237_, p_400237_.withPath(p_399810_ -> "textures/" + p_399810_ + ".png")); // Paper - diff on change - io.papermc.paper.registry.data.client.ClientAssetImpl#pathFromIdentifier
+     }
+ }

@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/item/MaceItem.java
++++ b/net/minecraft/world/item/MaceItem.java
+@@ -52,7 +_,13 @@
+ 
+     @Override
+     public void hurtEnemy(ItemStack p_334046_, LivingEntity p_333712_, LivingEntity p_333812_) {
+-        if (canSmashAttack(p_333812_)) {
++        // Paper start - Add EntityAttemptSmashAttackEvent
++        final boolean canSmashAttack = canSmashAttack(p_333812_);
++        io.papermc.paper.event.entity.EntityAttemptSmashAttackEvent event = new io.papermc.paper.event.entity.EntityAttemptSmashAttackEvent(p_333812_.getBukkitLivingEntity(), p_333712_.getBukkitLivingEntity(), p_334046_.asBukkitCopy(), canSmashAttack);
++        event.callEvent();
++        final org.bukkit.event.Event.Result result = event.getResult();
++        if (result == org.bukkit.event.Event.Result.ALLOW || (canSmashAttack && result == org.bukkit.event.Event.Result.DEFAULT)) {
++        // Paper end - Add EntityAttemptSmashAttackEvent
+             ServerLevel serverlevel = (ServerLevel)p_333812_.level();
+             p_333812_.setDeltaMovement(p_333812_.getDeltaMovement().with(Direction.Axis.Y, 0.01F));
+             if (p_333812_ instanceof ServerPlayer serverplayer) {
