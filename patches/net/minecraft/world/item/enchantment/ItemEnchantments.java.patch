@@ -1,6 +1,34 @@
 --- a/net/minecraft/world/item/enchantment/ItemEnchantments.java
 +++ b/net/minecraft/world/item/enchantment/ItemEnchantments.java
-@@ -47,7 +_,7 @@
+@@ -28,26 +_,29 @@
+ import net.minecraft.world.item.component.TooltipProvider;
+ 
+ public class ItemEnchantments implements TooltipProvider {
+-    public static final ItemEnchantments EMPTY = new ItemEnchantments(new Object2IntOpenHashMap<>());
+-    private static final Codec<Integer> LEVEL_CODEC = Codec.intRange(1, 255);
++    // Paper start - sort enchantments
++    private static final java.util.Comparator<Holder<Enchantment>> ENCHANTMENT_ORDER = java.util.Comparator.comparing(Holder::getRegisteredName);
++    public static final ItemEnchantments EMPTY = new ItemEnchantments(new it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<>(ENCHANTMENT_ORDER));
++    // Paper end - sort enchantments
++    private static final Codec<Integer> LEVEL_CODEC = Codec.intRange(1, (org.purpurmc.purpur.PurpurConfig.clampEnchantLevels ? 255 : 32767)); // Purpur - Add toggle for enchant level clamping
+     public static final Codec<ItemEnchantments> CODEC = Codec.unboundedMap(Enchantment.CODEC, LEVEL_CODEC)
+         .xmap(
+-            p_399435_ -> new ItemEnchantments(new Object2IntOpenHashMap<>((Map<? extends Holder<Enchantment>, ? extends Integer>)p_399435_)),
++            p_399435_ -> new net.minecraft.world.item.enchantment.ItemEnchantments(net.minecraft.Util.make(new it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<>(ENCHANTMENT_ORDER), m -> m.putAll(p_399435_))), // Paper - sort enchantments
+             p_340785_ -> p_340785_.enchantments
+         );
+     public static final StreamCodec<RegistryFriendlyByteBuf, ItemEnchantments> STREAM_CODEC = StreamCodec.composite(
+-        ByteBufCodecs.map(Object2IntOpenHashMap::new, Enchantment.STREAM_CODEC, ByteBufCodecs.VAR_INT),
++        ByteBufCodecs.map((v) -> new it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<>(ENCHANTMENT_ORDER), Enchantment.STREAM_CODEC, ByteBufCodecs.VAR_INT), // Paper
+         p_340784_ -> p_340784_.enchantments,
+         ItemEnchantments::new
+     );
+-    final Object2IntOpenHashMap<Holder<Enchantment>> enchantments;
++    final it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<Holder<Enchantment>> enchantments; // Paper
+ 
+-    ItemEnchantments(Object2IntOpenHashMap<Holder<Enchantment>> p_341287_) {
++    ItemEnchantments(it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<Holder<Enchantment>> p_341287_) { // Paper
+         this.enchantments = p_341287_;
  
          for (Entry<Holder<Enchantment>> entry : p_341287_.object2IntEntrySet()) {
              int i = entry.getIntValue();
@@ -18,3 +46,19 @@
  
          public Mutable(ItemEnchantments p_330722_) {
              this.enchantments.putAll(p_330722_.enchantments);
+@@ -134,13 +_,13 @@
+             if (p_330832_ <= 0) {
+                 this.enchantments.removeInt(p_344861_);
+             } else {
+-                this.enchantments.put(p_344861_, Math.min(p_330832_, 255));
++                this.enchantments.put(p_344861_, Math.min(p_330832_, (org.purpurmc.purpur.PurpurConfig.clampEnchantLevels ? 255 : 32767))); // Purpur - Add toggle for enchant level clamping
+             }
+         }
+ 
+         public void upgrade(Holder<Enchantment> p_346263_, int p_331153_) {
+             if (p_331153_ > 0) {
+-                this.enchantments.merge(p_346263_, Math.min(p_331153_, 255), Integer::max);
++                this.enchantments.merge(p_346263_, Math.min(p_331153_, (org.purpurmc.purpur.PurpurConfig.clampEnchantLevels ? 255 : 32767)), Integer::max); // Purpur - Add toggle for enchant level clamping
+             }
+         }
+ 

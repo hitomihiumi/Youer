@@ -18,12 +18,30 @@
          this.acquire();
  
          Object object;
+@@ -137,7 +_,7 @@
+         return this.data.palette.valueFor(j);
+     }
+ 
+-    public void set(int p_156471_, int p_156472_, int p_156473_, T p_156474_) {
++    public synchronized void set(int p_156471_, int p_156472_, int p_156473_, T p_156474_) { // Paper - synchronize
+         this.acquire();
+ 
+         try {
 @@ -170,7 +_,7 @@
          intset.forEach(p_238274_ -> p_196880_.accept(palette.valueFor(p_238274_)));
      }
  
 -    public void read(FriendlyByteBuf p_63119_) {
 +    public synchronized void read(FriendlyByteBuf p_63119_) { // Paper - synchronize
+         this.acquire();
+ 
+         try {
+@@ -185,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void write(FriendlyByteBuf p_63136_) {
++    public synchronized void write(FriendlyByteBuf p_63136_) { // Paper - synchronize
          this.acquire();
  
          try {

@@ -9,3 +9,11 @@
                  }
  
                  entity.startRiding(p_371774_);
+@@ -73,6 +_,7 @@
+             if (entity1 != null) {
+                 p_371507_.dropLeash();
+             }
++            newMob.aware = oldMob.aware; // Paper - Fix nerfed slime when splitting
+ 
+             this.convertCommon(p_371507_, p_371702_, p_371413_);
+         }

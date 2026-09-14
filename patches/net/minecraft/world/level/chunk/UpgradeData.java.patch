@@ -37,3 +37,11 @@
          Level level = p_63342_.getLevel();
          this.neighborBlockTicks.forEach(p_208142_ -> {
              Block block = p_208142_.type() == Blocks.AIR ? level.getBlockState(p_208142_.pos()).getBlock() : p_208142_.type();
+@@ -103,6 +_,7 @@
+             Fluid fluid = p_208125_.type() == Fluids.EMPTY ? level.getFluidState(p_208125_.pos()).getType() : p_208125_.type();
+             level.scheduleTick(p_208125_.pos(), fluid, p_208125_.delay(), p_208125_.priority());
+         });
++        UpgradeData.BlockFixers.values(); // Paper - force the class init so that we don't access CHUNKY_FIXERS before all BlockFixers are initialised
+         CHUNKY_FIXERS.forEach(p_208122_ -> p_208122_.processChunk(level));
+     }
+ 

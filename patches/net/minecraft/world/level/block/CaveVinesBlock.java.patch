@@ -1,5 +1,23 @@
 --- a/net/minecraft/world/level/block/CaveVinesBlock.java
 +++ b/net/minecraft/world/level/block/CaveVinesBlock.java
+@@ -52,8 +_,15 @@
+ 
+     @Override
+     protected BlockState getGrowIntoState(BlockState p_220935_, RandomSource p_220936_) {
+-        return super.getGrowIntoState(p_220935_, p_220936_).setValue(BERRIES, p_220936_.nextFloat() < 0.11F);
+-    }
++    // Paper start - Fix Spigot growth modifiers
++        return this.getGrowIntoState(state, random, null);
++    }
++    @Override
++    protected BlockState getGrowIntoState(BlockState state, RandomSource random, @javax.annotation.Nullable Level level) {
++        final boolean value = random.nextFloat() < (level != null ? (0.11F * (level.spigotConfig.glowBerryModifier / 100.0F)) : 0.11F);
++        return super.getGrowIntoState(state, random).setValue(CaveVinesBlock.BERRIES, value);
++    }
++    // Paper end - Fix Spigot growth modifiers
+ 
+     @Override
+     protected ItemStack getCloneItemStack(LevelReader p_304590_, BlockPos p_152967_, BlockState p_152968_, boolean p_386659_) {
 @@ -85,4 +_,11 @@
      public void performBonemeal(ServerLevel p_220923_, RandomSource p_220924_, BlockPos p_220925_, BlockState p_220926_) {
          p_220923_.setBlock(p_220925_, p_220926_.setValue(BERRIES, true), 2);

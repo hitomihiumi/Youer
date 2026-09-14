@@ -9,3 +9,12 @@
          float f2 = f1 / 25.0F;
          ItemStack itemstack = p_338892_.getWeaponItem();
          float f3;
+@@ -30,7 +_,7 @@
+     }
+ 
+     public static float getDamageAfterMagicAbsorb(float p_19270_, float p_19271_) {
+-        float f = Mth.clamp(p_19271_, 0.0F, 20.0F);
++        float f = Mth.clamp(p_19271_, 0.0F, org.purpurmc.purpur.PurpurConfig.limitArmor ? 20F : Float.MAX_VALUE); // Purpur - Add attribute clamping and armor limit config
+         return p_19270_ * (1.0F - f / 25.0F);
+     }
+ }

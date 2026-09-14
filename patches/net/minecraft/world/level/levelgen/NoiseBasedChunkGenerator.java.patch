@@ -9,3 +9,12 @@
              this.buildSurface(
                  p_224235_,
                  worldgenerationcontext,
+@@ -282,7 +_,7 @@
+         NoiseChunk noisechunk = p_224229_.getOrCreateNoiseChunk(p_224250_ -> this.createNoiseChunk(p_224250_, p_224228_, Blender.of(p_224224_), p_224226_));
+         Aquifer aquifer = noisechunk.aquifer();
+         CarvingContext carvingcontext = new CarvingContext(
+-            this, p_224224_.registryAccess(), p_224229_.getHeightAccessorForGeneration(), noisechunk, p_224226_, this.settings.value().surfaceRule()
++            this, p_224224_.registryAccess(), p_224229_.getHeightAccessorForGeneration(), noisechunk, p_224226_, this.settings.value().surfaceRule(), p_224224_.getMinecraftWorld() // Paper - Flat bedrock generator settings
+         );
+         CarvingMask carvingmask = ((ProtoChunk)p_224229_).getOrCreateCarvingMask();
+ 

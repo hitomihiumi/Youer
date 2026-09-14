@@ -8,6 +8,21 @@
  
      public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22528_) {
          this(p_22528_, 60);
+@@ -27,6 +_,14 @@
+         this.minDuration = p_22534_;
+         this.maxDuration = p_22535_;
+         this.entryCondition = p_22533_;
++        // Paper start - configurable behavior tick rate and timings
++        String key = io.papermc.paper.util.MappingEnvironment.reobf() ? io.papermc.paper.util.ObfHelper.INSTANCE.deobfClassName(this.getClass().getName()) : this.getClass().getName();
++        int lastSeparator = key.lastIndexOf('.');
++        if (lastSeparator != -1) {
++            key = key.substring(lastSeparator + 1);
++        }
++        this.configKey = key.toLowerCase(java.util.Locale.ROOT);
++        // Paper end - configurable behavior tick rate and timings
+     }
+ 
+     @Override
 @@ -36,6 +_,12 @@
  
      @Override

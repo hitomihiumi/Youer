@@ -14,3 +14,17 @@
  
          CompoundTag compoundtag;
          try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(p_63707_)) {
+@@ -63,7 +_,12 @@
+     }
+ 
+     public void scanChunk(ChunkPos p_196957_, StreamTagVisitor p_196958_) throws IOException {
+-        RegionFile regionfile = this.getRegionFile(p_196957_);
++        // CraftBukkit start - SPIGOT-5680: There's no good reason to preemptively create files on read, save that for writing
++        RegionFile regionfile = this.getRegionFile(p_196957_, true);
++        if (regionfile == null) {
++            return;
++        }
++        // CraftBukkit end
+ 
+         try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(p_196957_)) {
+             if (datainputstream != null) {

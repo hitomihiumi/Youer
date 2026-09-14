@@ -1,0 +1,41 @@
+--- a/net/minecraft/server/level/Ticket.java
++++ b/net/minecraft/server/level/Ticket.java
+@@ -15,17 +_,36 @@
+                 ExtraCodecs.NON_NEGATIVE_INT.fieldOf("level").forGetter(Ticket::getTicketLevel),
+                 Codec.LONG.optionalFieldOf("ticks_left", 0L).forGetter(p_401220_ -> p_401220_.ticksLeft)
+             )
+-            .apply(p_401246_, Ticket::new)
++            .apply(p_401246_, (type, level, ticks) -> new Ticket(type, level.intValue(), ticks.longValue())) // Paper - add identifier
+     );
+     private final TicketType type;
+     private final int ticketLevel;
+     private long ticksLeft;
++    // Paper start - add identifier
++    private Object identifier;
++
++    public Object getIdentifier() {
++        return this.identifier;
++    }
++    // Paper end - add identifier
++
+ 
+     public Ticket(TicketType p_9425_, int p_9426_) {
+-        this(p_9425_, p_9426_, p_9425_.timeout());
++        // Paper start - add identifier
++        this(p_9425_, p_9426_, null);
++    }
++    public Ticket(TicketType p_9425_, int p_9426_, Object identifier) {
++        this(p_9425_, p_9426_, p_9425_.timeout(), identifier);
++        // Paper end - add identifier
+     }
+ 
+     private Ticket(TicketType p_394537_, int p_393858_, long p_393968_) {
++        // Paper start - add identifier
++        this(p_394537_, p_393858_, p_393968_, null);
++    }
++    private Ticket(TicketType p_394537_, int p_393858_, long p_393968_, Object identifier) {
++        this.identifier = identifier;
++        // Paper end - add identifier
+         this.type = p_394537_;
+         this.ticketLevel = p_393858_;
+         this.ticksLeft = p_393968_;

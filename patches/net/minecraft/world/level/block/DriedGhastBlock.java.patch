@@ -22,3 +22,12 @@
              this.spawnGhastling(p_416363_, p_415623_, p_416629_);
          }
      }
+@@ -121,7 +_,7 @@
+             float f = Direction.getYRot(p_416016_.getValue(FACING));
+             happyghast.setYHeadRot(f);
+             happyghast.snapTo(vec3.x(), vec3.y(), vec3.z(), f, 0.0F);
+-            p_415960_.addFreshEntity(happyghast);
++            p_415960_.addFreshEntity(happyghast, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.REHYDRATION); // Paper - spawn reason
+             p_415960_.playSound(null, happyghast, SoundEvents.GHASTLING_SPAWN, SoundSource.BLOCKS, 1.0F, 1.0F);
+         }
+     }

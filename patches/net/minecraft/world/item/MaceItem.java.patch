@@ -15,3 +15,12 @@
              ServerLevel serverlevel = (ServerLevel)p_333812_.level();
              p_333812_.setDeltaMovement(p_333812_.getDeltaMovement().with(Direction.Axis.Y, 0.01F));
              if (p_333812_ instanceof ServerPlayer serverplayer) {
+@@ -128,7 +_,7 @@
+                 double d0 = getKnockbackPower(p_335810_, p_347296_, vec3);
+                 Vec3 vec31 = vec3.normalize().scale(d0);
+                 if (d0 > 0.0) {
+-                    p_347296_.push(vec31.x, 0.7F, vec31.z);
++                p_347296_.push(vec31.x, 0.7F, vec31.z, attacker); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+                     if (p_347296_ instanceof ServerPlayer serverplayer) {
+                         serverplayer.connection.send(new ClientboundSetEntityMotionPacket(serverplayer));
+                     }

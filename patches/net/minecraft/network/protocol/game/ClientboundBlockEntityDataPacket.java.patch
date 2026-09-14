@@ -1,0 +1,11 @@
+--- a/net/minecraft/network/protocol/game/ClientboundBlockEntityDataPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundBlockEntityDataPacket.java
+@@ -29,7 +_,7 @@
+ 
+     public static ClientboundBlockEntityDataPacket create(BlockEntity p_195643_, BiFunction<BlockEntity, RegistryAccess, CompoundTag> p_324611_) {
+         RegistryAccess registryaccess = p_195643_.getLevel().registryAccess();
+-        return new ClientboundBlockEntityDataPacket(p_195643_.getBlockPos(), p_195643_.getType(), p_324611_.apply(p_195643_, registryaccess));
++        return new ClientboundBlockEntityDataPacket(p_195643_.getBlockPos(), p_195643_.getType(), p_195643_.sanitizeSentNbt(p_324611_.apply(p_195643_, registryaccess))); // Paper - Sanitize sent data
+     }
+ 
+     public static ClientboundBlockEntityDataPacket create(BlockEntity p_195641_) {

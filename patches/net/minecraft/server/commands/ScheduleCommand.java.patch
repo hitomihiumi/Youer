@@ -18,3 +18,12 @@
              Optional<CommandFunction<CommandSourceStack>> optional = p_138430_.getSecond().left();
              if (optional.isPresent()) {
                  if (optional.get() instanceof MacroFunction) {
+@@ -136,7 +_,7 @@
+     }
+ 
+     private static int remove(CommandSourceStack p_138434_, String p_138435_) throws CommandSyntaxException {
+-        int i = p_138434_.getServer().getWorldData().overworldData().getScheduledEvents().remove(p_138435_);
++        int i = p_138434_.getLevel().serverLevelData.overworldData().getScheduledEvents().remove(p_138435_); // Paper - Make schedule command per-world
+         if (i == 0) {
+             throw ERROR_CANT_REMOVE.create(p_138435_);
+         } else {

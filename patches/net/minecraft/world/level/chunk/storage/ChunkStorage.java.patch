@@ -56,3 +56,42 @@
                  removeDatafixingContext(p_188291_);
                  NbtUtils.addCurrentDataVersion(p_188291_);
                  return p_188291_;
+@@ -71,7 +_,7 @@
+         }
+     }
+ 
+-    private LegacyStructureDataHandler getLegacyStructureHandler(ResourceKey<Level> p_223449_, Supplier<DimensionDataStorage> p_223450_) {
++    private LegacyStructureDataHandler getLegacyStructureHandler(ResourceKey<net.minecraft.world.level.dimension.LevelStem> p_223449_, Supplier<DimensionDataStorage> p_223450_) { // CraftBukkit
+         LegacyStructureDataHandler legacystructuredatahandler = this.legacyStructureHandler;
+         if (legacystructuredatahandler == null) {
+             synchronized (this) {
+@@ -86,7 +_,7 @@
+     }
+ 
+     public static void injectDatafixingContext(
+-        CompoundTag p_196919_, ResourceKey<Level> p_196920_, Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> p_196921_
++        CompoundTag p_196919_, ResourceKey<net.minecraft.world.level.dimension.LevelStem> p_196920_, Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> p_196921_ // CraftBukkit
+     ) {
+         CompoundTag compoundtag = new CompoundTag();
+         compoundtag.putString("dimension", p_196920_.location().toString());
+@@ -107,8 +_,19 @@
+     }
+ 
+     public CompletableFuture<Void> write(ChunkPos p_63503_, Supplier<CompoundTag> p_361344_) {
++        // Paper start - guard against possible chunk pos desync
++        final Supplier<CompoundTag> guardedPosCheck = () -> {
++            CompoundTag nbt = p_361344_.get();
++            if (nbt != null && !p_63503_.equals(SerializableChunkData.getChunkCoordinate(nbt))) {
++                final String world = (ChunkStorage.this instanceof net.minecraft.server.level.ChunkMap) ? ((net.minecraft.server.level.ChunkMap) ChunkStorage.this).level.getWorld().getName() : null;
++                throw new IllegalArgumentException("Chunk coordinate and serialized data do not have matching coordinates, trying to serialize coordinate " + p_63503_
++                    + " but compound says coordinate is " + SerializableChunkData.getChunkCoordinate(nbt) + (world == null ? " for an unknown world" : (" for world: " + world)));
++            }
++            return nbt;
++        };
++        // Paper end - guard against possible chunk pos desync
+         this.handleLegacyStructureIndex(p_63503_);
+-        return this.worker.store(p_63503_, p_361344_);
++        return this.worker.store(p_63503_, guardedPosCheck); // Paper - guard against possible chunk pos desync
+     }
+ 
+     protected void handleLegacyStructureIndex(ChunkPos p_321604_) {

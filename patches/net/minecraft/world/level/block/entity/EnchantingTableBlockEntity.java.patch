@@ -8,6 +8,21 @@
  
      public EnchantingTableBlockEntity(BlockPos p_340972_, BlockState p_340871_) {
          super(BlockEntityType.ENCHANTING_TABLE, p_340972_, p_340871_);
+@@ -39,12 +_,14 @@
+     protected void saveAdditional(ValueOutput p_421876_) {
+         super.saveAdditional(p_421876_);
+         p_421876_.storeNullable("CustomName", ComponentSerialization.CODEC, this.name);
++        p_421876_.putInt("Purpur.Lapis", this.lapis); // Purpur - Enchantment Table Persists Lapis
+     }
+ 
+     @Override
+     protected void loadAdditional(ValueInput p_422324_) {
+         super.loadAdditional(p_422324_);
+         this.name = parseCustomNameSafe(p_422324_, "CustomName");
++        this.lapis = p_422324_.getIntOr("Purpur.Lapis", 0); // Purpur - Enchantment Table Persists Lapis
+     }
+ 
+     public static void bookAnimationTick(Level p_341315_, BlockPos p_341271_, BlockState p_341158_, EnchantingTableBlockEntity p_341066_) {
 @@ -136,4 +_,22 @@
      public void removeComponentsFromTag(ValueOutput p_422024_) {
          p_422024_.discard("CustomName");

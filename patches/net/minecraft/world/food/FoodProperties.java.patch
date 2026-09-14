@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/food/FoodProperties.java
++++ b/net/minecraft/world/food/FoodProperties.java
+@@ -40,21 +_,14 @@
+     @Override
+     public void onConsume(Level p_366676_, LivingEntity p_366505_, ItemStack p_366556_, Consumable p_366719_) {
+         RandomSource randomsource = p_366505_.getRandom();
+-        p_366676_.playSound(
+-            null, p_366505_.getX(), p_366505_.getY(), p_366505_.getZ(), p_366719_.sound().value(), SoundSource.NEUTRAL, 1.0F, randomsource.triangle(1.0F, 0.4F)
+-        );
++        p_366676_.playSound(null, p_366505_.getX(), p_366505_.getY(), p_366505_.getZ(), p_366719_.sound().value(), SoundSource.NEUTRAL, 1.0F, randomsource.triangle(1.0F, 0.4F));
+         if (p_366505_ instanceof Player player) {
+-            player.getFoodData().eat(this);
+-            p_366676_.playSound(
+-                null,
+-                player.getX(),
+-                player.getY(),
+-                player.getZ(),
+-                SoundEvents.PLAYER_BURP,
+-                SoundSource.PLAYERS,
+-                0.5F,
+-                Mth.randomBetween(randomsource, 0.9F, 1.0F)
+-            );
++            player.getFoodData().eat(this, stack, (net.minecraft.server.level.ServerPlayer) player); // CraftBukkit
++            // Purpur start - Burp delay - moved to Player#tick()
++            //level.playSound(
++            //    null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 0.5F, Mth.randomBetween(random, 0.9F, 1.0F)
++            //);
++            // Purpur end - Burp delay - moved to Player#tick()
+         }
+     }
+ 

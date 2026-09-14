@@ -49,6 +49,45 @@
              if (this.changedBlocksPerSection[i] == null) {
                  this.hasChangedSections = true;
                  this.changedBlocksPerSection[i] = new ShortOpenHashSet();
+@@ -274,6 +_,38 @@
+         p_287599_.onFullChunkStatusChange(this.pos, p_287649_);
+     }
+ 
++    // CraftBukkit start
++    // ChunkUnloadEvent: Called before the chunk is unloaded: isChunkLoaded is still true and chunk can still be modified by plugins.
++    // SPIGOT-7780: Moved out of updateFutures to call all chunk unload events before calling updateHighestAllowedStatus for all chunks
++    protected void callEventIfUnloading(ChunkMap chunkMap) {
++        FullChunkStatus oldFullChunkStatus = ChunkLevel.fullStatus(this.oldTicketLevel);
++        FullChunkStatus newFullChunkStatus = ChunkLevel.fullStatus(this.ticketLevel);
++        boolean oldIsFull = oldFullChunkStatus.isOrAfter(FullChunkStatus.FULL);
++        boolean newIsFull = newFullChunkStatus.isOrAfter(FullChunkStatus.FULL);
++        if (oldIsFull && !newIsFull) {
++            this.getFullChunkFuture().thenAccept((either) -> {
++                LevelChunk chunk = either.orElse(null);
++                if (chunk != null) {
++                    chunkMap.callbackExecutor.execute(() -> {
++                        // Minecraft will apply the chunks tick lists to the world once the chunk got loaded, and then store the tick
++                        // lists again inside the chunk once the chunk becomes inaccessible and set the chunk's needsSaving flag.
++                        // These actions may however happen deferred, so we manually set the needsSaving flag already here.
++                        chunk.markUnsaved();
++                        chunk.unloadCallback();
++                    });
++                }
++            }).exceptionally((throwable) -> {
++                // ensure exceptions are printed, by default this is not the case
++                net.minecraft.server.MinecraftServer.LOGGER.error("Failed to schedule unload callback for chunk " + ChunkHolder.this.pos, throwable);
++                return null;
++            });
++
++            // Run callback right away if the future was already done
++            chunkMap.callbackExecutor.run();
++        }
++    }
++    // CraftBukkit end
++
+     protected void updateFutures(ChunkMap p_143004_, Executor p_143005_) {
+         FullChunkStatus fullchunkstatus = ChunkLevel.fullStatus(this.oldTicketLevel);
+         FullChunkStatus fullchunkstatus1 = ChunkLevel.fullStatus(this.ticketLevel);
 @@ -281,12 +_,28 @@
          boolean flag1 = fullchunkstatus1.isOrAfter(FullChunkStatus.FULL);
          this.wasAccessibleSinceLastSave |= flag1;

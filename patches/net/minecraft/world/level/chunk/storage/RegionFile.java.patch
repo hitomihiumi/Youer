@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/chunk/storage/RegionFile.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFile.java
+@@ -46,7 +_,7 @@
+     protected final RegionBitmap usedSectors = new RegionBitmap();
+ 
+     public RegionFile(RegionStorageInfo p_326174_, Path p_196950_, Path p_196951_, boolean p_196952_) throws IOException {
+-        this(p_326174_, p_196950_, p_196951_, RegionFileVersion.getSelected(), p_196952_);
++        this(p_326174_, p_196950_, p_196951_, RegionFileVersion.getCompressionFormat(), p_196952_); // Paper - Configurable region compression format
+     }
+ 
+     public RegionFile(RegionStorageInfo p_326221_, Path p_63633_, Path p_63634_, RegionFileVersion p_63635_, boolean p_63636_) throws IOException {
 @@ -82,6 +_,14 @@
                      if (l != 0) {
                          int i1 = getSectorNumber(l);
@@ -15,6 +24,20 @@
                          if (i1 < 2) {
                              LOGGER.warn("Region file {} has invalid sector at index: {}; sector {} overlaps with header", p_63633_, k, i1);
                              this.offsets.put(k, 0);
+@@ -117,6 +_,13 @@
+         } else {
+             int j = getSectorNumber(i);
+             int k = getNumSectors(i);
++            // Spigot start
++            if (k == 255) {
++                ByteBuffer realLen = ByteBuffer.allocate(4);
++                this.file.read(realLen, sectorNumber * 4096);
++                k = (realLen.getInt(0) + 4) / 4096 + 1;
++            }
++            // Spigot end
+             int l = k * 4096;
+             ByteBuffer bytebuffer = ByteBuffer.allocate(l);
+             this.file.read(bytebuffer, j * 4096);
 @@ -260,6 +_,7 @@
                      return true;
                  }

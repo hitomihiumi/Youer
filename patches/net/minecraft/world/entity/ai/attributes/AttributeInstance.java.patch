@@ -1,0 +1,27 @@
+--- a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
++++ b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
+@@ -152,20 +_,20 @@
+         double d0 = this.getBaseValue();
+ 
+         for (AttributeModifier attributemodifier : this.getModifiersOrEmpty(AttributeModifier.Operation.ADD_VALUE)) {
+-            d0 += attributemodifier.amount();
++            d0 += attributemodifier.amount(); // Paper - destroy speed API - diff on change
+         }
+ 
+         double d1 = d0;
+ 
+         for (AttributeModifier attributemodifier1 : this.getModifiersOrEmpty(AttributeModifier.Operation.ADD_MULTIPLIED_BASE)) {
+-            d1 += d0 * attributemodifier1.amount();
++            d1 += d0 * attributemodifier1.amount(); // Paper - destroy speed API - diff on change
+         }
+ 
+         for (AttributeModifier attributemodifier2 : this.getModifiersOrEmpty(AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)) {
+-            d1 *= 1.0 + attributemodifier2.amount();
++            d1 *= 1.0 + attributemodifier2.amount(); // Paper - destroy speed API - diff on change
+         }
+ 
+-        return this.attribute.value().sanitizeValue(d1);
++        return this.attribute.value().sanitizeValue(d1); // Paper - destroy speed API - diff on change
+     }
+ 
+     private Collection<AttributeModifier> getModifiersOrEmpty(AttributeModifier.Operation p_22117_) {

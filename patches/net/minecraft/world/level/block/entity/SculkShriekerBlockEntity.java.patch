@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/block/entity/SculkShriekerBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/SculkShriekerBlockEntity.java
+@@ -86,6 +_,13 @@
+ 
+     @Nullable
+     public static ServerPlayer tryGetPlayer(@Nullable Entity p_222862_) {
++    // Paper start - check global player list where appropriate; ensure level is the same for sculk events
++        final ServerPlayer player = tryGetPlayer0(p_222862_);
++        return player != null && player.level() == p_222862_.level() ? player : null;
++    }
++    @Nullable
++    private static ServerPlayer tryGetPlayer0(@Nullable Entity p_222862_) {
++    // Paper end - check global player list where appropriate
+         if (p_222862_ instanceof ServerPlayer serverplayer1) {
+             return serverplayer1;
+         } else if (p_222862_ != null && p_222862_.getControllingPassenger() instanceof ServerPlayer serverplayer) {

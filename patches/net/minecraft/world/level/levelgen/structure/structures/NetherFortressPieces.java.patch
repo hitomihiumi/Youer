@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces.java
+@@ -1209,12 +_,16 @@
+                 BlockPos blockpos = this.getWorldPos(3, 5, 5);
+                 if (p_228366_.isInside(blockpos)) {
+                     this.hasPlacedSpawner = true;
+-                    p_228362_.setBlock(blockpos, Blocks.SPAWNER.defaultBlockState(), 2);
+-                    if (p_228362_.getBlockEntity(blockpos) instanceof SpawnerBlockEntity spawnerblockentity) {
+-                        spawnerblockentity.setEntityId(EntityType.BLAZE, p_228365_);
+-                    }
++                    // CraftBukkit start
++                    // level.setBlock(worldPos, Blocks.SPAWNER.defaultBlockState(), 2);
++                    // if (level.getBlockEntity(worldPos) instanceof SpawnerBlockEntity spawnerBlockEntity) {
++                    //     spawnerBlockEntity.setEntityId(EntityType.BLAZE, random);
++                    // }
++                    this.placeCraftSpawner(p_228362_, blockpos, org.bukkit.entity.EntityType.BLAZE, 2);
++                    // CraftBukkit end
+                 }
+             }
++
+ 
+             for (int i = 0; i <= 6; i++) {
+                 for (int j = 0; j <= 6; j++) {

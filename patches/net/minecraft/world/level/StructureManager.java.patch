@@ -15,3 +15,35 @@
          Builder<StructureStart> builder = ImmutableList.builder();
  
          for (Entry<Structure, LongSet> entry : map.entrySet()) {
+@@ -112,14 +_,29 @@
+     }
+ 
+     public StructureStart getStructureWithPieceAt(BlockPos p_331369_, HolderSet<Structure> p_330290_) {
+-        return this.getStructureWithPieceAt(p_331369_, p_330290_::contains);
++    // Paper start - Fix swamp hut cat generation deadlock
++        return this.getStructureWithPieceAt(p_331369_, p_330290_, null);
++    }
++    public StructureStart getStructureWithPieceAt(BlockPos p_331369_, HolderSet<Structure> p_330290_, final @Nullable ServerLevelAccessor levelAccessor) {
++        return this.getStructureWithPieceAt(p_331369_, p_330290_::contains, levelAccessor);
++    // Paper end - Fix swamp hut cat generation deadlock
+     }
+ 
+     public StructureStart getStructureWithPieceAt(BlockPos p_220489_, Predicate<Holder<Structure>> p_332144_) {
++        // Paper start - Fix swamp hut cat generation deadlock
++        return this.getStructureWithPieceAt(p_220489_, p_332144_, null);
++    }
++
++    public StructureStart getStructureWithPieceAt(BlockPos p_220489_, TagKey<Structure> tag, @Nullable ServerLevelAccessor levelAccessor) {
++        return this.getStructureWithPieceAt(p_220489_, structure -> structure.is(tag), levelAccessor);
++    }
++
++    public StructureStart getStructureWithPieceAt(BlockPos p_220489_, Predicate<Holder<Structure>> p_332144_, @Nullable ServerLevelAccessor levelAccessor) {
++        // Paper end - Fix swamp hut cat generation deadlock
+         Registry<Structure> registry = this.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+ 
+         for (StructureStart structurestart : this.startsForStructure(
+-            new ChunkPos(p_220489_), p_367976_ -> registry.get(registry.getId(p_367976_)).map(p_332144_::test).orElse(false)
++            new ChunkPos(p_220489_), p_367976_ -> registry.get(registry.getId(p_367976_)).map(p_332144_::test).orElse(false), levelAccessor // Paper - Fix swamp hut cat generation deadlock
+         )) {
+             if (this.structureHasPieceAt(p_220489_, structurestart)) {
+                 return structurestart;

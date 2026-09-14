@@ -26,3 +26,71 @@
              this.gameEvent(GameEvent.CONTAINER_OPEN, p_376437_);
              PiglinAi.angerNearbyPiglins(serverlevel, p_376437_, true);
          }
+@@ -148,7 +_,7 @@
+     @Nullable
+     @Override
+     public AbstractContainerMenu createMenu(int p_376862_, Inventory p_376651_, Player p_376108_) {
+-        if (this.lootTable != null && p_376108_.isSpectator()) {
++        if (this.lootTable != null && p_376108_.isSpectator()) { // Paper - LootTable API (TODO spectators can open chests that aren't ready to be re-generated but this doesn't support that)
+             return null;
+         } else {
+             this.unpackLootTable(p_376651_.player);
+@@ -195,4 +_,58 @@
+     public void stopOpen(Player p_376820_) {
+         this.level().gameEvent(GameEvent.CONTAINER_CLOSE, this.position(), GameEvent.Context.of(p_376820_));
+     }
++
++    // Paper start - LootTable API
++    final com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData = new com.destroystokyo.paper.loottable.PaperLootableInventoryData();
++
++    @Override
++    public com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData() {
++        return this.lootableData;
++    }
++    // Paper end - LootTable API
++    // CraftBukkit start
++    public java.util.List<org.bukkit.entity.HumanEntity> transaction = new java.util.ArrayList<>();
++    private int maxStack = MAX_STACK;
++
++    @Override
++    public java.util.List<net.minecraft.world.item.ItemStack> getContents() {
++        return this.itemStacks;
++    }
++
++    @Override
++    public void onOpen(org.bukkit.craftbukkit.entity.CraftHumanEntity player) {
++        this.transaction.add(player);
++    }
++
++    @Override
++    public void onClose(org.bukkit.craftbukkit.entity.CraftHumanEntity player) {
++        this.transaction.remove(player);
++    }
++
++    @Override
++    public java.util.List<org.bukkit.entity.HumanEntity> getViewers() {
++        return this.transaction;
++    }
++
++    @Override
++    public @Nullable org.bukkit.inventory.InventoryHolder getOwner() {
++        org.bukkit.entity.Entity entity = this.getBukkitEntity();
++        return entity instanceof final org.bukkit.inventory.InventoryHolder inventoryHolder ? inventoryHolder : null;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return this.maxStack;
++    }
++
++    @Override
++    public void setMaxStackSize(int size) {
++        this.maxStack = size;
++    }
++
++    @Override
++    public org.bukkit.Location getLocation() {
++        return this.getBukkitEntity().getLocation();
++    }
++    // CraftBukkit end
+ }

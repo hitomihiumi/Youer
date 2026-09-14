@@ -1,5 +1,19 @@
 --- a/net/minecraft/world/effect/WeavingMobEffect.java
 +++ b/net/minecraft/world/effect/WeavingMobEffect.java
+@@ -25,11 +_,11 @@
+     @Override
+     public void onMobRemoved(ServerLevel p_376925_, LivingEntity p_338209_, int p_338446_, Entity.RemovalReason p_338624_) {
+         if (p_338624_ == Entity.RemovalReason.KILLED && (p_338209_ instanceof Player || p_376925_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))) {
+-            this.spawnCobwebsRandomlyAround(p_376925_, p_338209_.getRandom(), p_338209_.blockPosition());
++            this.spawnCobwebsRandomlyAround(p_376925_, p_338209_.getRandom(), p_338209_.blockPosition(), p_338209_); // Paper - Fire EntityChangeBlockEvent in more places
+         }
+     }
+ 
+-    private void spawnCobwebsRandomlyAround(ServerLevel p_376905_, RandomSource p_338709_, BlockPos p_338472_) {
++    private void spawnCobwebsRandomlyAround(ServerLevel p_376905_, RandomSource p_338709_, BlockPos p_338472_, LivingEntity entity) { // Paper - Fire EntityChangeBlockEvent in more places
+         Set<BlockPos> set = Sets.newHashSet();
+         int i = this.maxCobwebs.applyAsInt(p_338709_);
+ 
 @@ -46,6 +_,7 @@
          }
  

@@ -1,0 +1,32 @@
+--- a/net/minecraft/util/ZeroBitStorage.java
++++ b/net/minecraft/util/ZeroBitStorage.java
+@@ -13,21 +_,21 @@
+     }
+ 
+     @Override
+-    public int getAndSet(int p_184796_, int p_184797_) {
+-        Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)p_184796_);
+-        Validate.inclusiveBetween(0L, 0L, (long)p_184797_);
++    public final int getAndSet(int index, int p_184797_) { // Paper - Perf: Optimize SimpleBitStorage
++        //Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index); // Paper - Perf: Optimize SimpleBitStorage
++        //Validate.inclusiveBetween(0L, 0L, (long)value); // Paper - Perf: Optimize SimpleBitStorage
+         return 0;
+     }
+ 
+     @Override
+-    public void set(int p_184802_, int p_184803_) {
+-        Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)p_184802_);
+-        Validate.inclusiveBetween(0L, 0L, (long)p_184803_);
++    public final void set(int index, int p_184803_) { // Paper - Perf: Optimize SimpleBitStorage
++        //Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index); // Paper - Perf: Optimize SimpleBitStorage
++        //Validate.inclusiveBetween(0L, 0L, (long)value); // Paper - Perf: Optimize SimpleBitStorage
+     }
+ 
+     @Override
+-    public int get(int p_184794_) {
+-        Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)p_184794_);
++    public final int get(int p_184794_) { // Paper - Perf: Optimize SimpleBitStorage
++        //Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index); // Paper - Perf: Optimize SimpleBitStorage
+         return 0;
+     }
+ 

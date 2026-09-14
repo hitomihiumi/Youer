@@ -1,0 +1,11 @@
+--- a/net/minecraft/server/waypoints/ServerWaypointManager.java
++++ b/net/minecraft/server/waypoints/ServerWaypointManager.java
+@@ -99,7 +_,7 @@
+     }
+ 
+     private static boolean isLocatorBarEnabledFor(ServerPlayer p_423601_) {
+-        return p_423601_.level().getServer().getGameRules().getBoolean(GameRules.RULE_LOCATOR_BAR);
++        return p_423601_.level().getGameRules().getBoolean(GameRules.RULE_LOCATOR_BAR); // Paper - per world gamerules
+     }
+ 
+     private void createConnection(ServerPlayer p_416685_, WaypointTransmitter p_416130_) {
