@@ -25,7 +25,7 @@
          jframe.setLocationRelativeTo(null);
          jframe.setVisible(true);
 +        // Paper start - Improve ServerGUI
-+        jframe.setName("Minecraft server");
++        jframe.setName("Purpur Minecraft server"); // Purpur - Improve GUI
 +        try {
 +            jframe.setIconImage(javax.imageio.ImageIO.read(java.util.Objects.requireNonNull(MinecraftServerGui.class.getClassLoader().getResourceAsStream("logo.png"))));
 +        } catch (java.io.IOException ignore) {

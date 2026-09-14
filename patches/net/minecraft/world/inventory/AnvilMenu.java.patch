@@ -217,7 +217,7 @@
                      itemstack1.set(DataComponents.CUSTOM_NAME, Component.literal(this.itemName));
                  }
              } else if (itemstack.has(DataComponents.CUSTOM_NAME)) {
-@@ -243,16 +_,19 @@
+@@ -243,16 +_,25 @@
              }
  
              if (k == i && k > 0) {
@@ -233,6 +233,12 @@
              }
  
 -            if (this.cost.get() >= 40 && !this.player.hasInfiniteMaterials()) {
++            // Purpur start - Anvil API
++            if (this.bypassCost && this.cost.get() >= this.maximumRepairCost) {
++                this.cost.set(this.maximumRepairCost - 1);
++            }
++            // Purpur end - Anvil API
++
 +            if (this.cost.get() >= this.maximumRepairCost && !this.player.hasInfiniteMaterials()) { // CraftBukkit
                  itemstack1 = ItemStack.EMPTY;
              }

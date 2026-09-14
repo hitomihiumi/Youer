@@ -9,10 +9,14 @@
      private static final LoadingCache<VoxelShape, Boolean> SHAPE_FULL_BLOCK_CACHE = CacheBuilder.newBuilder()
          .maximumSize(512L)
          .weakKeys()
-@@ -98,6 +_,21 @@
+@@ -98,6 +_,25 @@
      public static final int UPDATE_LIMIT = 512;
      protected final StateDefinition<Block, BlockState> stateDefinition;
      private BlockState defaultBlockState;
++    // Purpur start - Configurable block fall damage modifiers
++    public float fallDamageMultiplier = 1.0F;
++    public float fallDistanceMultiplier = 1.0F;
++    // Purpur end - Configurable block fall damage modifiers
 +    // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
 +    public final boolean isDestroyable() {
 +        return io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits ||

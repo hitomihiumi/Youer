@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/BeaconBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BeaconBlockEntity.java
-@@ -111,6 +_,53 @@
+@@ -111,6 +_,63 @@
              return 3;
          }
      };
@@ -37,6 +37,16 @@
 +
 +    public double getEffectRange() {
 +        if (this.effectRange < 0) {
++            // Purpur start - Beacon Activation Range Configurable
++            if (this.level != null) {
++                switch (this.levels) {
++                    case 1: return this.level.purpurConfig.beaconLevelOne;
++                    case 2: return this.level.purpurConfig.beaconLevelTwo;
++                    case 3: return this.level.purpurConfig.beaconLevelThree;
++                    case 4: return this.level.purpurConfig.beaconLevelFour;
++                }
++            }
++            // Purpur end - Beacon Activation Range Configurable
 +            return this.levels * 10 + 10;
 +        } else {
 +            return effectRange;
@@ -84,8 +94,9 @@
                  p_155111_.levels = updateBase(p_155108_, i, j, k);
              }
  
-             if (p_155111_.levels > 0 && !p_155111_.beamSections.isEmpty()) {
+-            if (p_155111_.levels > 0 && !p_155111_.beamSections.isEmpty()) {
 -                applyEffects(p_155108_, p_155109_, p_155111_.levels, p_155111_.primaryPower, p_155111_.secondaryPower);
++            if (p_155111_.levels > 0 && (!p_155111_.beamSections.isEmpty() || (level.purpurConfig.beaconAllowEffectsWithTintedGlass && isTintedGlass))) { // Purpur - allow beacon effects when covered by tinted glass
 +                applyEffects(p_155108_, p_155109_, p_155111_.levels, p_155111_.primaryPower, p_155111_.secondaryPower, p_155111_); // Paper - Custom beacon ranges
                  playSound(p_155108_, p_155109_, SoundEvents.BEACON_AMBIENT);
              }

@@ -22,7 +22,7 @@
                      List<ItemStack> list = draw(p_40667_, itemstack, player);
                      if (p_40668_ instanceof ServerLevel serverlevel && !list.isEmpty()) {
 -                        this.shoot(serverlevel, player, player.getUsedItemHand(), p_40667_, list, f * 3.0F, 1.0F, f == 1.0F, null);
-+                        this.shoot(serverlevel, player, player.getUsedItemHand(), p_40667_, list, f * 3.0F, 1.0F, f == 1.0F, null, f); // Paper - Pass draw strength
++                        this.shoot(serverlevel, player, player.getUsedItemHand(), p_40667_, list, f * 3.0F, (float) serverlevel.purpurConfig.bowProjectileOffset, f == 1.0F, null, f); // Paper - Pass draw strength // Purpur - Projectile offset config
                      }
  
                      p_40668_.playSound(

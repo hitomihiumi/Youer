@@ -92,12 +92,13 @@
      }
  
      protected boolean mustSurvive() {
-@@ -167,7 +_,7 @@
+@@ -167,7 +_,8 @@
                          return false;
                      }
  
 -                    if (!blockentitytype1.onlyOpCanSetNbt() || p_40584_ != null && p_40584_.canUseGameMasterBlocks()) {
 +                    if (!blockentitytype1.onlyOpCanSetNbt() || p_40584_ != null && (p_40584_.canUseGameMasterBlocks() || (p_40584_.getAbilities().instabuild && p_40584_.getBukkitEntity().hasPermission("minecraft.nbt.place")))) { // Spigot - add permission
++                        if (!(level.purpurConfig.silkTouchEnabled && blockEntity instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity && p_40584_.getBukkitEntity().hasPermission("purpur.drop.spawners"))) // Purpur - Silk touch spawners
                          return customdata.loadInto(blockentity, p_40583_.registryAccess());
                      }
  
