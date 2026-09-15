@@ -98,17 +98,65 @@ python3 tools/port/resolve.py build.log write     # run to convergence
 
 ## Where it stands
 
-The port compiles and builds.
+The port builds and the server runs.
 
 ```
 ./gradlew setup        # zero access-transformer warnings, zero patch rejects
 ./gradlew youerJar     # what CI runs - green from a clean tree
 ./gradlew build        # everything, tests included - green
+java -jar youer-1.21.8-<id>-server.jar --nogui
+                       # installs, generates a world and reaches "Done (...)!"
 ```
 
 `./gradlew :youer:compileJava` reports **zero errors**, down from 1,212 when
 the merge started. `genPatches` round-trips the tree unchanged, and the build
 produces the server, universal, joined, installer, userdev and sources jars.
+The dedicated server boots to the console prompt with all three dimensions
+generated.
+
+### What the boot cost
+
+A green build said nothing about whether the thing ran. Getting from the first
+`java -jar` to `Done (...)!` turned up nine separate defects, and they fall
+into three groups worth knowing about.
+
+**FML's module layers do not tolerate a package in two jars.** Paper's own
+build is a flat classpath, so it freely ships a patched copy of a library class
+that shadows the library's. Under BootstrapLauncher every classpath entry
+becomes a module, and a split package is a hard `ResolutionException` before
+any game code runs. Three of these:
+
+- `net.neoforged.art.internal` - Paper patches ART's `RenamerImpl` (public,
+  plus a `run(in, out, remappingSelf)` overload). Fixed by going back to the
+  `com.mohistmc:AutoRenamingTool` fork the 1.21.1 tree used, which carries the
+  same patch under a relocated package. `net.neoforged:AutoRenamingTool` stays
+  installer-only.
+- `com.mojang.brigadier` - vendored here because Paper patches `CommandNode`
+  and `CommandDispatcher`, but the vanilla server jar still names the real
+  library in its own `classpath-joined`. `CreateArgsFile` strips it again, the
+  way the 1.21.1 tree did before the toolchain rebase dropped it.
+- `me.lucko.spark.api` - shipped both standalone and inside the `spark-paper`
+  fat jar.
+
+**Which layer a jar lands in decides what it can see.** `spark-paper`
+implements Bukkit listeners, so it has to read `org.bukkit`. A `libraries`
+entry lands on the legacy classpath, i.e. the boot layer, which cannot see the
+game layer. Jar-in-jar is not enough either: FML puts a JIJ'd jar in the
+*plugin* layer unless its own manifest says `FMLModType: GAMELIBRARY`, and
+spark-paper's does not. It is merged into the universal jar instead, so it
+shares the `neoforge` module with `org.bukkit`.
+
+**M3 carried over sources but not everything beside them.** Eight
+`META-INF/services` registrations, two resource trees, the `rhino-engine` and
+`rhino-runtime` dependencies Purpur needs for its configurable-attribute
+equations, and an implementation of `PlatformHooks` were all missing. Mixin
+configs also still listed classes the rebase had dropped. None of this shows up
+at compile time.
+
+One more, not a merge artifact: `Biome#climateSettings` was AT'd public, and
+NeoForge's `ReplaceFieldWithGetterAccess` coremod refuses to run unless the
+field it redirects is private. An AT can be wrong even when everything using it
+compiles.
 
 ## What is left
 
@@ -125,11 +173,40 @@ Paper feature patches that are not in this tree: Purpur's `NearestBedSensor`
 search-radius option (rewrites Paper's "optimise POI access") and Purpur's
 `RegionFileStorage` rebrand (inside Paper's oversized-chunk handling).
 
-**3. Nothing has been run.** The build is green; the server has not been
-started, no world has been loaded, and no plugin or mod has been tested. That
-is the next milestone, not a leftover of this one.
+**3. `PlatformHooks` is a B3 reimplementation.** Upstream's
+`ca.spottedleaf.moonrise.paper.PaperHooks` extends `BaseChunkSystemHooks`,
+which is part of the excluded chunk system. `ca.spottedleaf.moonrise.youer.YouerHooks`
+follows Paper for everything outside the chunk system and implements the
+`ChunkSystemHooks` half against vanilla's `ChunkMap`/`ServerChunkCache`: holder
+queries read vanilla's maps, the chunk-state callbacks are Moonrise bookkeeping
+and become no-ops, and per-player view distances fall back to the server-wide
+ones - the same trade-off `FeatureHooks` already makes.
 
-**4. Cosmetic residue.** Some files carry comments where the earlier rename
+**4. Two mixins were dropped, not ported.**
+`neoforge.mixins.json` no longer lists `ServerLoginPacketListenerImplMixin` and
+`youer.mixins.json` is empty. Both referred to classes the M3 rebase did not
+carry over: the login mixin routes Velocity and Fabric-API login payloads
+through `youer$handleCustomQueryPacket`, which does not exist in this patch set
+(Paper 1.21.8 handles plain Velocity natively), and the two Create-compat
+mixins live in `com.mohistmc.youer.mixins`. They come back with the
+`com.mohistmc.youer` glue.
+
+**5. `com.mohistmc.youer` is still missing.** The M3 rebase dropped 193 files
+of Youer's own Bukkit/NeoForge bridge, leaving only the four ASM classes the
+boot's `ILaunchPluginService` registers. `gg.pufferfish.pufferfish.I18n` is a
+placeholder for `com.mohistmc.youer.util.I18n` until then.
+
+**6. NeoForge's recipe overrides do not parse.** Every
+`data/minecraft/recipe/*.json` the neoforge datapack ships is rejected at load
+("Input does not contain a key [neoforge:ingredient_type]"), so the server falls
+back to 1,217 vanilla recipes. The files are in the old map form
+(`{"tag": "c:rods/wooden"}`) that 1.21.8's `Ingredient` codec no longer accepts.
+It does not stop the server, and it is the next thing to fix.
+
+**7. Nothing beyond a vanilla boot has been exercised.** No Bukkit plugin and
+no NeoForge mod has been loaded, and no client has connected.
+
+**8. Cosmetic residue.** Some files carry comments where the earlier rename
 tool substituted a word inside the comment text (`// Paper - Incremental
 chunk and p_11277_ saving`). Harmless to the build; worth a sweep before the
 port is called done.

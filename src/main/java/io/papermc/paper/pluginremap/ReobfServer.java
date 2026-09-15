@@ -1,5 +1,8 @@
 package io.papermc.paper.pluginremap;
 
+import com.mohistmc.art.api.Renamer;
+import com.mohistmc.art.api.Transformer;
+import com.mohistmc.art.internal.RenamerImpl;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.util.AtomicFiles;
 import io.papermc.paper.util.MappingEnvironment;
@@ -9,14 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import net.neoforged.art.api.Renamer;
-import net.neoforged.art.api.Transformer;
-import net.neoforged.art.internal.RenamerImpl;
 import net.neoforged.srgutils.IMappingFile;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.framework.qual.DefaultQualifier;
 import org.slf4j.Logger;
-
 import static io.papermc.paper.pluginremap.InsertManifestAttribute.addNamespaceManifestAttribute;
 
 @DefaultQualifier(NonNull.class)

@@ -10,7 +10,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;
 
 /**
- * {@link PrintWriter}-backed logger implementation for use with {@link net.neoforged.art.api.Renamer} which
+ * {@link PrintWriter}-backed logger implementation for use with {@link com.mohistmc.art.api.Renamer} which
  * only opens the backing writer and logs messages when the {@link PluginRemapper#DEBUG_LOGGING} system property
  * is set to true.
  */

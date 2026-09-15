@@ -62,6 +62,16 @@ neoDev {
     }
 }
 
+// Youer: spark-paper, merged into the universal jar so that it shares a module layer with
+// org.bukkit. Declared here because the dependencies block below refers to it.
+configurations {
+    sparkBundle {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+}
+
 dependencies {
 
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
@@ -172,14 +182,15 @@ dependencies {
     libraries "org.jspecify:jspecify:1.0.0"
     libraries 'net.md-5:bungeecord-chat:1.21-R0.2-deprecated+build.21' // Youer M3: bumped, matches Paper 1.21.8's own pin
     libraries "net.neoforged:srgutils:1.0.0"
-    // Youer M3: Paper's own PluginRemapper.java now imports net.neoforged.art.api.* directly (no longer
-    // com.mohistmc.art.api.*) - reuse the same AutoRenamingTool dependency already declared for the
-    // installer below, the Mohist ART fork is no longer needed for plugin remapping.
-    libraries("net.neoforged:AutoRenamingTool:${project.art_version}") {
-        // Youer: only ART's api package is used (plugin remapping); its CLI pulls jopt-simple 6.0-alpha-3,
-        // which cannot coexist with the "strictly 5.0.4" Minecraft's own dependency metadata pins.
-        exclude group: 'net.sf.jopt-simple', module: 'jopt-simple'
-    }
+    // Youer: plugin remapping runs on the Mohist ART fork, not net.neoforged:AutoRenamingTool.
+    // Paper patches ART's package-private RenamerImpl (public, plus a run(in, out, remappingSelf)
+    // overload that de-duplicates entries instead of throwing) and relies on its own copy shadowing
+    // the library's on a flat classpath. That does not survive FML's module layers: the shadowing copy
+    // and the library both own net.neoforged.art.internal, and the game layer refuses to resolve with
+    // "Modules neoforge and AutoRenamingTool export package net.neoforged.art.internal". The fork
+    // carries the same patch under a relocated com.mohistmc.art package, so there is no split package
+    // and no second copy of the class. net.neoforged:AutoRenamingTool stays installer-only below.
+    libraries("com.mohistmc:AutoRenamingTool:${project.mohist_art_version}") // Paper - remap plugins
     libraries("net.kyori:adventure-api:4.24.0") // Youer M3: bumped, matches Paper 1.21.8's own pin
     libraries("net.kyori:adventure-key:4.24.0")
     libraries("net.kyori:adventure-text-logger-slf4j:4.24.0")
@@ -220,7 +231,10 @@ dependencies {
 
     // Pufferfish start
     libraries 'io.sentry:sentry:5.4.0'
-    // libraries 'org.mozilla:rhino-engine:1.7.14'
+    // Youer: Purpur evaluates its configurable-attribute equations through JSR-223; Entity#scriptEngine
+    // is a ScriptEngineManager lookup for "rhino" and every Purpur world config read goes through it.
+    libraries 'org.mozilla:rhino-runtime:1.7.14' // Purpur
+    libraries 'org.mozilla:rhino-engine:1.7.14' // Purpur
     libraries 'dev.omega24:upnp4j:1.0'
     libraries ("com.github.carleslc.Simple-YAML:Simple-Yaml:1.8.4") { // Purpur
         exclude group: 'org.yaml'
@@ -237,8 +251,20 @@ dependencies {
     // its own versions of these directly, matching that here.
     libraries "org.yaml:snakeyaml:2.2"
     libraries "org.spongepowered:configurate-yaml:4.2.0"
-    libraries "me.lucko:spark-api:0.1-20240720.200737-2"
-    libraries "me.lucko:spark-paper:1.10.133-20250413.112336-1"
+    // Youer: spark-api is not a separate runtime library here - the spark-paper jar-in-jar below
+    // already carries an identical copy of me.lucko.spark.api, and two modules owning that package
+    // makes the game layer fail to resolve. Kept compile-only so the Bukkit layer still builds
+    // against it.
+    compileOnly "me.lucko:spark-api:0.1-20240720.200737-2"
+    // Youer: CraftServer constructs SparksFly, and spark-paper's PaperSparkPlugin implements Bukkit
+    // listeners, so spark has to end up in the same module layer as org.bukkit. Neither of the two
+    // obvious placements works: a `libraries` entry lands on the legacy classpath, which
+    // BootstrapLauncher turns into boot-layer modules, and jar-in-jar lands in FML's plugin layer
+    // unless the jar's own manifest declares FMLModType: GAMELIBRARY - which spark-paper's does not.
+    // Both fail on org.bukkit.event.Listener. So spark is merged into the universal jar instead
+    // (see the universalJar configuration below) and only compiled against here.
+    compileOnly "me.lucko:spark-paper:1.10.133-20250413.112336-1"
+    sparkBundle "me.lucko:spark-paper:1.10.133-20250413.112336-1"
 
     // Youer: mod-compat compileOnly shims (create/ponder/sable) temporarily removed for M1 — none of
     // maven.createmod.net / maven.ryanhcode.dev publish a 1.21.8 build yet (only 1.21.1 as of this
@@ -479,6 +505,26 @@ def downloadMultipleFiles = tasks.register("downloadMultipleFiles", Zip) {
     }
     from(layout.buildDirectory.dir("librariesRaw").map { it.file("neoform-${mcVersion}-${neoFormVersion}.zip") }) {
         into "net/neoforged/neoform/${mcVersion}-${neoFormVersion}"
+    }
+    // Youer: the launcher's install step feeds this to jarsplitter (--srg) and ART (--names) and never
+    // generates it; the old 1.21.1 libraries.zip mirror shipped it, so rebuild it from the merged
+    // mappings createCleanArtifacts already produces.
+    dependsOn tasks.named("createCleanArtifacts")
+    from(tasks.named("createCleanArtifacts").map { it.mergedMappings }) {
+        into "net/neoforged/neoform/${mcVersion}-${neoFormVersion}"
+        rename { "neoform-${mcVersion}-${neoFormVersion}-mappings-merged.txt" }
+    }
+}
+
+// Youer: merge spark-paper into the universal jar. CraftServer constructs SparksFly and
+// spark-paper's PaperSparkPlugin implements Bukkit listeners, so spark's classes have to be able to
+// read org.bukkit. In FML they can only do that from the same module: a `libraries` entry lands on
+// the legacy classpath (boot layer), and jar-in-jar lands in the plugin layer unless the jar's own
+// manifest declares FMLModType: GAMELIBRARY, which spark-paper's does not. META-INF is dropped so
+// spark's multi-release module-info does not follow it into the neoforge module.
+tasks.named('universalJar', Jar) {
+    from(zipTree(configurations.sparkBundle.singleFile)) {
+        exclude 'META-INF/**'
     }
 }
 

@@ -1,6 +1,9 @@
 package io.papermc.paper.pluginremap;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.mohistmc.art.api.Renamer;
+import com.mohistmc.art.api.SignatureStripperConfig;
+import com.mohistmc.art.api.Transformer;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.plugin.provider.type.PluginFileType;
 import io.papermc.paper.util.AtomicFiles;
@@ -28,15 +31,11 @@ import java.util.jar.Manifest;
 import java.util.stream.Stream;
 import net.minecraft.DefaultUncaughtExceptionHandlerWithName;
 import net.minecraft.util.ExceptionCollector;
-import net.neoforged.art.api.Renamer;
-import net.neoforged.art.api.SignatureStripperConfig;
-import net.neoforged.art.api.Transformer;
 import net.neoforged.srgutils.IMappingFile;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;
 import org.slf4j.Logger;
-
 import static io.papermc.paper.pluginremap.InsertManifestAttribute.addNamespaceManifestAttribute;
 
 @DefaultQualifier(NonNull.class)

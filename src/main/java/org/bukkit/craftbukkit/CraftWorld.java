@@ -1040,7 +1040,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public double getHumidity(int x, int y, int z) {
-        return this.world.getNoiseBiome(x >> 2, y >> 2, z >> 2).value().climateSettings.downfall();
+        return this.world.getNoiseBiome(x >> 2, y >> 2, z >> 2).value().getModifiedClimateSettings().downfall(); // Youer - Biome#climateSettings has to stay private for NeoForge's field-redirect coremod; this getter is what reads of it are rewritten to
     }
 
     @Override

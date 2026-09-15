@@ -1,6 +1,20 @@
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -69,228 +_,337 @@
+@@ -65,232 +_,351 @@
+ public class Main {
+     private static final Logger LOGGER = LogUtils.getLogger();
+ 
++    // Youer start - restore the String[] entry point FML launches
++    // NeoForgeServerLaunchHandler enters the game at net.minecraft.server.Main#main(String[]), but
++    // CraftBukkit replaced that overload with main(OptionSet). CraftBukkit's own Main does the
++    // argument parsing and calls the OptionSet overload below, so hand it the raw arguments.
++    @DontObfuscate
++    public static void main(String[] args) {
++        org.bukkit.craftbukkit.Main.main(args);
++    }
++    // Youer end - restore the String[] entry point FML launches
++
+     @SuppressForbidden(
          reason = "System.out needed before bootstrap"
      )
      @DontObfuscate

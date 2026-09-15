@@ -108,7 +108,12 @@ public abstract class CreateArgsFile extends DefaultTask {
         replacements.put("@IGNORE_LIST@", String.join(",", getIgnoreList().get()));
         replacements.put("@PLUGIN_LAYER_LIBRARIES@", "");
         replacements.put("@GAME_LAYER_LIBRARIES@", "");
-        replacements.put("@CLASS_PATH@", resolveClasspath());
+        // Youer: Paper patches CommandNode/CommandDispatcher, so brigadier is vendored into the
+        // neoforge module rather than taken from the library. The vanilla server jar still names the
+        // real library in its own classpath-joined, and two game-layer modules owning
+        // com.mojang.brigadier.* makes module resolution fail; drop the library entry.
+        replacements.put("@CLASS_PATH@", resolveClasspath().replaceAll(
+                "libraries/com/mojang/brigadier/[^/]+/brigadier-[^/]+[;:]", ""));
         replacements.put("@TASK@", "neoforgeserver");
         replacements.put("@FORGE_VERSION@", getNeoForgeVersion().get());
         replacements.put("@FML_VERSION@", getFmlVersion().get());

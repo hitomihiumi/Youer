@@ -290,7 +290,12 @@ public class NeoDevPlugin implements Plugin<Project> {
             task.from(project.zipTree(
                     joinedJar.flatMap(AbstractArchiveTask::getArchiveFile)));
             task.exclude("net/minecraft/**");
-            task.exclude("com/**");
+            // Youer: only the client-side com.mojang packages are dropped. A blanket com/** also strips
+            // com/mohistmc (the ILaunchPluginService the boot registers), com/destroystokyo and the
+            // patched com/mojang/brigadier, and the server then fails its module descriptor scan.
+            task.exclude("com/mojang/blaze3d/**");
+            task.exclude("com/mojang/realmsclient/**");
+            task.exclude("com/mojang/math/**");
             task.exclude("mcp/**");
 
             task.manifest(manifest -> {
