@@ -34,8 +34,13 @@ allprojects {
                 '--add-modules=jdk.incubator.vector'
         ])
     }
-    configurations.configureEach {
-        exclude group: 'com.mojang', module: 'brigadier'
+    // Youer: brigadier is vendored into the youer project's own sources (Paper patches its
+    // CommandNode/CommandDispatcher), so the library has to be kept off that project's classpath.
+    // :base is unpatched vanilla and still needs the real library, so scope the exclusion.
+    if (project.name == 'youer') {
+        configurations.configureEach {
+            exclude group: 'com.mojang', module: 'brigadier'
+        }
     }
 }
 

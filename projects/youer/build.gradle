@@ -175,7 +175,11 @@ dependencies {
     // Youer M3: Paper's own PluginRemapper.java now imports net.neoforged.art.api.* directly (no longer
     // com.mohistmc.art.api.*) - reuse the same AutoRenamingTool dependency already declared for the
     // installer below, the Mohist ART fork is no longer needed for plugin remapping.
-    libraries "net.neoforged:AutoRenamingTool:${project.art_version}"
+    libraries("net.neoforged:AutoRenamingTool:${project.art_version}") {
+        // Youer: only ART's api package is used (plugin remapping); its CLI pulls jopt-simple 6.0-alpha-3,
+        // which cannot coexist with the "strictly 5.0.4" Minecraft's own dependency metadata pins.
+        exclude group: 'net.sf.jopt-simple', module: 'jopt-simple'
+    }
     libraries("net.kyori:adventure-api:4.24.0") // Youer M3: bumped, matches Paper 1.21.8's own pin
     libraries("net.kyori:adventure-key:4.24.0")
     libraries("net.kyori:adventure-text-logger-slf4j:4.24.0")

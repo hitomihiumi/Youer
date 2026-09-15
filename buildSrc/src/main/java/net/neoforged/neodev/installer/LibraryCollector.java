@@ -26,6 +26,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * For each file in a collection, finds the repository that the file came from.
@@ -53,15 +55,29 @@ class LibraryCollector {
      * Hosts from which we allow the installer to download.
      * We whitelist here to avoid redirecting player download traffic to anyone not affiliated with Mojang or us.
      */
+    // Youer: the installer may only be pointed at hosts we trust. NeoForge's own three are kept, and
+    // the rest are exactly the repositories settings.gradle declares - Youer's dependency graph pulls
+    // Paper, Spigot, Mohist and JitPack artifacts that are published nowhere else.
     private static final List<String> HOST_WHITELIST = List.of(
             "minecraft.net",
             "neoforged.net",
-            "mojang.com"
+            "mojang.com",
+            "maven.org",
+            "spigotmc.org",
+            "mohistmc.com",
+            "mohistmc.github.io",
+            "papermc.io",
+            "jitpack.io",
+            "createmod.net",
+            "ryanhcode.dev",
+            "minecraftforge.net",
+            "modrinth.com"
     );
 
     private static final URI MOJANG_MAVEN = URI.create("https://libraries.minecraft.net");
     private static final URI NEOFORGED_MAVEN = URI.create("https://maven.neoforged.net/releases");
     private static final URI MOHISTMC_MAVEN = URI.create("https://maven.mohistmc.com");
+    private static final URI PAPERMC_MAVEN = URI.create("https://repo.papermc.io/repository/maven-public"); // Youer
 
     private final List<URI> repositoryUrls;
 
@@ -88,6 +104,8 @@ class LibraryCollector {
         repositoryUrls.removeIf(it -> it.getHost().equals(MOJANG_MAVEN.getHost()));
         repositoryUrls.removeIf(it -> it.getHost().equals(NEOFORGED_MAVEN.getHost()) && it.getPath().startsWith(NEOFORGED_MAVEN.getPath()));
         repositoryUrls.removeIf(it -> it.getHost().equals(MOHISTMC_MAVEN.getHost()) && it.getPath().startsWith(MOHISTMC_MAVEN.getPath()));
+        repositoryUrls.removeIf(it -> it.getHost().equals(PAPERMC_MAVEN.getHost()) && it.getPath().startsWith(PAPERMC_MAVEN.getPath())); // Youer
+        repositoryUrls.add(0, PAPERMC_MAVEN); // Youer
         repositoryUrls.add(0, NEOFORGED_MAVEN);
         repositoryUrls.add(0, MOJANG_MAVEN);
         repositoryUrls.add(0, MOHISTMC_MAVEN);
@@ -108,7 +126,9 @@ class LibraryCollector {
         // Try each configured repository in-order to find the file
         CompletableFuture<Library> libraryFuture = null;
         for (var repositoryUrl : repositoryUrls) {
-            var artifactUri = joinUris(repositoryUrl, path);
+            // Youer: a -SNAPSHOT version is not the file name; ask the repo's maven-metadata.xml for the
+            // timestamped build it currently points at, so the installer gets a URL that actually exists.
+            var artifactUri = joinUris(repositoryUrl, resolveSnapshotPath(repositoryUrl, identifier, path));
             var request = HttpRequest.newBuilder(artifactUri)
                     .method("HEAD", HttpRequest.BodyPublishers.noBody())
                     .build();
@@ -150,6 +170,63 @@ class LibraryCollector {
 
         libraries.add(libraryFuture);
     }
+
+    // Youer start - resolve Maven snapshot versions to their timestamped artifact
+    private static final Pattern SNAPSHOT_VALUE = Pattern.compile("<value>([^<]+)</value>");
+    /** A snapshot Gradle already resolved, e.g. {@code 0.1-20240720.200737-2}. */
+    private static final Pattern RESOLVED_SNAPSHOT = Pattern.compile("^(.*)-\\d{8}\\.\\d{6}-\\d+$");
+
+    /**
+     * A snapshot artifact does not live under a directory named after its version: the directory is
+     * always {@code <base>-SNAPSHOT} while the file name carries the timestamped build. Gradle hands us
+     * either form, so normalise both into a path the installer can actually download.
+     */
+    private String resolveSnapshotPath(URI repositoryUrl, MavenIdentifier identifier, String literalPath) {
+        var version = identifier.version();
+
+        String directoryVersion;
+        String fileVersion;
+        Matcher resolved = RESOLVED_SNAPSHOT.matcher(version);
+        if (resolved.matches()) {
+            directoryVersion = resolved.group(1) + "-SNAPSHOT";
+            fileVersion = version;
+        } else if (version.endsWith("-SNAPSHOT")) {
+            directoryVersion = version;
+            fileVersion = latestSnapshotBuild(repositoryUrl, identifier);
+            if (fileVersion == null) {
+                return literalPath;
+            }
+        } else {
+            return literalPath;
+        }
+
+        return identifier.group().replace(".", "/") + "/" + identifier.artifact() + "/" + directoryVersion
+                + "/" + identifier.artifact() + "-" + fileVersion
+                + (identifier.classifier().isEmpty() ? "" : "-" + identifier.classifier())
+                + "." + identifier.extension();
+    }
+
+    /** The timestamped build {@code maven-metadata.xml} currently points at, or null if unavailable. */
+    private String latestSnapshotBuild(URI repositoryUrl, MavenIdentifier identifier) {
+        var metadataPath = identifier.group().replace(".", "/") + "/" + identifier.artifact() + "/"
+                + identifier.version() + "/maven-metadata.xml";
+        try {
+            var request = HttpRequest.newBuilder(joinUris(repositoryUrl, metadataPath)).GET().build();
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                return null;
+            }
+
+            Matcher matcher = SNAPSHOT_VALUE.matcher(response.body());
+            return matcher.find() ? matcher.group(1) : null;
+        } catch (IOException e) {
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
+    }
+    // Youer end - resolve Maven snapshot versions to their timestamped artifact
 
     static String sha1Hash(Path path) throws IOException {
         MessageDigest digest;

@@ -363,7 +363,9 @@ public class NeoDevPlugin implements Plugin<Project> {
             task.getMinecraftVersion().set(minecraftVersion);
             task.getNeoForgeVersion().set(neoForgeVersion);
             task.getMcAndNeoFormVersion().set(mcAndNeoFormVersion);
-            task.getIcon().set(project.getRootProject().file("docs/assets/installer_profile_icon.png"));
+            // Youer: the fork does not carry NeoForge's docs/ tree, so the installer icon comes from the
+            // logo that already ships in the jar's resources.
+            task.getIcon().set(project.getRootProject().file("src/main/resources/neoforged_logo.png"));
             // Anything that is on the launcher classpath should be downloaded by the installer.
             // (At least on the server side).
             task.addLibraries(configurations.launcherProfileClasspath);
