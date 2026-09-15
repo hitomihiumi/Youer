@@ -98,50 +98,38 @@ python3 tools/port/resolve.py build.log write     # run to convergence
 
 ## Where it stands
 
-`./gradlew setup` applies cleanly: zero access-transformer warnings, zero
-patch rejects, and the tree round-trips through `genPatches` unchanged.
+The port compiles and builds.
 
-`./gradlew :youer:compileJava` reports **670 errors across 342 files**, split
-roughly evenly between `net.minecraft` and the Bukkit layer.
+```
+./gradlew setup        # zero access-transformer warnings, zero patch rejects
+./gradlew youerJar     # what CI runs - green from a clean tree
+./gradlew build        # everything, tests included - green
+```
 
-Merge coverage against upstream `ver/1.21.8`, as reported by
-`apply_upstream.py --dry-run`:
-
-| | hunks | merged | unmatched |
-|---|---|---|---|
-| Paper `net.minecraft` | 2,943 | 2,080 | 863 |
-| Purpur `net.minecraft` | 520 | 393 | 127 |
-| Purpur Bukkit-layer paper-patches | 130 | 130 | 0 |
+`./gradlew :youer:compileJava` reports **zero errors**, down from 1,212 when
+the merge started. `genPatches` round-trips the tree unchanged, and the build
+produces the server, universal, joined, installer, userdev and sources jars.
 
 ## What is left
 
-**1. The unmatched Paper hunks (863).** A large share is the
-`ca.spottedleaf.moonrise` chunk system, which is excluded by policy: it is
-point-excised and its call sites are reimplemented on vanilla-safe
-equivalents. `io/papermc/paper/FeatureHooks.java` (46 errors, the largest
-single file) is entirely this - it still calls into
-`moonrise.patches.chunk_system.*`. The rest are hunks whose surrounding code
-NeoForge has itself rewritten, and they need reading rather than matching.
+**1. The moonrise chunk system stays excluded (policy B3).** Its call sites
+are reimplemented on vanilla-safe equivalents rather than merged, and each
+one carries a `// Youer - B3:` comment saying what it replaces. The two
+places worth revisiting if the chunk system is ever adopted are
+`ServerLevel#getChunkIfLoaded` (now a non-blocking vanilla `getChunk`) and
+`StructureCheck`, which keeps vanilla's `loadedChunks`/`featureChecks` maps
+instead of Paper's `Synchronised*` caches.
 
-**2. Paper features whose fields are referenced but whose hunks are
-unmerged.** These show up as unresolvable names that are not renames:
-`FishingHook`'s `minWaitTime`/`maxWaitTime`/`minLureTime`/`maxLureAngle`,
-`ItemEnchantments#enchantments`, `apiCommandMeta` in the brigadier mirror,
-`persistentDataContainer`, `callbackExecutor`. `resolve_unresolved.txt` from
-the resolver lists them with file and line.
+**2. Two upstream hunks deliberately skipped**, both rewriting lines added by
+Paper feature patches that are not in this tree: Purpur's `NearestBedSensor`
+search-radius option (rewrites Paper's "optimise POI access") and Purpur's
+`RegionFileStorage` rebrand (inside Paper's oversized-chunk handling).
 
-**3. Signature-level divergence**, needing a decision rather than a merge:
-`PackRepository#setSelected`/`reload`, `LevelStorageSource#validateAndCreateAccess`,
-`Block#playerDestroy`, `FallingBlockEntity`'s constructor,
-`ResourceKey<Enchantment>` vs `Holder<Enchantment>` at several call sites.
+**3. Nothing has been run.** The build is green; the server has not been
+started, no world has been loaded, and no plugin or mod has been tested. That
+is the next milestone, not a leftover of this one.
 
-**4. Two upstream hunks deliberately skipped**, both rewriting lines added by
-Paper feature patches that are not in this tree: Purpur's
-`NearestBedSensor` search-radius option (rewrites Paper's "optimise POI
-access") and Purpur's `RegionFileStorage` rebrand (inside Paper's
-oversized-chunk handling).
-
-**5. Cosmetic residue.** 46 files carry comments where the earlier rename
+**4. Cosmetic residue.** Some files carry comments where the earlier rename
 tool substituted a word inside the comment text (`// Paper - Incremental
 chunk and p_11277_ saving`). Harmless to the build; worth a sweep before the
 port is called done.
@@ -167,3 +155,26 @@ port is called done.
 - **Changing an AT shifts the baseline the patches apply to**, so a modifier
   that appears as context in a patch hunk will break it. `genPatches`
   normalises this away; run `setup` afterwards to confirm.
+- **`applyAccessTransformer` does not treat the .cfg as an input.** Adding a
+  line to `accesstransformer.cfg` leaves the task `UP-TO-DATE`, so the AT
+  silently does not apply and the member stays narrow. Force it with
+  `./gradlew :youer:applyAccessTransformer --rerun-tasks`.
+- **A new AT has to be added in the right order, or `genPatches` bakes in a
+  revert.** `genPatches` diffs the working tree against the AT'd base, so if
+  the tree still holds the narrow declaration the patch records
+  `-public ... / +private ...` and the next `setup` narrows the member right
+  back. The order is: `genPatches` first to capture your source edits, add
+  the AT, strip any narrowing hunk the patch already carries, `setup
+  --rerun-tasks`, and only then regenerate. Four rounds of ATs in this port
+  hit this (`FuelValues#values`, `ServerChunkCache$MainThreadExecutor`,
+  `FallingBlockEntity`'s constructor, `ItemStack#components`,
+  `EndDragonFight#spawnNewGateway`, `AbstractContainerMenu`'s slot
+  listeners).
+- **`projects/youer/src` is generated and gitignored.** Everything you edit
+  there is lost the moment `setup` re-runs, and `rm -rf projects/youer/src`
+  is how you discard an experiment. Run `genPatches` before any `setup`, or
+  the work is gone - this cost a full re-apply of ~30 files once.
+- **javac's default 100-error cap hides the real count.** All the numbers
+  here were measured with an init script setting `-Xmaxerrs 10000`. A sudden
+  drop to a tiny error count is a red flag, not progress: a missing *class*
+  (not member) makes javac abort a round early.
