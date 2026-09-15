@@ -424,14 +424,14 @@
      }
  
 +    // Paper start - if loaded
-+    // Youer - B3: ServerChunkCache/ChunkMap/DistanceManager are deferred (moonrise.patches.chunk_system out of scope),
-+    // so these can't use Paper's chunkSource fast-path. Reimplemented on top of vanilla's non-blocking
-+    // getChunk(x, z, status, load=false), which already returns null instead of blocking/loading - same
-+    // observable contract, just without the chunk_system-specific fast path.
 +    @Nullable
 +    @Override
 +    public final ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
-+        return this.getChunk(x, z, ChunkStatus.FULL, false);
++        // Youer - this has to stay off the main thread. getChunk(x, z, status, false) does not: called
++        // from a worldgen worker it hands the lookup to the main thread and joins, and the main thread
++        // is already blocked waiting for the chunk being generated. ServerChunkCache#fullChunks is a
++        // concurrent map maintained by LevelChunk's load/unload callbacks, which is what Paper reads.
++        return ((net.minecraft.server.level.ServerLevel) this).chunkSource.getChunkAtIfLoadedImmediately(x, z);
 +    }
 +
 +    @Override
@@ -504,10 +504,10 @@
 +    public boolean setBlock(BlockPos pos, BlockState state, int flags, int recursionLeft) {
 +        // CraftBukkit start - tree generation
 +        if (this.captureTreeGeneration) {
-+            // Youer - deferred: Paper's "Protect Bedrock and End Portal/Frames from being destroyed" check
-+            // (BlockState#isDestroyable()/Block#isDestroyable()) - needs Paper content in Block.java/
-+            // BlockBehaviour.java that isn't merged yet. Dropping it reverts to vanilla's original
-+            // behavior (no such protection existed before Paper added it), not a new regression.
++            // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
++            BlockState type = getBlockState(pos);
++            if (!type.isDestroyable()) return false;
++            // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
 +            CraftBlockState blockstate = this.capturedBlockStates.get(pos);
              if (blockstate == null) {
 +                blockstate = org.bukkit.craftbukkit.block.CapturedBlockState.getTreeBlockState(this, pos, flags);

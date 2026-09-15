@@ -22,7 +22,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -202,95 +_,235 @@
+@@ -202,95 +_,234 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -46,7 +46,7 @@
 +
 +    @Override
 +    public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
-+        return (LevelChunk) this.chunkSource.getChunk(x, z, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false); // Youer - B3: vanilla-safe non-blocking getChunk instead of Paper's ServerChunkCache#getChunkAtIfLoadedImmediately (not merged)
++        return this.chunkSource.getChunkAtIfLoadedImmediately(x, z); // Paper - Use getChunkIfLoadedImmediately
 +    }
 +
 +    @Override
@@ -77,8 +77,7 @@
 +
 +        for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
 +            for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
-+                // Youer - B3: vanilla-safe non-blocking getChunk instead of Paper's ServerChunkCache#getChunkAtIfLoadedImmediately (not merged)
-+                if (chunkProvider.getChunk(cx, cz, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false) == null) {
++                if (chunkProvider.getChunkAtIfLoadedImmediately(cx, cz) == null) {
 +                    return false;
 +                }
 +            }
@@ -182,7 +181,7 @@
 +        this.serverLevelData = serverLevelData;
 +        ChunkGenerator chunkGenerator = levelStem.generator();
 +        // CraftBukkit start
-+        // Youer - deferred: PrimaryLevelData#setWorld(ServerLevel) not merged yet (PrimaryLevelData.java is NeoForge-only)
++        this.serverLevelData.setWorld(this);
 +
 +        if (biomeProvider != null) {
 +            net.minecraft.world.level.biome.BiomeSource worldChunkManager = new org.bukkit.craftbukkit.generator.CustomWorldChunkManager(this.getWorld(), biomeProvider, this.server.registryAccess().lookupOrThrow(Registries.BIOME), chunkGenerator.getBiomeSource()); // Paper - add vanillaBiomeProvider
@@ -236,7 +235,7 @@
 -            this.entityManager::updateChunkStatus,
 -            () -> p_214999_.overworld().getDataStorage()
 +            progressListener,
-+            null, // Paper - rewrite chunk system
++            this.entityManager::updateChunkStatus, // Youer - B3: Paper passes null here because its chunk system never calls ChunkMap#onFullChunkStatusChange; vanilla's does, on every chunk demotion, so keep vanilla's listener
 +            () -> server.overworld().getDataStorage()
          );
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
@@ -302,7 +301,7 @@
 +    // Paper start
 +    @Override
 +    public boolean hasChunk(int chunkX, int chunkZ) {
-+        return this.getChunkIfLoaded(chunkX, chunkZ) != null; // Youer - B3: ServerChunkCache.getChunkAtIfLoadedImmediately not available (chunk_system deferred); reuse Level's vanilla-safe getChunkIfLoaded fallback instead
++        return this.getChunkIfLoaded(chunkX, chunkZ) != null; // Paper - Use getChunkIfLoadedImmediately
 +    }
 +    // Paper end
  
@@ -1483,7 +1482,7 @@
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(p_215052_, p_215053_, p_215054_, p_365231_);
      }
  
-@@ -1136,39 +_,83 @@
+@@ -1136,39 +_,85 @@
  
      @Override
      public void explode(
@@ -1571,7 +1570,9 @@
 +        if (configurator != null) configurator.accept(serverExplosion);// Paper - Allow explosions to damage source
 +        serverExplosion.explode();
 +        // CraftBukkit start
-+        // Youer - deferred: ServerExplosion#wasCanceled not merged yet (ServerExplosion.java is NeoForge-only)
++        if (serverExplosion.wasCanceled) {
++            return serverExplosion;
++        }
 +        // CraftBukkit end
 +        ParticleOptions particleOptions = serverExplosion.isSmall() ? smallExplosionParticles : largeExplosionParticles;
  

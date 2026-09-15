@@ -105,14 +105,19 @@ The port builds and the server runs.
 ./gradlew youerJar     # what CI runs - green from a clean tree
 ./gradlew build        # everything, tests included - green
 java -jar youer-1.21.8-<id>-server.jar --nogui
-                       # installs, generates a world and reaches "Done (...)!"
 ```
 
 `./gradlew :youer:compileJava` reports **zero errors**, down from 1,212 when
 the merge started. `genPatches` round-trips the tree unchanged, and the build
 produces the server, universal, joined, installer, userdev and sources jars.
-The dedicated server boots to the console prompt with all three dimensions
-generated.
+
+The dedicated server installs itself, generates all three dimensions, reaches
+the console prompt and holds 20 TPS. A Bukkit plugin loads, enables, and its
+scheduler, event registration and world API all work; a NeoForge mod loads,
+receives `ServerStartingEvent`/`ServerStartedEvent`, and can see the Bukkit
+plugin list from inside the mod - the two layers reach each other. `/stop`
+shuts down cleanly with every dimension saved, and a restart loads the saved
+world back.
 
 ### What the boot cost
 
@@ -158,15 +163,57 @@ NeoForge's `ReplaceFieldWithGetterAccess` coremod refuses to run unless the
 field it redirects is private. An AT can be wrong even when everything using it
 compiles.
 
+### What running it turned up
+
+Booting is not the same as working. Loading a plugin and a mod, driving the
+console and stopping cleanly found five more, and they are a different kind of
+bug from the boot failures: each one is a place where something was deferred or
+reimplemented during the merge and the substitute was not equivalent.
+
+- **A deadlock.** `Level#getChunkIfLoadedImmediately` had been reimplemented as
+  `getChunk(x, z, FULL, false)`, on the reasoning that `load=false` makes it
+  non-blocking. It does not: off the main thread `ServerChunkCache#getChunk`
+  hands the lookup to the main thread and joins. A worldgen worker spawning a
+  strider jockey called it through `gameEvent`, while the main thread was
+  blocked waiting for that very chunk. Nether generation hung forever. The same
+  substitution was in `ServerLevel#getChunkIfLoaded` and `hasChunksAt`. All three
+  are back on `ServerChunkCache#getChunkAtIfLoadedImmediately`, which reads a
+  concurrent map and is what Paper used all along.
+- **`ServerChunkCache` got a null chunk-status listener**, because Paper passes
+  null there - its chunk system never calls `ChunkMap#onFullChunkStatusChange`.
+  Vanilla's does, on every chunk demotion, so `/stop` NPE'd while saving.
+  Passing `entityManager::updateChunkStatus` restores vanilla's wiring.
+- **Three merge deferrals had gone stale**, their blockers merged since:
+  `PrimaryLevelData#setWorld` (without it `/difficulty` NPE'd),
+  `ServerExplosion#wasCanceled`, and Paper's bedrock/end-portal protection
+  during tree generation.
+- **`ReobfServer` assumed a single server jar on disk.** Paper remaps one jar
+  holding both `net.minecraft` and the Bukkit layer; Youer's server is split
+  across FML's module jars, and both live inside SecureJarHandler's union file
+  system, where `Path#toFile` throws outright. Every plugin failed to load. It
+  now resolves each module back to its real jar and merges the two.
+- **`ProxyGenerator` read class files through its own class loader**, which under
+  FML is the boot layer and cannot see `PaperReflection` in the game layer.
+  `ReflectionRemapper` drives the `ClassReader` overload instead and resolves
+  each class through the loader that defined it.
+
+And one build-script bug with an outsized effect: the `youerJar` bundling step
+skipped every library whose *name* starts with `asm`, meaning to skip
+`org.ow2.asm`'s jars. It also skipped `io.papermc:asm-utils`, which Commodore
+loads for every plugin it processes.
+
 ## What is left
 
 **1. The moonrise chunk system stays excluded (policy B3).** Its call sites
-are reimplemented on vanilla-safe equivalents rather than merged, and each
-one carries a `// Youer - B3:` comment saying what it replaces. The two
-places worth revisiting if the chunk system is ever adopted are
-`ServerLevel#getChunkIfLoaded` (now a non-blocking vanilla `getChunk`) and
-`StructureCheck`, which keeps vanilla's `loadedChunks`/`featureChecks` maps
-instead of Paper's `Synchronised*` caches.
+are reimplemented on vanilla-safe equivalents rather than merged, and each one
+carries a `// Youer - B3:` comment saying what it replaces. Two of them are
+worth revisiting if the chunk system is ever adopted: `StructureCheck`, which
+keeps vanilla's `loadedChunks`/`featureChecks` maps instead of Paper's
+`Synchronised*` caches, and `ca.spottedleaf.moonrise.youer.YouerHooks` (below).
+
+Treat "vanilla-safe" as a claim to check, not a property of the label. The
+`getChunkIfLoaded*` substitution carried that comment and deadlocked the server;
+it was thread-safety, not behaviour, that the vanilla equivalent did not have.
 
 **2. Two upstream hunks deliberately skipped**, both rewriting lines added by
 Paper feature patches that are not in this tree: Purpur's `NearestBedSensor`
@@ -196,15 +243,24 @@ of Youer's own Bukkit/NeoForge bridge, leaving only the four ASM classes the
 boot's `ILaunchPluginService` registers. `gg.pufferfish.pufferfish.I18n` is a
 placeholder for `com.mohistmc.youer.util.I18n` until then.
 
-**6. NeoForge's recipe overrides do not parse.** Every
-`data/minecraft/recipe/*.json` the neoforge datapack ships is rejected at load
-("Input does not contain a key [neoforge:ingredient_type]"), so the server falls
-back to 1,217 vanilla recipes. The files are in the old map form
-(`{"tag": "c:rods/wooden"}`) that 1.21.8's `Ingredient` codec no longer accepts.
-It does not stop the server, and it is the next thing to fix.
+**6. `src/generated/resources` was synced by hand, not regenerated.** It was
+1.21.1-era datagen output: every one of NeoForge's 190 recipe overrides was
+rejected at load (the pre-1.21.2 `{"tag": "c:rods/wooden"}` ingredient form),
+`c:boats` still named the entity types 1.21.2 split up, and ~200 files added
+since were missing. The tree now matches `neoforge-21.8.54-universal.jar`'s own
+`data/` byte for byte, and the server loads 1,407 recipes with no parse errors.
 
-**7. Nothing beyond a vanilla boot has been exercised.** No Bukkit plugin and
-no NeoForge mod has been loaded, and no client has connected.
+The reason it was synced rather than regenerated is that `runData` does not
+work: moddevgradle 2.0.107 split the `data` run type into `clientData` and
+`serverData` (fixed here), and the run then fails in FML's module scan, because
+a dev run's classes and resources are separate directories and the service files
+in one name providers in the other. Fixing the dev runs is its own milestone;
+until then, treat this directory as synced-from-upstream rather than generated,
+and re-sync it the same way when NeoForge moves.
+
+**7. Legacy plugin remapping is only half-verified.** The reobf server now
+builds, and a Mojang-mapped plugin loads through it. No actual Spigot-mapped
+plugin has been tried, and no client has connected to the server.
 
 **8. Cosmetic residue.** Some files carry comments where the earlier rename
 tool substituted a word inside the comment text (`// Paper - Incremental

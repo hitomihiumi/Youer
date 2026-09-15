@@ -72,7 +72,14 @@ final class ReobfServer {
                     .add(Transformer.renamerFactory(mappings, false))
                     .add(addNamespaceManifestAttribute(InsertManifestAttribute.SPIGOT_NAMESPACE))
                     .build()) {
-                    renamer.run(serverJar().toFile(), writeTo.toFile(), true);
+                    final Path serverJar = serverJar(); // Youer - may be a temporary merge, see below
+                    try {
+                        renamer.run(serverJar.toFile(), writeTo.toFile(), true);
+                    } finally {
+                        if (serverJar.startsWith(this.remapClasspathDir)) { // Youer
+                            Files.deleteIfExists(serverJar); // Youer
+                        } // Youer
+                    }
                 }
             });
         } catch (final Exception ex) {
@@ -81,11 +88,63 @@ final class ReobfServer {
         LOGGER.info("Done remapping server in {}ms.", System.currentTimeMillis() - startRemap);
     }
 
-    private static Path serverJar() {
+    // Youer start - reconstruct Paper's single server jar
+    // Paper remaps one jar holding both net.minecraft and the Bukkit layer. Youer's server is split
+    // across FML's module jars, and both of them live inside SecureJarHandler's union file system,
+    // whose paths java.nio refuses to turn into Files at all. So resolve each module back to the real
+    // jar behind it and, when they differ, merge them into one temporary jar for ART to read.
+    private Path serverJar() throws IOException {
+        final Path bukkitLayer = realJarOf(ReobfServer.class);
+        final Path minecraft = realJarOf(net.minecraft.server.MinecraftServer.class);
+        if (bukkitLayer.equals(minecraft)) {
+            return bukkitLayer;
+        }
+
+        Files.createDirectories(this.remapClasspathDir);
+        final Path merged = Files.createTempFile(this.remapClasspathDir, "server-merge", ".jar");
+        final java.util.Set<String> seen = new java.util.HashSet<>();
+        try (final java.util.zip.ZipOutputStream out =
+                 new java.util.zip.ZipOutputStream(Files.newOutputStream(merged))) {
+            // The Bukkit layer goes first so that its copy of a shared entry wins, the way it does on
+            // the running server's classpath.
+            for (final Path source : java.util.List.of(bukkitLayer, minecraft)) {
+                try (final java.util.zip.ZipFile in = new java.util.zip.ZipFile(source.toFile())) {
+                    final java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = in.entries();
+                    while (entries.hasMoreElements()) {
+                        final java.util.zip.ZipEntry entry = entries.nextElement();
+                        if (entry.isDirectory() || !seen.add(entry.getName())) {
+                            continue;
+                        }
+                        out.putNextEntry(new java.util.zip.ZipEntry(entry.getName()));
+                        try (final java.io.InputStream data = in.getInputStream(entry)) {
+                            data.transferTo(out);
+                        }
+                        out.closeEntry();
+                    }
+                }
+            }
+        }
+        return merged;
+    }
+
+    /** The jar a class was loaded from, seen through the default file system. */
+    private static Path realJarOf(final Class<?> owner) {
+        final Path path;
         try {
-            return Path.of(ReobfServer.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            path = Path.of(owner.getProtectionDomain().getCodeSource().getLocation().toURI());
         } catch (final URISyntaxException ex) {
             throw new RuntimeException(ex);
         }
+        if (path.getFileSystem() == java.nio.file.FileSystems.getDefault()) {
+            return path;
+        }
+        // cpw.mods.niofs.union.UnionFileSystem#getPrimaryPath, reached reflectively so that this stays
+        // free of a compile-time dependency on SecureJarHandler.
+        try {
+            return (Path) path.getFileSystem().getClass().getMethod("getPrimaryPath").invoke(path.getFileSystem());
+        } catch (final ReflectiveOperationException | ClassCastException ex) {
+            throw new RuntimeException("Could not find the jar " + owner.getName() + " was loaded from", ex);
+        }
     }
+    // Youer end - reconstruct Paper's single server jar
 }

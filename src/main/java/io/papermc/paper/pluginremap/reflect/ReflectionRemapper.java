@@ -54,13 +54,57 @@ public final class ReflectionRemapper {
 
     private static void setupProxy() {
         try {
-            final byte[] bytes = ProxyGenerator.generateProxy(PaperReflection.class, PAPER_REFLECTION_HOLDER_DESC);
+            final byte[] bytes = ProxyGenerator.generateProxy(
+                classReader(PaperReflection.class), PAPER_REFLECTION_HOLDER_DESC, parentReaders(PaperReflection.class)); // Youer
             final MethodHandles.Lookup lookup = MethodHandles.lookup();
             final Class<?> generated = lookup.defineClass(bytes);
             final Method init = generated.getDeclaredMethod("init", PaperReflection.class);
             init.invoke(null, new PaperReflection());
-        } catch (final ReflectiveOperationException ex) {
+        } catch (final ReflectiveOperationException | java.io.IOException ex) { // Youer - classReader
             throw new RuntimeException(ex);
         }
     }
+
+    // Youer start - read the proxied class through its own class loader
+    // ProxyGenerator.generateProxy(Class, String) reads class files through ProxyGenerator's own class
+    // loader. Under FML that is the boot layer, which cannot see PaperReflection in the game layer, so
+    // the read returns null and every plugin fails to load. Drive the ClassReader overload instead and
+    // resolve each class through the loader that actually defined it. The parent walk mirrors
+    // ProxyGenerator's own: superclasses up to (but not including) Object, plus all interfaces.
+    private static ClassReader[] parentReaders(final Class<?> type) throws java.io.IOException {
+        final java.util.Set<Class<?>> parents = new java.util.LinkedHashSet<>();
+        collectParents(parents, type);
+        final ClassReader[] readers = new ClassReader[parents.size()];
+        int i = 0;
+        for (final Class<?> parent : parents) {
+            readers[i++] = classReader(parent);
+        }
+        return readers;
+    }
+
+    private static void collectParents(final java.util.Set<Class<?>> into, final Class<?> type) {
+        final Class<?> superclass = type.getSuperclass();
+        if (superclass != null && superclass != Object.class && into.add(superclass)) {
+            collectParents(into, superclass);
+        }
+        for (final Class<?> iface : type.getInterfaces()) {
+            if (into.add(iface)) {
+                collectParents(into, iface);
+            }
+        }
+    }
+
+    private static ClassReader classReader(final Class<?> type) throws java.io.IOException {
+        final String resource = type.getName().replace('.', '/') + ".class";
+        final ClassLoader loader = type.getClassLoader();
+        try (final java.io.InputStream in = loader == null
+            ? ClassLoader.getSystemResourceAsStream(resource)
+            : loader.getResourceAsStream(resource)) {
+            if (in == null) {
+                throw new java.io.IOException("Could not read class '" + type.getName() + "'");
+            }
+            return new ClassReader(in);
+        }
+    }
+    // Youer end - read the proxied class through its own class loader
 }
