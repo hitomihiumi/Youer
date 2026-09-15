@@ -5,7 +5,7 @@
                  orientation = orientation.withFront(p_366872_);
              }
 +            // Paper start - Optimize redstone (Alternate Current) - use default front instead of random
-+            else if (level.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++            else if (p_366754_.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
 +                orientation = orientation.withFront(Direction.WEST);
 +            }
 +            // Paper end - Optimize redstone (Alternate Current)

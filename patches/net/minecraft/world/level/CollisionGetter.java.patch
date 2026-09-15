@@ -10,7 +10,7 @@
                  return false;
              }
          }
-+        } finally { if (p_45787_ != null) p_45787_.collisionLoadChunks = false; } // Paper
++        } finally { if (p_364564_ != null) p_364564_.collisionLoadChunks = false; } // Paper
  
          if (!this.getEntityCollisions(p_364564_, p_364942_).isEmpty()) {
              return false;

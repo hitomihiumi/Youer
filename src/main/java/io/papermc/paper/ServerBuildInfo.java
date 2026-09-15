@@ -18,6 +18,7 @@ public interface ServerBuildInfo {
      * The brand id for Paper.
      */
     Key BRAND_PAPER_ID = Key.key("papermc", "paper");
+    Key BRAND_PURPUR_ID = Key.key("purpurmc", "purpur"); // Purpur - Rebrand
 
     /**
      * Gets the {@code ServerBuildInfo}.

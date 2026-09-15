@@ -116,7 +116,7 @@
 +            // CraftBukkit start
 +            org.bukkit.event.block.BrewingStartEvent event = new org.bukkit.event.block.BrewingStartEvent(
 +                org.bukkit.craftbukkit.block.CraftBlock.at(p_155286_, p_155287_),
-+                org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemStack1), 400);
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack1), 400);
 +            event.callEvent();
 +            p_155289_.recipeBrewTime = event.getRecipeBrewTime(); // Paper - use recipe brew time from event
 +            p_155289_.brewTime = event.getBrewingTime(); // 400 -> event.getTotalBrewTime() // Paper - use brewing time from event
@@ -124,18 +124,51 @@
              p_155289_.ingredient = itemstack1.getItem();
              setChanged(p_155286_, p_155287_, p_155288_);
          }
-@@ -167,6 +_,7 @@
+@@ -166,16 +_,46 @@
+         }
      }
  
-     private static void doBrew(Level p_155291_, BlockPos p_155292_, NonNullList<ItemStack> p_155293_) {
+-    private static void doBrew(Level p_155291_, BlockPos p_155292_, NonNullList<ItemStack> p_155293_) {
++    private static void doBrew(Level p_155291_, BlockPos p_155292_, NonNullList<ItemStack> p_155293_, BrewingStandBlockEntity brewingStandBlockEntity) { // CraftBukkit
 +        if (net.neoforged.neoforge.event.EventHooks.onPotionAttemptBrew(p_155293_)) return;
          ItemStack itemstack = p_155293_.get(3);
          PotionBrewing potionbrewing = p_155291_.potionBrewing();
  
-@@ -174,8 +_,9 @@
-             p_155293_.set(i, potionbrewing.mix(itemstack, p_155293_.get(i)));
-         }
- 
++        // CraftBukkit start
++        org.bukkit.inventory.InventoryHolder owner = brewingStandBlockEntity.getOwner();
++        java.util.List<org.bukkit.inventory.ItemStack> brewResults = new java.util.ArrayList<>(3);
+         for (int i = 0; i < 3; i++) {
+-            p_155293_.set(i, potionbrewing.mix(itemstack, p_155293_.get(i)));
+-        }
+-
++            brewResults.add(i, org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(potionbrewing.mix(itemstack, p_155293_.get(i))));
++        }
++
++        if (owner != null) {
++            org.bukkit.event.inventory.BrewEvent event = new org.bukkit.event.inventory.BrewEvent(
++                org.bukkit.craftbukkit.block.CraftBlock.at(p_155291_, p_155292_),
++                (org.bukkit.inventory.BrewerInventory) owner.getInventory(),
++                brewResults,
++                brewingStandBlockEntity.fuel
++            );
++            if (!event.callEvent()) {
++                return;
++            }
++
++            for (int i = 0; i < 3; i++) {
++                if (i < brewResults.size()) {
++                    p_155293_.set(i, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(brewResults.get(i)));
++                } else {
++                    p_155293_.set(i, ItemStack.EMPTY);
++                }
++            }
++        } else {
++            for (int i = 0; i < 3; i++) {
++                p_155293_.set(i, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(brewResults.get(i)));
++            }
++        }
++        // CraftBukkit end
++
 +        net.neoforged.neoforge.event.EventHooks.onPotionBrewed(p_155293_);
 +        ItemStack itemstack1 = itemstack.getCraftingRemainder();
          itemstack.shrink(1);

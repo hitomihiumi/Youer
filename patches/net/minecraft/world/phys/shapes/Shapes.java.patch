@@ -30,7 +30,7 @@
  
 -        if (p_83060_.getDouble(i) < p_83061_.getDouble(0) - 1.0E-7) {
 +        // Paper start - Identical happens more often than Disjoint
-+        if (i == i1 && Objects.equals(p_83060_, p_83061_)) {
++        if (i == j && Objects.equals(p_83060_, p_83061_)) {
 +            if (p_83060_ instanceof IdenticalMerger) {
 +                return (IndexMerger) p_83060_;
 +            } else if (p_83061_ instanceof IdenticalMerger) {

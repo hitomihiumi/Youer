@@ -8,7 +8,7 @@
 -                .collect(Collectors.toMap(p_326774_ -> this.nodeEvaluator.getTarget(p_326774_.getX(), p_326774_.getY(), p_326774_.getZ()), Function.identity()));
 +            // Paper start - Perf: remove streams and optimize collection
 +            List<Map.Entry<Target, BlockPos>> map = Lists.newArrayList();
-+            for (BlockPos p_326774_ : targetPositions) {
++            for (BlockPos p_326774_ : p_77430_) {
 +                map.add(new java.util.AbstractMap.SimpleEntry<>(this.nodeEvaluator.getTarget(p_326774_.getX(), p_326774_.getY(), p_326774_.getZ()), p_326774_));
 +            }
 +            // Paper end - Perf: remove streams and optimize collection

@@ -5,7 +5,7 @@
                  Fluid fluid = fluidstate1.getType();
                  if (fluidstate.canBeReplacedWith(p_376507_, blockpos, fluid, Direction.DOWN) && canHoldSpecificFluid(p_376507_, blockpos, blockstate, fluid)) {
 +                    // CraftBukkit start
-+                    org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(p_376507_, pos);
++                    org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(p_376507_, p_76012_);
 +                    org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.block.BlockFace.DOWN);
 +                    p_376507_.getCraftServer().getPluginManager().callEvent(event);
 +
@@ -24,7 +24,7 @@
 +                final BlockState blockStateIfLoaded = p_376224_.getBlockStateIfLoaded(blockpos); // Paper - Prevent chunk loading from fluid flowing
 +                if (blockStateIfLoaded == null) continue; // Paper - Prevent chunk loading from fluid flowing
 +                // CraftBukkit start
-+                org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(p_376224_, pos);
++                org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(p_376224_, p_76016_);
 +                org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
 +                p_376224_.getCraftServer().getPluginManager().callEvent(event);
 +
@@ -50,11 +50,11 @@
          }
  
 -        if (j >= 2 && this.canConvertToSource(p_376839_)) {
-+        if (j >= 2) {
++        if (j >= this.getRequiredSources(p_376839_)) { // Purpur - Implement infinite liquids
              BlockState blockstate1 = p_376839_.getBlockState(blockpos$mutableblockpos.setWithOffset(p_76037_, Direction.DOWN));
              FluidState fluidstate1 = blockstate1.getFluidState();
              if (blockstate1.isSolid() || this.isSourceBlockOfThisType(fluidstate1)) {
-@@ -257,6 +_,15 @@
+@@ -257,20 +_,37 @@
          return this.getSource().defaultFluidState().setValue(FALLING, p_76069_);
      }
  
@@ -69,8 +69,14 @@
 +    @Deprecated
      protected abstract boolean canConvertToSource(ServerLevel p_376940_);
  
++    // Purpur start - Implement infinite liquids
++    protected int getRequiredSources(Level level) {
++        return 2;
++    }
++    // Purpur end - Implement infinite liquids
++
      protected void spreadTo(LevelAccessor p_76005_, BlockPos p_76006_, BlockState p_76007_, Direction p_76008_, FluidState p_76009_) {
-@@ -264,13 +_,15 @@
+         if (p_76007_.getBlock() instanceof LiquidBlockContainer liquidblockcontainer) {
              liquidblockcontainer.placeLiquid(p_76005_, p_76006_, p_76007_, p_76009_);
          } else {
              if (!p_76007_.isAir()) {

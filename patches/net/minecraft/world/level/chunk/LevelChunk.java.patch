@@ -24,6 +24,15 @@
  
      public LevelChunk(Level p_187945_, ChunkPos p_187946_) {
          this(p_187945_, p_187946_, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
+@@ -105,7 +_,7 @@
+         @Nullable BlendingData p_196862_
+     ) {
+         super(p_196855_, p_196856_, p_196854_, p_196854_.registryAccess().lookupOrThrow(Registries.BIOME), p_196859_, p_196860_, p_196862_);
+-        this.level = p_196854_;
++        this.level = (ServerLevel) p_196854_; // CraftBukkit - type
+         this.gameEventListenerRegistrySections = new Int2ObjectOpenHashMap<>();
+ 
+         for (Heightmap.Types heightmap$types : Heightmap.Types.values()) {
 @@ -148,6 +_,7 @@
          this.setAllStarts(p_196851_.getAllStarts());
          this.setAllReferences(p_196851_.getAllReferences());
@@ -38,7 +47,7 @@
          this.markUnsaved();
 +        this.needsDecoration = true; // CraftBukkit
 +        // CraftBukkit start
-+        this.persistentDataContainer = p_187946_.persistentDataContainer; // SPIGOT-6814: copy PDC to account for 1.17 to 1.18 chunk upgrading.
++        this.persistentDataContainer = p_196851_.persistentDataContainer; // SPIGOT-6814: copy PDC to account for 1.17 to 1.18 chunk upgrading.
 +        // CraftBukkit end
      }
  

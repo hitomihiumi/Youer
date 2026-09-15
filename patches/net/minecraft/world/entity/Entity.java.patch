@@ -411,10 +411,16 @@
      }
  
      protected final AABB makeBoundingBox() {
-@@ -469,12 +_,28 @@
+@@ -469,12 +_,34 @@
      }
  
      public void tick() {
++        // Pufferfish start - entity TTL
++        if (this.type != EntityType.PLAYER && this.type.ttl >= 0 && this.tickCount >= this.type.ttl) {
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD); // Purpur
++            return;
++        }
++        // Pufferfish end - entity TTL
 +        // Paper start - entity despawn time limit
 +        if (this.despawnTime >= 0 && this.totalEntityAge >= this.despawnTime) {
 +            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
