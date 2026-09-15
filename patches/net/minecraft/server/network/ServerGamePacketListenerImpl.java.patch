@@ -75,7 +75,8 @@
      private final LastSeenMessagesValidator lastSeenMessages = new LastSeenMessagesValidator(20);
      private int nextChatIndex;
      private final MessageSignatureCache messageSignatureCache = MessageSignatureCache.createDefault();
-     private final FutureChain chatMessageChain;
+-    private final FutureChain chatMessageChain;
++    public final FutureChain chatMessageChain; // Youer - public, com.mohistmc.youer.eventhandler
      private boolean waitingForSwitchToConfig;
 +    private static final int MAX_SIGN_LINE_LENGTH = Integer.getInteger("Paper.maxSignLength", 80); // Paper - Limit client sign length
 +    private final io.papermc.paper.event.packet.ClientTickEndEvent tickEndEvent; // Paper - add client tick end event
@@ -174,6 +175,15 @@
      }
  
      private int getMaximumFlyingTicks(Entity p_326388_) {
+@@ -378,7 +_,7 @@
+         });
+     }
+ 
+-    private CompletableFuture<FilteredText> filterTextPacket(String p_243213_) {
++    public CompletableFuture<FilteredText> filterTextPacket(String p_243213_) { // Youer - public, com.mohistmc.youer.util.LambdaFix
+         return this.filterTextPacket(p_243213_, TextFilter::processStreamMessage);
+     }
+ 
 @@ -387,13 +_,39 @@
      }
  
@@ -681,7 +691,7 @@
 +    }
 +    // Paper end - brig API
 +
-+    private void sendServerSuggestions(final ServerboundCommandSuggestionPacket packet, final StringReader stringReader) {
++    public void sendServerSuggestions(final ServerboundCommandSuggestionPacket packet, final StringReader stringReader) { // Youer - public, com.mohistmc.youer.eventhandler
 +        // Paper end - AsyncTabCompleteEvent
 +        ParseResults<CommandSourceStack> parseResults = this.server.getCommands().getDispatcher().parse(stringReader, this.player.createCommandSourceStack());
 +        // Paper start - Handle non-recoverable exceptions
@@ -2016,7 +2026,7 @@
          }
      }
  
-@@ -1442,26 +_,57 @@
+@@ -1442,29 +_,60 @@
          Optional<LastSeenMessages> optional = this.unpackAndApplyLastSeen(p_338604_.lastSeenMessages());
          if (!optional.isEmpty()) {
              this.tryHandleChat(p_338604_.command(), () -> {
@@ -2086,7 +2096,11 @@
 +        this.server.getCommands().performCommand(parseResults, command); // CraftBukkit
      }
  
-     private void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) {
+-    private void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) {
++    public void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) { // Youer - public, com.mohistmc.youer.eventhandler
+         LOGGER.warn("Failed to update secure chat state for {}: '{}'", this.player.getGameProfile().getName(), p_252068_.getComponent().getString());
+         this.player.sendSystemMessage(p_252068_.getComponent().copy().withStyle(ChatFormatting.RED));
+     }
 @@ -1525,14 +_,20 @@
          return commanddispatcher.parse(p_242938_, this.player.createCommandSourceStack());
      }
@@ -2095,7 +2109,7 @@
 -        if (isChatMessageIllegal(p_338775_)) {
 -            this.disconnect(Component.translatable("multiplayer.disconnect.illegal_characters"));
 -        } else if (this.player.getChatVisibility() == ChatVisiblity.HIDDEN) {
-+    private void tryHandleChat(String message, Runnable handler, boolean sync) { // CraftBukkit
++    public void tryHandleChat(String message, Runnable handler, boolean sync) { // CraftBukkit // Youer - public, com.mohistmc.youer.eventhandler
 +        if (isChatMessageIllegal(message)) {
 +            this.disconnectAsync(Component.translatable("multiplayer.disconnect.illegal_characters"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_CHARACTERS); // Paper - add proper async disconnect
 +        } else if (this.player.isRemoved() || this.player.getChatVisibility() == ChatVisiblity.HIDDEN) { // CraftBukkit - dead men tell no tales
@@ -2141,6 +2155,7 @@
          return false;
      }
  
+-    private PlayerChatMessage getSignedMessage(ServerboundChatPacket p_251061_, LastSeenMessages p_250566_) throws SignedMessageChain.DecodeException {
 +    // CraftBukkit start
 +    public void chat(String msg, PlayerChatMessage original, boolean async) {
 +        if (msg.isEmpty() || this.player.getChatVisibility() == ChatVisiblity.HIDDEN) {
@@ -2176,7 +2191,7 @@
 +    }
 +    // CraftBukkit end
 +
-     private PlayerChatMessage getSignedMessage(ServerboundChatPacket p_251061_, LastSeenMessages p_250566_) throws SignedMessageChain.DecodeException {
++    public PlayerChatMessage getSignedMessage(ServerboundChatPacket p_251061_, LastSeenMessages p_250566_) throws SignedMessageChain.DecodeException { // Youer - public, com.mohistmc.youer.eventhandler
          SignedMessageBody signedmessagebody = new SignedMessageBody(p_251061_.message(), p_251061_.timeStamp(), p_251061_.salt(), p_250566_);
          return this.signedMessageDecoder.unpack(p_251061_.signature(), signedmessagebody);
      }
@@ -2184,7 +2199,7 @@
 -    private void broadcastChatMessage(PlayerChatMessage p_243277_) {
 -        this.server.getPlayerList().broadcastChatMessage(p_243277_, this.player, ChatType.bind(ChatType.CHAT, this.player));
 -        this.detectRateSpam();
-+    private void broadcastChatMessage(PlayerChatMessage message) {
++    public void broadcastChatMessage(PlayerChatMessage message) { // Youer - public, com.mohistmc.youer.eventhandler
 +        // CraftBukkit start
 +        String rawMessage = message.signedContent();
 +        if (rawMessage.isEmpty()) {

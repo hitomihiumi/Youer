@@ -1,13 +1,26 @@
 --- a/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
-@@ -67,6 +_,37 @@
+@@ -67,6 +_,50 @@
      @Nullable
      private ContainerSynchronizer synchronizer;
      private boolean suppressRemoteUpdates;
 +    @Nullable protected ItemStack activeQuickItem = null; // Purpur - Anvil API
 +    // CraftBukkit start
 +    public boolean checkReachable = true;
-+    public abstract org.bukkit.inventory.InventoryView getBukkitView();
++    // Youer start - a modded menu has no CraftBukkit subclass to implement getBukkitView(), so synthesize
++    // a view over the menu itself the first time one is asked for
++    public org.bukkit.inventory.InventoryView bukkitView;
++    public net.minecraft.world.entity.player.Player containerOwner = null;
++
++    public org.bukkit.inventory.InventoryView getBukkitView() {
++        if (this.bukkitView == null && this.containerOwner != null) {
++            org.bukkit.inventory.Inventory view = new org.bukkit.craftbukkit.inventory.CraftInventory(new com.mohistmc.youer.bukkit.inventory.YouerModsInventory(this, this.containerOwner));
++            view.getType().setMods(true);
++            this.bukkitView = new org.bukkit.craftbukkit.inventory.CraftInventoryView<>(this.containerOwner.getBukkitEntity(), view, this);
++        }
++        return this.bukkitView;
++    }
++    // Youer end
 +
 +    public void transferTo(AbstractContainerMenu other, org.bukkit.craftbukkit.entity.CraftHumanEntity player) {
 +        org.bukkit.inventory.InventoryView source = this.getBukkitView(), destination = other.getBukkitView();

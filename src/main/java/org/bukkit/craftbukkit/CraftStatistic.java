@@ -114,7 +114,7 @@ public enum CraftStatistic {
     // End generate - CraftStatisticType
     private final ResourceLocation minecraftKey;
     private final org.bukkit.Statistic bukkit;
-    private static final BiMap<ResourceLocation, org.bukkit.Statistic> statistics;
+    public static BiMap<ResourceLocation, org.bukkit.Statistic> statistics; // Youer - public and not final, NeoForgeInjectBukkit replaces it with a map that includes modded statistics
 
     static {
         ImmutableBiMap.Builder<ResourceLocation, org.bukkit.Statistic> statisticBuilder = ImmutableBiMap.builder();

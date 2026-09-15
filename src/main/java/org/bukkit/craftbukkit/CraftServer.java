@@ -1193,7 +1193,7 @@ public final class CraftServer implements Server {
     }
 
     @SuppressWarnings({ "unchecked", "finally" })
-    private void loadCustomPermissions() {
+    public void loadCustomPermissions() { // Youer - public for com.mohistmc.youer
         File file = new File(this.configuration.getString("settings.permissions-file"));
         FileInputStream stream;
 
@@ -1483,6 +1483,35 @@ public final class CraftServer implements Server {
         this.console.removeLevel(handle);
         return true;
     }
+
+    // Youer start - reload bukkit.yml/commands.yml after mods have registered, and drop a world's
+    // bookkeeping when com.mohistmc.youer.feature.world unloads it
+    public void initConfig() {
+        this.configuration = YamlConfiguration.loadConfiguration(this.getConfigFile());
+        this.configuration.options().copyDefaults(true);
+        this.configuration.setDefaults(YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/bukkit.yml"), com.google.common.base.Charsets.UTF_8)));
+        this.saveConfig();
+        this.commandsConfiguration = YamlConfiguration.loadConfiguration(this.getCommandsConfigFile());
+        this.commandsConfiguration.options().copyDefaults(true);
+        this.commandsConfiguration.setDefaults(YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/commands.yml"), com.google.common.base.Charsets.UTF_8)));
+        this.saveCommandsConfig();
+    }
+
+    public void removeWorld(ServerLevel world) {
+        if (world == null) {
+            return;
+        }
+        String name = world.getWorld().getName();
+        String worldname = name.startsWith("DIM") ? name : name.toLowerCase(java.util.Locale.ENGLISH);
+        this.worlds.remove(worldname);
+        com.mohistmc.youer.util.Level2LevelStem.plugin_worlds.remove(worldname);
+    }
+
+    @Override
+    public java.util.Set<String> getWorldsByName() {
+        return new java.util.HashSet<>(this.worlds.keySet());
+    }
+    // Youer end
 
     public DedicatedServer getServer() {
         return this.console;

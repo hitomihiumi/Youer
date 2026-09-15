@@ -31,4 +31,14 @@ public enum ItemRarity {
     public @org.jetbrains.annotations.NotNull TextColor color() {
         return this.color;
     }
+
+    // Youer - lenient lookup used when reading a rarity out of a config file
+    public static ItemRarity byName(String name) {
+        for (ItemRarity rarity : values()) {
+            if (rarity.name().equalsIgnoreCase(name)) {
+                return rarity;
+            }
+        }
+        return COMMON;
+    }
 }

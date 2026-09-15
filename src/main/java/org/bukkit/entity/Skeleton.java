@@ -74,6 +74,8 @@ public interface Skeleton extends AbstractSkeleton {
         /**
          * Bogged skeleton.
          */
-        BOGGED;
+        BOGGED,
+        /** Youer - the type reported for a modded skeleton. */
+        FORGE_MODS;
     }
 }

@@ -252,6 +252,59 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         return world.players().size();
     }
 
+    // Youer start - world provenance, used by com.mohistmc.youer.feature.world
+    private boolean isbukkit = false;
+
+    @Override
+    public boolean isBukkit() {
+        return this.isbukkit;
+    }
+
+    @Override
+    public void setBukkit(boolean b) {
+        this.isbukkit = b;
+    }
+
+    private boolean isvoid = false;
+
+    @Override
+    public boolean isVoid() {
+        return this.isvoid;
+    }
+
+    @Override
+    public void setVoid(boolean b) {
+        this.isvoid = b;
+    }
+
+    private boolean isflat = false;
+
+    @Override
+    public boolean isFlat() {
+        return this.isflat;
+    }
+
+    @Override
+    public void setFlat(boolean b) {
+        this.isflat = b;
+    }
+
+    @Override
+    public boolean isMods() {
+        String path = this.getWorldFolder().getAbsolutePath().replace(java.io.File.separatorChar, '/');
+        return !this.isBukkit() && path.contains("/world/dimensions/");
+    }
+
+    @Override
+    public String getModid() {
+        String path = this.getWorldFolder().getAbsolutePath().replace(java.io.File.separatorChar, '/');
+        if (path.contains("/world/dimensions/")) {
+            return path.split("/world/dimensions/")[1].split("/")[0];
+        }
+        return "";
+    }
+    // Youer end
+
     @Override
     public BiomeProvider vanillaBiomeProvider() {
         ServerChunkCache serverCache = this.getHandle().chunkSource;

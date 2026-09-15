@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public class ItemStackHandler implements IItemHandler, IItemHandlerModifiable, ValueIOSerializable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ItemStackHandler.class);
 
-    protected NonNullList<ItemStack> stacks;
+    public NonNullList<ItemStack> stacks; // Youer - public for com.mohistmc.youer.bukkit.inventory
 
     public ItemStackHandler() {
         this(1);

@@ -40,4 +40,7 @@ public enum SpawnCategory {
      * Entities not related to a mob, eg: Player, ArmorStand, Boat, etc.
      */
     MISC;
+
+    // Youer - true on the categories NeoForgeInjectBukkit adds for modded MobCategory values
+    public boolean isMods = false;
 }

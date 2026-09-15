@@ -10,7 +10,7 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 // combines multiple IItemHandlerModifiable into one interface
 public class CombinedInvWrapper implements IItemHandlerModifiable {
-    protected final IItemHandlerModifiable[] itemHandler; // the handlers
+    public final IItemHandlerModifiable[] itemHandler; // the handlers // Youer - public for com.mohistmc.youer.bukkit.inventory
     protected final int[] baseIndex; // index-offsets of the different handlers
     protected final int slotCount; // number of total slots
 
@@ -38,7 +38,7 @@ public class CombinedInvWrapper implements IItemHandlerModifiable {
         return -1;
     }
 
-    protected IItemHandlerModifiable getHandlerFromIndex(int index) {
+    public IItemHandlerModifiable getHandlerFromIndex(int index) { // Youer - public for com.mohistmc.youer.bukkit.inventory
         if (index < 0 || index >= itemHandler.length) {
             return (IItemHandlerModifiable) EmptyItemHandler.INSTANCE;
         }

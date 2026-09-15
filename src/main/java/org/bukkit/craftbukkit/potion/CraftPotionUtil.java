@@ -13,6 +13,9 @@ import org.bukkit.potion.PotionType;
 
 public class CraftPotionUtil {
 
+    // Youer - modded potion types, keyed by their ResourceLocation
+    public static final java.util.Map<net.minecraft.resources.ResourceLocation, org.bukkit.potion.PotionType> mods = new java.util.concurrent.ConcurrentHashMap<>();
+
     private static final BiMap<PotionType, PotionType> upgradeable = ImmutableBiMap.<PotionType, PotionType>builder()
             // Start generate - CraftPotionUtil#upgradeable
             // @GeneratedFrom 1.21.8

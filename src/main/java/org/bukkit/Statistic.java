@@ -99,7 +99,7 @@ public enum Statistic implements Keyed {
     // End generate - StatisticType
 
     private final Type type;
-    private final NamespacedKey key;
+    public NamespacedKey key; // Youer - public and not final, NeoForgeInjectBukkit assigns it for modded statistics
 
     private Statistic() {
         this(Type.UNTYPED);

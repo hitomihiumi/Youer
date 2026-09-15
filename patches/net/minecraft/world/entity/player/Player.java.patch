@@ -1278,10 +1278,28 @@
          }
      }
  
-@@ -2159,5 +_,41 @@
+@@ -2146,6 +_,9 @@
+ 
+         @Nullable
+         private final Component message;
++        // Youer - a message the Bukkit PlayerBedFailEnterEvent can override this problem's text with
++        @Nullable
++        private Component paperMessage = null;
+ 
+         private BedSleepingProblem() {
+             this.message = null;
+@@ -2157,7 +_,49 @@
+ 
+         @Nullable
          public Component getMessage() {
++            if (this.paperMessage != null) return this.paperMessage; // Youer
              return this.message;
          }
++
++        // Youer
++        public void setPaperMessage(@Nullable Component message) {
++            this.paperMessage = message;
++        }
 +    }
 +
 +    // Neo: Getters for the Player's name prefixes and suffixes

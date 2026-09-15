@@ -92,7 +92,7 @@ public class NetworkRegistry {
      * Map of NeoForge payloads that may be sent before channel negotiation.
      * TODO: Separate by protocol + flow.
      */
-    protected static final Map<ResourceLocation, StreamCodec<FriendlyByteBuf, ? extends CustomPacketPayload>> BUILTIN_PAYLOADS = ImmutableMap.of(
+    public static final Map<ResourceLocation, StreamCodec<FriendlyByteBuf, ? extends CustomPacketPayload>> BUILTIN_PAYLOADS = ImmutableMap.of(
             MinecraftRegisterPayload.ID, MinecraftRegisterPayload.STREAM_CODEC,
             MinecraftUnregisterPayload.ID, MinecraftUnregisterPayload.STREAM_CODEC,
             ModdedNetworkQueryPayload.ID, ModdedNetworkQueryPayload.STREAM_CODEC,
@@ -105,13 +105,13 @@ public class NetworkRegistry {
      * Registry of all custom payload handlers. The initial state of this map should reflect the protocols which support custom payloads.
      * TODO: Change key type to a combination of protocol + flow.
      */
-    protected static final Map<ConnectionProtocol, Map<ResourceLocation, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
+    public static final Map<ConnectionProtocol, Map<ResourceLocation, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
             ConnectionProtocol.CONFIGURATION, new HashMap<>(),
             ConnectionProtocol.PLAY, new HashMap<>());
-    protected static final Map<ConnectionProtocol, Map<ResourceLocation, IPayloadHandler<?>>> SERVERBOUND_HANDLERS = ImmutableMap.of(
+    public static final Map<ConnectionProtocol, Map<ResourceLocation, IPayloadHandler<?>>> SERVERBOUND_HANDLERS = ImmutableMap.of(
             ConnectionProtocol.CONFIGURATION, new HashMap<>(),
             ConnectionProtocol.PLAY, new HashMap<>());
-    protected static final Map<ConnectionProtocol, Map<ResourceLocation, IPayloadHandler<?>>> CLIENTBOUND_HANDLERS = ImmutableMap.of(
+    public static final Map<ConnectionProtocol, Map<ResourceLocation, IPayloadHandler<?>>> CLIENTBOUND_HANDLERS = ImmutableMap.of(
             ConnectionProtocol.CONFIGURATION, new HashMap<>(),
             ConnectionProtocol.PLAY, new HashMap<>());
 

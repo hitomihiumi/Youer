@@ -24,12 +24,17 @@
                  ConfiguredFeature<?, ?> configuredfeature1 = holder1.value();
                  BlockState blockstate1 = p_304396_.getFluidState(p_304643_).createLegacyBlock();
                  p_304396_.setBlock(p_304643_, blockstate1, 260);
-@@ -195,4 +_,58 @@
+@@ -195,4 +_,63 @@
  
          return false;
      }
 +
 +    // CraftBukkit start
++    // Youer - NeoForgeInjectBukkit walks these to register a Bukkit TreeType per modded grower
++    public static Map<String, TreeGrower> getGrowers() {
++        return GROWERS;
++    }
++
 +    private void setTreeType(Holder<ConfiguredFeature<?, ?>> feature) {
 +        if (feature.is(TreeFeatures.OAK) || feature.is(TreeFeatures.OAK_BEES_005)) {
 +            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.TREE;

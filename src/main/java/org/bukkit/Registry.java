@@ -57,6 +57,15 @@ import org.jspecify.annotations.Nullable;
 @NullMarked
 public interface Registry<T extends Keyed> extends Iterable<T> {
 
+    /**
+     * Youer - rebuild this registry's backing map.
+     *
+     * <p>Only {@link SimpleRegistry} needs it: it snapshots an enum's constants at class-init time, and
+     * NeoForgeInjectBukkit adds modded constants afterwards.</p>
+     */
+    default void reload() {
+    }
+
     private static <A extends Keyed> Registry<A> registryFor(final RegistryKey<A> registryKey) {
         return RegistryAccess.registryAccess().getRegistry(registryKey);
     }
@@ -578,24 +587,38 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
     class SimpleRegistry<T extends Enum<T> & Keyed> extends NotARegistry<T> { // Paper - remove final
 
         private final Class<T> type;
-        private final Map<NamespacedKey, T> map;
+        // Youer - rebuilt by reload() once NeoForgeInjectBukkit has added the modded enum constants
+        private Map<NamespacedKey, T> map;
+        private final Runnable reloadCallback;
 
         protected SimpleRegistry(final Class<T> type) {
             this(type, Predicates.alwaysTrue());
         }
 
         protected SimpleRegistry(final Class<T> type, final Predicate<T> predicate) {
-            final ImmutableMap.Builder<NamespacedKey, T> builder = ImmutableMap.builder();
+            this.map = buildMap(type, predicate);
+            this.type = type;
+            this.reloadCallback = () -> this.map = buildMap(type, predicate); // Youer
+        }
 
-            for (final T entry : type.getEnumConstants()) {
+        // Youer start - the map build, factored out so reload() can repeat it
+        private static <E extends Enum<E> & Keyed> Map<NamespacedKey, E> buildMap(final Class<E> type, final Predicate<E> predicate) {
+            final ImmutableMap.Builder<NamespacedKey, E> builder = ImmutableMap.builder();
+
+            for (final E entry : type.getEnumConstants()) {
                 if (predicate.test(entry)) {
                     builder.put(entry.getKey(), entry);
                 }
             }
 
-            this.map = builder.build();
-            this.type = type;
+            return builder.build();
         }
+
+        @Override
+        public void reload() {
+            this.reloadCallback.run();
+        }
+        // Youer end
 
         @Override
         public @Nullable T get(final NamespacedKey key) {

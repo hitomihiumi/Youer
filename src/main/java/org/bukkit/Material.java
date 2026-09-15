@@ -2658,16 +2658,28 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     private final int id;
     private final Constructor<? extends MaterialData> ctor;
     private static final Map<String, Material> BY_NAME = Maps.newHashMap();
+    // Youer start - modded materials are registered at runtime, keyed by their ResourceLocation
+    public static final Map<String, Material> BY_KEY = Maps.newHashMap();
     private final int maxStack;
     public final Class<?> data;
     private final boolean legacy;
-    private final NamespacedKey key;
+    public NamespacedKey key; // Youer - not final, addMaterial assigns it for runtime-added materials
     private final Supplier<ItemType> itemType;
     private final Supplier<BlockType> blockType;
+    public boolean isModBlock = false;
+    public boolean isModItem = false;
 
     private Material(final int id) {
         this(id, 64);
     }
+
+    /** Youer - the constructor MohistDynamEnum calls for a modded block or item. */
+    private Material(final int id, final int stack, boolean isModBlock, boolean isModItem) {
+        this(id, stack);
+        this.isModBlock = isModBlock;
+        this.isModItem = isModItem;
+    }
+    // Youer end
 
     private Material(final int id, final int stack) {
         this(id, stack, MaterialData.class);
@@ -3035,9 +3047,17 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
      * @return True if this material is an air block.
      */
     public boolean isAir() {
-        BlockType type = asBlockType();
-        return type != null && type.isAir();
+        return isAirSafe(); // Youer - a modded Material has no BlockType to ask
     }
+
+    // Youer start - air check that does not go through the block-type registry
+    public boolean isAirSafe() {
+        return switch (this) {
+            case AIR, CAVE_AIR, VOID_AIR, LEGACY_AIR -> true;
+            default -> false;
+        };
+    }
+    // Youer end
 
     /**
      * @return If the type is either AIR, CAVE_AIR or VOID_AIR
@@ -3594,6 +3614,27 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     public BlockType asBlockType() {
         return blockType.get();
     }
+
+    // Youer start - register a modded block or item as a Material at runtime
+    public static Material addMaterial(String materialName, int id, int stack, boolean isBlock, boolean isItem, net.minecraft.resources.ResourceLocation resourceLocation) {
+        Material material;
+        if (isBlock) {
+            material = BY_NAME.get(materialName);
+            if (material != null) {
+                material.isModBlock = true;
+            } else {
+                material = com.mohistmc.dynamicenum.MohistDynamEnum.addEnum(Material.class, materialName, java.util.List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), java.util.List.of(id, stack, isBlock, isItem));
+            }
+        } else {
+            material = com.mohistmc.dynamicenum.MohistDynamEnum.addEnum(Material.class, materialName, java.util.List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), java.util.List.of(id, stack, isBlock, isItem));
+            material.isModItem = true;
+        }
+        BY_NAME.put(materialName, material);
+        material.key = org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(resourceLocation);
+        BY_KEY.put(resourceLocation.toString(), material);
+        return material;
+    }
+    // Youer end
 
     // Paper start - data component API
     /**

@@ -4553,4 +4553,38 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
             }
         }
     }
+
+    // Youer start - world provenance
+
+    /**
+     * Returns whether this world was created by a plugin.
+     *
+     * @return whether this world was created by a plugin
+     */
+    boolean isBukkit();
+
+    void setBukkit(boolean b);
+
+    boolean isVoid();
+
+    void setVoid(boolean b);
+
+    boolean isFlat();
+
+    void setFlat(boolean b);
+
+    /**
+     * Returns whether this world was created by a mod.
+     *
+     * @return whether this world was created by a mod
+     */
+    boolean isMods();
+
+    /**
+     * Returns the id of the mod this world came from, or an empty string.
+     *
+     * @return the mod id for this world
+     */
+    String getModid();
+    // Youer end
 }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -44,9 +_,16 @@
+@@ -44,31 +_,53 @@
  import org.apache.commons.lang3.Validate;
  import org.slf4j.Logger;
  
@@ -16,8 +16,9 @@
 +    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("User Authenticator #%d").setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build()); // Paper - Cache authenticator threads
      private static final int MAX_TICKS_BEFORE_LOGIN = 600;
      private final byte[] challenge;
-     final MinecraftServer server;
-@@ -54,21 +_,36 @@
+-    final MinecraftServer server;
++    public final MinecraftServer server; // Youer - public, com.mohistmc.youer.bukkit.LoginHandler
+     public final Connection connection;
      public volatile ServerLoginPacketListenerImpl.State state = ServerLoginPacketListenerImpl.State.HELLO;
      private int tick;
      @Nullable
@@ -29,9 +30,9 @@
 -    private final boolean transferred;
 +    public final boolean transferred; // Paper
 +    public boolean iKnowThisMayNotBeTheBestIdeaButPleaseDisableUsernameValidation = false; // Paper - username validation overriding
-+    private int velocityLoginMessageId = -1; // Paper - Add Velocity IP Forwarding Support
++    public int velocityLoginMessageId = -1; // Paper - Add Velocity IP Forwarding Support // Youer - public, com.mohistmc.youer.bukkit.LoginHandler
 +    public @Nullable java.util.UUID requestedUuid; // Paper
-+    private final io.papermc.paper.connection.PaperPlayerLoginConnection paperLoginConnection; // Paper - Config API
++    public final io.papermc.paper.connection.PaperPlayerLoginConnection paperLoginConnection; // Paper - Config API // Youer - public, com.mohistmc.youer.bukkit.LoginHandler
 +    private volatile boolean disconnecting = false; // Paper - Fix disconnect still ticking login
  
      public ServerLoginPacketListenerImpl(MinecraftServer p_10027_, Connection p_10028_, boolean p_320815_) {

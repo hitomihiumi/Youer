@@ -3145,4 +3145,15 @@ public final class Bukkit {
         server.clearBlockHighlights();
     }
     // Purpur end - Debug Marker API
+
+    /**
+     * Youer - the names of every loaded world.
+     *
+     * @return a set of world names
+     * @see Server#getWorldsByName()
+     */
+    @NotNull
+    public static java.util.Set<String> getWorldsByName() {
+        return server.getWorldsByName();
+    }
 }

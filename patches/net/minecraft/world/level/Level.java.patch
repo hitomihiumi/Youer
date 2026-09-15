@@ -44,7 +44,7 @@
 +
 +    // CraftBukkit start
 +    public final io.papermc.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
-+    private final CraftWorld world;
++    public final CraftWorld world; // Youer - public, com.mohistmc.youer.feature.world
 +    public boolean pvpMode;
 +    public @Nullable org.bukkit.generator.ChunkGenerator generator;
 +

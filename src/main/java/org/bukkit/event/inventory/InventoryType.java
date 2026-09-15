@@ -170,6 +170,7 @@ public enum InventoryType {
     private final String title;
     private final MenuType menuType;
     private final boolean isCreatable;
+    private boolean isMods; // Youer - set on the types NeoForgeInjectBukkit adds for modded menus
     // Paper start
     private final net.kyori.adventure.text.Component defaultTitleComponent;
 
@@ -235,6 +236,16 @@ public enum InventoryType {
     public boolean isCreatable() {
         return isCreatable;
     }
+
+    // Youer start - whether this inventory type came from a mod
+    public boolean isMods() {
+        return this.isMods;
+    }
+
+    public void setMods(boolean isMods) {
+        this.isMods = isMods;
+    }
+    // Youer end
 
     public enum SlotType {
         /**

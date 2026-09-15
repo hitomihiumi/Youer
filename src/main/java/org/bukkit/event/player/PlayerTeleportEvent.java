@@ -137,7 +137,11 @@ public class PlayerTeleportEvent extends PlayerMoveEvent {
          * Indicates the teleportation was caused by an event not covered by
          * this enum
          */
-        UNKNOWN;
+        UNKNOWN,
+        /**
+         * Youer - a teleport issued by one of Youer's own features (/tpa, /back, /warp).
+         */
+        YOUER;
 
         /**
          * Indicates the teleportation was caused by a player consuming chorus

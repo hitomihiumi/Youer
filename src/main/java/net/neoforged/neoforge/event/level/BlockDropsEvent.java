@@ -47,6 +47,17 @@ public class BlockDropsEvent extends BlockEvent implements ICancellableEvent {
      * @param breaker     The entity who broke the block, if any
      * @param tool        The tool used to break the block. May be empty
      */
+    // Youer - the block Paper's BlockDropItemEvent should report as the source, when it differs from pos
+    private BlockPos papersource;
+
+    public BlockPos getPapersource() {
+        return this.papersource;
+    }
+
+    public void setPapersource(BlockPos papersource) {
+        this.papersource = papersource;
+    }
+
     public BlockDropsEvent(ServerLevel level, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, List<ItemEntity> drops, @Nullable Entity breaker, ItemStack tool) {
         super(level, pos, state);
         this.blockEntity = blockEntity;

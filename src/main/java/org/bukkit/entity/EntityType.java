@@ -208,10 +208,14 @@ public enum EntityType implements Keyed, Translatable, net.kyori.adventure.trans
     private final Class<? extends Entity> clazz;
     private final short typeId;
     private final boolean independent, living;
-    private final NamespacedKey key;
+    // Youer start - modded entity types are hooked up at runtime
+    private NamespacedKey key;
+    private net.minecraft.world.entity.EntityType<?> handleType;
+    private java.util.function.Function<org.bukkit.Location, ? extends net.minecraft.world.entity.Entity> factory;
 
-    private static final Map<String, EntityType> NAME_MAP = new HashMap<String, EntityType>();
-    private static final Map<Short, EntityType> ID_MAP = new HashMap<Short, EntityType>();
+    public static final Map<String, EntityType> NAME_MAP = new HashMap<String, EntityType>();
+    public static final Map<Short, EntityType> ID_MAP = new HashMap<Short, EntityType>();
+    // Youer end
 
     static {
         for (EntityType type : values()) {
@@ -370,4 +374,31 @@ public enum EntityType implements Keyed, Translatable, net.kyori.adventure.trans
     public boolean isEnabledByFeature(@NotNull World world) {
         return Bukkit.getDataPackManager().isEnabledByFeature(this, world);
     }
+
+    // Youer start - bind a modded net.minecraft EntityType to this Bukkit constant
+    public void hookForgeEntity(net.minecraft.resources.ResourceLocation location, net.minecraft.world.entity.EntityType<?> entityType) {
+        this.key = org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(location);
+        this.handleType = entityType;
+        NAME_MAP.put(this.name.toLowerCase(java.util.Locale.ROOT), this);
+        ID_MAP.put(this.typeId, this);
+        com.mohistmc.youer.api.ServerAPI.entityTypeMap.put(entityType, this.name);
+        com.mohistmc.youer.api.ServerAPI.entityTypeMap0.put(entityType, this);
+        this.factory = bukkitLoc -> {
+            if (bukkitLoc == null || bukkitLoc.getWorld() == null) {
+                return null;
+            }
+            net.minecraft.server.level.ServerLevel serverLevel = ((org.bukkit.craftbukkit.CraftWorld) bukkitLoc.getWorld()).getHandle();
+            // Youer - 1.21.2 added the spawn reason argument to EntityType#create
+            net.minecraft.world.entity.Entity entity = this.handleType.create(serverLevel, net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+            if (entity != null) {
+                entity.absSnapTo(bukkitLoc.getX(), bukkitLoc.getY(), bukkitLoc.getZ(), bukkitLoc.getYaw(), bukkitLoc.getPitch());
+            }
+            return entity;
+        };
+    }
+
+    public java.util.function.Function<org.bukkit.Location, ? extends net.minecraft.world.entity.Entity> getFactory() {
+        return this.factory;
+    }
+    // Youer end
 }

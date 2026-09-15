@@ -1769,16 +1769,24 @@
              for (EquipmentSlot equipmentslot : p_331314_) {
                  ItemStack itemstack = this.getItemBySlot(equipmentslot);
                  Equippable equippable = itemstack.get(DataComponents.EQUIPPABLE);
-@@ -1770,7 +_,7 @@
+@@ -1768,9 +_,9 @@
+         }
+     }
  
-     protected float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
+-    protected float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
++    public float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) { // Youer - public, com.mohistmc.youer.neoforge.BukkitDamageHooks
          if (!p_21162_.is(DamageTypeTags.BYPASSES_ARMOR)) {
 -            this.hurtArmor(p_21162_, p_21163_);
 +            // this.hurtArmor(p_21162_, p_21163_); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for damage handling
              p_21163_ = CombatRules.getDamageAfterAbsorb(
                  this, p_21163_, p_21162_, this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
              );
-@@ -1783,7 +_,8 @@
+@@ -1779,11 +_,12 @@
+         return p_21163_;
+     }
+ 
+-    protected float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) {
++    public float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) { // Youer - public, com.mohistmc.youer.neoforge.BukkitDamageHooks
          if (p_21193_.is(DamageTypeTags.BYPASSES_EFFECTS)) {
              return p_21194_;
          } else {

@@ -68,11 +68,23 @@ public abstract class BlockEvent extends Event {
      */
     public static class BreakEvent extends BlockEvent implements ICancellableEvent {
         private final Player player;
+        // Youer - BlockBreakEvent#isDropItems is mirrored onto the NeoForge event
+        private boolean dropItems = true;
 
         public BreakEvent(Level level, BlockPos pos, BlockState state, Player player) {
             super(level, pos, state);
             this.player = player;
         }
+
+        // Youer start - whether the block will try to drop its items
+        public void setDropItems(boolean dropItems) {
+            this.dropItems = dropItems;
+        }
+
+        public boolean isDropItems() {
+            return this.dropItems;
+        }
+        // Youer end
 
         /**
          * {@return the player who is attempting to break the block}
@@ -129,6 +141,27 @@ public abstract class BlockEvent extends Event {
         public BlockState getPlacedAgainst() {
             return placedAgainst;
         }
+
+        // Youer start - the face and hand the Bukkit place event should report
+        private net.minecraft.core.Direction placeEventDirection;
+        private net.minecraft.world.InteractionHand placeEventHand;
+
+        public void setPlaceEventDirection(net.minecraft.core.Direction placeEventDirection) {
+            this.placeEventDirection = placeEventDirection;
+        }
+
+        public net.minecraft.core.Direction getPlaceEventDirection() {
+            return this.placeEventDirection;
+        }
+
+        public void setPlaceEventHand(net.minecraft.world.InteractionHand placeEventHand) {
+            this.placeEventHand = placeEventHand;
+        }
+
+        public net.minecraft.world.InteractionHand getPlaceEventHand() {
+            return this.placeEventHand;
+        }
+        // Youer end
     }
 
     /**

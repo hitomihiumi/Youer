@@ -32,3 +32,15 @@
  
      public DamageSource source(ResourceKey<DamageType> p_270957_) {
          return new DamageSource(this.damageTypes.getOrThrow(p_270957_));
+@@ -262,6 +_,11 @@
+ 
+     public DamageSource badRespawnPointExplosion(Vec3 p_270175_) {
+         return new DamageSource(this.damageTypes.getOrThrow(DamageTypes.BAD_RESPAWN_POINT), p_270175_);
++    }
++
++    // Youer - the same damage source, carrying the block that caused it for the Bukkit event
++    public DamageSource badRespawnPointExplosionCB(Vec3 p_270175_, org.bukkit.block.BlockState blockState) {
++        return new DamageSource(this.damageTypes.getOrThrow(DamageTypes.BAD_RESPAWN_POINT), p_270175_).causingBlockSnapshot(blockState); // Youer - CraftBukkit renamed directBlockState to causingBlockSnapshot
+     }
+ 
+     public DamageSource outOfBorder() {

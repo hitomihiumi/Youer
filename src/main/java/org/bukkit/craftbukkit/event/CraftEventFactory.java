@@ -265,7 +265,7 @@ import org.jetbrains.annotations.Nullable;
 public class CraftEventFactory {
 
     // helper methods
-    private static boolean canBuild(Level world, Player player, int x, int z) {
+    public static boolean canBuild(Level world, Player player, int x, int z) { // Youer - public for com.mohistmc.youer
         int spawnSize = Bukkit.getServer().getSpawnRadius();
 
         if (world.dimension() != Level.OVERWORLD) return true;

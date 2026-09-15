@@ -2842,4 +2842,12 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      */
     void clearBlockHighlights();
     // Purpur end - Debug Marker API
+
+    /**
+     * Youer - the names of every loaded world.
+     *
+     * @return a set of world names
+     */
+    @NotNull
+    java.util.Set<String> getWorldsByName();
 }

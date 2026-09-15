@@ -42,6 +42,27 @@ public class LivingChangeTargetEvent extends LivingEvent implements ICancellable
     @Nullable
     private LivingEntity newAboutToBeSetTarget;
 
+    // Youer start - carry the Bukkit target reason, and whether the Bukkit event should fire at all
+    private org.bukkit.event.entity.EntityTargetEvent.TargetReason reason = org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN;
+    private boolean fireCBEvent = true;
+
+    public org.bukkit.event.entity.EntityTargetEvent.TargetReason getReason() {
+        return this.reason;
+    }
+
+    public void setReason(org.bukkit.event.entity.EntityTargetEvent.TargetReason reason) {
+        this.reason = reason;
+    }
+
+    public boolean isFireCBEvent() {
+        return this.fireCBEvent;
+    }
+
+    public void setfireCBEvent(boolean fireCBEvent) {
+        this.fireCBEvent = fireCBEvent;
+    }
+    // Youer end
+
     public LivingChangeTargetEvent(LivingEntity entity, @Nullable LivingEntity aboutToBeSetTarget, ILivingTargetType targetType) {
         super(entity);
         this.originalAboutToBeSetTarget = aboutToBeSetTarget;

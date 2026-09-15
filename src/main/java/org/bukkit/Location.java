@@ -1138,6 +1138,18 @@ public class Location implements Cloneable, ConfigurationSerializable, io.paperm
     }
 
     /**
+     * Youer - a flat, human-readable form of this location, used by the config files
+     * com.mohistmc.youer.feature writes.
+     *
+     * @return this location as a single line of text
+     */
+    @NotNull
+    public String asString() {
+        World world = (this.world == null) ? null : this.world.get();
+        return "world=" + (world == null ? "null" : world.getName()) + ",x=" + this.x + ",y=" + this.y + ",z=" + this.z + ",pitch=" + this.pitch + ",yaw=" + this.yaw;
+    }
+
+    /**
      * Constructs a new {@link Vector} based on this Location
      *
      * @return New Vector containing the coordinates represented by this
