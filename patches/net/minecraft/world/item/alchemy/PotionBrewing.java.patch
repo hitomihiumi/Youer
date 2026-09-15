@@ -1,7 +1,10 @@
 --- a/net/minecraft/world/item/alchemy/PotionBrewing.java
 +++ b/net/minecraft/world/item/alchemy/PotionBrewing.java
-@@ -19,15 +_,37 @@
+@@ -17,17 +_,40 @@
+     public static final int BREWING_TIME_SECONDS = 20;
+     public static final PotionBrewing EMPTY = new PotionBrewing(List.of(), List.of(), List.of());
      private final List<Ingredient> containers;
++    private final it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap<org.bukkit.NamespacedKey, io.papermc.paper.potion.PaperPotionMix> customMixes = new it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap<>(); // Paper - Custom Potion Mixes
      private final List<PotionBrewing.Mix<Potion>> potionMixes;
      private final List<PotionBrewing.Mix<Item>> containerMixes;
 +    private final net.neoforged.neoforge.common.brewing.BrewingRecipeRegistry registry;

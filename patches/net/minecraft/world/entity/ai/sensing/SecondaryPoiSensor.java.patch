@@ -10,7 +10,7 @@
 -        int i = 4;
 +        // Purpur start - Option for Villager Clerics to farm Nether Wart - make sure clerics don't wander to soul sand when the option is off
 +        Brain<?> resourcekey = p_26755_.getBrain();
-+        if (!p_26754_.purpurConfig.villagerClericsFarmWarts && p_26755_.getVillagerData().profession().is(net.minecraft.world.p_26755_.npc.VillagerProfession.CLERIC)) {
++        if (!p_26754_.purpurConfig.villagerClericsFarmWarts && p_26755_.getVillagerData().profession().is(net.minecraft.world.entity.npc.VillagerProfession.CLERIC)) {
 +            resourcekey.eraseMemory(MemoryModuleType.SECONDARY_JOB_SITE);
 +            return;
 +        }

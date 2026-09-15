@@ -16,11 +16,11 @@
          int j = p_83002_.size();
          int k = i + j;
 +        // Paper start - optimize common path of infinity doublelist
-+        double tail = lower.getDouble(i - 1);
-+        double head = lower.getDouble(0);
-+        if (head == Double.NEGATIVE_INFINITY && tail == Double.POSITIVE_INFINITY && !excludeUpper && !excludeLower && (i == 2 || i == 4)) {
-+            this.result = upper.toDoubleArray();
-+            this.resultLength = upper.size();
++        double tail = p_83001_.getDouble(i - 1);
++        double head = p_83001_.getDouble(0);
++        if (head == Double.NEGATIVE_INFINITY && tail == Double.POSITIVE_INFINITY && !p_83003_ && !p_83004_ && (i == 2 || i == 4)) {
++            this.result = p_83002_.toDoubleArray();
++            this.resultLength = p_83002_.size();
 +            if (i == 2) {
 +                this.firstIndices = INFINITE_B_0;
 +            } else {

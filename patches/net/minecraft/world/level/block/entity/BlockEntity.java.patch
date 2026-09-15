@@ -1,11 +1,16 @@
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -34,9 +_,10 @@
+@@ -34,9 +_,15 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import org.slf4j.Logger;
  
 -public abstract class BlockEntity implements net.neoforged.neoforge.common.extensions.IBlockEntityExtension {
 +public abstract class BlockEntity extends net.neoforged.neoforge.attachment.AttachmentHolder implements net.neoforged.neoforge.common.extensions.IBlockEntityExtension {
++    static boolean ignoreBlockEntityUpdates; // Paper - Perf: Optimize Hoppers
++    // CraftBukkit start - data containers
++    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
++    public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer;
++    // CraftBukkit end
      private static final Codec<BlockEntityType<?>> TYPE_CODEC = BuiltInRegistries.BLOCK_ENTITY_TYPE.byNameCodec();
      private static final Logger LOGGER = LogUtils.getLogger();
 +    @Deprecated // Neo: always use getType()
@@ -52,10 +57,16 @@
  
          return new BlockPos(i, j, k);
      }
-@@ -91,6 +_,8 @@
+@@ -91,6 +_,14 @@
      }
  
      protected void loadAdditional(ValueInput p_422607_) {
++        // Paper start - read persistent data container
++        this.persistentDataContainer.clear(); // Paper - clear instead of init
++
++        p_422607_.read("PublicBukkitValues", CompoundTag.CODEC)
++            .ifPresent(this.persistentDataContainer::putAll);
++        // Paper end - read persistent data container
 +        p_422607_.read("NeoForgeData", CompoundTag.CODEC).ifPresent(neoData -> this.customPersistentData = neoData);
 +        p_422607_.child(ATTACHMENTS_NBT_KEY).ifPresent(attachments -> this.deserializeAttachments(attachments));
      }
@@ -85,6 +96,18 @@
      }
  
      public final CompoundTag saveCustomOnly(HolderLookup.Provider p_338656_) {
+@@ -155,6 +_,11 @@
+ 
+     public void saveCustomOnly(ValueOutput p_422286_) {
+         this.saveAdditional(p_422286_);
++        // Paper start - store PDC here as well
++        if (!this.persistentDataContainer.isEmpty()) {
++            p_422286_.store("PublicBukkitValues", CompoundTag.CODEC, this.persistentDataContainer.toTagCompound());
++        }
++        // Paper end - store PDC here as well
+     }
+ 
+     public void saveId(ValueOutput p_422237_) {
 @@ -204,6 +_,7 @@
  
      public void setChanged() {

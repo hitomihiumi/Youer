@@ -94,7 +94,7 @@
          } else {
              LivingEntity livingentity = EntityReference.get(p_423553_, p_423665_, LivingEntity.class);
 -            return livingentity != null && livingentity.isAlive() && p_155410_.closerThan(livingentity.blockPosition(), 8.0) ? p_423553_ : null;
-+            return livingentity != null && livingentity.isAlive() && p_155410_.closerThan(livingentity.blockPosition(), level.purpurConfig.conduitDamageDistance) ? p_423553_ : null; // Purpur - Conduit behavior configuration
++            return livingentity != null && livingentity.isAlive() && p_155410_.closerThan(livingentity.blockPosition(), p_423665_.purpurConfig.conduitDamageDistance) ? p_423553_ : null; // Purpur - Conduit behavior configuration
          }
      }
  

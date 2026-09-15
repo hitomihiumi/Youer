@@ -14,12 +14,77 @@
  
      public ServerChunkCache(
          ServerLevel p_214982_,
+@@ -127,6 +_,64 @@
+         this.clearCache();
+     }
+ 
++    // CraftBukkit start - properly implement isChunkLoaded
++    public boolean isChunkLoaded(int chunkX, int chunkZ) {
++        ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.asLong(chunkX, chunkZ));
++        if (chunk == null) {
++            return false;
++        }
++        return chunk.getFullChunkNow() != null;
++    }
++    // CraftBukkit end
++    // Paper start
++    public void addLoadedChunk(LevelChunk chunk) {
++        this.fullChunks.put(chunk.coordinateKey, chunk);
++    }
++
++    public void removeLoadedChunk(LevelChunk chunk) {
++        this.fullChunks.remove(chunk.coordinateKey);
++    }
++
++    @Nullable
++    public ChunkAccess getChunkAtImmediately(int x, int z) {
++        ChunkHolder holder = this.chunkMap.getVisibleChunkIfPresent(ChunkPos.asLong(x, z));
++        if (holder == null) {
++            return null;
++        }
++
++        return holder.getLatestChunk();
++    }
++
++    public void addTicketAtLevel(TicketType ticketType, ChunkPos chunkPos, int ticketLevel) {
++        this.ticketStorage.addTicket(new Ticket(ticketType, ticketLevel), chunkPos);
++    }
++
++    public void removeTicketAtLevel(TicketType ticketType, ChunkPos chunkPos, int ticketLevel) {
++        this.ticketStorage.removeTicket(new Ticket(ticketType, ticketLevel), chunkPos);
++    }
++
++    // "real" get chunk if loaded
++    // Note: Partially copied from the getChunkAt method below
++    @Nullable
++    public LevelChunk getChunkAtIfCachedImmediately(int x, int z) {
++        long k = ChunkPos.asLong(x, z);
++
++        // Note: Bypass cache since we need to check ticket level, and to make this MT-Safe
++
++        ChunkHolder playerChunk = this.getVisibleChunkIfPresent(k);
++        if (playerChunk == null) {
++            return null;
++        }
++
++        return playerChunk.getFullChunkNowUnchecked();
++    }
++
++    @Nullable
++    public LevelChunk getChunkAtIfLoadedImmediately(int x, int z) {
++        return this.fullChunks.get(ChunkPos.asLong(x, z));
++    }
++    // Paper end
++
+     public ThreadedLevelLightEngine getLightEngine() {
+         return this.lightEngine;
+     }
 @@ -158,6 +_,12 @@
          if (Thread.currentThread() != this.mainThread) {
              return CompletableFuture.<ChunkAccess>supplyAsync(() -> this.getChunk(p_8360_, p_8361_, p_330876_, p_8363_), this.mainThreadProcessor).join();
          } else {
 +            // Paper start - Perf: Optimise getChunkAt calls for loaded chunks
-+            LevelChunk ifLoaded = this.getChunkAtIfCachedImmediately(x, z);
++            LevelChunk ifLoaded = this.getChunkAtIfCachedImmediately(p_8360_, p_8361_);
 +            if (ifLoaded != null) {
 +                return ifLoaded;
 +            }
@@ -64,9 +129,9 @@
 -        if (p_8460_) {
 +        // CraftBukkit start - don't add new ticket for currently unloading chunk
 +        boolean currentlyUnloading = false;
-+        if (visibleChunkIfPresent != null) {
-+            FullChunkStatus oldChunkState = ChunkLevel.fullStatus(visibleChunkIfPresent.oldTicketLevel);
-+            FullChunkStatus currentChunkState = ChunkLevel.fullStatus(visibleChunkIfPresent.getTicketLevel());
++        if (chunkholder != null) {
++            FullChunkStatus oldChunkState = ChunkLevel.fullStatus(chunkholder.oldTicketLevel);
++            FullChunkStatus currentChunkState = ChunkLevel.fullStatus(chunkholder.getTicketLevel());
 +            currentlyUnloading = (oldChunkState.isOrAfter(FullChunkStatus.FULL) && !currentChunkState.isOrAfter(FullChunkStatus.FULL));
 +        }
 +        if (p_8460_ && !currentlyUnloading) {
@@ -125,6 +190,15 @@
              this.ticketStorage.purgeStaleTickets(this.chunkMap);
          }
  
+@@ -391,7 +_,7 @@
+         List<MobCategory> list;
+         if (flag && (this.spawnEnemies || this.spawnFriendlies)) {
+             boolean flag1 = this.level.getLevelData().getGameTime() % 400L == 0L;
+-            list = NaturalSpawner.getFilteredSpawningCategories(naturalspawner$spawnstate, this.spawnFriendlies, this.spawnEnemies, flag1);
++            list = NaturalSpawner.getFilteredSpawningCategories(naturalspawner$spawnstate, this.spawnFriendlies, this.spawnEnemies, flag1, this.level);
+         } else {
+             list = List.of();
+         }
 @@ -545,8 +_,13 @@
  
      @Override

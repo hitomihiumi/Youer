@@ -30,7 +30,7 @@
 +        io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? p_285290_.getLevel().chunkPacketBlockController.getChunkPacketInfo(this, p_285290_) : null; // Paper - Ant-Xray
 +        this.chunkData = new ClientboundLevelChunkPacketData(p_285290_, chunkPacketInfo); // Paper - Anti-Xray
          this.lightData = new ClientboundLightUpdatePacketData(chunkpos, p_285254_, p_285350_, p_285304_);
-+        chunk.getLevel().chunkPacketBlockController.modifyBlocks(this, chunkPacketInfo); // Paper - Anti-Xray - Modify blocks
++        p_285290_.getLevel().chunkPacketBlockController.modifyBlocks(this, chunkPacketInfo); // Paper - Anti-Xray - Modify blocks
      }
  
      private ClientboundLevelChunkWithLightPacket(RegistryFriendlyByteBuf p_319989_) {

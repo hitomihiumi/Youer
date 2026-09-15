@@ -32,7 +32,7 @@
      @Deprecated
      private final RandomSource threadSafeRandom = RandomSource.createThreadSafe();
      private final Holder<DimensionType> dimensionTypeRegistration;
-@@ -120,6 +_,212 @@
+@@ -120,6 +_,210 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -73,9 +73,7 @@
 +    public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files
 +    public static @Nullable BlockPos lastPhysicsProblem; // Spigot
 +    private int tileTickPosition;
-+    // Youer - deferred: `Map<ServerExplosion.CacheKey, Float> explosionDensityCache` (Paper - Optimize explosions) -
-+    // ServerExplosion.CacheKey doesn't exist yet, ServerExplosion.java isn't fully Paper-merged. Not referenced
-+    // elsewhere in this file; re-add once ServerExplosion.java gains that nested type.
++    public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
 +    public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
 +
 +    // Purpur start - Add adjustable breeding cooldown to config

@@ -35,10 +35,9 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     private final boolean forks;
     private Command<S> command;
     public CommandNode<CommandSourceStack> clientNode; // Paper - Brigadier API
-    // Youer: temporarily disabled for M1 (plain-NeoForge toolchain milestone) — io.papermc.paper is
-    // staged away until M3. Restore alongside the rest of the Paper command-brigadier bridge.
-    // public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> unwrappedCached = null; // Paper - Brigadier Command API
-    // public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> wrappedCached = null; // Paper - Brigadier Command API
+    public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> unwrappedCached = null; // Paper - Brigadier Command API
+    public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> wrappedCached = null; // Paper - Brigadier Command API
+    public io.papermc.paper.command.brigadier.APICommandMeta apiCommandMeta; // Paper - Brigadier Command API
     // CraftBukkit start
     public void removeCommand(String name) {
         this.children.remove(name);

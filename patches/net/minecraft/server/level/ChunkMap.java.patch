@@ -64,7 +64,7 @@
          this.mainThreadExecutor = p_214841_;
          ConsecutiveExecutor consecutiveexecutor1 = new ConsecutiveExecutor(p_214840_, "worldgen");
          this.progressListener = p_214844_;
-@@ -214,6 +_,25 @@
+@@ -214,6 +_,38 @@
          this.chunksToEagerlySave.add(p_381702_.toLong());
      }
  
@@ -82,8 +82,21 @@
 +        }
 +    }
 +
++    // Paper start - per player mob count backoff
++    public void updateFailurePlayerMobTypeMap(int chunkX, int chunkZ, net.minecraft.world.entity.MobCategory mobCategory) {
++        if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
++            return;
++        }
++        final int idx = mobCategory.ordinal();
++        // Youer - moonrise's NearbyPlayers index is excluded; see updatePlayerMobTypeMap
++        for (final ServerPlayer player : this.getPlayers(new ChunkPos(chunkX, chunkZ), false)) {
++            ++(player.mobBackoffCounts[idx]);
++        }
++    }
++    // Paper end - per player mob count backoff
++
 +    public int getMobCountNear(final ServerPlayer player, final net.minecraft.world.entity.MobCategory mobCategory) {
-+        return player.mobCounts[mobCategory.ordinal()];
++        return player.mobCounts[mobCategory.ordinal()] + player.mobBackoffCounts[mobCategory.ordinal()]; // Paper - per player mob count backoff
 +    }
 +    // Paper end - Optional per player mob spawns
 +
@@ -161,14 +174,12 @@
                          this.level.unload(levelchunk1);
                      }
  
-@@ -540,7 +_,9 @@
+@@ -540,7 +_,7 @@
                      this.lightEngine.tryScheduleUpdate();
                      this.progressListener.onStatusChange(chunkaccess.getPos(), null);
                      this.nextChunkSaveTime.remove(chunkaccess.getPos().toLong());
 -                }
-+                } else if (removed) { // Paper start
-+                    ca.spottedleaf.moonrise.common.PlatformHooks.get().onChunkHolderDelete(this.level, p_140183_);
-+                } // Paper end
++                } // Youer - B3: Paper's moonrise onChunkHolderDelete hook is excluded with the chunk system
              }
          }, this.unloadQueue::add).whenComplete((p_381764_, p_381765_) -> {
              if (p_381765_ != null) {

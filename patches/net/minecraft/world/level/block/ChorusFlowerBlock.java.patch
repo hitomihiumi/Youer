@@ -28,7 +28,7 @@
                  }
  
                  if (flag && allNeighborsEmpty(p_220981_, blockpos, null) && p_220981_.isEmptyBlock(p_220982_.above(2))) {
-+                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_220981_, p_220982_, blockpos, this.defaultBlockState().setValue(AGE, ageValue), 2)) { // CraftBukkit - add event
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_220981_, p_220982_, blockpos, this.defaultBlockState().setValue(AGE, i), 2)) { // CraftBukkit - add event
                      p_220981_.setBlock(p_220982_, ChorusPlantBlock.getStateWithConnections(p_220981_, p_220982_, this.plant.defaultBlockState()), 2);
                      this.placeGrownFlower(p_220981_, blockpos, i);
 +                    } // CraftBukkit

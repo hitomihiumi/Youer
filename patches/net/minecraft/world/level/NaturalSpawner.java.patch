@@ -209,7 +209,7 @@
                                  );
                                  if (optional.isEmpty()) {
                                      break;
-@@ -191,28 +_,28 @@
+@@ -191,28 +_,39 @@
  
                                  mobspawnsettings$spawnerdata = optional.get();
                                  k1 = mobspawnsettings$spawnerdata.minCount()
@@ -217,12 +217,25 @@
 +                                    + level.random.nextInt(1 + mobspawnsettings$spawnerdata.maxCount() - mobspawnsettings$spawnerdata.minCount());
                              }
  
-                             if (isValidSpawnPostitionForType(
+-                            if (isValidSpawnPostitionForType(
 -                                    p_47040_, p_47039_, structuremanager, chunkgenerator, mobspawnsettings$spawnerdata, blockpos$mutableblockpos, d2
-+                                    level, category, structuremanager, chunkgenerator, mobspawnsettings$spawnerdata, blockpos$mutableblockpos, d2
-                                 )
+-                                )
 -                                && p_47043_.test(mobspawnsettings$spawnerdata.type(), blockpos$mutableblockpos, p_47041_)) {
 -                                Mob mob = getMobForSpawn(p_47040_, mobspawnsettings$spawnerdata.type());
++                            // Paper start - PreCreatureSpawnEvent
++                            PreSpawnStatus doSpawning = isValidSpawnPostitionForType(
++                                level, category, structuremanager, chunkgenerator, mobspawnsettings$spawnerdata, blockpos$mutableblockpos, d2
++                            );
++                            // Paper start - per player mob count backoff
++                            if (doSpawning == PreSpawnStatus.ABORT || doSpawning == PreSpawnStatus.CANCELLED) {
++                                level.getChunkSource().chunkMap.updateFailurePlayerMobTypeMap(blockpos$mutableblockpos.getX() >> 4, blockpos$mutableblockpos.getZ() >> 4, category);
++                            }
++                            // Paper end - per player mob count backoff
++                            if (doSpawning == PreSpawnStatus.ABORT) {
++                                return;
++                            }
++                            if (doSpawning == PreSpawnStatus.SUCCESS
++                            // Paper end - PreCreatureSpawnEvent
 +                                && filter.test(mobspawnsettings$spawnerdata.type(), blockpos$mutableblockpos, chunk)) {
 +                                Mob mob = getMobForSpawn(level, mobspawnsettings$spawnerdata.type());
                                  if (mob == null) {
@@ -265,6 +278,46 @@
          ServerLevel p_220422_,
          MobCategory p_220423_,
          StructureManager p_220424_,
+@@ -249,20 +_,34 @@
+         double p_220428_
+     ) {
+         EntityType<?> entitytype = p_220426_.type();
++        // Paper start - PreCreatureSpawnEvent
++        com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
++                org.bukkit.craftbukkit.util.CraftLocation.toBukkit(p_220427_, p_220422_),
++                org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(entitytype), org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL
++        );
++        if (!event.callEvent()) {
++            if (event.shouldAbortSpawn()) {
++                return PreSpawnStatus.ABORT;
++            }
++            return PreSpawnStatus.CANCELLED;
++        }
++        final boolean success;
++        // Paper end - PreCreatureSpawnEvent
+         if (entitytype.getCategory() == MobCategory.MISC) {
+-            return false;
++            success = false;
+         } else if (!entitytype.canSpawnFarFromPlayer()
+             && p_220428_ > entitytype.getCategory().getDespawnDistance() * entitytype.getCategory().getDespawnDistance()) {
+-            return false;
++            success = false;
+         } else if (!entitytype.canSummon() || !canSpawnMobAt(p_220422_, p_220424_, p_220425_, p_220423_, p_220426_, p_220427_)) {
+-            return false;
++            success = false;
+         } else if (!SpawnPlacements.isSpawnPositionOk(entitytype, p_220422_, p_220427_)) {
+-            return false;
++            success = false;
+         } else {
+-            return !SpawnPlacements.checkSpawnRules(entitytype, p_220422_, EntitySpawnReason.NATURAL, p_220427_, p_220422_.random)
++            success = !SpawnPlacements.checkSpawnRules(entitytype, p_220422_, EntitySpawnReason.NATURAL, p_220427_, p_220422_.random)
+                 ? false
+                 : p_220422_.noCollision(entitytype.getSpawnAABB(p_220427_.getX() + 0.5, p_220427_.getY(), p_220427_.getZ() + 0.5));
+         }
++        return success ? PreSpawnStatus.SUCCESS : PreSpawnStatus.FAIL; // Paper - PreCreatureSpawnEvent
+     }
+ 
+     @Nullable
 @@ -275,6 +_,7 @@
              LOGGER.warn("Can't spawn entity of type: {}", BuiltInRegistries.ENTITY_TYPE.getKey(p_46990_));
          } catch (Exception exception) {

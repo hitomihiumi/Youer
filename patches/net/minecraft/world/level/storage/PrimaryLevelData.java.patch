@@ -1,10 +1,25 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
-@@ -73,6 +_,7 @@
+@@ -73,6 +_,22 @@
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
      private final TimerQueue<MinecraftServer> scheduledEvents;
 +    private boolean confirmedExperimentalWarning = false;
++
++    // CraftBukkit start - Add world and pdc
++    public net.minecraft.core.Registry<net.minecraft.world.level.dimension.LevelStem> customDimensions;
++    private net.minecraft.server.level.ServerLevel world;
++    protected net.minecraft.nbt.Tag pdc;
++
++    public void setWorld(net.minecraft.server.level.ServerLevel world) {
++        if (this.world != null) {
++            return;
++        }
++        this.world = world;
++        world.getWorld().readBukkitValues(this.pdc);
++        this.pdc = null;
++    }
++    // CraftBukkit end
  
      private PrimaryLevelData(
          @Nullable CompoundTag p_277888_,
@@ -128,10 +143,18 @@
      }
  
      @Override
-@@ -566,10 +_,58 @@
+@@ -566,10 +_,66 @@
          return this.settings.copy();
      }
  
++    // CraftBukkit start - Check if the name stored in NBT is the correct one
++    public void checkName(String name) {
++        if (!this.settings.levelName.equals(name)) {
++            this.settings.levelName = name;
++        }
++    }
++    // CraftBukkit end
++
 +    public boolean hasConfirmedExperimentalWarning() {
 +        return this.confirmedExperimentalWarning;
 +    }

@@ -8,7 +8,7 @@
 -            .forEach(
 -                p_223936_ -> {
 +        // Paper start - Perf: Remove streams from hot code
-+        for (net.minecraft.world.level.levelgen.structure.StructureStart p_223936_ : structureManager.startsForStructure(chunkPos, structure -> {
++        for (net.minecraft.world.level.levelgen.structure.StructureStart p_223936_ : p_223938_.startsForStructure(p_223939_, structure -> {
 +            return structure.terrainAdaptation() != TerrainAdjustment.NONE;
 +        })) { // Paper end - Perf: Remove streams from hot code
                      TerrainAdjustment terrainadjustment = p_223936_.getStructure().terrainAdaptation();

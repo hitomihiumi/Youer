@@ -150,8 +150,8 @@
 +        // CraftBukkit start
 +        Location location = CraftLocation.toBukkit(this.center, this.level.getWorld());
 +        List<org.bukkit.block.Block> blockList = new ObjectArrayList<>();
-+        for (int i1 = blocks.size() - 1; i1 >= 0; i1--) {
-+            org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, blocks.get(i1));
++        for (int i1 = p_362013_.size() - 1; i1 >= 0; i1--) {
++            org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, p_362013_.get(i1));
 +            if (!bblock.getType().isAir()) {
 +                blockList.add(bblock);
 +            }
@@ -173,9 +173,9 @@
 +            this.yield = event.getYield();
 +        }
 +
-+        blocks.clear();
++        p_362013_.clear();
 +        for (org.bukkit.block.Block bblock : bukkitBlocks) {
-+            blocks.add(((org.bukkit.craftbukkit.block.CraftBlock) bblock).getPosition());
++            p_362013_.add(((org.bukkit.craftbukkit.block.CraftBlock) bblock).getPosition());
 +        }
 +
 +        if (this.wasCanceled) {

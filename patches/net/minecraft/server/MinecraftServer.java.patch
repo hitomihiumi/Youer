@@ -43,6 +43,15 @@
      @Nullable
      private KeyPair keyPair;
      @Nullable
+@@ -264,7 +_,7 @@
+     private final StructureTemplateManager structureTemplateManager;
+     private final ServerTickRateManager tickRateManager;
+     public WorldData worldData;
+-    public final PotionBrewing potionBrewing;
++    public PotionBrewing potionBrewing; // Paper - Custom Potion Mixes - remove final
+     private FuelValues fuelValues;
+     private int emptyTicks;
+     private volatile boolean isSaving;
 @@ -272,10 +_,41 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;

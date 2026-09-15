@@ -86,13 +86,13 @@
                      PotionContents potioncontents = itemstack.get(DataComponents.POTION_CONTENTS);
 +                    // Paper start - WitchConsumePotionEvent
 +                    if (itemstack.is(Items.POTION)) {
-+                        com.destroystokyo.paper.holder.entity.WitchConsumePotionEvent holder = new com.destroystokyo.paper.holder.entity.WitchConsumePotionEvent((org.bukkit.entity.Witch) this.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack));
++                        com.destroystokyo.paper.event.entity.WitchConsumePotionEvent holder = new com.destroystokyo.paper.event.entity.WitchConsumePotionEvent((org.bukkit.entity.Witch) this.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack));
 +                        potioncontents = holder.callEvent() ? org.bukkit.craftbukkit.inventory.CraftItemStack.unwrap(holder.getPotion()).get(DataComponents.POTION_CONTENTS) : null;
 +                    }
 +                    // Paper end - WitchConsumePotionEvent
                      if (itemstack.is(Items.POTION) && potioncontents != null) {
 -                        potioncontents.forEachEffect(this::addEffect, itemstack.getOrDefault(DataComponents.POTION_DURATION_SCALE, 1.0F));
-+                        potioncontents.forEachEffect(effect -> this.addEffect(effect, org.bukkit.holder.entity.EntityPotionEffectEvent.Cause.ATTACK), itemstack.getOrDefault(DataComponents.POTION_DURATION_SCALE, 1.0F)); // CraftBukkit
++                        potioncontents.forEachEffect(effect -> this.addEffect(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK), itemstack.getOrDefault(DataComponents.POTION_DURATION_SCALE, 1.0F)); // CraftBukkit
                      }
  
                      this.gameEvent(GameEvent.DRINK);

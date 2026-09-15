@@ -44,7 +44,7 @@
 -        int j = sectionRelative(p_123219_.getY());
 -        int k = sectionRelative(p_123219_.getZ());
 -        return (short)(i << 8 | k << 4 | j << 0);
-+        return (short) ((pos.getX() & 15) << 8 | (pos.getZ() & 15) << 4 | pos.getY() & 15); // Paper - simplify/inline
++        return (short) ((p_123219_.getX() & 15) << 8 | (p_123219_.getZ() & 15) << 4 | p_123219_.getY() & 15); // Paper - simplify/inline
      }
  
      public static int sectionRelativeX(short p_123205_) {

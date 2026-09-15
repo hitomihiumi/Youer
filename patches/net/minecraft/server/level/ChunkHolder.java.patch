@@ -176,7 +176,7 @@
          this.oldTicketLevel = this.ticketLevel;
 +        // CraftBukkit start
 +        // ChunkLoadEvent: Called after the chunk is loaded: isChunkLoaded returns true and chunk is ready to be modified by plugins.
-+        if (!fullChunkStatus.isOrAfter(FullChunkStatus.FULL) && fullchunkstatus1.isOrAfter(FullChunkStatus.FULL)) {
++        if (!fullchunkstatus.isOrAfter(FullChunkStatus.FULL) && fullchunkstatus1.isOrAfter(FullChunkStatus.FULL)) {
 +            this.getFullChunkFuture().thenAccept((either) -> {
 +                LevelChunk chunk = (LevelChunk) either.orElse(null);
 +                if (chunk != null) {

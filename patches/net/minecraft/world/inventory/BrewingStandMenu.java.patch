@@ -1,6 +1,25 @@
 --- a/net/minecraft/world/inventory/BrewingStandMenu.java
 +++ b/net/minecraft/world/inventory/BrewingStandMenu.java
-@@ -45,9 +_,9 @@
+@@ -33,21 +_,26 @@
+     private final Container brewingStand;
+     public final ContainerData brewingStandData;
+     private final Slot ingredientSlot;
++    // CraftBukkit start
++    private @javax.annotation.Nullable org.bukkit.craftbukkit.inventory.view.CraftBrewingStandView view = null;
++    private final Inventory inventory;
++    // CraftBukkit end
+ 
+     public BrewingStandMenu(int p_39090_, Inventory p_39091_) {
+-        this(p_39090_, p_39091_, new SimpleContainer(5), new SimpleContainerData(2));
++        this(p_39090_, p_39091_, new SimpleContainer(5), new io.papermc.paper.inventory.BrewingSimpleContainerData()); // Paper - Add totalBrewTime
+     }
+ 
+     public BrewingStandMenu(int p_39093_, Inventory p_39094_, Container p_39095_, ContainerData p_39096_) {
+         super(MenuType.BREWING_STAND, p_39093_);
++        this.inventory = p_39094_; // CraftBukkit
+         checkContainerSize(p_39095_, 5);
+-        checkContainerDataCount(p_39096_, 2);
++        checkContainerDataCount(p_39096_, 3); // Paper - Add recipeBrewTime
          this.brewingStand = p_39095_;
          this.brewingStandData = p_39096_;
          PotionBrewing potionbrewing = p_39094_.player.level().potionBrewing();

@@ -17,10 +17,30 @@
          );
          List<RecipeHolder<?>> list = new ArrayList<>(sortedmap.size());
          sortedmap.forEach((p_379232_, p_379233_) -> {
-@@ -88,6 +_,7 @@
+@@ -87,7 +_,27 @@
+         LOGGER.info("Loaded {} recipes", p_380231_.values().size());
      }
  
++    // CraftBukkit start
++    public void addRecipe(RecipeHolder<?> holder) {
++        org.spigotmc.AsyncCatcher.catchOp("Recipe Add"); // Spigot
++        this.recipes.addRecipe(holder);
++        this.finalizeRecipeLoading();
++    }
++
++    private FeatureFlagSet featureflagset;
++
++    public void finalizeRecipeLoading() {
++        if (this.featureflagset != null) {
++            this.finalizeRecipeLoading(this.featureflagset);
++
++            net.minecraft.server.MinecraftServer.getServer().getPlayerList().reloadResources();
++        }
++    }
++
      public void finalizeRecipeLoading(FeatureFlagSet p_379660_) {
++        this.featureflagset = p_379660_;
++        // CraftBukkit end
 +        this.recipes.order(this.recipePriorities); // Neo: order recipes by priority.
          List<SelectableRecipe.SingleInputEntry<StonecutterRecipe>> list = new ArrayList<>();
          List<RecipeManager.IngredientCollector> list1 = RECIPE_PROPERTY_SETS.entrySet()

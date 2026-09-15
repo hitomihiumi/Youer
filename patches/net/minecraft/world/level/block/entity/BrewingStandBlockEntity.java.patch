@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
-@@ -37,6 +_,41 @@
+@@ -37,7 +_,43 @@
      private static final short DEFAULT_BREW_TIME = 0;
      private static final byte DEFAULT_FUEL = 0;
      private NonNullList<ItemStack> items = NonNullList.withSize(5, ItemStack.EMPTY);
@@ -40,8 +40,10 @@
 +    }
 +    // CraftBukkit end
      public int brewTime;
++    public int recipeBrewTime = 400; // Paper - Add recipeBrewTime
      private boolean[] lastPotionCount;
      private Item ingredient;
+     public int fuel;
 @@ -47,6 +_,7 @@
              return switch (p_59038_) {
                  case 0 -> BrewingStandBlockEntity.this.brewTime;

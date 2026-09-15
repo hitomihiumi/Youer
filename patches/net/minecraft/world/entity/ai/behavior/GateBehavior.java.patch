@@ -48,7 +48,7 @@
 +        // Paper start - Perf: Remove streams from hot code
 +        for (final BehaviorControl<? super E> behavior : this.behaviors) {
 +            if (behavior.getStatus() == Behavior.Status.RUNNING) {
-+                behavior.doStop(level, p_260250_, gameTime);
++                behavior.doStop(p_259962_, p_260250_, gameTime);
 +            }
 +        }
 +        for (final MemoryModuleType<?> exitErasedMemory : this.exitErasedMemories) {

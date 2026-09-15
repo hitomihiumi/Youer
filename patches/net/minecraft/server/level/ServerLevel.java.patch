@@ -22,7 +22,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -202,95 +_,233 @@
+@@ -202,95 +_,236 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -31,6 +31,8 @@
      private final StructureManager structureManager;
      private final StructureCheck structureCheck;
      private final boolean tickTime;
++    private double preciseTime; // Purpur - Configurable daylight cycle
++    private boolean forceTime; // Purpur - Configurable daylight cycle
      private final RandomSequences randomSequences;
 +    public final PersistentEntitySectionManager<Entity> entityManager; // Youer - fix: field declaration was lost when excising the chunk_system block
 +
@@ -39,6 +41,7 @@
 +    public final java.util.UUID uuid;
 +    public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
 +    public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
++    public boolean hasRidableMoveEvent = false; // Purpur - Ridables
 +    // Youer - deferred: `wireHandler` (Paper - optimize redstone, Alternate Current) - the `alternate.current.wire`
 +    // package isn't vendored in this tree, same as the Level.java deferral. See getWireHandler() below.
 +

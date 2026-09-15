@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/BaseSpawner.java
 +++ b/net/minecraft/world/level/BaseSpawner.java
+@@ -53,6 +_,7 @@
+     public int maxNearbyEntities = 6;
+     public int requiredPlayerRange = 16;
+     public int spawnRange = 4;
++    private int tickDelay = 0; // Paper - Configurable mob spawner tick rate
+ 
+     public void setEntityId(EntityType<?> p_253682_, @Nullable Level p_254041_, RandomSource p_254221_, BlockPos p_254050_) {
+         this.getOrCreateNextSpawnData(p_254041_, p_254221_, p_254050_)
 @@ -84,13 +_,19 @@
      }
  
@@ -30,7 +38,7 @@
 +                            com.destroystokyo.paper.event.entity.PreSpawnerSpawnEvent event = new com.destroystokyo.paper.event.entity.PreSpawnerSpawnEvent(
 +                                org.bukkit.craftbukkit.util.CraftLocation.toBukkit(vec3, p_151312_.getWorld()),
 +                                org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(optional.get()),
-+                                org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, p_151312_)
++                                org.bukkit.craftbukkit.util.CraftLocation.toBukkit(blockpos, p_151312_)
 +                            );
 +                            if (!event.callEvent()) {
 +                                flag = true;

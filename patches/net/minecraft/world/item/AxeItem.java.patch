@@ -9,18 +9,33 @@
      protected static final Map<Block, Block> STRIPPABLES = new Builder<Block, Block>()
          .put(Blocks.OAK_WOOD, Blocks.STRIPPED_OAK_WOOD)
          .put(Blocks.OAK_LOG, Blocks.STRIPPED_OAK_LOG)
-@@ -62,17 +_,29 @@
+@@ -62,17 +_,44 @@
          if (playerHasBlockingItemUseIntent(p_40529_)) {
              return InteractionResult.PASS;
          } else {
 -            Optional<BlockState> optional = this.evaluateNewBlockState(level, blockpos, player, level.getBlockState(blockpos));
-+            Optional<BlockState> optional = this.evaluateNewBlockState(level, blockpos, player, level.getBlockState(blockpos), p_40529_);
-             if (optional.isEmpty()) {
-                 return InteractionResult.PASS;
+-            if (optional.isEmpty()) {
+-                return InteractionResult.PASS;
++            // Purpur start - Tool actionable options
++            // Youer: Purpur's config-driven Actionable wins; NeoForge's tool-modified state is the fallback,
++            // so modded axe behaviour keeps working for blocks purpur.yml does not override.
++            final org.purpurmc.purpur.tool.Actionable actionable =
++                this.evaluateActionable(level, blockpos, player, level.getBlockState(blockpos)).orElse(null);
++            final BlockState state;
++            if (actionable != null) {
++                state = actionable.into().withPropertiesOf(level.getBlockState(blockpos));
              } else {
++                Optional<BlockState> optional = this.evaluateNewBlockState(level, blockpos, player, level.getBlockState(blockpos), p_40529_);
++                if (optional.isEmpty()) {
++                    return InteractionResult.PASS;
++                }
++                state = optional.get();
++            }
++            {
++                // Purpur end - Tool actionable options
                  ItemStack itemstack = p_40529_.getItemInHand();
 +                // Paper start - EntityChangeBlockEvent
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(player, blockpos, optional.get())) {
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(player, blockpos, state)) { // Purpur - Tool actionable options
 +                    return InteractionResult.PASS;
 +                }
 +                // Paper end
@@ -32,22 +47,50 @@
 -                level.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(player, optional.get()));
 +                // Purpur start - Tool actionable options
 +                level.setBlock(blockpos, state, 11);
-+                actionable.drops().forEach((drop, chance) -> {
-+                    if (level.random.nextDouble() < chance) {
-+                        Block.popResourceFromFace(level, blockpos, p_40529_.getClickedFace(), new ItemStack(drop));
-+                    }
-+                });
++                if (actionable != null) {
++                    actionable.drops().forEach((drop, chance) -> {
++                        if (level.random.nextDouble() < chance) {
++                            Block.popResourceFromFace(level, blockpos, p_40529_.getClickedFace(), new ItemStack(drop));
++                        }
++                    });
++                }
 +                level.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(player, state));
 +                // Purpur end - Tool actionable options
                  if (player != null) {
                      itemstack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_40529_.getHand()));
                  }
-@@ -89,20 +_,19 @@
+@@ -89,20 +_,45 @@
              && !player.isSecondaryUseActive();
      }
  
 -    private Optional<BlockState> evaluateNewBlockState(Level p_308922_, BlockPos p_308899_, @Nullable Player p_309192_, BlockState p_308900_) {
 -        Optional<BlockState> optional = this.getStripped(p_308900_);
++    // Purpur start - Tool actionable options
++    private Optional<org.purpurmc.purpur.tool.Actionable> evaluateActionable(Level level, BlockPos pos, @Nullable Player player, BlockState state) {
++        Optional<org.purpurmc.purpur.tool.Actionable> stripped = Optional.ofNullable(level.purpurConfig.axeStrippables.get(state.getBlock()));
++        if (stripped.isPresent()) {
++            level.playSound(getAxeStrippingState(state) != null ? player : null, pos, SoundEvents.AXE_STRIP, SoundSource.BLOCKS, 1.0F, 1.0F); // Purpur - force sound
++            return stripped;
++        } else {
++            Optional<org.purpurmc.purpur.tool.Actionable> previous = Optional.ofNullable(level.purpurConfig.axeWeatherables.get(state.getBlock()));
++            if (previous.isPresent()) {
++                level.playSound(WeatheringCopper.getPrevious(state).isPresent() ? player : null, pos, SoundEvents.AXE_SCRAPE, SoundSource.BLOCKS, 1.0F, 1.0F); // Purpur - force sound
++                level.levelEvent(player, 3005, pos, 0);
++                return previous;
++            } else {
++                Optional<org.purpurmc.purpur.tool.Actionable> waxed = Optional.ofNullable(level.purpurConfig.axeWaxables.get(state.getBlock()));
++                if (waxed.isPresent()) {
++                    level.playSound(net.minecraft.world.item.HoneycombItem.WAX_OFF_BY_BLOCK.get().containsKey(state.getBlock()) ? player : null, pos, SoundEvents.AXE_WAX_OFF, SoundSource.BLOCKS, 1.0F, 1.0F); // Purpur - force sound
++                    level.levelEvent(player, 3004, pos, 0);
++                    return waxed;
++                } else {
++                    return Optional.empty();
++                }
++            }
++        }
++    }
++    // Purpur end - Tool actionable options
++
 +    private Optional<BlockState> evaluateNewBlockState(Level p_308922_, BlockPos p_308899_, @Nullable Player p_309192_, BlockState p_308900_, UseOnContext p_40529_) {
 +        Optional<BlockState> optional = Optional.ofNullable(p_308900_.getToolModifiedState(p_40529_, net.neoforged.neoforge.common.ItemAbilities.AXE_STRIP, false));
          if (optional.isPresent()) {
