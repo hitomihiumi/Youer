@@ -24,7 +24,7 @@
                  ConfiguredFeature<?, ?> configuredfeature1 = holder1.value();
                  BlockState blockstate1 = p_304396_.getFluidState(p_304643_).createLegacyBlock();
                  p_304396_.setBlock(p_304643_, blockstate1, 260);
-@@ -195,4 +_,63 @@
+@@ -195,4 +_,66 @@
  
          return false;
      }
@@ -83,7 +83,10 @@
 +        } else if (feature.is(TreeFeatures.PALE_OAK_CREAKING)) {
 +            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.PALE_OAK_CREAKING;
 +        } else {
-+            throw new IllegalArgumentException("Unknown tree generator " + feature);
++            // Youer start - a modded grower has no vanilla TreeType; NeoForgeInjectBukkit registered one for it
++            org.bukkit.TreeType modded = com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.treeTypeByGrowerName.get(this.name);
++            net.minecraft.world.level.block.SaplingBlock.treeType = modded != null ? modded : org.bukkit.TreeType.TREE;
++            // Youer end
 +        }
 +    }
 +    // CraftBukkit end

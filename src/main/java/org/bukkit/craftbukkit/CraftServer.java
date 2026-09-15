@@ -446,6 +446,11 @@ public final class CraftServer implements Server {
 
         CraftRegistry.setMinecraftRegistry(console.registryAccess());
 
+        // Youer start - bring up the Bukkit/NeoForge bridge
+        com.mohistmc.youer.Youer.bootstrap();
+        com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.init();
+        // Youer end
+
         if (!Main.useConsole) {
             this.getLogger().info("Console input is disabled due to --noconsole command argument");
         }

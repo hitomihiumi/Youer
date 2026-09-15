@@ -19,7 +19,7 @@
      private static final int SLOT_Y_PLACEMENT = 47;
 +    // CraftBukkit start
 +    public static final int DEFAULT_DENIED_COST = -1;
-+    public int maximumRepairCost = 40;
++    public int maximumRepairCost = Math.min(Short.MAX_VALUE, Math.max(41, com.mohistmc.youer.YouerConfig.maximumRepairCost)); // Youer - configurable
 +    public boolean bypassCost = false; // Purpur - Anvil API
 +    public boolean canDoUnsafeEnchants = false; // Purpur - Anvil API
 +    private org.bukkit.craftbukkit.inventory.view.CraftAnvilView bukkitEntity;

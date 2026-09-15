@@ -36,7 +36,7 @@
                              }
  
                              object2intopenhashmap.addTo(mobcategory, 1);
-@@ -95,24 +_,44 @@
+@@ -95,47 +_,111 @@
              }
          }
  
@@ -84,7 +84,10 @@
  
          return list;
      }
-@@ -122,20 +_,63 @@
+ 
+     public static void spawnForChunk(ServerLevel p_47030_, LevelChunk p_47031_, NaturalSpawner.SpawnState p_47032_, List<MobCategory> p_362270_) {
++        if (!com.mohistmc.youer.YouerConfig.spawnForChunk) return; // Youer
+         ProfilerFiller profilerfiller = Profiler.get();
          profilerfiller.push("spawner");
  
          for (MobCategory mobcategory : p_362270_) {
@@ -153,7 +156,7 @@
          }
      }
  
-@@ -154,36 +_,42 @@
+@@ -154,36 +_,43 @@
          NaturalSpawner.SpawnPredicate p_47043_,
          NaturalSpawner.AfterSpawnCallback p_47044_
      ) {
@@ -167,6 +170,7 @@
 +    public static void spawnCategoryForPosition(
 +        MobCategory category, ServerLevel level, ChunkAccess chunk, BlockPos pos, NaturalSpawner.SpawnPredicate filter, NaturalSpawner.AfterSpawnCallback callback, final int maxSpawns, final @Nullable Consumer<Entity> trackEntity
 +    ) {
++        if (!com.mohistmc.youer.YouerConfig.spawnForNatural) return; // Youer
 +        // Paper end - Optional per player mob spawns
 +        StructureManager structuremanager = level.structureManager();
 +        ChunkGenerator chunkgenerator = level.getChunkSource().getGenerator();

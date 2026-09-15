@@ -20,7 +20,7 @@
      public final PlayerDataStorage playerIo;
      private boolean doWhiteList;
      private final LayeredRegistryAccess<RegistryLayer> registries;
-@@ -128,122 +_,295 @@
+@@ -128,122 +_,296 @@
      private boolean allowCommandsForAllPlayers;
      private static final boolean ALLOW_LOGOUTIVATOR = false;
      private int sendAllPlayerInfoIn;
@@ -54,6 +54,7 @@
 +    public void placeNewPlayer(Connection connection, ServerPlayer player, CommonListenerCookie cookie) {
 +        player.isRealPlayer = true; // Paper
 +        player.loginTime = System.currentTimeMillis(); // Paper - Replace OfflinePlayer#getLastPlayed
++        player.getAdvancements().ensureLoaded(); // Youer - sync point: the parse started at login is normally done by now
 +        GameProfile gameProfile = player.getGameProfile();
 +        GameProfileCache profileCache = this.server.getProfileCache();
 +        String string;
@@ -450,7 +451,7 @@
          } else {
              optional = this.playerIo.load(p_11225_, p_422202_);
          }
-@@ -319,80 +_,164 @@
+@@ -319,80 +_,165 @@
      }
  
      protected void save(ServerPlayer p_11277_) {
@@ -519,6 +520,7 @@
 +        }
 +        // Paper end - Drop carried item when player has disconnected
 +        this.save(player);
++        player.getAdvancements().flushSave(); // Youer - the player is leaving: the advancement file must be on disk before this returns
 +        if (player.isPassenger()) {
 +            Entity rootVehicle = player.getRootVehicle();
 +            if (rootVehicle.hasExactlyOnePlayerPassenger()) {
@@ -1169,7 +1171,7 @@
              if (serverplayer != p_11242_ && serverplayer.level().dimension() == p_11247_) {
                  double d0 = p_11243_ - serverplayer.getX();
                  double d1 = p_11244_ - serverplayer.getY();
-@@ -641,9 +_,25 @@
+@@ -641,9 +_,37 @@
      }
  
      public void saveAll() {
@@ -1183,6 +1185,7 @@
 +        final long now = MinecraftServer.currentTick;
          for (int i = 0; i < this.players.size(); i++) {
 -            this.save(this.players.get(i));
+-        }
 +            final ServerPlayer player = this.players.get(i);
 +            if (interval == -1 || now - player.lastSave >= interval) {
 +                this.save(player);
@@ -1191,8 +1194,20 @@
 +                }
 +            }
 +            // Paper end - Incremental chunk and player saving
-         }
++        }
 +        return null; }); // Paper - ensure main
++        // Youer start - asynchronous advancement saving
++        // PlayerAdvancements#save above only submits the write. When saveAll is called off the main
++        // thread (the NeoForge autosave thread, say), wait here for those writes to hit disk. The
++        // vanilla autosave runs on the main thread and must not block: the tick carries on while the
++        // workers drain the queue. Disconnects are covered by remove() -> flushSave, and shutdown by
++        // removeAll(), which saves each player through remove().
++        if (!this.server.isSameThread()) {
++            for (int i = 0; i < this.players.size(); i++) {
++                this.players.get(i).getAdvancements().flushSave();
++            }
++        }
++        // Youer end
      }
  
      public UserWhiteList getWhiteList() {

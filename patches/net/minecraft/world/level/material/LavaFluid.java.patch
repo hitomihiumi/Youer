@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/material/LavaFluid.java
 +++ b/net/minecraft/world/level/material/LavaFluid.java
+@@ -77,6 +_,7 @@
+ 
+     @Override
+     public void randomTick(ServerLevel p_376493_, BlockPos p_230573_, FluidState p_230574_, RandomSource p_230575_) {
++        if (com.mohistmc.youer.feature.ban.bans.BanEvents.banFireTick()) return; // Youer
+         if (p_376493_.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
+             if (p_376493_.getGameRules().getBoolean(GameRules.RULE_ALLOWFIRETICKAWAYFROMPLAYERS) || p_376493_.anyPlayerCloseEnoughForSpawning(p_230573_)) {
+                 int i = p_230575_.nextInt(3);
 @@ -92,7 +_,7 @@
                          BlockState blockstate = p_376493_.getBlockState(blockpos);
                          if (blockstate.isAir()) {

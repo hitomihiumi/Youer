@@ -158,6 +158,14 @@ public class Main {
                         .defaultsTo(new File("paper.yml"))
                         .describedAs("Yml file");
 
+                // Youer start
+                this.acceptsAll(asList("Y", "youer-settings"), "File for Youer settings")
+                        .withRequiredArg()
+                        .ofType(File.class)
+                        .defaultsTo(new File("youer-config", "youer.yml"))
+                        .describedAs("Yml file");
+                // Youer end
+
                 this.acceptsAll(asList("add-plugin", "add-extra-plugin-jar"), "Specify paths to extra plugin jars to be loaded in addition to those in the plugins folder. This argument can be specified multiple times, once for each extra plugin jar path.")
                         .withRequiredArg()
                         .ofType(File.class)

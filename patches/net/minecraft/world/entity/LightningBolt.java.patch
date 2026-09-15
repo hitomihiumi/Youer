@@ -75,11 +75,12 @@
                      entity.thunderHit((ServerLevel)this.level(), this);
                  }
  
-@@ -169,69 +_,89 @@
+@@ -169,69 +_,90 @@
      }
  
      private void spawnFire(int p_20871_) {
 -        if (!this.visualOnly && this.level() instanceof ServerLevel serverlevel && serverlevel.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
++        if (com.mohistmc.youer.feature.ban.bans.BanEvents.banFireTick()) return; // Youer
 +        if (!this.visualOnly && !this.isEffect && this.level() instanceof ServerLevel serverlevel && serverlevel.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) { // Paper - prevent any fire if only effect
              BlockPos blockpos1 = this.blockPosition();
              BlockState blockstate = BaseFireBlock.getState(this.level(), blockpos1);

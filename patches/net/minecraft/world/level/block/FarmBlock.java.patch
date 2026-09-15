@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/level/block/FarmBlock.java
 +++ b/net/minecraft/world/level/block/FarmBlock.java
-@@ -108,15 +_,50 @@
+@@ -108,15 +_,51 @@
  
      @Override
      public void fallOn(Level p_153227_, BlockState p_153228_, BlockPos p_153229_, Entity p_153230_, double p_397639_) {
 +        super.fallOn(p_153227_, p_153228_, p_153229_, p_153230_, p_397639_); // CraftBukkit - moved here as game rules / events shouldn't affect fall damage.
++        if (com.mohistmc.youer.feature.ban.bans.BanEvents.banFarmlandTrample()) return; // Youer - after super.fallOn, so banning trample does not also cancel fall damage
          if (p_153227_ instanceof ServerLevel serverlevel
 -            && p_153227_.random.nextFloat() < p_397639_ - 0.5
 -            && p_153230_ instanceof LivingEntity

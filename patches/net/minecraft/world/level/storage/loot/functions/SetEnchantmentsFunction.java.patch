@@ -1,0 +1,12 @@
+--- a/net/minecraft/world/level/storage/loot/functions/SetEnchantmentsFunction.java
++++ b/net/minecraft/world/level/storage/loot/functions/SetEnchantmentsFunction.java
+@@ -97,6 +_,9 @@
+         }
+ 
+         public SetEnchantmentsFunction.Builder withEnchantment(Holder<Enchantment> p_346114_, NumberProvider p_165376_) {
++            if (com.mohistmc.youer.feature.ban.bans.BanEnchantment.check(p_346114_)) {
++                return this; // Youer - a banned enchantment never enters a loot table
++            }
+             this.enchantments.put(p_346114_, p_165376_);
+             return this;
+         }

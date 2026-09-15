@@ -25,7 +25,7 @@
          if (!this.knownUuids.add(p_157558_.getUUID())) {
              LOGGER.warn("UUID of added entity already exists: {}", p_157558_);
              return false;
-@@ -71,7 +_,16 @@
+@@ -71,7 +_,20 @@
          return this.addEntity(p_157534_, false);
      }
  
@@ -34,7 +34,11 @@
 +    }
 +
      private boolean addEntity(T p_157539_, boolean p_157540_) {
-+        if (p_157539_ instanceof Entity entity && net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityJoinLevelEvent(entity, entity.level(), p_157540_)).isCanceled()) return false;
++        // Youer - entity limits and the entity ban list are checked alongside the NeoForge join event
++        if (p_157539_ instanceof Entity entity && (com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig.INSTANCE.canSpawn(entity)
++                || (!p_157540_ && com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig.INSTANCE.canSpawnInChunk(entity))
++                || com.mohistmc.youer.feature.ban.bans.BanEntity.check(entity)
++                || net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityJoinLevelEvent(entity, entity.level(), p_157540_)).isCanceled())) return false;
 +        return addEntityWithoutEvent(p_157539_, p_157540_);
 +    }
 +

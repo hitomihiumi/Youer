@@ -8,7 +8,7 @@
  
      public RecipeManager(HolderLookup.Provider p_324137_) {
          this.registries = p_324137_;
-@@ -71,7 +_,7 @@
+@@ -71,10 +_,11 @@
      protected RecipeMap prepare(ResourceManager p_379845_, ProfilerFiller p_380058_) {
          SortedMap<ResourceLocation, Recipe<?>> sortedmap = new TreeMap<>();
          SimpleJsonResourceReloadListener.scanDirectory(
@@ -17,10 +17,18 @@
          );
          List<RecipeHolder<?>> list = new ArrayList<>(sortedmap.size());
          sortedmap.forEach((p_379232_, p_379233_) -> {
-@@ -87,7 +_,27 @@
-         LOGGER.info("Loaded {} recipes", p_380231_.values().size());
-     }
++            if (com.mohistmc.youer.feature.ban.bans.BanRecipe.checkBan(p_379232_)) return; // Youer
+             ResourceKey<Recipe<?>> resourcekey = ResourceKey.create(Registries.RECIPE, p_379232_);
+             RecipeHolder<?> recipeholder = new RecipeHolder<>(resourcekey, p_379233_);
+             list.add(recipeholder);
+@@ -84,10 +_,30 @@
  
+     protected void apply(RecipeMap p_380231_, ResourceManager p_44038_, ProfilerFiller p_44039_) {
+         this.recipes = p_380231_;
+-        LOGGER.info("Loaded {} recipes", p_380231_.values().size());
++        LOGGER.info(com.mohistmc.youer.util.I18n.as("recipemanager.loaded", p_380231_.values().size())); // Youer
++    }
++
 +    // CraftBukkit start
 +    public void addRecipe(RecipeHolder<?> holder) {
 +        org.spigotmc.AsyncCatcher.catchOp("Recipe Add"); // Spigot
@@ -36,8 +44,8 @@
 +
 +            net.minecraft.server.MinecraftServer.getServer().getPlayerList().reloadResources();
 +        }
-+    }
-+
+     }
+ 
      public void finalizeRecipeLoading(FeatureFlagSet p_379660_) {
 +        this.featureflagset = p_379660_;
 +        // CraftBukkit end

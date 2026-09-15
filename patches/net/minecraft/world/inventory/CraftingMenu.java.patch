@@ -16,7 +16,7 @@
          this.access = p_39358_;
          this.player = p_39357_.player;
          this.addResultSlot(this.player, 124, 35);
-@@ -57,9 +_,32 @@
+@@ -57,19 +_,44 @@
          CraftingInput craftinginput = p_150550_.asCraftInput();
          ServerPlayer serverplayer = (ServerPlayer)p_150549_;
          ItemStack itemstack = ItemStack.EMPTY;
@@ -52,7 +52,12 @@
          if (optional.isPresent()) {
              RecipeHolder<CraftingRecipe> recipeholder = optional.get();
              CraftingRecipe craftingrecipe = recipeholder.value();
-@@ -70,6 +_,7 @@
+             if (p_150551_.setRecipeUsed(serverplayer, recipeholder)) {
+                 ItemStack itemstack1 = craftingrecipe.assemble(craftinginput, p_379963_.registryAccess());
+-                if (itemstack1.isItemEnabled(p_379963_.enabledFeatures())) {
++                // Youer - a banned item is never craftable
++                if (!com.mohistmc.youer.feature.ban.bans.BanItem.check(serverplayer, itemstack1) && itemstack1.isItemEnabled(p_379963_.enabledFeatures())) {
+                     itemstack = itemstack1;
                  }
              }
          }

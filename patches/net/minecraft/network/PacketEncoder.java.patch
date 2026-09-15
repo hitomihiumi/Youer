@@ -1,7 +1,10 @@
 --- a/net/minecraft/network/PacketEncoder.java
 +++ b/net/minecraft/network/PacketEncoder.java
-@@ -17,28 +_,61 @@
+@@ -15,30 +_,73 @@
+ 
+     public PacketEncoder(ProtocolInfo<T> p_320006_) {
          this.protocolInfo = p_320006_;
++        com.mohistmc.youer.feature.PacketStatistics.startStatisticsUpdater(); // Youer
      }
  
 -    protected void encode(ChannelHandlerContext p_130545_, Packet<T> p_130546_, ByteBuf p_130547_) throws Exception {
@@ -17,6 +20,15 @@
 +            ADVENTURE_LOCALE.set(channelHandlerContext.channel().attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).get()); // Paper - adventure; set player's locale
 +            this.protocolInfo.codec().encode(byteBuf, packet);
 +            int i = byteBuf.readableBytes();
++            // Youer start - per-packet-type traffic accounting for /youer packets
++            if (com.mohistmc.youer.feature.PacketStatistics.isCollecting()) {
++                String packetClassName = packet.getClass().getSimpleName();
++                if (packet instanceof net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket customPayloadPacket) {
++                    packetClassName = customPayloadPacket.payload().type().id().toString();
++                }
++                com.mohistmc.youer.feature.PacketStatistics.updatePacketStats(packetClassName, i);
++            }
++            // Youer end
              if (LOGGER.isDebugEnabled()) {
                  LOGGER.debug(
 -                    Connection.PACKET_SENT_MARKER, "OUT: [{}:{}] {} -> {} bytes", this.protocolInfo.id().id(), packettype, p_130546_.getClass().getName(), i

@@ -52,7 +52,7 @@
      }
  
      @Override
-@@ -102,108 +_,235 @@
+@@ -102,108 +_,239 @@
          Thread thread = new Thread("Server console handler") {
              @Override
              public void run() {
@@ -168,6 +168,10 @@
 +        }
 +        org.purpurmc.purpur.PurpurConfig.registerCommands();
 +        // Purpur end - Purpur config files
++        // Youer start
++        com.mohistmc.youer.YouerConfig.init((java.io.File) this.options.valueOf("youer-settings"));
++        com.mohistmc.youer.YouerConfig.registerCommands();
++        // Youer end
 +        com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
 +
 +        this.setPvpAllowed(properties.pvp);

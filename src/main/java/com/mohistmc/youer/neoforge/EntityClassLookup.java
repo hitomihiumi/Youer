@@ -375,6 +375,12 @@ public class EntityClassLookup {
 
     static {
         // abstract types
+        // Youer start - entity types added between 1.21.1 and 1.21.8
+        add(net.minecraft.world.entity.monster.creaking.Creaking.class, new EntityClass<>(org.bukkit.entity.Creaking.class, org.bukkit.craftbukkit.entity.CraftCreaking.class, org.bukkit.craftbukkit.entity.CraftCreaking::new));
+        add(net.minecraft.world.entity.animal.HappyGhast.class, new EntityClass<>(org.bukkit.entity.HappyGhast.class, org.bukkit.craftbukkit.entity.CraftHappyGhast.class, org.bukkit.craftbukkit.entity.CraftHappyGhast::new));
+        add(net.minecraft.world.entity.animal.AbstractCow.class, new EntityClass<>(org.bukkit.entity.AbstractCow.class, com.mohistmc.youer.bukkit.entity.YouerModsAbstractCow.class, com.mohistmc.youer.bukkit.entity.YouerModsAbstractCow::new));
+        add(net.minecraft.world.entity.projectile.AbstractThrownPotion.class, new EntityClass<>(org.bukkit.entity.ThrownPotion.class, com.mohistmc.youer.bukkit.entity.YouerModsThrownPotion.class, com.mohistmc.youer.bukkit.entity.YouerModsThrownPotion::new));
+        // Youer end
         add(Entity.class, new EntityClass<>(org.bukkit.entity.Entity.class, YouerModsEntity.class, YouerModsEntity::new));
         add(AbstractSkeleton.class, new EntityClass<>(org.bukkit.entity.AbstractSkeleton.class, YouerModsSkeleton.class, YouerModsSkeleton::new));
         add(Mob.class, new EntityClass<>(org.bukkit.entity.Mob.class, YouerModsMob.class, YouerModsMob::new));
@@ -600,20 +606,49 @@ public class EntityClassLookup {
                 io.papermc.paper.entity.Leashable.class,
                 io.papermc.paper.entity.Bucketable.class,
                 io.papermc.paper.entity.Shearable.class,
-                io.papermc.paper.entity.CollarColorable.class
+                io.papermc.paper.entity.CollarColorable.class,
+                // Youer start - Bukkit types with no NMS class of their own to key on
+                // Flying lost its NMS counterpart when 1.21.5 removed FlyingMob; Ghast and Phantom, the
+                // only two that implement it, are mapped on their own classes.
+                org.bukkit.entity.Flying.class,
+                // Sittable is a capability interface mixed into Camel, Cat, Fox, Panda and Parrot.
+                org.bukkit.entity.Sittable.class,
+                // 1.21.2 gave every wood its own Bukkit boat type, but on the NMS side they are still
+                // Boat/ChestBoat/Raft/ChestRaft distinguished by a variant, so there is nothing to key
+                // them on. A modded boat resolves through AbstractBoat/AbstractChestBoat above.
+                org.bukkit.entity.boat.AcaciaBoat.class,
+                org.bukkit.entity.boat.AcaciaChestBoat.class,
+                org.bukkit.entity.boat.BambooChestRaft.class,
+                org.bukkit.entity.boat.BambooRaft.class,
+                org.bukkit.entity.boat.BirchBoat.class,
+                org.bukkit.entity.boat.BirchChestBoat.class,
+                org.bukkit.entity.boat.CherryBoat.class,
+                org.bukkit.entity.boat.CherryChestBoat.class,
+                org.bukkit.entity.boat.DarkOakBoat.class,
+                org.bukkit.entity.boat.DarkOakChestBoat.class,
+                org.bukkit.entity.boat.JungleBoat.class,
+                org.bukkit.entity.boat.JungleChestBoat.class,
+                org.bukkit.entity.boat.MangroveBoat.class,
+                org.bukkit.entity.boat.MangroveChestBoat.class,
+                org.bukkit.entity.boat.OakBoat.class,
+                org.bukkit.entity.boat.OakChestBoat.class,
+                org.bukkit.entity.boat.PaleOakBoat.class,
+                org.bukkit.entity.boat.PaleOakChestBoat.class,
+                org.bukkit.entity.boat.SpruceBoat.class,
+                org.bukkit.entity.boat.SpruceChestBoat.class
+                // Youer end
         );
-        boolean error = false;
-        var adadasd = new HashSet<>(allEntityClasses);
+        // Youer - report the classes that are missing, not the ones that are mapped
+        var missing = new java.util.TreeSet<String>();
         for (Class<?> entityClass : allEntityClasses) {
             if (ignored.contains(entityClass)) continue;
             var optional = NMS_TO_BUKKIT.values().stream().filter(c -> c.bukkitClass == entityClass).findAny();
             if (optional.isEmpty()) {
-                adadasd.remove(entityClass);
-                error = true;
+                missing.add(entityClass.getName());
             }
         }
-        if (error) {
-            throw new RuntimeException("Missing valid entity class mapping: " + adadasd);
+        if (!missing.isEmpty()) {
+            throw new RuntimeException("Missing valid entity class mapping: " + missing);
         }
     }
 

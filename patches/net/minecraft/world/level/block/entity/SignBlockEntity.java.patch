@@ -111,12 +111,15 @@
      }
  
      public boolean setText(SignText p_277733_, boolean p_277720_) {
-@@ -185,24 +_,38 @@
+@@ -185,24 +_,41 @@
          return this.isWaxed() && this.getText(p_278276_).hasAnyClickCommands(p_278240_);
      }
  
 -    public boolean executeClickCommandsIfPresent(ServerLevel p_426215_, Player p_279304_, BlockPos p_278282_, boolean p_278254_) {
 +    public boolean executeClickCommandsIfPresent(ServerLevel level, Player player, BlockPos pos, boolean isFrontText) {
++        if (com.mohistmc.youer.YouerConfig.custom_disabled_sign_commands) {
++            return false; // Youer
++        }
          boolean flag = false;
  
 -        for (Component component : this.getText(p_278254_).getMessages(p_279304_.isTextFilteringEnabled())) {

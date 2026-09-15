@@ -28,10 +28,17 @@
      }
  
      public Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> getTypeNameForDataFixer() {
-@@ -127,6 +_,24 @@
+@@ -127,6 +_,31 @@
      public Pair<BlockPos, Holder<Structure>> findNearestMapStructure(
          ServerLevel p_223038_, HolderSet<Structure> p_223039_, BlockPos p_223040_, int p_223041_, boolean p_223042_
      ) {
++        // Youer start - a banned structure is not locatable
++        for (Holder<Structure> structureHolder : p_223039_) {
++            if (com.mohistmc.youer.feature.ban.bans.BanStructure.checkBan(net.minecraft.core.registries.BuiltInRegistries.STRUCTURE_TYPE.getKey(structureHolder.value().type()))) {
++                return null;
++            }
++        }
++        // Youer end
 +        // Paper start - StructuresLocateEvent
 +        final org.bukkit.World bukkitWorld = p_223038_.getWorld();
 +        final org.bukkit.Location origin = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(p_223040_, p_223038_);
@@ -115,3 +122,12 @@
  
      private static BoundingBox getWritableArea(ChunkAccess p_187718_) {
          ChunkPos chunkpos = p_187718_.getPos();
+@@ -550,6 +_,8 @@
+             p_223105_.structure(), p_383135_, p_223107_, this, this.biomeSource, p_223108_, p_223109_, p_223110_, p_223112_, i, p_223111_, predicate
+         );
+         if (structurestart.isValid()) {
++            // Youer - a banned structure counts as placed so generation moves on without writing it
++            if (com.mohistmc.youer.feature.ban.bans.BanStructure.checkBan(net.minecraft.core.registries.BuiltInRegistries.STRUCTURE_TYPE.getKey(structure.type()))) return true;
+             p_223106_.setStartForStructure(p_223113_, structure, structurestart, p_223111_);
+             return true;
+         } else {

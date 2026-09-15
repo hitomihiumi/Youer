@@ -185,6 +185,16 @@ public class NeoForgeInjectBukkit {
     // Youer - addEnumBiome is gone for the same reason as addEnumArt below: org.bukkit.block.Biome is
     // registry-backed in 1.21.8, so modded biomes need no injection. biomeBiomeMap stays empty.
 
+    // Youer - the Bukkit Environment for a level stem: vanilla's numeric id where there is one,
+    // otherwise the constant addEnumEnvironment registered for the modded dimension
+    public static World.Environment environmentFor(ResourceKey<LevelStem> key, int dimension) {
+        World.Environment known = environment.get(key);
+        if (known != null) {
+            return known;
+        }
+        return World.Environment.getEnvironment(dimension);
+    }
+
     public static void addEnumEnvironment(Registry<LevelStem> registry) {
         int i = World.Environment.values().length;
         for (Entry<ResourceKey<LevelStem>, LevelStem> entry : registry.entrySet()) {

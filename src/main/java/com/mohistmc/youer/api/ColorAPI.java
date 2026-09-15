@@ -30,6 +30,12 @@ public class ColorAPI {
             return text == null ? "" : text;
         }
 
+        // Youer - none of the patterns below can match without one of these two markers, and this method
+        // sits on Component#literal, so skip the four regex passes for ordinary text
+        if (text.indexOf('&') < 0 && text.indexOf('<') < 0) {
+            return text;
+        }
+
         String processed = text;
         processed = processGradients(processed);
         processed = processSolidColors(processed);

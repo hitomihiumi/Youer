@@ -1,0 +1,25 @@
+--- a/net/minecraft/advancements/AdvancementProgress.java
++++ b/net/minecraft/advancements/AdvancementProgress.java
+@@ -53,6 +_,22 @@
+         this.criteria = Maps.newHashMap();
+     }
+ 
++    // Youer start - deep copy for the asynchronous advancement save
++    // The worker thread encodes this snapshot while the main thread keeps mutating the live progress
++    // (award/revoke), so the copy must not share any mutable state. AdvancementRequirements is a
++    // record and can be shared; the codec only reads criteria and isDone().
++    public AdvancementProgress snapshot() {
++        Map<String, CriterionProgress> copy = new HashMap<>(this.criteria.size());
++        this.criteria.forEach((criterion, criterionprogress) -> {
++            java.time.Instant obtained = criterionprogress.getObtained();
++            copy.put(criterion, obtained == null ? new CriterionProgress() : new CriterionProgress(obtained));
++        });
++        AdvancementProgress advancementprogress = new AdvancementProgress(copy);
++        advancementprogress.requirements = this.requirements;
++        return advancementprogress;
++    }
++    // Youer end
++
+     public void update(AdvancementRequirements p_301278_) {
+         Set<String> set = p_301278_.names();
+         this.criteria.entrySet().removeIf(p_8203_ -> !set.contains(p_8203_.getKey()));

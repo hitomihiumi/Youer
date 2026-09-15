@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/item/equipment/Equippable.java
++++ b/net/minecraft/world/item/equipment/Equippable.java
+@@ -126,6 +_,7 @@
+     }
+ 
+     public InteractionResult swapWithEquipmentSlot(ItemStack p_371218_, Player p_371907_) {
++        if (com.mohistmc.youer.feature.ban.bans.BanItem.check(p_371907_, p_371218_)) return InteractionResult.FAIL; // Youer
+         if (p_371907_.canUseSlot(this.slot) && this.canBeEquippedBy(p_371907_.getType())) {
+             ItemStack itemstack = p_371907_.getItemBySlot(this.slot);
+             if ((!EnchantmentHelper.has(itemstack, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE) || p_371907_.isCreative())

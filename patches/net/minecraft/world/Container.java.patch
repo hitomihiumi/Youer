@@ -11,7 +11,7 @@
  
      default int getMaxStackSize(ItemStack p_335963_) {
          return Math.min(this.getMaxStackSize(), p_335963_.getMaxStackSize());
-@@ -120,4 +_,28 @@
+@@ -120,4 +_,33 @@
              }
          }
      }
@@ -25,7 +25,12 @@
 +
 +    java.util.List<org.bukkit.entity.HumanEntity> getViewers();
 +
-+    @javax.annotation.Nullable org.bukkit.inventory.InventoryHolder getOwner();
++    // Youer - default so a modded Container need not implement it; a block entity resolves through InventoryOwner
++    @javax.annotation.Nullable default org.bukkit.inventory.InventoryHolder getOwner() {
++        return this instanceof net.minecraft.world.level.block.entity.BlockEntity blockEntity
++                ? com.mohistmc.youer.bukkit.inventory.InventoryOwner.get(blockEntity)
++                : null;
++    }
 +
 +    void setMaxStackSize(int size);
 +

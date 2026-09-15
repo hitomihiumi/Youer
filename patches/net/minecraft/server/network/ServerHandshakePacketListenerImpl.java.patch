@@ -81,10 +81,10 @@
 +        if (packet.protocolVersion() != SharedConstants.getCurrentVersion().protocolVersion()) {
 +            net.kyori.adventure.text.Component adventureComponent; // Paper - Fix hex colors not working in some kick messages
 +            if (packet.protocolVersion() < SharedConstants.getCurrentVersion().protocolVersion()) { // Spigot - SPIGOT-7546: Handle version check correctly for outdated client message
-+                adventureComponent = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedClientMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().name())); // Spigot // Paper - Fix hex colors not working in some kick messages
++                adventureComponent = com.mohistmc.youer.api.ColorAPI.adventure(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedClientMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().name())); // Youer - also expand Youer's colour tokens // Spigot // Paper - Fix hex colors not working in some kick messages
              } else {
 -                component = Component.translatable("multiplayer.disconnect.incompatible", SharedConstants.getCurrentVersion().name());
-+                adventureComponent = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedServerMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().name())); // Spigot // Paper - Fix hex colors not working in some kick messages
++                adventureComponent = com.mohistmc.youer.api.ColorAPI.adventure(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedServerMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().name())); // Youer - also expand Youer's colour tokens // Spigot // Paper - Fix hex colors not working in some kick messages
              }
 +            Component component = io.papermc.paper.adventure.PaperAdventure.asVanilla(adventureComponent); // Paper - Fix hex colors not working in some kick messages
  

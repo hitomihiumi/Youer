@@ -21,3 +21,15 @@
      Style getStyle();
  
      ComponentContents getContents();
+@@ -132,6 +_,11 @@
+     }
+ 
+     static MutableComponent literal(String p_237114_) {
++        // Youer - expand Youer's colour tokens, but only for text that can actually carry one:
++        // literal() is hot enough that loading ColorAPI for every plain string would be wasteful
++        if (p_237114_ != null && (p_237114_.indexOf('&') >= 0 || p_237114_.indexOf('<') >= 0)) {
++            return MutableComponent.create(PlainTextContents.create(com.mohistmc.youer.api.ColorAPI.string(p_237114_)));
++        }
+         return MutableComponent.create(PlainTextContents.create(p_237114_));
+     }
+ 

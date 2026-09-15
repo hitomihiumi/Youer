@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhase.java
++++ b/net/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhase.java
+@@ -61,6 +_,23 @@
+         EnderDragonPhase<T> enderdragonphase = new EnderDragonPhase<>(phases.length, p_31403_, p_31404_);
+         phases = Arrays.copyOf(phases, phases.length + 1);
+         phases[enderdragonphase.getId()] = enderdragonphase;
++        // Youer start - a mod-added phase needs a matching Bukkit EnderDragon.Phase constant
++        if (enderdragonphase.getId() > 10) {
++            org.bukkit.entity.EnderDragon.Phase bukkit = com.mohistmc.dynamicenum.MohistDynamEnum.addEnum(org.bukkit.entity.EnderDragon.Phase.class, enderdragonphase.getName());
++            com.mohistmc.youer.api.ServerAPI.phasetypeMap.put(enderdragonphase.getId(), bukkit);
++            com.mohistmc.youer.Youer.LOGGER.debug("Registered forge PhaseType as EnderDragon.Phase {}", bukkit);
++        }
++        // Youer end
+         return enderdragonphase;
+     }
++
++    // Youer start
++    public static EnderDragonPhase<?>[] getPhases() {
++        return phases;
++    }
++
++    public String getName() {
++        return this.name;
++    }
++    // Youer end
+ }

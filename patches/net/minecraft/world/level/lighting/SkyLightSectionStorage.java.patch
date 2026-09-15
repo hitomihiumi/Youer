@@ -1,0 +1,12 @@
+--- a/net/minecraft/world/level/lighting/SkyLightSectionStorage.java
++++ b/net/minecraft/world/level/lighting/SkyLightSectionStorage.java
+@@ -24,6 +_,9 @@
+     }
+ 
+     protected int getLightValue(long p_164458_, boolean p_164459_) {
++        if (com.mohistmc.youer.YouerConfig.SkyLight15) {
++            return 15; // Youer - force full sky light
++        }
+         long i = SectionPos.blockToSection(p_164458_);
+         int j = SectionPos.y(i);
+         SkyLightSectionStorage.SkyDataLayerStorageMap skylightsectionstorage$skydatalayerstoragemap = p_164459_

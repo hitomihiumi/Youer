@@ -14,7 +14,7 @@
          return new Language() {
              @Override
              public String getOrDefault(String p_128127_, String p_265421_) {
-@@ -65,21 +_,51 @@
+@@ -65,21 +_,64 @@
                      )
                      .isPresent();
              }
@@ -37,6 +37,19 @@
 +    }
 +
 +    private static void parseTranslations(BiConsumer<String, String> p_282031_, BiConsumer<String, net.minecraft.network.chat.Component> componentConsumer, String p_283638_) {
++        // Youer start - prefer the language youer.yml asks for, and fall back to the vanilla default file
++        try {
++            String lang = com.mohistmc.youer.YouerConfig.youer_lang().toLowerCase(java.util.Locale.ROOT);
++            try (InputStream youerStream = Language.class.getResourceAsStream("/assets/minecraft/lang/%s.json".formatted(lang))) {
++                if (youerStream != null) {
++                    loadFromJson(youerStream, p_282031_, componentConsumer);
++                    return;
++                }
++            }
++        } catch (Throwable throwable) {
++            LOGGER.warn("Couldn't read Youer's configured language, falling back to {}", p_283638_, throwable);
++        }
++        // Youer end
          try (InputStream inputstream = Language.class.getResourceAsStream(p_283638_)) {
 -            loadFromJson(inputstream, p_282031_);
 +            loadFromJson(inputstream, p_282031_, componentConsumer);

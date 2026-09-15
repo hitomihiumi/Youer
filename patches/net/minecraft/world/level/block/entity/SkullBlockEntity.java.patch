@@ -69,6 +69,16 @@
      }
  
      public static void clear() {
+@@ -169,6 +_,9 @@
+     }
+ 
+     private void updateOwnerProfile() {
++        if (com.mohistmc.youer.YouerConfig.disable_skullblock_skin) {
++            return; // Youer - skip the blocking profile lookup entirely
++        }
+         if (this.owner != null && !this.owner.isResolved()) {
+             this.owner.resolve().thenAcceptAsync(p_332638_ -> {
+                 this.owner = p_332638_;
 @@ -186,9 +_,11 @@
              : CompletableFuture.completedFuture(Optional.empty());
      }

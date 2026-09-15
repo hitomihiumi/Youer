@@ -411,7 +411,7 @@
      }
  
      protected final AABB makeBoundingBox() {
-@@ -469,12 +_,34 @@
+@@ -469,12 +_,37 @@
      }
  
      public void tick() {
@@ -442,6 +442,9 @@
      public void baseTick() {
 -        ProfilerFiller profilerfiller = Profiler.get();
 -        profilerfiller.push("entityBaseTick");
++        if (com.mohistmc.youer.feature.ban.bans.BanEntity.check(this)) {
++            this.discard(); // Youer - a banned entity never gets to tick
++        }
 +        ProfilerFiller profilerFiller = Profiler.get();
 +        profilerFiller.push("entityBaseTick");
 +        if (firstTick && this instanceof net.minecraft.world.entity.NeutralMob neutralMob) neutralMob.tickInitialPersistentAnger(level); // Paper - Prevent entity loading causing async lookups
@@ -2072,17 +2075,22 @@
              }
          }
      }
-@@ -2414,8 +_,8 @@
+@@ -2414,9 +_,12 @@
                      TeleportTransition teleporttransition = this.portalProcess.getPortalDestination(serverlevel, this);
                      if (teleporttransition != null) {
                          ServerLevel serverlevel1 = teleporttransition.newLevel();
 -                        if (serverlevel.getServer().isLevelEnabled(serverlevel1)
 -                            && (serverlevel1.dimension() == serverlevel.dimension() || this.canTeleport(serverlevel, serverlevel1))) {
+-                            this.teleport(teleporttransition);
 +                        if (this instanceof ServerPlayer // CraftBukkit - always call event for players
 +                            || (serverlevel1 != null && (serverlevel1.dimension() == serverlevel.dimension() || this.canTeleport(serverlevel, serverlevel1)))) { // CraftBukkit
-                             this.teleport(teleporttransition);
++                            // Youer - non-player entities only travel between dimensions when the option allows it
++                            if (this instanceof ServerPlayer || com.mohistmc.youer.YouerConfig.custom_entity_tp_nether) {
++                                this.teleport(teleporttransition);
++                            }
                          }
                      }
+ 
 @@ -2496,7 +_,7 @@
      }
  

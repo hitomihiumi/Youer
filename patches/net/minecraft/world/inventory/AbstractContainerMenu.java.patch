@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
-@@ -67,6 +_,50 @@
+@@ -67,6 +_,73 @@
      @Nullable
      private ContainerSynchronizer synchronizer;
      private boolean suppressRemoteUpdates;
@@ -20,10 +20,33 @@
 +        }
 +        return this.bukkitView;
 +    }
++
++    // Youer - synthesize a view for another menu that has not been given one yet
++    public org.bukkit.inventory.InventoryView getBukkitView(AbstractContainerMenu other) {
++        if (other.bukkitView == null && other.containerOwner != null) {
++            org.bukkit.inventory.Inventory view = new org.bukkit.craftbukkit.inventory.CraftInventory(new com.mohistmc.youer.bukkit.inventory.YouerModsInventory(other, other.containerOwner));
++            view.getType().setMods(true);
++            return new org.bukkit.craftbukkit.inventory.CraftInventoryView<>(other.containerOwner.getBukkitEntity(), view, other);
++        }
++        return other.bukkitView;
++    }
 +    // Youer end
 +
 +    public void transferTo(AbstractContainerMenu other, org.bukkit.craftbukkit.entity.CraftHumanEntity player) {
++        // Youer start - a modded menu only learns its owner here, and either side may still lack a view
++        other.containerOwner = player.getHandle();
++        this.containerOwner = player.getHandle();
 +        org.bukkit.inventory.InventoryView source = this.getBukkitView(), destination = other.getBukkitView();
++        if (destination == null) {
++            destination = this.getBukkitView(other);
++        }
++        if (source == null) {
++            source = this.getBukkitView(this);
++        }
++        if (source == null || destination == null) {
++            return;
++        }
++        // Youer end
 +        ((org.bukkit.craftbukkit.inventory.CraftInventory) source.getTopInventory()).getInventory().onClose(player);
 +        ((org.bukkit.craftbukkit.inventory.CraftInventory) source.getBottomInventory()).getInventory().onClose(player);
 +        ((org.bukkit.craftbukkit.inventory.CraftInventory) destination.getTopInventory()).getInventory().onOpen(player);

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/enchantment/ItemEnchantments.java
 +++ b/net/minecraft/world/item/enchantment/ItemEnchantments.java
-@@ -28,26 +_,29 @@
+@@ -28,32 +_,38 @@
  import net.minecraft.world.item.component.TooltipProvider;
  
  public class ItemEnchantments implements TooltipProvider {
@@ -37,7 +37,16 @@
                  throw new IllegalArgumentException("Enchantment " + entry.getKey() + " has invalid level " + i);
              }
          }
-@@ -124,7 +_,7 @@
+     }
+ 
+     public int getLevel(Holder<Enchantment> p_345693_) {
++        if (com.mohistmc.youer.feature.ban.bans.BanEnchantment.check(p_345693_)) {
++            return 0; // Youer - a banned enchantment reads as absent; the map itself is immutable here
++        }
+         return this.enchantments.getInt(p_345693_);
+     }
+ 
+@@ -124,23 +_,36 @@
      }
  
      public static class Mutable {
@@ -45,8 +54,20 @@
 +        private final it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<Holder<Enchantment>> enchantments = new it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap<>(ENCHANTMENT_ORDER); // Paper - sort enchantments
  
          public Mutable(ItemEnchantments p_330722_) {
-             this.enchantments.putAll(p_330722_.enchantments);
-@@ -134,13 +_,13 @@
+-            this.enchantments.putAll(p_330722_.enchantments);
++            // Youer - drop banned enchantments as the stack is copied for editing
++            for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<Holder<Enchantment>> entry : p_330722_.enchantments.object2IntEntrySet()) {
++                if (!com.mohistmc.youer.feature.ban.bans.BanEnchantment.check(entry.getKey())) {
++                    this.enchantments.put(entry.getKey(), entry.getIntValue());
++                }
++            }
+         }
+ 
+         public void set(Holder<Enchantment> p_344861_, int p_330832_) {
++            if (com.mohistmc.youer.feature.ban.bans.BanEnchantment.check(p_344861_)) {
++                this.enchantments.removeInt(p_344861_); // Youer
++                return;
++            }
              if (p_330832_ <= 0) {
                  this.enchantments.removeInt(p_344861_);
              } else {
@@ -56,6 +77,10 @@
          }
  
          public void upgrade(Holder<Enchantment> p_346263_, int p_331153_) {
++            if (com.mohistmc.youer.feature.ban.bans.BanEnchantment.check(p_346263_)) {
++                this.enchantments.removeInt(p_346263_); // Youer
++                return;
++            }
              if (p_331153_ > 0) {
 -                this.enchantments.merge(p_346263_, Math.min(p_331153_, 255), Integer::max);
 +                this.enchantments.merge(p_346263_, Math.min(p_331153_, (org.purpurmc.purpur.PurpurConfig.clampEnchantLevels ? 255 : 32767)), Integer::max); // Purpur - Add toggle for enchant level clamping

@@ -71,7 +71,15 @@
          for (Entry<Holder<Enchantment>> entry : itemenchantments.entrySet()) {
              Holder<Enchantment> holder = entry.getKey();
              if (holder.is(p_345928_)) {
-@@ -594,7 +_,9 @@
+@@ -540,6 +_,7 @@
+         }
+ 
+         for (EnchantmentInstance enchantmentinstance : list) {
++            if (com.mohistmc.youer.feature.ban.bans.BanEnchantment.check(enchantmentinstance.enchantment())) continue; // Youer
+             p_220294_.enchant(enchantmentinstance.enchantment(), enchantmentinstance.level());
+         }
+ 
+@@ -594,8 +_,11 @@
      public static List<EnchantmentInstance> getAvailableEnchantmentResults(int p_44818_, ItemStack p_44819_, Stream<Holder<Enchantment>> p_345348_) {
          List<EnchantmentInstance> list = Lists.newArrayList();
          boolean flag = p_44819_.is(Items.BOOK);
@@ -80,8 +88,10 @@
 +        // The original logic is recorded in the default implementation of IItemExtension#isPrimaryItemFor.
 +        p_345348_.filter(p_44819_::isPrimaryItemFor).forEach(p_344478_ -> {
              Enchantment enchantment = p_344478_.value();
++            if (com.mohistmc.youer.feature.ban.bans.BanEnchantment.check(p_344478_)) return; // Youer - never offer a banned enchantment
  
              for (int i = enchantment.getMaxLevel(); i >= enchantment.getMinLevel(); i--) {
+                 if (p_44818_ >= enchantment.getMinCost(i) && p_44818_ <= enchantment.getMaxCost(i)) {
 @@ -625,4 +_,58 @@
      public interface EnchantmentVisitor {
          void accept(Holder<Enchantment> p_346050_, int p_44946_);

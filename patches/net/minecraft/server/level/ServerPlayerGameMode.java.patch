@@ -310,7 +310,7 @@
      }
  
      public void destroyAndAck(BlockPos p_215117_, int p_215118_, String p_215119_) {
-@@ -234,40 +_,135 @@
+@@ -234,40 +_,139 @@
          }
      }
  
@@ -319,6 +319,10 @@
 -        if (!this.player.getMainHandItem().canDestroyBlock(blockstate1, this.level, p_9281_, this.player)) {
 +    public boolean destroyBlock(BlockPos pos) {
 +        BlockState blockState = this.level.getBlockState(pos);
++        // Youer start - banned blocks cannot be broken, and a player holding a banned item cannot break anything
++        if (com.mohistmc.youer.feature.ban.bans.BanBlock.check(blockState)) return false;
++        if (com.mohistmc.youer.feature.ban.bans.BanItem.check(this.player)) return false;
++        // Youer end
 +        var neoBreakEvent = net.neoforged.neoforge.common.CommonHooks.fireBlockBreak(level, gameModeForPlayer, player, pos, blockState);
 +        if (neoBreakEvent.isCanceled()) {
 +            return false;
@@ -488,7 +492,7 @@
                  }
  
                  return interactionresult;
-@@ -308,56 +_,102 @@
+@@ -308,56 +_,110 @@
          }
      }
  
@@ -496,6 +500,7 @@
 -        BlockPos blockpos = p_9270_.getBlockPos();
 -        BlockState blockstate = p_9267_.getBlockState(blockpos);
 -        if (!blockstate.getBlock().isEnabled(p_9267_.enabledFeatures())) {
+-            return InteractionResult.FAIL;
 +    // CraftBukkit start - whole method
 +    public boolean interactResult = false;
 +    public boolean firedInteract = false;
@@ -504,12 +509,27 @@
 +    public ItemStack interactItemStack;
 +    public InteractionResult useItemOn(ServerPlayer player, Level level, ItemStack stack, InteractionHand hand, BlockHitResult hitResult) {
 +        if (shiftClickMended(stack)) return InteractionResult.SUCCESS; // Purpur - Shift right click to use exp for mending
++        // Youer start - banned items and blocks
++        if (com.mohistmc.youer.feature.ban.bans.BanItem.checkMoShou(player, stack)) {
++            player.setItemInHand(hand, ItemStack.EMPTY);
++            return InteractionResult.FAIL;
++        }
++        if (com.mohistmc.youer.feature.ban.bans.BanItem.check(player, stack)) return InteractionResult.FAIL;
++        // Youer end
 +        BlockPos blockPos = hitResult.getBlockPos();
 +        BlockState blockState = level.getBlockState(blockPos);
++        // Youer start - a banned block cannot be interacted with; resync the client the same way a
++        // denied PlayerInteractEvent does, otherwise it keeps showing the interaction it never got
++        if (com.mohistmc.youer.feature.ban.bans.BanBlock.check(blockState)
++                || com.mohistmc.youer.feature.ban.bans.BanItem.check(player, blockState.getBlock().asItem().getDefaultInstance())) {
++            this.resyncDeniedInteraction(blockState, hand);
++            return InteractionResult.FAIL;
++        }
++        // Youer end
 +        boolean cancelledBlock = false;
 +        boolean cancelledItem = false; // Paper - correctly handle items on cooldown
 +        if (!blockState.getBlock().isEnabled(level.enabledFeatures())) {
-             return InteractionResult.FAIL;
++            return InteractionResult.FAIL;
 +        }
 +        net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock neoRightClickEvent = net.neoforged.neoforge.common.CommonHooks.onRightClickBlock(player, hand, blockPos, hitResult);
 +        if (neoRightClickEvent.isCanceled()) return neoRightClickEvent.getCancellationResult();
@@ -529,14 +549,7 @@
 +        this.interactItemStack = stack.copy();
 +
 +        if (event.useInteractedBlock() == org.bukkit.event.Event.Result.DENY) {
-+            // Block acks will take care of most of it, just handle some special cases here
-+            if (blockState.getBlock() instanceof net.minecraft.world.level.block.CakeBlock) {
-+                player.getBukkitEntity().sendHealthUpdate(); // SPIGOT-1341 - reset health for cake
-+            } else if (blockState.is(net.minecraft.world.level.block.Blocks.JIGSAW) || blockState.is(net.minecraft.world.level.block.Blocks.STRUCTURE_BLOCK) || blockState.getBlock() instanceof net.minecraft.world.level.block.CommandBlock) {
-+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(this.player.containerMenu.containerId));
-+            }
-+            player.containerMenu.forceHeldSlot(hand); // SPIGOT-2867
-+            this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
++            this.resyncDeniedInteraction(blockState, hand); // Youer - shared with the banned-block path above
 +            return (event.useItemInHand() != org.bukkit.event.Event.Result.ALLOW) ? InteractionResult.SUCCESS : InteractionResult.PASS;
          } else if (this.gameModeForPlayer == GameType.SPECTATOR) {
 -            MenuProvider menuprovider = blockstate.getMenuProvider(p_9267_, blockpos);
@@ -626,7 +639,7 @@
                  return InteractionResult.PASS;
              }
          }
-@@ -366,4 +_,18 @@
+@@ -366,4 +_,30 @@
      public void setLevel(ServerLevel p_9261_) {
          this.level = p_9261_;
      }
@@ -644,4 +657,16 @@
 +        return false;
 +    }
 +    // Purpur end - Shift right click to use exp for mending
++
++    // Youer - block acks cover most of a denied interaction; these are the special cases
++    private void resyncDeniedInteraction(BlockState blockState, InteractionHand hand) {
++        if (blockState.getBlock() instanceof net.minecraft.world.level.block.CakeBlock) {
++            this.player.getBukkitEntity().sendHealthUpdate(); // SPIGOT-1341 - reset health for cake
++        } else if (blockState.is(net.minecraft.world.level.block.Blocks.JIGSAW) || blockState.is(net.minecraft.world.level.block.Blocks.STRUCTURE_BLOCK) || blockState.getBlock() instanceof net.minecraft.world.level.block.CommandBlock) {
++            this.player.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(this.player.containerMenu.containerId));
++        }
++        this.player.containerMenu.forceHeldSlot(hand); // SPIGOT-2867
++        this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
++    }
++
  }

@@ -8,10 +8,13 @@
      StreamCodec<RegistryFriendlyByteBuf, Recipe<?>> STREAM_CODEC = ByteBufCodecs.registry(Registries.RECIPE_SERIALIZER)
          .dispatch(Recipe::getSerializer, RecipeSerializer::streamCodec);
  
-@@ -46,4 +_,6 @@
+@@ -46,4 +_,9 @@
      }
  
      RecipeBookCategory recipeBookCategory();
 +
-+    org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id); // CraftBukkit
++    // Youer - a modded recipe class does not implement toBukkitRecipe; present it to plugins as a complex recipe
++    default org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id) { // CraftBukkit
++        return new com.mohistmc.youer.neoforge.ModSpecialRecipe(id, this);
++    }
  }

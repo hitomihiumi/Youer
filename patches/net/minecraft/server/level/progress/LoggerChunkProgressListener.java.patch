@@ -1,0 +1,11 @@
+--- a/net/minecraft/server/level/progress/LoggerChunkProgressListener.java
++++ b/net/minecraft/server/level/progress/LoggerChunkProgressListener.java
+@@ -58,7 +_,7 @@
+ 
+     @Override
+     public void stop() {
+-        LOGGER.info("Time elapsed: {} ms", Util.getMillis() - this.startTime);
++        LOGGER.info(com.mohistmc.youer.util.I18n.as("loggerchunkprogresslistener.timeelapsed", Util.getMillis() - this.startTime)); // Youer
+         this.nextTickTime = Long.MAX_VALUE;
+     }
+ 

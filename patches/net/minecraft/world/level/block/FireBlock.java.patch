@@ -45,11 +45,12 @@
                  }
              }
  
-@@ -143,7 +_,7 @@
+@@ -143,7 +_,8 @@
  
      @Override
      protected void tick(BlockState p_221160_, ServerLevel p_221161_, BlockPos p_221162_, RandomSource p_221163_) {
 -        p_221161_.scheduleTick(p_221162_, this, getFireTickDelay(p_221161_.random));
++        if (com.mohistmc.youer.feature.ban.bans.BanEvents.banFireTick()) return; // Youer
 +        p_221161_.scheduleTick(p_221162_, this, FireBlock.getFireTickDelay(p_221161_));
          if (p_221161_.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
              if (p_221161_.getGameRules().getBoolean(GameRules.RULE_ALLOWFIRETICKAWAYFROMPLAYERS) || p_221161_.anyPlayerCloseEnoughForSpawning(p_221162_)) {

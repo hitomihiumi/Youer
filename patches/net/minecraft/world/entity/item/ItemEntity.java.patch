@@ -254,7 +254,7 @@
      }
  
      @Override
-@@ -321,29 +_,113 @@
+@@ -321,29 +_,114 @@
          this.health = p_421942_.getShortOr("Health", (short)5);
          this.age = p_421942_.getShortOr("Age", (short)0);
          this.pickupDelay = p_421942_.getShortOr("PickupDelay", (short)0);
@@ -294,6 +294,7 @@
 -                p_32040_.awardStat(Stats.ITEM_PICKED_UP.get(item), i);
 -                p_32040_.onItemPickup(this);
 +            ItemStack item = this.getItem();
++            if (com.mohistmc.youer.feature.ban.bans.BanItem.checkMoShou(entity, item)) return; // Youer
 +            Item item1 = item.getItem();
 +            int count = item.getCount();
 +

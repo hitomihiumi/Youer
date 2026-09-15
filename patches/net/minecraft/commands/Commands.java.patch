@@ -138,6 +138,17 @@
              BanIpCommands.register(this.dispatcher);
              BanListCommands.register(this.dispatcher);
              BanPlayerCommands.register(this.dispatcher);
+@@ -268,6 +_,10 @@
+             OpCommand.register(this.dispatcher);
+             PardonCommand.register(this.dispatcher);
+             PardonIpCommand.register(this.dispatcher);
++            // Youer start - /unban and /unbanip cover Youer's own ban store
++            com.mohistmc.youer.commands.UnbanCommand.register(this.dispatcher);
++            com.mohistmc.youer.commands.UnBanIpCommand.register(this.dispatcher);
++            // Youer end
+             PerfCommand.register(this.dispatcher);
+             SaveAllCommand.register(this.dispatcher);
+             SaveOffCommand.register(this.dispatcher);
 @@ -276,12 +_,57 @@
              StopCommand.register(this.dispatcher);
              TransferCommand.register(this.dispatcher);

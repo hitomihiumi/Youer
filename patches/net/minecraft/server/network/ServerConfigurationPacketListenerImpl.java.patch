@@ -42,7 +42,7 @@
          super.onDisconnect(p_350569_);
      }
  
-@@ -72,18 +_,39 @@
+@@ -72,18 +_,43 @@
      }
  
      public void startConfiguration() {
@@ -62,11 +62,15 @@
 -            this.send(new ClientboundServerLinksPacket(serverlinks.untrust()));
 +        ServerLinks serverLinks = this.server.serverLinks();
 +        if (!serverLinks.isEmpty()) {
-+            // Paper start
-+            org.bukkit.craftbukkit.CraftServerLinks links = new org.bukkit.craftbukkit.CraftServerLinks(serverLinks);
-+            new org.bukkit.event.player.PlayerLinksSendEvent(this.paperConnection, links).callEvent();
-+            this.send(new ClientboundServerLinksPacket(links.getServerLinks().untrust()));
-+            // Paper end
++            // Youer - configuration runs on NeoForge's SERVER_EPOLL_EVENT_GROUP, so a Bukkit event fired
++            // straight from here would look asynchronous to plugins; hand it to the main thread instead
++            com.mohistmc.youer.util.ThreadUtils.executeOnMainThread(() -> {
++                // Paper start
++                org.bukkit.craftbukkit.CraftServerLinks links = new org.bukkit.craftbukkit.CraftServerLinks(serverLinks);
++                new org.bukkit.event.player.PlayerLinksSendEvent(this.paperConnection, links).callEvent();
++                this.send(new ClientboundServerLinksPacket(links.getServerLinks().untrust()));
++                // Paper end
++            });
          }
  
 -        LayeredRegistryAccess<RegistryLayer> layeredregistryaccess = this.server.registries();

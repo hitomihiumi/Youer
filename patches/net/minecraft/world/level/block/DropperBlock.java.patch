@@ -48,10 +48,10 @@
 +                        if (containerAt instanceof net.minecraft.world.CompoundContainer compoundContainer) {
 +                            destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest(compoundContainer);
 +                        } else {
-+                            destinationInventory = containerAt.getOwner().getInventory();
++                            destinationInventory = com.mohistmc.youer.bukkit.inventory.InventoryOwner.getInventory(containerAt); // Youer - a modded container has no Bukkit owner; wrap it
 +                        }
 +
-+                        org.bukkit.event.inventory.InventoryMoveItemEvent event = new org.bukkit.event.inventory.InventoryMoveItemEvent(dispenserBlockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
++                        org.bukkit.event.inventory.InventoryMoveItemEvent event = new org.bukkit.event.inventory.InventoryMoveItemEvent(com.mohistmc.youer.bukkit.inventory.InventoryOwner.getInventory(dispenserBlockEntity), oitemstack, destinationInventory, true);
 +                        level.getCraftServer().getPluginManager().callEvent(event);
 +                        if (event.isCancelled()) {
 +                            return;

@@ -200,7 +200,7 @@
              this.level
                  .getBlockState(blockpos)
                  .onExplosionHit(this.level, blockpos, this, (p_365090_, p_360493_) -> addOrAppendStack(list, p_365090_, p_360493_));
-@@ -235,7 +_,11 @@
+@@ -235,15 +_,23 @@
      private void createFire(List<BlockPos> p_362665_) {
          for (BlockPos blockpos : p_362665_) {
              if (this.level.random.nextInt(3) == 0 && this.level.getBlockState(blockpos).isAir() && this.level.getBlockState(blockpos.below()).isSolidRender()) {
@@ -213,8 +213,12 @@
              }
          }
      }
-@@ -243,7 +_,7 @@
+ 
      public void explode() {
++        if (com.mohistmc.youer.feature.ban.bans.BanEvents.banExplosion()) { // Youer - explosions can be switched off outright
++            this.wasCanceled = true;
++            return;
++        }
          this.level.gameEvent(this.source, GameEvent.EXPLODE, this.center);
          List<BlockPos> list = this.calculateExplodedPositions();
 -        this.hurtEntities();

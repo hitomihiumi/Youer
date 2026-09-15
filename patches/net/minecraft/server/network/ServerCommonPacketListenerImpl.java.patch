@@ -67,7 +67,7 @@
  
      private void close() {
          if (!this.closed) {
-@@ -76,55 +_,246 @@
+@@ -76,55 +_,251 @@
      }
  
      @Override
@@ -157,6 +157,11 @@
 +
 +    @Override
 +    public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {
++        // Youer start - plugin channel tracing
++        if (packet.payload() instanceof net.minecraft.network.protocol.common.custom.DiscardedPayload discardedPayload && com.mohistmc.youer.YouerConfig.pluginchannel_debug) {
++            LOGGER.info("Received discarded payload {} with data {}", discardedPayload.type().id(), new String(discardedPayload.data(), java.nio.charset.StandardCharsets.UTF_8));
++        }
++        // Youer end
 +        // Neo: Unconditionally handle register/unregister payloads.
 +        if (packet.payload() instanceof net.neoforged.neoforge.network.payload.MinecraftRegisterPayload minecraftRegisterPayload) {
 +            net.neoforged.neoforge.network.registration.NetworkRegistry.onMinecraftRegister(this.getConnection(), minecraftRegisterPayload.newChannels());

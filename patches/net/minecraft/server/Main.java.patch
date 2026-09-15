@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -65,232 +_,351 @@
+@@ -65,232 +_,353 @@
  public class Main {
      private static final Logger LOGGER = LogUtils.getLogger();
  
@@ -10,6 +10,8 @@
 +    // argument parsing and calls the OptionSet overload below, so hand it the raw arguments.
 +    @DontObfuscate
 +    public static void main(String[] args) {
++        Thread.currentThread().setPriority(5); // Youer
++        com.mohistmc.youer.Youer.initI18n(); // Youer - the config screens and commands built during startup translate through it
 +        org.bukkit.craftbukkit.Main.main(args);
 +    }
 +    // Youer end - restore the String[] entry point FML launches

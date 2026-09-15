@@ -250,7 +250,7 @@
              }
          }
      }
-@@ -365,122 +_,348 @@
+@@ -365,122 +_,349 @@
      protected void forceDifficulty() {
      }
  
@@ -280,6 +280,7 @@
 +        LevelStorageSource.LevelStorageAccess levelStorageAccess = this.storageSource;
 +        RegistryAccess.Frozen registryAccess = this.registries.compositeAccess();
 +        Registry<LevelStem> levelStemRegistry = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
++        com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.addEnumEnvironment(levelStemRegistry); // Youer - a modded dimension needs a World.Environment constant before any world is built
 +        for (LevelStem levelStem : levelStemRegistry) {
 +            ResourceKey<LevelStem> levelStemKey = levelStemRegistry.getResourceKey(levelStem).get();
 +            ServerLevel serverLevel;
@@ -302,7 +303,7 @@
 +            }
 +
 +            // Migration of old CB world folders...
-+            String worldType = (dimension == -999) ? levelStemKey.location().getNamespace() + "_" + levelStemKey.location().getPath() : org.bukkit.World.Environment.getEnvironment(dimension).toString().toLowerCase(Locale.ROOT);
++            String worldType = (dimension == -999) ? levelStemKey.location().getNamespace() + "_" + levelStemKey.location().getPath() : com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.environmentFor(levelStemKey, dimension).toString().toLowerCase(Locale.ROOT);
 +            String name = (levelStemKey == LevelStem.OVERWORLD) ? levelId : levelId + "_" + worldType;
 +            if (dimension != 0) {
 +                java.io.File newWorld = LevelStorageSource.getStorageFolder(new java.io.File(name).toPath(), levelStemKey).toFile();
@@ -442,7 +443,7 @@
 +            );
 +            LevelStem customStem = levelStemRegistry.getValue(levelStemKey);
 +
-+            org.bukkit.generator.WorldInfo worldInfo = new org.bukkit.craftbukkit.generator.CraftWorldInfo(serverLevelData, levelStorageAccess, org.bukkit.World.Environment.getEnvironment(dimension), customStem.type().value(), customStem.generator(), this.registryAccess()); // Paper - Expose vanilla BiomeProvider from WorldInfo
++            org.bukkit.generator.WorldInfo worldInfo = new org.bukkit.craftbukkit.generator.CraftWorldInfo(serverLevelData, levelStorageAccess, com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.environmentFor(levelStemKey, dimension), customStem.type().value(), customStem.generator(), this.registryAccess()); // Paper - Expose vanilla BiomeProvider from WorldInfo
 +            if (biomeProvider == null && chunkGenerator != null) {
 +                biomeProvider = chunkGenerator.getDefaultBiomeProvider(worldInfo);
 +            }
@@ -457,7 +458,7 @@
 +
 +                serverLevel = new ServerLevel(
 +                    this, this.executor, levelStorageAccess, serverLevelData, dimensionKey, customStem, listener, isDebugWorld, l, list, true, null,
-+                    org.bukkit.World.Environment.getEnvironment(dimension), chunkGenerator, biomeProvider
++                    com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.environmentFor(levelStemKey, dimension), chunkGenerator, biomeProvider
 +                );
 +                DimensionDataStorage dataStorage = serverLevel.getDataStorage();
 +                this.readScoreboard(dataStorage);
@@ -474,7 +475,7 @@
 +                }
 +                serverLevel = new ServerLevel(
 +                    this, this.executor, levelStorageAccess, serverLevelData, dimensionKey, customStem, listener, isDebugWorld, l, spawners, true, this.overworld().getRandomSequences(),
-+                    org.bukkit.World.Environment.getEnvironment(dimension), chunkGenerator, biomeProvider
++                    com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.environmentFor(levelStemKey, dimension), chunkGenerator, biomeProvider
 +                );
 +                // Paper end - option to use the dimension_type to check if spawners should be added
 +            }

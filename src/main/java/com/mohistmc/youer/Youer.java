@@ -23,11 +23,25 @@ public class Youer {
     public static final String modid = "youer";
     public static Logger LOGGER = LogManager.getLogger();
     public static i18n i18n;
-    public static String version = "1.21.1";
+    public static String version = "1.21.8";
     public static VersionInfo versionInfo;
     public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
 
     public Youer(IEventBus modEventBus, Dist dist, ModContainer container) {
+        bootstrap();
+    }
+
+    // Youer start - bootstrap explicitly rather than relying on FML constructing the @Mod class.
+    // FML builds a container for the "youer" entry in neoforge.mods.toml but finds no @Mod class for
+    // it: the annotation scan of the neoforge mod file does not reach com.mohistmc. CraftServer calls
+    // this instead, so the wiring does not depend on that. Idempotent, in case FML does construct us.
+    private static boolean bootstrapped = false;
+
+    public static synchronized void bootstrap() {
+        if (bootstrapped) {
+            return;
+        }
+        bootstrapped = true;
         Map<String, String> arguments = new HashMap<>();
         arguments.put("youer", version);
         arguments.put("bukkit", version);
@@ -38,6 +52,7 @@ public class Youer {
         EventDispatcherRegistry.init();
         BanConfig.init();
     }
+    // Youer end
 
     public static void initI18n() {
         String mohist_lang = YouerConfig.yml.getString("youer.lang", Locale.getDefault().toString());
