@@ -964,7 +964,7 @@
 +                this.teleportSpectators(teleportTransition, serverLevel);
 +                // Neo: On the client all attachments are lost on dimension change and need to be re-sent
 +                net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(this);
-+                net.neoforged.neoforge.event.EventHooks.firePlayerChangedDimensionEvent(this, resourceKey, teleportTransition.newLevel().dimension()); // Forge: mod-extensible dimension-change event
++                net.neoforged.neoforge.event.EventHooks.firePlayerChangedDimensionEvent(this, serverLevel.dimension(), teleportTransition.newLevel().dimension()); // Forge: mod-extensible dimension-change event
 +                // CraftBukkit start
 +                org.bukkit.event.player.PlayerChangedWorldEvent changeEvent = new org.bukkit.event.player.PlayerChangedWorldEvent(this.getBukkitEntity(), serverLevel.getWorld());
 +                this.level().getCraftServer().getPluginManager().callEvent(changeEvent);
@@ -1194,7 +1194,7 @@
          this.connection.send(new ClientboundBlockUpdatePacket(this.level(), p_277909_.getBlockPos()));
          this.connection.send(new ClientboundOpenSignEditorPacket(p_277909_.getBlockPos(), p_277495_));
      }
-@@ -1234,32 +_,94 @@
+@@ -1234,32 +_,95 @@
          this.connection.send(new ClientboundShowDialogPacket(p_425542_));
      }
  
@@ -1270,9 +1270,10 @@
 -                this.initMenu(abstractcontainermenu);
 -                this.containerMenu = abstractcontainermenu;
 +                // Neo: Support sending additional arbitrary data to menu factories on the client-side
++                final AbstractContainerMenu openedMenu = abstractContainerMenu; // Youer - CraftBukkit reassigns the local, so capture it for the Neo lambda
 +                var extraData = net.neoforged.neoforge.common.util.FriendlyByteBufUtil.writeCustomData(
 +                        buffer -> {
-+                            menu.writeClientSideData(abstractContainerMenu, buffer);
++                            menu.writeClientSideData(openedMenu, buffer);
 +                            if (extraDataWriter != null) {
 +                                extraDataWriter.accept(buffer);
 +                            }

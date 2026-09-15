@@ -34,7 +34,7 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     private final RedirectModifier<S> modifier;
     private final boolean forks;
     private Command<S> command;
-    public CommandNode<CommandSourceStack> clientNode; // Paper - Brigadier API
+    public CommandNode<S> clientNode; // Paper - Brigadier API
     public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> unwrappedCached = null; // Paper - Brigadier Command API
     public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> wrappedCached = null; // Paper - Brigadier Command API
     public io.papermc.paper.command.brigadier.APICommandMeta apiCommandMeta; // Paper - Brigadier Command API
@@ -74,20 +74,9 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
         return this.modifier;
     }
 
-    // CraftBukkit start
-    // Youer: temporarily disabled for M1 (plain-NeoForge toolchain milestone) — CommandSourceStack.
-    // currentCommand is a CraftBukkit/Paper-injected field, not present in NeoForge's own patch set
-    // until the merged Bukkit patches are restored in M3.
-    public synchronized boolean canUse(final S source) {
-        // if (source instanceof CommandSourceStack) {
-        //     try {
-        //         ((CommandSourceStack) source).currentCommand.put(Thread.currentThread(), this); // Paper - Thread Safe Vanilla Command permission checking
-        //         return this.requirement.test(source);
-        //     } finally {
-        //         ((CommandSourceStack) source).currentCommand.remove(Thread.currentThread()); // Paper - Thread Safe Vanilla Command permission checking
-        //     }
-        // }
-        // CraftBukkit end
+    public boolean canUse(final S source) {
+        // Youer: Paper 1.21.8 moved the vanilla-command permission check out of here and into
+        // PermissionSource.Check, which carries the node in an AtomicReference; nothing to do here.
         return this.requirement.test(source);
     }
 

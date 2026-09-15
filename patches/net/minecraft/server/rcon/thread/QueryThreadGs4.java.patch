@@ -68,7 +68,7 @@
 +            com.destroystokyo.paper.event.server.GS4QueryEvent.QueryType queryType =
 +                com.destroystokyo.paper.event.server.GS4QueryEvent.QueryType.FULL;
 +            com.destroystokyo.paper.event.server.GS4QueryEvent queryEvent =
-+                new com.destroystokyo.paper.event.server.GS4QueryEvent(queryType, p_11550_.getAddress(), queryResponse);
++                new com.destroystokyo.paper.event.server.GS4QueryEvent(queryType, p_11559_.getAddress(), queryResponse);
 +            queryEvent.callEvent();
 +            queryResponse = queryEvent.getResponse();
              this.rulesResponse.writeString("hostname");

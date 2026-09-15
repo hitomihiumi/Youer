@@ -96,8 +96,18 @@
      }
  
      public final CompoundTag saveCustomOnly(HolderLookup.Provider p_338656_) {
-@@ -155,6 +_,11 @@
+@@ -153,8 +_,21 @@
+         return compoundtag;
+     }
  
++    // Paper start - Sanitize sent data
++    public CompoundTag sanitizeSentNbt(CompoundTag tag) {
++        tag.remove("PublicBukkitValues");
++
++        return tag;
++    }
++    // Paper end - Sanitize sent data
++
      public void saveCustomOnly(ValueOutput p_422286_) {
          this.saveAdditional(p_422286_);
 +        // Paper start - store PDC here as well

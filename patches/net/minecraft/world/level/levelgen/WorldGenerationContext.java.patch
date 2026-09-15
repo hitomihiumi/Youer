@@ -22,7 +22,7 @@
      }
 +
 +    // Paper start - Flat bedrock generator settings
-+    public net.minecraft.world.level.Level p_182508_() {
++    public net.minecraft.world.level.Level level() {
 +        if (this.serverLevel == null) {
 +            throw new NullPointerException("WorldGenerationContext was initialized without a Level, but WorldGenerationContext#level was called");
 +        }

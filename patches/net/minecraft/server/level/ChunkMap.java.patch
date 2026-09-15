@@ -274,7 +274,7 @@
                      p_401784_.add(levelchunk);
                  }
              }
-@@ -971,6 +_,18 @@
+@@ -971,9 +_,21 @@
          return tristate == TriState.DEFAULT ? this.anyPlayerCloseEnoughForSpawningInternal(p_183880_) : tristate.toBoolean(true);
      }
  
@@ -292,7 +292,11 @@
 +
      private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos p_363995_) {
          for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
-             if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_)) {
+-            if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_)) {
++            if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_, 16384.0D)) {
+                 return true;
+             }
+         }
 @@ -989,7 +_,7 @@
              Builder<ServerPlayer> builder = ImmutableList.builder();
  
@@ -363,6 +367,15 @@
      class DistanceManager extends net.minecraft.server.level.DistanceManager {
          protected DistanceManager(TicketStorage p_394597_, Executor p_140459_, Executor p_140460_) {
              super(p_394597_, p_140459_, p_140460_);
+@@ -1291,7 +_,7 @@
+         public final Set<ServerPlayerConnection> seenBy = Sets.newIdentityHashSet();
+ 
+         public TrackedEntity(Entity p_140478_, int p_140479_, int p_140480_, boolean p_140481_) {
+-            this.serverEntity = new ServerEntity(ChunkMap.this.level, p_140478_, p_140480_, p_140481_, this::broadcast, this::broadcastIgnorePlayers);
++            this.serverEntity = new ServerEntity(ChunkMap.this.level, p_140478_, p_140480_, p_140481_, this::broadcast, this::broadcastIgnorePlayers, this.seenBy);
+             this.entity = p_140478_;
+             this.range = p_140479_;
+             this.lastSectionPos = SectionPos.of(p_140478_);
 @@ -1335,24 +_,48 @@
          }
  

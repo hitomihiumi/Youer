@@ -264,19 +264,26 @@
      }
  
      public boolean isBroken() {
-@@ -448,6 +_,11 @@
+@@ -448,16 +_,35 @@
      }
  
      public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable ServerPlayer p_220160_, Consumer<Item> p_348596_) {
+-        int i = this.processDurabilityChange(p_220158_, p_346256_, p_220160_);
 +        this.hurtAndBreak(p_220158_, p_346256_, (LivingEntity) p_220160_, p_348596_);
 +    }
 +
 +    public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable LivingEntity p_220160_, Consumer<Item> p_348596_) {
++        // Paper start - add force boolean overload
++        this.hurtAndBreak(p_220158_, p_346256_, p_220160_, p_348596_, false);
++    }
++
++    public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable LivingEntity p_220160_, Consumer<Item> p_348596_, boolean force) {
++        // Paper end - add force boolean overload
 +        p_220158_ = getItem().damageItem(this, p_220158_, p_220160_, p_348596_);
-         int i = this.processDurabilityChange(p_220158_, p_346256_, p_220160_);
++        int i = this.processDurabilityChange(p_220158_, p_346256_, p_220160_, force);
          if (i != 0) {
              this.applyDamage(this.getDamageValue() + i, p_220160_, p_348596_);
-@@ -455,6 +_,10 @@
+         }
      }
  
      private int processDurabilityChange(int p_361290_, ServerLevel p_361409_, @Nullable ServerPlayer p_364940_) {
@@ -284,9 +291,17 @@
 +    }
 +
 +    private int processDurabilityChange(int p_361290_, ServerLevel p_361409_, @Nullable LivingEntity p_364940_) {
++        return this.processDurabilityChange(p_361290_, p_361409_, p_364940_, false); // Paper - add force boolean overload
++    }
++
++    private int processDurabilityChange(int p_361290_, ServerLevel p_361409_, @Nullable LivingEntity p_364940_, boolean force) { // Paper - add force boolean overload
          if (!this.isDamageableItem()) {
              return 0;
-         } else if (p_364940_ != null && p_364940_.hasInfiniteMaterials()) {
+-        } else if (p_364940_ != null && p_364940_.hasInfiniteMaterials()) {
++        } else if (!force && p_364940_ != null && p_364940_.hasInfiniteMaterials()) { // Paper - add force boolean overload
+             return 0;
+         } else {
+             return p_361290_ > 0 ? EnchantmentHelper.processDurabilityChange(p_361409_, this, p_361290_) : p_361290_;
 @@ -465,13 +_,30 @@
      }
  
@@ -348,15 +363,28 @@
              this.applyDamage(j, serverplayer, p_360034_ -> {});
          }
      }
-@@ -498,7 +_,7 @@
+@@ -494,12 +_,19 @@
+     }
+ 
+     public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_) {
++        // Paper start - add param to skip infinite mats check
++        this.hurtAndBreak(p_41623_, p_41624_, p_319898_, false);
++    }
++
++    public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_, boolean force) {
++        // Paper end - add param to skip infinite mats check
+         if (p_41624_.level() instanceof ServerLevel serverlevel) {
              this.hurtAndBreak(
                  p_41623_,
                  serverlevel,
 -                p_41624_ instanceof ServerPlayer serverplayer ? serverplayer : null,
+-                p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
 +                p_41624_,
-                 p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
++                p_348383_ -> { if (p_319898_ != null) p_41624_.onEquippedItemBroken(p_348383_, p_319898_); }, // Paper - do not process entity related callbacks when damaging from API
++                force // Paper - add param to skip infinite mats check
              );
          }
+     }
 @@ -584,10 +_,16 @@
      }
  

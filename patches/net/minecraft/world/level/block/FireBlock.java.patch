@@ -45,6 +45,15 @@
                  }
              }
  
+@@ -143,7 +_,7 @@
+ 
+     @Override
+     protected void tick(BlockState p_221160_, ServerLevel p_221161_, BlockPos p_221162_, RandomSource p_221163_) {
+-        p_221161_.scheduleTick(p_221162_, this, getFireTickDelay(p_221161_.random));
++        p_221161_.scheduleTick(p_221162_, this, FireBlock.getFireTickDelay(p_221161_));
+         if (p_221161_.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
+             if (p_221161_.getGameRules().getBoolean(GameRules.RULE_ALLOWFIRETICKAWAYFROMPLAYERS) || p_221161_.anyPlayerCloseEnoughForSpawning(p_221162_)) {
+                 if (!p_221160_.canSurvive(p_221161_, p_221162_)) {
 @@ -151,7 +_,7 @@
                  }
  

@@ -322,6 +322,12 @@ public class NeoForgeAdvancementProvider extends AdvancementProvider {
                                         }
                                     }, lookup.registryLifecycle()));
                         }
+
+                        // Youer - Paper adds this to RegistryInfoLookup for pre-filling builders in the registry mod API
+                        @Override
+                        public HolderLookup.Provider lookupForValueCopyViaBuilders() {
+                            return registries;
+                        }
                     });
                 }
             };

@@ -30,7 +30,7 @@
      public EnchantmentMenu(int p_39457_, Inventory p_39458_, ContainerLevelAccess p_39459_) {
          super(MenuType.ENCHANTMENT, p_39457_);
 +        // Paper start - Add missing InventoryHolders
-+        this.enchantSlots = new SimpleContainer(this.createBlockHolder(access), 2) { // Paper - Add missing InventoryHolders
++        this.enchantSlots = new SimpleContainer(this.createBlockHolder(p_39459_), 2) { // Paper - Add missing InventoryHolders
 +            @Override
 +            public void setChanged() {
 +                super.setChanged();
@@ -74,6 +74,14 @@
          this.addStandardInventorySlots(p_39458_, 8, 84);
          this.addDataSlot(DataSlot.shared(this.costs, 0));
          this.addDataSlot(DataSlot.shared(this.costs, 1));
+@@ -81,6 +_,7 @@
+         this.addDataSlot(DataSlot.shared(this.levelClue, 0));
+         this.addDataSlot(DataSlot.shared(this.levelClue, 1));
+         this.addDataSlot(DataSlot.shared(this.levelClue, 2));
++        this.player = (org.bukkit.entity.Player) p_39458_.player.getBukkitEntity(); // CraftBukkit
+     }
+ 
+     @Override
 @@ -90,23 +_,24 @@
              if (!itemstack.isEmpty() && itemstack.isEnchantable()) {
                  this.access.execute((p_344366_, p_344367_) -> {

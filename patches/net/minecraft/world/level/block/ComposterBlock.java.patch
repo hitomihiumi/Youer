@@ -88,7 +88,7 @@
  
          public InputContainer(BlockState p_52022_, LevelAccessor p_52023_, BlockPos p_52024_) {
              super(1);
-+            this.bukkitOwner = new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(level, pos, this); // CraftBukkit
++            this.bukkitOwner = new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(p_52023_, p_52024_, this); // CraftBukkit
              this.state = p_52022_;
              this.level = p_52023_;
              this.pos = p_52024_;
@@ -117,7 +117,7 @@
  
          public OutputContainer(BlockState p_52042_, LevelAccessor p_52043_, BlockPos p_52044_, ItemStack p_52045_) {
              super(p_52045_);
-+            this.bukkitOwner = new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(level, pos, this); // Paper
++            this.bukkitOwner = new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(p_52043_, p_52044_, this); // Paper
              this.state = p_52042_;
              this.level = p_52043_;
              this.pos = p_52044_;

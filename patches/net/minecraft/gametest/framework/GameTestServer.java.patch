@@ -30,12 +30,19 @@
              p_206597_,
              p_206598_,
              p_206599_,
-@@ -152,10 +_,12 @@
+@@ -151,11 +_,17 @@
+ 
      @Override
      public boolean initServer() {
-         this.setPlayerList(new PlayerList(this, this.registries(), this.playerDataStorage, 1) {});
+-        this.setPlayerList(new PlayerList(this, this.registries(), this.playerDataStorage, 1) {});
+-        this.loadLevel();
++        this.setPlayerList(new PlayerList(this, this.registries(), this.playerDataStorage, 1) {
++            @Override
++            public void loadAndSaveFiles() { // Paper - fix converting txt to json file; the game test server has no ops/whitelist files
++            }
++        });
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
-         this.loadLevel();
++        this.loadLevel(this.storageSource.getLevelId()); // CraftBukkit
          ServerLevel serverlevel = this.overworld();
          this.testBatches = this.evaluateTestsToRun(serverlevel);
          LOGGER.info("Started game test server");

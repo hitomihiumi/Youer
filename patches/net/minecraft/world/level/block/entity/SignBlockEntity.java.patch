@@ -164,7 +164,7 @@
                      flag = true;
                      break;
                  case null:
-@@ -213,10 +_,55 @@
+@@ -213,11 +_,77 @@
          return flag;
      }
  
@@ -172,6 +172,7 @@
 -        String s = p_279428_ == null ? "Sign" : p_279428_.getName().getString();
 -        Component component = (Component)(p_279428_ == null ? Component.literal("Sign") : p_279428_.getDisplayName());
 -        return new CommandSourceStack(CommandSource.NULL, Vec3.atCenterOf(p_279430_), Vec2.ZERO, p_426006_, 2, s, component, p_426006_.getServer(), p_279428_);
+-    }
 +    // CraftBukkit start
 +    private final CommandSource commandSource = new CommandSource() {
 +
@@ -221,9 +222,31 @@
 +        // Paper end - Fix commands from signs not firing command events
 +        // CraftBukkit - this
 +        return new CommandSourceStack(commandSource, Vec3.atCenterOf(pos), Vec2.ZERO, level, 2, string, component, level.getServer(), player); // Paper - Fix commands from signs not firing command events
-     }
++    }
++
++    // Purpur start - Signs allow color codes
++    public ClientboundBlockEntityDataPacket getTranslatedUpdatePacket(boolean filtered, boolean front) {
++        try (net.minecraft.util.ProblemReporter.ScopedCollector scopedCollector = new net.minecraft.util.ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
++            net.minecraft.world.level.storage.TagValueOutput tagValueOutput = net.minecraft.world.level.storage.TagValueOutput.createWithContext(scopedCollector, this.getLevel().registryAccess());
++            this.saveAdditional(tagValueOutput);
++
++            final Component[] lines = front ? this.frontText.getMessages(filtered) : this.backText.getMessages(filtered);
++            final String side = front ? "front_text" : "back_text";
++            net.minecraft.world.level.storage.ValueOutput sideNbt = tagValueOutput.child(side);
++            net.minecraft.world.level.storage.ValueOutput.TypedOutputList<String> messagesNbt = sideNbt.list("messages", com.mojang.serialization.Codec.STRING);
++            for (int i = 0; i < 4; i++) {
++                final net.kyori.adventure.text.Component component = io.papermc.paper.adventure.PaperAdventure.asAdventure(lines[i]);
++                final String line = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand().serialize(component);
++                messagesNbt.add(line);
++            }
++            tagValueOutput.putString("PurpurEditor", "true");
++            return ClientboundBlockEntityDataPacket.create(this, (blockEntity, registryAccess) -> tagValueOutput.buildResult());
++        }
++    }
++    // Purpur end - Signs allow color codes
  
      public ClientboundBlockEntityDataPacket getUpdatePacket() {
+         return ClientboundBlockEntityDataPacket.create(this);
 @@ -234,12 +_,17 @@
  
      @Nullable

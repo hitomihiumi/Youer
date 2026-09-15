@@ -8,13 +8,39 @@
          .map(BundleContents::new, p_331551_ -> p_331551_.items);
      private static final Fraction BUNDLE_IN_BUNDLE_WEIGHT = Fraction.getFraction(1, 16);
      private static final int NO_STACK_INDEX = -1;
-@@ -73,7 +_,8 @@
+@@ -73,8 +_,15 @@
      }
  
      public static boolean canItemBeInBundle(ItemStack p_362945_) {
 -        return !p_362945_.isEmpty() && p_362945_.getItem().canFitInsideContainerItems();
+-    }
 +        // Neo: stack-aware placeability check
 +        return !p_362945_.isEmpty() && p_362945_.canFitInsideContainerItems();
-     }
++    }
++
++    // Paper start - correct bundle inventory action
++    public int getMaxAmountToAdd(final ItemStack stack) {
++        return Mutable.getMaxAmountToAdd(stack, this.weight);
++    }
++    // Paper end - correct bundle inventory action
  
      public int getNumberOfItemsToShow() {
+         int i = this.size();
+@@ -173,8 +_,15 @@
+             }
+         }
+ 
+-        private int getMaxAmountToAdd(ItemStack p_330527_) {
+-            Fraction fraction = Fraction.ONE.subtract(this.weight);
++        public int getMaxAmountToAdd(ItemStack p_330527_) {
++        // Paper start - correct bundle inventory action
++        // Static overload to easily compute this value without the need for an instance of mutable.
++            return getMaxAmountToAdd(p_330527_, this.weight);
++        }
++
++        static int getMaxAmountToAdd(final ItemStack p_330527_, final Fraction weight) {
++            Fraction fraction = Fraction.ONE.subtract(weight);
++        // Paper end - correct bundle inventory action
+             return Math.max(fraction.divideBy(BundleContents.getWeight(p_330527_)).intValue(), 0);
+         }
+ 

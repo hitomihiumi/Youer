@@ -1995,6 +1995,7 @@
 +                }
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);
 +                this.onDamageTaken(this.damageContainers.peek());
++                net.neoforged.neoforge.common.CommonHooks.onLivingDamagePost(this, this.damageContainers.peek()); // Youer - CraftBukkit returns from every branch below, so the Neo post hook runs here
 +                return true;
 +            } else {
 +                // Duplicate triggers if blocking
@@ -2017,7 +2018,6 @@
 +                }
 +                // CraftBukkit end
              }
-+            net.neoforged.neoforge.common.CommonHooks.onLivingDamagePost(this, this.damageContainers.peek());
          }
 +        return true; // CraftBukkit // Paper - return false ONLY if event was cancelled
      }
