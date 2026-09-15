@@ -22,7 +22,7 @@
          this.divideShift = MAGIC[i + 2];
          int j = (p_184725_ + this.valuesPerLong - 1) / this.valuesPerLong;
          if (p_184726_ != null) {
-@@ -264,15 +_,11 @@
+@@ -264,27 +_,21 @@
      }
  
      private int cellIndex(int p_184740_) {
@@ -36,11 +36,15 @@
 -    public int getAndSet(int p_184731_, int p_184732_) {
 -        Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)p_184731_);
 -        Validate.inclusiveBetween(0L, this.mask, (long)p_184732_);
+-        int i = this.cellIndex(p_184731_);
 +    public final int getAndSet(int index, int p_184732_) { // Paper - Perf: Optimize SimpleBitStorage
-         int i = this.cellIndex(p_184731_);
++        int i = this.cellIndex(index);
          long j = this.data[i];
-         int k = (p_184731_ - i * this.valuesPerLong) * this.bits;
-@@ -282,9 +_,7 @@
+-        int k = (p_184731_ - i * this.valuesPerLong) * this.bits;
++        int k = (index - i * this.valuesPerLong) * this.bits;
+         int l = (int)(j >> k & this.mask);
+         this.data[i] = j & ~(this.mask << k) | (p_184732_ & this.mask) << k;
+         return l;
      }
  
      @Override

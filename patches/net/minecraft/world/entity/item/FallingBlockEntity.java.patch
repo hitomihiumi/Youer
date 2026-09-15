@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -73,12 +_,13 @@
+@@ -73,6 +_,7 @@
      public CompoundTag blockData;
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
@@ -8,13 +8,6 @@
  
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> p_31950_, Level p_31951_) {
          super(p_31950_, p_31951_);
-     }
- 
--    public FallingBlockEntity(Level p_31953_, double p_31954_, double p_31955_, double p_31956_, BlockState p_31957_) {
-+    private FallingBlockEntity(Level p_31953_, double p_31954_, double p_31955_, double p_31956_, BlockState p_31957_) {
-         this(EntityType.FALLING_BLOCK, p_31953_);
-         this.blockState = p_31957_;
-         this.blocksBuilding = true;
 @@ -98,6 +_,7 @@
              p_201973_.getZ() + 0.5,
              p_201974_.hasProperty(BlockStateProperties.WATERLOGGED) ? p_201974_.setValue(BlockStateProperties.WATERLOGGED, false) : p_201974_

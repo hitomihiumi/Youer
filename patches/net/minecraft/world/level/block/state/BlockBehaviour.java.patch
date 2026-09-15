@@ -82,6 +82,22 @@
      public abstract static class BlockStateBase extends StateHolder<Block, BlockState> {
          private static final Direction[] DIRECTIONS = Direction.values();
          private static final VoxelShape[] EMPTY_OCCLUSION_SHAPES = Util.make(
+@@ -471,6 +_,15 @@
+             this.instrument = blockbehaviour$properties.instrument;
+             this.replaceable = blockbehaviour$properties.replaceable;
+         }
++        // Paper start - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
++        @Nullable
++        private org.bukkit.craftbukkit.block.data.CraftBlockData cachedCraftBlockData;
++
++        public org.bukkit.craftbukkit.block.data.CraftBlockData createCraftBlockData() {
++            if (this.cachedCraftBlockData == null) this.cachedCraftBlockData = org.bukkit.craftbukkit.block.data.CraftBlockData.createData(this.asState());
++            return (org.bukkit.craftbukkit.block.data.CraftBlockData) this.cachedCraftBlockData.clone();
++        }
++        // Paper end - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
+ 
+         private boolean calculateSolid() {
+             if (this.owner.properties.forceSolidOn) {
 @@ -490,12 +_,14 @@
              }
          }

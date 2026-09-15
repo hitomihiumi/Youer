@@ -67,8 +67,31 @@
          } else if (voxelshape == Shapes.empty()) {
              return true;
          } else {
-@@ -324,24 +_,30 @@
+@@ -322,26 +_,61 @@
+         return p_49875_.getDrops(lootparams$builder);
+     }
  
++    // Paper start - Add BlockBreakBlockEvent
++    public static boolean dropResources(BlockState state, LevelAccessor levelAccessor, BlockPos pos, @Nullable BlockEntity blockEntity, BlockPos source) {
++        if (levelAccessor instanceof ServerLevel serverLevel) {
++            List<org.bukkit.inventory.ItemStack> items = new java.util.ArrayList<>();
++            for (ItemStack drop : Block.getDrops(state, serverLevel, pos, blockEntity)) {
++                items.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(drop));
++            }
++            Block block = state.getBlock(); // Paper - Properly handle xp dropping
++            io.papermc.paper.event.block.BlockBreakBlockEvent event = new io.papermc.paper.event.block.BlockBreakBlockEvent(org.bukkit.craftbukkit.block.CraftBlock.at(levelAccessor, pos), org.bukkit.craftbukkit.block.CraftBlock.at(levelAccessor, source), items);
++            event.setExpToDrop(block.getExpDrop(state, serverLevel, pos, net.minecraft.world.item.ItemStack.EMPTY, true)); // Paper - Properly handle xp dropping
++            event.callEvent();
++            for (org.bukkit.inventory.ItemStack drop : event.getDrops()) {
++                popResource(serverLevel, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop));
++            }
++            state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, false); // Paper - Properly handle xp dropping
++            block.popExperience(serverLevel, pos, event.getExpToDrop()); // Paper - Properly handle xp dropping
++        }
++        return true;
++    }
++    // Paper end - Add BlockBreakBlockEvent
++
      public static void dropResources(BlockState p_49951_, Level p_49952_, BlockPos p_49953_) {
          if (p_49952_ instanceof ServerLevel) {
 +            beginCapturingDrops();
@@ -91,8 +114,17 @@
  
      public static void dropResources(
 -        BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_
+-    ) {
 +            BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_
-     ) {
++    ) {
++    // Paper start - Properly handle xp dropping
++        dropResources(p_49882_, p_49883_, p_49884_, p_49885_, p_49886_, p_49887_, true);
++    }
++
++    public static void dropResources(
++            BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_, boolean dropExperience
++    ) {
++    // Paper end - Properly handle xp dropping
          if (p_49883_ instanceof ServerLevel) {
 +            beginCapturingDrops();
              getDrops(p_49882_, (ServerLevel)p_49883_, p_49884_, p_49885_, p_49886_, p_49887_).forEach(p_49944_ -> popResource(p_49883_, p_49884_, p_49944_));

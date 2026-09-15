@@ -14,11 +14,11 @@
          if (this.playerName != null) {
              ServerPlayer serverplayer2 = p_121167_.getServer().getPlayerList().getPlayerByName(this.playerName);
 -            return serverplayer2 == null ? List.of() : List.of(serverplayer2);
-+            return serverplayer2 == null || !canSee(source, serverplayer2) ? List.of() : List.of(serverplayer2); // Purpur - Hide hidden players from entity selector
++            return serverplayer2 == null || !canSee(p_121167_, serverplayer2) ? List.of() : List.of(serverplayer2); // Purpur - Hide hidden players from entity selector
          } else if (this.entityUUID != null) {
              ServerPlayer serverplayer1 = p_121167_.getServer().getPlayerList().getPlayer(this.entityUUID);
 -            return serverplayer1 == null ? List.of() : List.of(serverplayer1);
-+            return serverplayer1 == null || !canSee(source, serverplayer1) ? List.of() : List.of(serverplayer1); // Purpur - Hide hidden players from entity selector
++            return serverplayer1 == null || !canSee(p_121167_, serverplayer1) ? List.of() : List.of(serverplayer1); // Purpur - Hide hidden players from entity selector
          } else {
              Vec3 vec3 = this.position.apply(p_121167_.getPosition());
              AABB aabb = this.getAbsoluteAabb(vec3);
@@ -37,7 +37,7 @@
  
                      for (ServerPlayer serverplayer : p_121167_.getServer().getPlayerList().getPlayers()) {
 -                        if (predicate.test(serverplayer)) {
-+                        if (predicate.test(serverplayer) && canSee(source, serverplayer)) { // Purpur - Hide hidden players from entity selector
++                        if (predicate.test(serverplayer) && canSee(p_121167_, serverplayer)) { // Purpur - Hide hidden players from entity selector
                              list.add(serverplayer);
                              if (list.size() >= i) {
                                  return list;

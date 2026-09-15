@@ -70,6 +70,23 @@
      protected abstract boolean canConvertToSource(ServerLevel p_376940_);
  
      protected void spreadTo(LevelAccessor p_76005_, BlockPos p_76006_, BlockState p_76007_, Direction p_76008_, FluidState p_76009_) {
+@@ -264,13 +_,15 @@
+             liquidblockcontainer.placeLiquid(p_76005_, p_76006_, p_76007_, p_76009_);
+         } else {
+             if (!p_76007_.isAir()) {
+-                this.beforeDestroyingBlock(p_76005_, p_76006_, p_76007_);
++                this.beforeDestroyingBlock(p_76005_, p_76006_, p_76007_, p_76006_.relative(p_76008_.getOpposite())); // Paper - Add BlockBreakBlockEvent
+             }
+ 
+             p_76005_.setBlock(p_76006_, p_76009_.createLegacyBlock(), 3);
+         }
+     }
+ 
++    protected void beforeDestroyingBlock(LevelAccessor level, BlockPos pos, BlockState state, BlockPos source) { beforeDestroyingBlock(level, pos, state); } // Paper - Add BlockBreakBlockEvent
++
+     protected abstract void beforeDestroyingBlock(LevelAccessor p_76002_, BlockPos p_76003_, BlockState p_76004_);
+ 
+     protected int getSlopeDistance(
 @@ -281,7 +_,8 @@
          for (Direction direction : Direction.Plane.HORIZONTAL) {
              if (direction != p_76030_) {

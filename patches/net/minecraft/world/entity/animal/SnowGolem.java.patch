@@ -168,7 +168,7 @@
 -        );
 +        drops.forEach(itemStack -> { // Paper - custom shear drops
 +            this.forceDrops = true; // CraftBukkit
-+            this.spawnAtLocation(level, itemStack, this.getEyeHeight());
++            this.spawnAtLocation(p_376257_, itemStack, this.getEyeHeight());
 +            this.forceDrops = false; // CraftBukkit
 +        });
      }

@@ -69,7 +69,7 @@
              int i = p_218100_.getMaxLocalRawBrightness(p_218102_);
              int j = 4;
 -            if (isHalloween()) {
-+            if (Bat.isHalloweenSeason(level.getMinecraftWorld())) { // Purpur - Halloween options and optimizations
++            if (Bat.isHalloweenSeason(p_218100_.getMinecraftWorld())) { // Purpur - Halloween options and optimizations
                  j = 7;
              } else if (p_218103_.nextBoolean()) {
                  return false;

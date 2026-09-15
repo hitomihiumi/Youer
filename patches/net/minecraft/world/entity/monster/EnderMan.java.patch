@@ -206,7 +206,7 @@
              } else {
                  boolean flag = abstractthrownpotion != null && this.hurtWithCleanWater(p_376680_, p_376597_, abstractthrownpotion, p_376796_);
  
-+                if (!flag1 && p_376680_.purpurConfig.endermanIgnoreProjectiles) return super.hurtServer(p_376680_, p_376597_, p_376796_); // Purpur - Config to disable Enderman teleport on projectile hit
++                if (!flag && p_376680_.purpurConfig.endermanIgnoreProjectiles) return super.hurtServer(p_376680_, p_376597_, p_376796_); // Purpur - Config to disable Enderman teleport on projectile hit
 +                if (this.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.INDIRECT)) { // Paper - EndermanEscapeEvent
                  for (int i = 0; i < 64; i++) {
                      if (this.teleport()) {

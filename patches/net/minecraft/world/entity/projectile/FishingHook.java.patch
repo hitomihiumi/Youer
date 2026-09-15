@@ -21,8 +21,8 @@
          this.luck = Math.max(0, p_150143_);
          this.lureSpeed = Math.max(0, p_150144_);
 +        // Paper start - Configurable fishing time ranges
-+        this.minWaitTime = level.paperConfig().fishingTimeRange.minimum;
-+        this.maxWaitTime = level.paperConfig().fishingTimeRange.maximum;
++        this.minWaitTime = p_150142_.paperConfig().fishingTimeRange.minimum;
++        this.maxWaitTime = p_150142_.paperConfig().fishingTimeRange.maximum;
 +        // Paper end - Configurable fishing time ranges
      }
  
@@ -123,7 +123,14 @@
                  this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                  double d3 = this.getY() + 0.5;
                  serverlevel.sendParticles(
-@@ -452,6 +_,7 @@
+@@ -449,9 +_,14 @@
+     }
+ 
+     public int retrieve(ItemStack p_37157_) {
++        return this.retrieve(p_37157_, net.minecraft.world.InteractionHand.MAIN_HAND); // Paper - Add hand parameter to PlayerFishEvent
++    }
++
++    public int retrieve(ItemStack p_37157_, net.minecraft.world.InteractionHand hand) { // Paper - Add hand parameter to PlayerFishEvent
          Player player = this.getPlayerOwner();
          if (!this.level().isClientSide && player != null && !this.shouldStopFishing(player)) {
              int i = 0;

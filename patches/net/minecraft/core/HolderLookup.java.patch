@@ -17,7 +17,7 @@
 +                // Paper start - add getValueForCopying
 +                @Override
 +                public Optional<T> getValueForCopying(final ResourceKey<T> resourceKey) {
-+                    return this.parent().getValueForCopying(resourceKey).filter(predicate);
++                    return this.parent().getValueForCopying(resourceKey).filter(p_324043_);
 +                }
 +                // Paper end - add getValueForCopying
 +

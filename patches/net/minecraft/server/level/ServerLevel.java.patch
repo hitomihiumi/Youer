@@ -22,7 +22,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -202,95 +_,236 @@
+@@ -202,95 +_,235 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -42,8 +42,7 @@
 +    public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
 +    public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
 +    public boolean hasRidableMoveEvent = false; // Purpur - Ridables
-+    // Youer - deferred: `wireHandler` (Paper - optimize redstone, Alternate Current) - the `alternate.current.wire`
-+    // package isn't vendored in this tree, same as the Level.java deferral. See getWireHandler() below.
++    private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
 +
 +    @Override
 +    public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
@@ -1963,13 +1962,16 @@
          return crashreportcategory;
      }
  
-@@ -1752,11 +_,16 @@
+@@ -1752,11 +_,19 @@
          return this.chunkSource.getGenerator().getSeaLevel();
      }
  
-+    // Youer - deferred: getWireHandler() override (Paper - optimize redstone, Alternate Current) - Level.java's
-+    // own getWireHandler() was deferred too (see Level.java), so neither exists right now; nothing in the
-+    // corpus merged so far calls it. Re-add both this and the `wireHandler` field above if a future file needs it.
++    // Paper start - optimize redstone (Alternate Current)
++    @Override
++    public alternate.current.wire.WireHandler getWireHandler() {
++        return wireHandler;
++    }
++    // Paper end - optimize redstone (Alternate Current)
 +
      final class EntityCallbacks implements LevelCallback<Entity> {
          public void onCreated(Entity p_143355_) {

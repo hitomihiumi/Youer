@@ -98,7 +98,7 @@
 +        drops.forEach(p_405241_ -> { // Paper - custom drops - loop in generated default drops
 +            if (true) { // Paper - custom drops - loop in generated default drops
 +                this.forceDrops = true; // CraftBukkit
-+                ItemEntity itementity = this.spawnAtLocation(level, p_405241_, 1.0F); // Paper - custom drops - copy already done above
++                ItemEntity itementity = this.spawnAtLocation(p_405075_, p_405241_, 1.0F); // Paper - custom drops - copy already done above
 +                this.forceDrops = false; // CraftBukkit
                      if (itementity != null) {
                          itementity.setDeltaMovement(

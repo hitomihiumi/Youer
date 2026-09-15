@@ -1,13 +1,24 @@
 --- a/net/minecraft/world/inventory/AbstractCraftingMenu.java
 +++ b/net/minecraft/world/inventory/AbstractCraftingMenu.java
-@@ -12,8 +_,8 @@
+@@ -12,14 +_,17 @@
  public abstract class AbstractCraftingMenu extends RecipeBookMenu {
      private final int width;
      private final int height;
 -    protected final CraftingContainer craftSlots;
 -    protected final ResultContainer resultSlots = new ResultContainer();
-+    public final CraftingContainer craftSlots; // Youer - fix: widen visibility to match Paper (used by CraftServer)
++    public final TransientCraftingContainer craftSlots; // CraftBukkit
 +    public final ResultContainer resultSlots = new ResultContainer(); // Youer - fix: widen visibility to match Paper (used by CraftServer)
  
-     public AbstractCraftingMenu(MenuType<?> p_362493_, int p_360673_, int p_364200_, int p_363034_) {
+-    public AbstractCraftingMenu(MenuType<?> p_362493_, int p_360673_, int p_364200_, int p_363034_) {
++    public AbstractCraftingMenu(MenuType<?> p_362493_, int p_360673_, int p_364200_, int p_363034_, Inventory playerInventory) { // CraftBukkit
          super(p_362493_, p_360673_);
+         this.width = p_364200_;
+         this.height = p_363034_;
+-        this.craftSlots = new TransientCraftingContainer(this, p_364200_, p_363034_);
++        // CraftBukkit start
++        this.craftSlots = new TransientCraftingContainer(this, p_364200_, p_363034_, playerInventory.player);
++        this.craftSlots.resultInventory = this.resultSlots; // let InventoryCrafting know about its result slot
++        // CraftBukkit end
+     }
+ 
+     protected Slot addResultSlot(Player p_362550_, int p_361054_, int p_363126_) {

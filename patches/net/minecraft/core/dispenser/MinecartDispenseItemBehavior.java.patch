@@ -36,7 +36,7 @@
 +        serverlevel.getCraftServer().getPluginManager().callEvent(event);
 +
 +        if (event.isCancelled()) {
-+            return item;
++            return p_374580_;
 +        }
 +
 +        boolean shrink = true;
@@ -47,7 +47,7 @@
 +            DispenseItemBehavior dispenseItemBehavior = DispenserBlock.getDispenseBehavior(p_374045_, eventStack);
 +            if (dispenseItemBehavior != DispenseItemBehavior.NOOP && dispenseItemBehavior != this) {
 +                dispenseItemBehavior.dispense(p_374045_, eventStack);
-+                return item;
++                return p_374580_;
 +            }
 +        }
 +

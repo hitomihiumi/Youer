@@ -278,7 +278,7 @@
          this.playShoulderEntityAmbientSound(this.getShoulderEntityLeft());
          this.playShoulderEntityAmbientSound(this.getShoulderEntityRight());
          if (!this.level().isClientSide && (this.fallDistance > 0.5 || this.isInWater()) || this.abilities.flying || this.isSleeping() || this.isInPowderSnow) {
-+            if (!this.level().paperConfig().list.behavior.parrotsAreUnaffectedByPlayerMovement) // Paper - Add option to make parrots stay
++            if (!this.level().paperConfig().entities.behavior.parrotsAreUnaffectedByPlayerMovement) // Paper - Add option to make parrots stay
              this.removeEntitiesOnShoulder();
          }
      }

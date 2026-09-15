@@ -222,7 +222,7 @@
 -        while (p_37275_ - p_37274_ >= 180.0F) {
 -            p_37274_ += 360.0F;
 -        }
-+        currentRotation += Math.round((targetRotation - currentRotation) / 360.0F) * 360.0F; // Paper - stop large look changes from crashing the server
++        p_37274_ += Math.round((p_37275_ - p_37274_) / 360.0F) * 360.0F; // Paper - stop large look changes from crashing the server
  
          return Mth.lerp(0.2F, p_37274_, p_37275_);
      }

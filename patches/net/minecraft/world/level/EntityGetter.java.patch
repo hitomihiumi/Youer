@@ -43,8 +43,24 @@
      @Nullable
      default Player getNearestPlayer(Entity p_45931_, double p_45932_) {
          return this.getNearestPlayer(p_45931_.getX(), p_45931_.getY(), p_45931_.getZ(), p_45932_, false);
-@@ -102,7 +_,7 @@
+@@ -100,9 +_,23 @@
+         return this.getNearestPlayer(p_45925_, p_45926_, p_45927_, p_45928_, predicate);
+     }
  
++    // Paper start - Affects Spawning API
++    default boolean hasNearbyAlivePlayerThatAffectsSpawning(double x, double y, double z, double range) {
++        for (Player player : this.players()) {
++            if (EntitySelector.PLAYER_AFFECTS_SPAWNING.test(player)) { // combines NO_SPECTATORS and LIVING_ENTITY_STILL_ALIVE with an "affects spawning" check
++                double distanceSqr = player.distanceToSqr(x, y, z);
++                if (range < 0.0D || distanceSqr < range * range) {
++                    return true;
++                }
++            }
++        }
++        return false;
++    }
++    // Paper end - Affects Spawning API
++
      default boolean hasNearbyAlivePlayer(double p_45915_, double p_45916_, double p_45917_, double p_45918_) {
          for (Player player : this.players()) {
 -            if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player)) {

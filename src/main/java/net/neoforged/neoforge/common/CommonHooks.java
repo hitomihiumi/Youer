@@ -450,11 +450,20 @@ public class CommonHooks {
     }
 
     public static ChatDecorator getServerChatSubmittedDecorator() {
-        return (sender, message) -> {
-            if (sender == null)
-                return message; // Vanilla should never get here with the patches we use, but let's be safe with dumb mods
+        // Youer - Paper makes ChatDecorator async, so the NeoForge hook hands back a completed future
+        return new ChatDecorator() {
+            @Override
+            public java.util.concurrent.CompletableFuture<Component> decorate(@Nullable ServerPlayer sender, Component message) {
+                if (sender == null)
+                    return java.util.concurrent.CompletableFuture.completedFuture(message); // Vanilla should never get here with the patches we use, but let's be safe with dumb mods
 
-            return onServerChatSubmittedEvent(sender, getRawText(message), message);
+                return java.util.concurrent.CompletableFuture.completedFuture(onServerChatSubmittedEvent(sender, getRawText(message), message));
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<Component> decorate(@Nullable ServerPlayer sender, @Nullable net.minecraft.commands.CommandSourceStack commandSourceStack, Component message) {
+                return this.decorate(sender, message);
+            }
         };
     }
 
@@ -669,7 +678,7 @@ public class CommonHooks {
                     BlockState newBlock = level.getBlockState(snap.getPos());
                     newBlock.onPlace(level, snap.getPos(), oldBlock, false);
 
-                    level.markAndNotifyBlock(snap.getPos(), level.getChunkAt(snap.getPos()), oldBlock, newBlock, updateFlag, 512);
+                    level.notifyAndUpdatePhysics(snap.getPos(), level.getChunkAt(snap.getPos()), oldBlock, newBlock, newBlock, updateFlag, 512); // Youer - CraftBukkit split markAndNotifyBlock into notifyAndUpdatePhysics
                 }
                 if (player != null)
                     player.awardStat(Stats.ITEM_USED.get(item));

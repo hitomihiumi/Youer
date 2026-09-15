@@ -1019,13 +1019,20 @@
      public final boolean isDebug() {
          return this.isDebug;
      }
-@@ -1071,12 +_,17 @@
+@@ -1071,12 +_,24 @@
          return 0;
      }
  
-+    // Youer - deferred: `getWireHandler()` (Paper - optimize redstone, Alternate Current) - the
-+    // `alternate.current.wire` package isn't vendored in this tree at all; not called anywhere in the
-+    // corpus merged so far. Re-add (with the vendored library) if/when a future file needs it.
++    // Paper start - optimize redstone (Alternate Current)
++    public alternate.current.wire.WireHandler getWireHandler() {
++        // This method is overridden in ServerLevel.
++        // Since Paper is a server platform there is no risk
++        // of this implementation being called. It is here
++        // only so this method can be called without casting
++        // an instance of Level to ServerLevel.
++        return null;
++    }
++    // Paper end - optimize redstone (Alternate Current)
 +
      public static enum ExplosionInteraction implements StringRepresentable {
          NONE("none"),

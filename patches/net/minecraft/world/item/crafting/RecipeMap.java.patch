@@ -9,11 +9,38 @@
      public final Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
  
      private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> p_379497_, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> p_380280_) {
-@@ -31,6 +_,25 @@
+@@ -30,7 +_,51 @@
+             builder1.put(recipeholder.id(), recipeholder);
          }
  
-         return new RecipeMap(builder.build(), builder1.build());
+-        return new RecipeMap(builder.build(), builder1.build());
++        // CraftBukkit start - mutable
++        return new RecipeMap(com.google.common.collect.LinkedHashMultimap.create(builder.build()), com.google.common.collect.Maps.newLinkedHashMap(builder1.build()));
 +    }
++
++    public void addRecipe(RecipeHolder<?> holder) {
++        Collection<RecipeHolder<?>> recipes = this.byType.get(holder.value().getType());
++
++        if (this.byKey.containsKey(holder.id())) {
++            throw new IllegalStateException("Duplicate recipe ignored with ID " + holder.id());
++        } else {
++            recipes.add(holder);
++            this.byKey.put(holder.id(), holder);
++        }
++    }
++    // CraftBukkit end
++
++    // Paper start - replace removeRecipe implementation
++    public <T extends RecipeInput> boolean removeRecipe(ResourceKey<Recipe<T>> mcKey) {
++        //noinspection unchecked
++        final RecipeHolder<Recipe<T>> remove = (RecipeHolder<Recipe<T>>) this.byKey.remove(mcKey);
++        if (remove == null) {
++            return false;
++        }
++        final Collection<? extends RecipeHolder<? extends Recipe<T>>> recipes = this.byType(remove.value().getType());
++        return recipes.remove(remove);
++    }
++    // Paper end - replace removeRecipe implementation
 +
 +    // Neo: handle ordering according to any recipe priorities
 +    public void order(it.unimi.dsi.fastutil.objects.Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities) {

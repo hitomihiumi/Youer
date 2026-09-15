@@ -17,7 +17,7 @@
 +                                // would lose said memory module type by passing each "current winner" and incoming next
 +                                // villager to #selectWinner.
 +                                poi -> {
-+                                    final List<LivingEntity> livingEntities = instance.get(nearestLivingEntities);
++                                    final List<LivingEntity> livingEntities = p_258576_.get(p_258591_);
 +
 +                                    Villager winner = p_258581_;
 +                                    for (final LivingEntity other : livingEntities) {

@@ -160,6 +160,29 @@
  
              List<EndCrystal> list1 = Lists.newArrayList();
              BlockPos blockpos1 = blockpos.above(1);
+@@ -498,18 +_,19 @@
+             for (Direction direction : Direction.Plane.HORIZONTAL) {
+                 List<EndCrystal> list = this.level.getEntitiesOfClass(EndCrystal.class, new AABB(blockpos1.relative(direction, 2)));
+                 if (list.isEmpty()) {
+-                    return;
++                    return false; // CraftBukkit - return value
+                 }
+ 
+                 list1.addAll(list);
+             }
+ 
+             LOGGER.debug("Found all crystals, respawning dragon.");
+-            this.respawnDragon(list1);
++            return this.respawnDragon(list1); // CraftBukkit - return value
+         }
++        return false; // CraftBukkit - return value
+     }
+ 
+-    public void respawnDragon(List<EndCrystal> p_64092_) {
++    public boolean respawnDragon(List<EndCrystal> p_64092_) { // CraftBukkit - return boolean
+         if (this.dragonKilled && this.respawnStage == null) {
+             for (BlockPattern.BlockPatternMatch blockpattern$blockpatternmatch = this.findExitPortal();
+                 blockpattern$blockpatternmatch != null;
 @@ -531,7 +_,9 @@
              this.respawnTime = 0;
              this.spawnExitPortal(false);

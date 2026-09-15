@@ -333,7 +333,7 @@
 +                    serverplayer.getBukkitEntity(),
 +                    org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this),
 +                    j - this.getDamageValue(),
-+                    damage
++                    p_362924_
 +                );
 +                if (!event.callEvent() || event.getDamage() == 0) {
 +                    return;

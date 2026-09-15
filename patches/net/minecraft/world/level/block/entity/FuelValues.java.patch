@@ -1,14 +1,5 @@
 --- a/net/minecraft/world/level/block/entity/FuelValues.java
 +++ b/net/minecraft/world/level/block/entity/FuelValues.java
-@@ -18,7 +_,7 @@
- import net.minecraft.world.level.block.Blocks;
- 
- public class FuelValues {
--    public final Object2IntSortedMap<Item> values;
-+    private final Object2IntSortedMap<Item> values;
- 
-     FuelValues(Object2IntSortedMap<Item> p_362184_) {
-         this.values = p_362184_;
 @@ -32,6 +_,10 @@
          return Collections.unmodifiableSequencedSet(this.values.keySet());
      }
