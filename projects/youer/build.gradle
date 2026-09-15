@@ -460,16 +460,21 @@ def download1218Libraries = tasks.register("download1218Libraries", Download) {
     dest layout.buildDirectory.dir("librariesRaw")
 }
 
+// Youer: read the versions at configuration time - the Zip task's closures run at execution time,
+// where touching `project` is unsupported under Gradle's configuration cache.
+def mcVersion = project.minecraft_version
+def neoFormVersion = project.neoform_version
+
 def downloadMultipleFiles = tasks.register("downloadMultipleFiles", Zip) {
     dependsOn download1218Libraries
     archiveFileName = "libraries.zip"
     destinationDirectory = layout.buildDirectory.dir("libraries")
     from(layout.buildDirectory.dir("librariesRaw").map { it.file("server.jar") }) {
-        into "net/minecraft/server/${project.minecraft_version}"
-        rename { "server-${project.minecraft_version}.jar" }
+        into "net/minecraft/server/${mcVersion}"
+        rename { "server-${mcVersion}.jar" }
     }
-    from(layout.buildDirectory.dir("librariesRaw").map { it.file("neoform-${project.minecraft_version}-${project.neoform_version}.zip") }) {
-        into "net/neoforged/neoform/${project.minecraft_version}-${project.neoform_version}"
+    from(layout.buildDirectory.dir("librariesRaw").map { it.file("neoform-${mcVersion}-${neoFormVersion}.zip") }) {
+        into "net/neoforged/neoform/${mcVersion}-${neoFormVersion}"
     }
 }
 
