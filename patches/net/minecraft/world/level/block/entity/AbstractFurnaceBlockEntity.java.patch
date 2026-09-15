@@ -196,16 +196,60 @@
                  }
              }
          } else {
-@@ -247,7 +_,7 @@
+@@ -238,17 +_,47 @@
+         @Nullable RecipeHolder<? extends AbstractCookingRecipe> p_300910_,
+         SingleRecipeInput p_380269_,
+         NonNullList<ItemStack> p_267073_,
+-        int p_267157_
++        int p_267157_,
++        net.minecraft.world.level.Level level, // CraftBukkit
++        BlockPos blockPos // CraftBukkit
+     ) {
+         if (p_300910_ != null && canBurn(p_266740_, p_300910_, p_380269_, p_267073_, p_267157_)) {
+-            ItemStack itemstack = p_267073_.get(0);
+-            ItemStack itemstack1 = p_300910_.value().assemble(p_380269_, p_266740_);
+-            ItemStack itemstack2 = p_267073_.get(2);
++            ItemStack itemstack = p_267073_.get(0); final ItemStack ingredient = itemstack; // Paper - OBFHELPER
++            ItemStack itemstack1 = p_300910_.value().assemble(p_380269_, p_266740_); ItemStack result = itemstack1; // Paper - OBFHELPER
++            ItemStack itemstack2 = p_267073_.get(2); final ItemStack existingResults = itemstack2; // Paper - OBFHELPER
++            // CraftBukkit start - fire FurnaceSmeltEvent
++            org.bukkit.craftbukkit.inventory.CraftItemStack apiIngredient = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(ingredient);
++            org.bukkit.inventory.ItemStack apiResult = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(result);
++
++            org.bukkit.event.inventory.FurnaceSmeltEvent furnaceSmeltEvent = new org.bukkit.event.inventory.FurnaceSmeltEvent(
++                org.bukkit.craftbukkit.block.CraftBlock.at(level, blockPos),
++                apiIngredient,
++                apiResult,
++                (org.bukkit.inventory.CookingRecipe<?>) p_300910_.toBukkitRecipe() // Paper - Add recipe to cook events
++            );
++            if (!furnaceSmeltEvent.callEvent()) return false;
++
++            apiResult = furnaceSmeltEvent.getResult();
++            itemstack1 = result = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(apiResult);
++
++            if (!result.isEmpty()) {
++                if (existingResults.isEmpty()) {
++                    p_267073_.set(2, result.copy());
++                } else if (org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(existingResults).isSimilar(apiResult)) {
++                    existingResults.grow(result.getCount());
++                } else {
++                    return false;
++                }
++            }
++
++            /*
              if (itemstack2.isEmpty()) {
                  p_267073_.set(2, itemstack1.copy());
              } else if (ItemStack.isSameItemSameComponents(itemstack2, itemstack1)) {
 -                itemstack2.grow(1);
 +                itemstack2.grow(itemstack1.getCount());
              }
++            */
++            // CraftBukkit end
  
              if (itemstack.is(Blocks.WET_SPONGE.asItem()) && !p_267073_.get(1).isEmpty() && p_267073_.get(1).is(Items.BUCKET)) {
-@@ -262,7 +_,7 @@
+                 p_267073_.set(1, new ItemStack(Items.WATER_BUCKET));
+@@ -262,12 +_,19 @@
      }
  
      protected int getBurnDuration(FuelValues p_363501_, ItemStack p_58343_) {
@@ -213,7 +257,21 @@
 +        return p_58343_.getBurnTime(this.recipeType, p_363501_);
      }
  
-     private static int getTotalCookTime(ServerLevel p_380169_, AbstractFurnaceBlockEntity p_222694_) {
+-    private static int getTotalCookTime(ServerLevel p_380169_, AbstractFurnaceBlockEntity p_222694_) {
++    public static int getTotalCookTime(@Nullable ServerLevel p_380169_, AbstractFurnaceBlockEntity p_222694_, RecipeType<? extends AbstractCookingRecipe> recipeType, double cookSpeedMultiplier) { // Paper - cook speed multiplier API
+         SingleRecipeInput singlerecipeinput = new SingleRecipeInput(p_222694_.getItem(0));
+-        return p_222694_.quickCheck.getRecipeFor(singlerecipeinput, p_380169_).map(p_379263_ -> p_379263_.value().cookingTime()).orElse(200);
++        // Paper start - cook speed multiplier API
++        /* Scale the recipe's cooking time to the current cookSpeedMultiplier */
++        int cookTime = p_380169_ != null
++            ? p_222694_.quickCheck.getRecipeFor(singlerecipeinput, p_380169_).map(p_379263_ -> p_379263_.value().cookingTime()).orElse(200)
++            /* passing a null level here is safe. world is only used for map extending recipes which won't happen here */
++            : (net.minecraft.server.MinecraftServer.getServer().getRecipeManager().getRecipeFor(recipeType, singlerecipeinput, p_380169_).map(p_379263_ -> p_379263_.value().cookingTime()).orElse(200));
++        return (int) Math.ceil(cookTime / cookSpeedMultiplier);
++        // Paper end - cook speed multiplier API
+     }
+ 
+     @Override
 @@ -311,7 +_,7 @@
          this.items.set(p_58333_, p_58334_);
          p_58334_.limitSize(this.getMaxStackSize(p_58334_));

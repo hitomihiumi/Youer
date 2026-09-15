@@ -8,3 +8,12 @@
              String s = optionset.valueOf(universe);
              createOrResetDir(s);
              p_397859_.accept(s);
+@@ -78,7 +_,7 @@
+             }
+ 
+             LevelStorageSource.LevelStorageAccess levelstoragesource$levelstorageaccess = LevelStorageSource.createDefault(Paths.get(s))
+-                .createAccess("gametestworld");
++                .createAccess("gametestworld", net.minecraft.world.level.dimension.LevelStem.OVERWORLD);
+             PackRepository packrepository = ServerPacksSource.createPackRepository(levelstoragesource$levelstorageaccess);
+             MinecraftServer.spin(
+                 p_423187_ -> {

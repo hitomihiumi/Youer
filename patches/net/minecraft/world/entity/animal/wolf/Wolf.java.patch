@@ -221,6 +221,20 @@
              this.interestedAngleO = this.interestedAngle;
              if (this.isInterested()) {
                  this.interestedAngle = this.interestedAngle + (1.0F - this.interestedAngle) * 0.4F;
+@@ -404,10 +_,11 @@
+     }
+ 
+     @Override
+-    protected void actuallyHurt(ServerLevel p_406271_, DamageSource p_406248_, float p_406370_) {
++    public boolean actuallyHurt(ServerLevel p_406271_, DamageSource p_406248_, float p_406370_, org.bukkit.event.entity.EntityDamageEvent event) { // CraftBukkit - void -> boolean
+         if (!this.canArmorAbsorb(p_406248_)) {
+-            super.actuallyHurt(p_406271_, p_406248_, p_406370_);
++            return super.actuallyHurt(p_406271_, p_406248_, p_406370_, event); // CraftBukkit
+         } else {
++            if (event.isCancelled()) return false; // CraftBukkit - SPIGOT-7815: if the damage was cancelled, no need to run the wolf armor behaviour
+             ItemStack itemstack = this.getBodyArmorItem();
+             int i = itemstack.getDamageValue();
+             int j = itemstack.getMaxDamage();
 @@ -427,6 +_,7 @@
                  );
              }
@@ -282,7 +296,7 @@
              this.tryToTame(p_406380_);
              return InteractionResult.SUCCESS_SERVER;
 +        // Purpur start - Configurable chance for wolves to spawn rabid
-+        } else if (this.level().purpurConfig.wolfMilkCuresRabies && item.getItem() == Items.MILK_BUCKET && this.isRabid()) {
++        } else if (this.level().purpurConfig.wolfMilkCuresRabies && itemstack.getItem() == Items.MILK_BUCKET && this.isRabid()) {
 +            if (!p_406380_.isCreative()) {
 +                p_406380_.setItemInHand(p_406261_, new ItemStack(Items.BUCKET));
 +            }

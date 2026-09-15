@@ -54,6 +54,18 @@
      public record LevelCandidates(List<LevelStorageSource.LevelDirectory> levels) implements Iterable<LevelStorageSource.LevelDirectory> {
          public boolean isEmpty() {
              return this.levels.isEmpty();
+@@ -409,8 +_,10 @@
+         public final LevelStorageSource.LevelDirectory levelDirectory;
+         private final String levelId;
+         private final Map<LevelResource, Path> resources = Maps.newHashMap();
++        public final ResourceKey<LevelStem> dimensionType; // CraftBukkit
+ 
+-        LevelStorageAccess(String p_289967_, Path p_289988_) throws IOException {
++        LevelStorageAccess(String p_289967_, Path p_289988_, final ResourceKey<LevelStem> dimensionType) throws IOException { // CraftBukkit
++            this.dimensionType = dimensionType; // CraftBukkit
+             this.levelId = p_289967_;
+             this.levelDirectory = new LevelStorageSource.LevelDirectory(p_289988_);
+             this.lock = DirectoryLock.create(p_289988_);
 @@ -453,7 +_,7 @@
          }
  

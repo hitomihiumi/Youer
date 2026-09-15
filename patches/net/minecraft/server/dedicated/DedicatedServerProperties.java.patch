@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
 +++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
-@@ -47,7 +_,8 @@
+@@ -47,9 +_,11 @@
      static final Logger LOGGER = LogUtils.getLogger();
      private static final Pattern SHA1 = Pattern.compile("^[a-fA-F0-9]{40}$");
      private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
@@ -9,7 +9,10 @@
 +    public final boolean onlineMode = this.get("online-mode", !net.minecraft.SharedConstants.IS_RUNNING_IN_IDE);
      public final boolean preventProxyConnections = this.get("prevent-proxy-connections", false);
      public final String serverIp = this.get("server-ip", "");
++    public final String serverName = this.get("server-name", "Unknown Server"); // Purpur - Bring back server name
      public final boolean pvp = this.get("pvp", true);
+     public final boolean allowFlight = this.get("allow-flight", false);
+     public final String motd = this.get("motd", "A Minecraft Server");
 @@ -87,7 +_,7 @@
      public final boolean broadcastRconToOps = this.get("broadcast-rcon-to-ops", true);
      public final boolean broadcastConsoleToOps = this.get("broadcast-console-to-ops", true);

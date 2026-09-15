@@ -58,7 +58,7 @@
                  return ItemStack.EMPTY;
              }
  
-+            this.activeQuickItem = itemStack; // Purpur - Anvil API
++            this.activeQuickItem = itemstack; // Purpur - Anvil API
              slot.onTake(p_39792_, itemstack1);
 +            this.activeQuickItem = null; // Purpur - Anvil API
          }

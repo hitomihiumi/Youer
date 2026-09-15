@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
 +++ b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
-@@ -93,7 +_,9 @@
+@@ -93,7 +_,10 @@
      List<SerializableChunkData.SectionData> sectionData,
      List<CompoundTag> entities,
      List<CompoundTag> blockEntities,
@@ -8,6 +8,7 @@
 +    CompoundTag structureData,
 +    @Nullable CompoundTag attachmentData,
 +    @Nullable ListTag auxLightData
++    , @Nullable net.minecraft.nbt.Tag persistentDataContainer // CraftBukkit - persistentDataContainer
  ) {
      private static final Codec<PalettedContainer<BlockState>> BLOCK_STATE_CODEC = PalettedContainer.codecRW(
          Block.BLOCK_STATE_REGISTRY, BlockState.CODEC, PalettedContainer.Strategy.SECTION_STATES, Blocks.AIR.defaultBlockState()
@@ -87,7 +88,7 @@
                      int j1 = compoundtag.getByteOr("Y", (byte)0);
                      LevelChunkSection levelchunksection;
                      if (j1 >= p_361938_.getMinSectionY() && j1 <= p_361938_.getMaxSectionY()) {
-+                        final BlockState[] presetBlockStates = serverLevel.chunkPacketBlockController.getPresetBlockStates(serverLevel, chunkPos, j1); // Paper - Anti-Xray - Add preset block states
++                        final BlockState[] presetBlockStates = serverLevel.chunkPacketBlockController.getPresetBlockStates(serverLevel, chunkpos, j1); // Paper - Anti-Xray - Add preset block states
 +                        final Codec<PalettedContainer<BlockState>> blockStateCodec = presetBlockStates == null ? BLOCK_STATE_CODEC : PalettedContainer.codecRW(Block.BLOCK_STATE_REGISTRY, BlockState.CODEC, PalettedContainer.Strategy.SECTION_STATES, Blocks.AIR.defaultBlockState(), presetBlockStates); // Paper - Anti-Xray
                          PalettedContainer<BlockState> palettedcontainer = compoundtag.getCompound("block_states")
                              .map(
@@ -116,17 +117,18 @@
                                  )
                              );
                          levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerro);
-@@ -197,6 +_,9 @@
+@@ -197,6 +_,10 @@
                  }
              }
  
 +            CompoundTag attachmentData = p_362040_.getCompound(net.neoforged.neoforge.attachment.AttachmentHolder.ATTACHMENTS_NBT_KEY).orElse(null);
 +            ListTag auxLightData = p_362040_.getList(net.neoforged.neoforge.common.world.LevelChunkAuxiliaryLightManager.LIGHT_NBT_KEY).orElse(null);
++            net.minecraft.nbt.Tag chunkPersistentDataContainer = p_362040_.get("ChunkBukkitValues"); // CraftBukkit - persistentDataContainer
 +
              return new SerializableChunkData(
                  registry,
                  chunkpos,
-@@ -215,7 +_,9 @@
+@@ -215,7 +_,10 @@
                  list2,
                  list3,
                  list4,
@@ -134,6 +136,7 @@
 +                compoundtag1,
 +                attachmentData,
 +                auxLightData
++                , chunkPersistentDataContainer // CraftBukkit - persistentDataContainer
              );
          }
      }
@@ -184,7 +187,7 @@
      public static SerializableChunkData copyOf(ServerLevel p_365319_, ChunkAccess p_362284_) {
          if (!p_362284_.canBeSerialized()) {
              throw new IllegalArgumentException("Chunk can't be serialized: " + p_362284_);
-@@ -402,6 +_,17 @@
+@@ -402,6 +_,23 @@
              CompoundTag compoundtag1 = packStructureData(
                  StructurePieceSerializationContext.fromLevel(p_365319_), chunkpos, p_362284_.getAllStarts(), p_362284_.getAllReferences()
              );
@@ -199,10 +202,16 @@
 +            if (p_362284_ instanceof LevelChunk levelChunk) {
 +                auxLightData = levelChunk.getAuxLightManager(chunkpos).serializeNBT();
 +            }
++            // CraftBukkit start - store chunk persistent data in nbt
++            CompoundTag persistentDataContainer = null;
++            if (!p_362284_.persistentDataContainer.isEmpty()) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
++                persistentDataContainer = p_362284_.persistentDataContainer.toTagCompound();
++            }
++            // CraftBukkit end
              return new SerializableChunkData(
                  p_365319_.registryAccess().lookupOrThrow(Registries.BIOME),
                  chunkpos,
-@@ -420,7 +_,9 @@
+@@ -420,7 +_,10 @@
                  list,
                  list2,
                  list1,
@@ -210,6 +219,7 @@
 +                compoundtag1,
 +                attachmentData,
 +                auxLightData
++                , persistentDataContainer // CraftBukkit - persistentDataContainer
              );
          }
      }
@@ -222,10 +232,15 @@
          compoundtag.putLong("InhabitedTime", this.inhabitedTime);
          compoundtag.putString("Status", BuiltInRegistries.CHUNK_STATUS.getKey(this.chunkStatus).toString());
          compoundtag.storeNullable("blending_data", BlendingData.Packed.CODEC, this.blendingData);
-@@ -487,6 +_,14 @@
+@@ -487,6 +_,19 @@
          this.heightmaps.forEach((p_362472_, p_363515_) -> compoundtag2.put(p_362472_.getSerializationKey(), new LongArrayTag(p_363515_)));
          compoundtag.put("Heightmaps", compoundtag2);
          compoundtag.put("structures", this.structureData);
++        // CraftBukkit start - store chunk persistent data in nbt
++        if (this.persistentDataContainer != null) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
++            compoundtag.put("ChunkBukkitValues", this.persistentDataContainer);
++        }
++        // CraftBukkit end
 +
 +        if (attachmentData != null) {
 +            compoundtag.put(net.neoforged.neoforge.attachment.AttachmentHolder.ATTACHMENTS_NBT_KEY, attachmentData);
@@ -242,7 +257,7 @@
                  StructureStart structurestart = StructureStart.loadStaticStart(p_360982_, compoundtag.getCompoundOrEmpty(s), p_362695_);
                  if (structurestart != null) {
 +                    // CraftBukkit start - load persistent data for structure start
-+                    net.minecraft.nbt.Tag persistentBase = compoundOrEmpty.getCompoundOrEmpty(s).get("StructureBukkitValues");
++                    net.minecraft.nbt.Tag persistentBase = compoundtag.getCompoundOrEmpty(s).get("StructureBukkitValues");
 +                    if (persistentBase instanceof CompoundTag compoundTag) {
 +                        structurestart.persistentDataContainer.putAll(compoundTag);
 +                    }

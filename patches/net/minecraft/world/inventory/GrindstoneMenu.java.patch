@@ -22,9 +22,20 @@
      public static final int MAX_NAME_LENGTH = 35;
      public static final int INPUT_SLOT = 0;
      public static final int ADDITIONAL_SLOT = 1;
-@@ -38,6 +_,7 @@
-         }
-     };
+@@ -29,15 +_,10 @@
+     private static final int INV_SLOT_END = 30;
+     private static final int USE_ROW_SLOT_START = 30;
+     private static final int USE_ROW_SLOT_END = 39;
+-    private final Container resultSlots = new ResultContainer();
+-    final Container repairSlots = new SimpleContainer(2) {
+-        @Override
+-        public void setChanged() {
+-            super.setChanged();
+-            GrindstoneMenu.this.slotsChanged(this);
+-        }
+-    };
++    private final Container resultSlots; // Paper - Add missing InventoryHolders - move down
++    final Container repairSlots; // Paper - Add missing InventoryHolders - move down
      private final ContainerLevelAccess access;
 +    private int xp = -1;
  
@@ -35,8 +46,8 @@
      public GrindstoneMenu(int p_39566_, Inventory p_39567_, final ContainerLevelAccess p_39568_) {
          super(MenuType.GRINDSTONE, p_39566_);
 +        // Paper start - Add missing InventoryHolders
-+        this.resultSlots = new ResultContainer(this.createBlockHolder(access)); // Paper - Add missing InventoryHolders
-+        this.repairSlots = new SimpleContainer(this.createBlockHolder(access), 2) { // Paper - Add missing InventoryHolders
++        this.resultSlots = new ResultContainer(this.createBlockHolder(p_39568_)); // Paper - Add missing InventoryHolders
++        this.repairSlots = new SimpleContainer(this.createBlockHolder(p_39568_), 2) { // Paper - Add missing InventoryHolders
 +            @Override
 +            public void setChanged() {
 +                super.setChanged();
@@ -125,6 +136,22 @@
              }
  
              this.mergeEnchantsFrom(itemstack, p_332686_);
+@@ -178,6 +_,15 @@
+         });
+     }
+ 
++    // Purpur start - Config for grindstones
++    private java.util.List<net.minecraft.core.component.DataComponentType<?>> GRINDSTONE_REMOVE_ATTRIBUTES_REMOVAL_LIST = java.util.List.of(
++        DataComponents.CUSTOM_DATA,
++        DataComponents.ATTRIBUTE_MODIFIERS,
++        DataComponents.CUSTOM_MODEL_DATA,
++        DataComponents.DYED_COLOR,
++        DataComponents.SUSPICIOUS_STEW_EFFECTS
++    );
++    // Purpur end - Config for grindstones
+     private ItemStack removeNonCursesFrom(ItemStack p_332709_) {
+         ItemEnchantments itemenchantments = EnchantmentHelper.updateEnchantments(
+             p_332709_, p_330066_ -> p_330066_.removeIf(p_344368_ -> !p_344368_.is(EnchantmentTags.CURSE))
 @@ -193,6 +_,23 @@
          }
  
@@ -161,7 +188,7 @@
                  return ItemStack.EMPTY;
              }
  
-+            this.activeQuickItem = itemStack; // Purpur - Grindstone API
++            this.activeQuickItem = itemstack; // Purpur - Grindstone API
              slot.onTake(p_39588_, itemstack1);
 +            this.activeQuickItem = null; // Purpur - Grindstone API
          }

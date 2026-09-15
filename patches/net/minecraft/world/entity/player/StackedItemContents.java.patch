@@ -16,3 +16,62 @@
          if (Inventory.isUsableForCrafting(p_363120_)) {
              this.accountStack(p_363120_);
          }
+@@ -24,34 +_,51 @@
+     public void accountStack(ItemStack p_365466_, int p_365492_) {
+         if (!p_365466_.isEmpty()) {
+             int i = Math.min(p_365492_, p_365466_.getCount());
+-            this.raw.account(p_365466_.getItemHolder(), i);
++            if (this.extrasMap != null && !p_365466_.getComponentsPatch().isEmpty() && this.extrasMap.accountStack(p_365466_, i)) return; // Paper - Improve exact choice recipe ingredients; if an exact ingredient, don't include it
++            this.raw.account(new io.papermc.paper.inventory.recipe.ItemOrExact.Item(p_365466_.getItemHolder()), i);
+         }
+     }
+ 
+-    public boolean canCraft(Recipe<?> p_362014_, @Nullable StackedContents.Output<Holder<Item>> p_362141_) {
++    public boolean canCraft(Recipe<?> p_362014_, @Nullable StackedContents.Output<io.papermc.paper.inventory.recipe.ItemOrExact> p_362141_) {
+         return this.canCraft(p_362014_, 1, p_362141_);
+     }
+ 
+-    public boolean canCraft(Recipe<?> p_364477_, int p_360429_, @Nullable StackedContents.Output<Holder<Item>> p_362813_) {
++    // Paper start - Improve exact choice recipe ingredients
++    public void initializeExtras(final Recipe<?> recipe, @Nullable final net.minecraft.world.item.crafting.CraftingInput input) {
++        if (this.extrasMap == null) {
++            this.extrasMap = new io.papermc.paper.inventory.recipe.StackedContentsExtrasMap(this.raw);
++        }
++        this.extrasMap.initialize(recipe);
++        if (input != null) this.extrasMap.accountInput(input);
++    }
++
++    public void resetExtras() {
++        if (this.extrasMap != null && !this.raw.amounts.isEmpty()) {
++            this.extrasMap.resetExtras();
++        }
++    }
++    // Paper end - Improve exact choice recipe ingredients
++
++    public boolean canCraft(Recipe<?> p_364477_, int p_360429_, @Nullable StackedContents.Output<io.papermc.paper.inventory.recipe.ItemOrExact> p_362813_) {
+         PlacementInfo placementinfo = p_364477_.placementInfo();
+         return placementinfo.isImpossibleToPlace() ? false : this.canCraft(placementinfo.ingredients(), p_360429_, p_362813_);
+     }
+ 
+-    public boolean canCraft(List<? extends StackedContents.IngredientInfo<Holder<Item>>> p_379390_, @Nullable StackedContents.Output<Holder<Item>> p_379587_) {
++    public boolean canCraft(List<? extends StackedContents.IngredientInfo<io.papermc.paper.inventory.recipe.ItemOrExact>> p_379390_, @Nullable StackedContents.Output<io.papermc.paper.inventory.recipe.ItemOrExact> p_379587_) {
+         return this.canCraft(p_379390_, 1, p_379587_);
+     }
+ 
+     private boolean canCraft(
+-        List<? extends StackedContents.IngredientInfo<Holder<Item>>> p_379516_, int p_380017_, @Nullable StackedContents.Output<Holder<Item>> p_380092_
++        List<? extends StackedContents.IngredientInfo<io.papermc.paper.inventory.recipe.ItemOrExact>> p_379516_, int p_380017_, @Nullable StackedContents.Output<io.papermc.paper.inventory.recipe.ItemOrExact> p_380092_
+     ) {
+         return this.raw.tryPick(p_379516_, p_380017_, p_380092_);
+     }
+ 
+-    public int getBiggestCraftableStack(Recipe<?> p_363539_, @Nullable StackedContents.Output<Holder<Item>> p_363083_) {
++    public int getBiggestCraftableStack(Recipe<?> p_363539_, @Nullable StackedContents.Output<io.papermc.paper.inventory.recipe.ItemOrExact> p_363083_) {
+         return this.getBiggestCraftableStack(p_363539_, Integer.MAX_VALUE, p_363083_);
+     }
+ 
+-    public int getBiggestCraftableStack(Recipe<?> p_362520_, int p_361940_, @Nullable StackedContents.Output<Holder<Item>> p_362354_) {
++    public int getBiggestCraftableStack(Recipe<?> p_362520_, int p_361940_, @Nullable StackedContents.Output<io.papermc.paper.inventory.recipe.ItemOrExact> p_362354_) {
+         return this.raw.tryPickAll(p_362520_.placementInfo().ingredients(), p_361940_, p_362354_);
+     }
+ 

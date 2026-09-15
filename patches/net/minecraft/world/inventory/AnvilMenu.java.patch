@@ -264,7 +264,7 @@
              return true;
          } else {
              return false;
-@@ -309,4 +_,11 @@
+@@ -309,4 +_,26 @@
      public int getCost() {
          return this.cost.get();
      }
@@ -275,4 +275,19 @@
 +    public void setCost(int value) {
 +        this.cost.set(Math.max(0, value));
 +     }
++
++    // CraftBukkit start
++    @Override
++    public org.bukkit.craftbukkit.inventory.view.CraftAnvilView getBukkitView() {
++        if (this.bukkitEntity != null) {
++            return this.bukkitEntity;
++        }
++
++        org.bukkit.craftbukkit.inventory.CraftInventoryAnvil inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryAnvil(
++                this.access.getLocation(), this.inputSlots, this.resultSlots);
++        this.bukkitEntity = new org.bukkit.craftbukkit.inventory.view.CraftAnvilView(this.player.getBukkitEntity(), inventory, this);
++        this.bukkitEntity.updateFromLegacy(inventory);
++        return this.bukkitEntity;
++    }
++    // CraftBukkit end
  }

@@ -62,7 +62,7 @@
              createMergedTips(blockstate, p_154036_, blockpos);
          } else if (blockstate.isAir() || blockstate.is(Blocks.WATER)) {
 -            createDripstone(p_154036_, blockpos, p_154038_, DripstoneThickness.TIP);
-+            createDripstone(p_154036_, blockpos, p_154038_, DripstoneThickness.TIP, pos); // CraftBukkit
++            createDripstone(p_154036_, blockpos, p_154038_, DripstoneThickness.TIP, p_154037_); // CraftBukkit
          }
      }
  
@@ -84,8 +84,8 @@
  
 -        createDripstone(p_154232_, blockpos, Direction.DOWN, DripstoneThickness.TIP_MERGE);
 -        createDripstone(p_154232_, blockpos1, Direction.UP, DripstoneThickness.TIP_MERGE);
-+        createDripstone(p_154232_, blockPos1, Direction.DOWN, DripstoneThickness.TIP_MERGE, pos); // CraftBukkit
-+        createDripstone(p_154232_, blockpos1, Direction.UP, DripstoneThickness.TIP_MERGE, pos); // CraftBukkit
++        createDripstone(p_154232_, blockpos1, Direction.DOWN, DripstoneThickness.TIP_MERGE, p_154233_); // CraftBukkit
++        createDripstone(p_154232_, blockpos, Direction.UP, DripstoneThickness.TIP_MERGE, p_154233_); // CraftBukkit
      }
  
      public static void spawnDripParticle(Level p_154063_, BlockPos p_154064_, BlockState p_154065_) {

@@ -1745,7 +1745,7 @@
          } else {
              super.executeIfPossible(p_202482_);
          }
-@@ -1483,17 +_,24 @@
+@@ -1483,19 +_,26 @@
          return this.functionManager;
      }
  
@@ -1775,8 +1775,11 @@
 -                            closeableresourcemanager,
 +                            closeableResourceManager,
                              this.registries,
-                             list,
+-                            list,
++                            list1,
                              this.worldData.enabledFeatures(),
+                             this.isDedicatedServer() ? Commands.CommandSelection.DEDICATED : Commands.CommandSelection.INTEGRATED,
+                             this.getFunctionCompilationLevel(),
 @@ -1504,36 +_,61 @@
                          )
                          .whenComplete((p_212907_, p_212908_) -> {

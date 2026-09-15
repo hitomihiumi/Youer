@@ -126,7 +126,7 @@
 +            // Paper start - optimize redstone (Alternate Current)
 +            // Alternate Current handles breaking of redstone wires in the WireHandler.
 +            if (p_55562_.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
-+                p_55562_.getWireHandler().onWireUpdated(pos, state, orientation);
++                p_55562_.getWireHandler().onWireUpdated(p_55563_, p_55561_, p_362973_);
 +            } else
 +                // Paper end - optimize redstone (Alternate Current)
              if (p_55564_ != this || !useExperimentalEvaluator(p_55562_)) {

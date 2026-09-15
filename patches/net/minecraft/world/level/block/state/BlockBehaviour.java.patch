@@ -1,6 +1,24 @@
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
-@@ -180,7 +_,7 @@
+@@ -169,18 +_,25 @@
+     }
+ 
+     protected void onPlace(BlockState p_60566_, Level p_60567_, BlockPos p_60568_, BlockState p_60569_, boolean p_60570_) {
++        org.spigotmc.AsyncCatcher.catchOp("block onPlace"); // Spigot
+     }
+ 
+     protected void affectNeighborsAfterRemoval(BlockState p_394424_, ServerLevel p_394241_, BlockPos p_393520_, boolean p_394545_) {
+     }
+ 
++    // CraftBukkit start
++    protected void onPlace(BlockState p_60566_, Level p_60567_, BlockPos p_60568_, BlockState p_60569_, boolean p_60570_, @Nullable net.minecraft.world.item.context.UseOnContext context) {
++        this.onPlace(p_60566_, p_60567_, p_60568_, p_60569_, p_60570_);
++    }
++    // CraftBukkit end
++
+     protected void onExplosionHit(
+         BlockState p_311951_, ServerLevel p_365148_, BlockPos p_312489_, Explosion p_312925_, BiConsumer<ItemStack, BlockPos> p_312073_
+     ) {
          if (!p_311951_.isAir() && p_312925_.getBlockInteraction() != Explosion.BlockInteraction.TRIGGER_BLOCK) {
              Block block = p_311951_.getBlock();
              boolean flag = p_312925_.getIndirectSourceEntity() instanceof Player;

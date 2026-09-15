@@ -1,22 +1,40 @@
 --- a/net/minecraft/world/level/block/SpongeBlock.java
 +++ b/net/minecraft/world/level/block/SpongeBlock.java
-@@ -51,6 +_,7 @@
+@@ -51,7 +_,9 @@
      }
  
      private boolean removeWaterBreadthFirstSearch(Level p_56808_, BlockPos p_56809_) {
+-        return BlockPos.breadthFirstTraversal(
 +        BlockState spongeState = p_56808_.getBlockState(p_56809_);
-         return BlockPos.breadthFirstTraversal(
++        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(p_56808_); // CraftBukkit - Use BlockStateListPopulator
++        BlockPos.breadthFirstTraversal(
                  p_56809_,
                  6,
-@@ -66,7 +_,7 @@
+                 65,
+@@ -64,16 +_,18 @@
+                     if (p_294069_.equals(p_56809_)) {
+                         return BlockPos.TraversalNodeStatus.ACCEPT;
                      } else {
-                         BlockState blockstate = p_56808_.getBlockState(p_294069_);
-                         FluidState fluidstate = p_56808_.getFluidState(p_294069_);
+-                        BlockState blockstate = p_56808_.getBlockState(p_294069_);
+-                        FluidState fluidstate = p_56808_.getFluidState(p_294069_);
 -                        if (!fluidstate.is(FluidTags.WATER)) {
++                        // CraftBukkit start
++                        BlockState blockstate = blockList.getBlockState(p_294069_);
++                        FluidState fluidstate = blockList.getFluidState(p_294069_);
++                        // CraftBukkit end
 +                        if (!spongeState.canBeHydrated(p_56808_, p_56809_, fluidstate, p_294069_)) {
                              return BlockPos.TraversalNodeStatus.SKIP;
                          } else if (blockstate.getBlock() instanceof BucketPickup bucketpickup
-                             && !bucketpickup.pickupBlock(null, p_56808_, p_294069_, blockstate).isEmpty()) {
+-                            && !bucketpickup.pickupBlock(null, p_56808_, p_294069_, blockstate).isEmpty()) {
++                            && !bucketpickup.pickupBlock(null, blockList, p_294069_, blockstate).isEmpty()) { // CraftBukkit
+                             return BlockPos.TraversalNodeStatus.ACCEPT;
+                         } else {
+                             if (blockstate.getBlock() instanceof LiquidBlock) {
+-                                p_56808_.setBlock(p_294069_, Blocks.AIR.defaultBlockState(), 3);
++                                blockList.setBlock(p_294069_, Blocks.AIR.defaultBlockState(), 3); // CraftBukkit
+                             } else {
+                                 if (!blockstate.is(Blocks.KELP)
+                                     && !blockstate.is(Blocks.KELP_PLANT)
 @@ -82,16 +_,49 @@
                                      return BlockPos.TraversalNodeStatus.SKIP;
                                  }

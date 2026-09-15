@@ -15,7 +15,7 @@
      }
  
      @Override
-@@ -59,6 +_,12 @@
+@@ -59,10 +_,22 @@
      public boolean matches(CraftingInput p_346123_, Level p_44263_) {
          if (p_346123_.ingredientCount() != this.ingredients.size()) {
              return false;
@@ -26,8 +26,21 @@
 +                    nonEmptyItems.add(item);
 +            return net.neoforged.neoforge.common.util.RecipeMatcher.findMatches(nonEmptyItems, this.ingredients) != null;
          } else {
-             return p_346123_.size() == 1 && this.ingredients.size() == 1
-                 ? this.ingredients.getFirst().test(p_346123_.getItem(0))
+-            return p_346123_.size() == 1 && this.ingredients.size() == 1
+-                ? this.ingredients.getFirst().test(p_346123_.getItem(0))
+-                : p_346123_.stackedContents().canCraft(this, null);
++            // Paper start - Improve exact choice recipe ingredients & unwrap ternary
++            if (p_346123_.size() == 1 && this.ingredients.size() == 1) {
++                return this.ingredients.getFirst().test(p_346123_.getItem(0));
++            }
++            p_346123_.stackedContents().initializeExtras(this, p_346123_);
++            boolean canCraft = p_346123_.stackedContents().canCraft(this, null);
++            p_346123_.stackedContents().resetExtras();
++            return canCraft;
++            // Paper end - Improve exact choice recipe ingredients & unwrap ternary
+         }
+     }
+ 
 @@ -87,7 +_,7 @@
                      Codec.STRING.optionalFieldOf("group", "").forGetter(p_301127_ -> p_301127_.group),
                      CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(p_301133_ -> p_301133_.category),
