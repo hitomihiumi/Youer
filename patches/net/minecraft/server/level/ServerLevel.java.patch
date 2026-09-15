@@ -22,7 +22,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -202,95 +_,234 @@
+@@ -202,95 +_,235 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -296,6 +296,7 @@
 +        // entityDataController/poiDataController/chunkDataController - all moonrise.patches.chunk_system,
 +        // out of scope)
 +        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
++        com.mohistmc.youer.feature.world.utils.ConfigByWorlds.initMods(this); // Youer - per-world mod compatibility settings
 +    }
 +
 +    // Paper start
@@ -1050,7 +1051,22 @@
              }
          }
      }
-@@ -809,30 +_,76 @@
+@@ -804,35 +_,91 @@
+ 
+     @Override
+     public boolean mayInteract(Entity p_393624_, BlockPos p_8697_) {
++        // Youer start - a plugin can veto an interaction the vanilla checks would allow
++        if (p_393624_ instanceof Player player1 && com.mohistmc.youer.api.event.block.PlayerMayInteractBlockEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(p_8697_, this.getWorld());
++            com.mohistmc.youer.api.event.block.PlayerMayInteractBlockEvent event =
++                new com.mohistmc.youer.api.event.block.PlayerMayInteractBlockEvent((org.bukkit.entity.Player) player1.getBukkitEntity(), location);
++            if (!event.callEvent()) {
++                return false;
++            }
++        }
++        // Youer end
+         return !(
+             p_393624_ instanceof Player player && (this.server.isUnderSpawnProtection(this, p_8697_, player) || !this.getWorldBorder().isWithinBounds(p_8697_))
          );
      }
  
@@ -1199,7 +1215,7 @@
          Entity entity = this.getEntity(p_8854_.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", p_8854_.getUUID());
-@@ -928,45 +_,130 @@
+@@ -928,45 +_,136 @@
              this.removePlayerImmediately((ServerPlayer)entity, Entity.RemovalReason.DISCARDED);
          }
  
@@ -1227,6 +1243,12 @@
              return false;
          } else {
 -            return this.entityManager.addNewEntity(p_8873_);
++            // Youer start - ban list and the spawn switches, checked before anything is captured
++            if (com.mohistmc.youer.feature.ban.bans.BanEntity.check(entity)) return false;
++            if (!com.mohistmc.youer.YouerConfig.spawnForChunk && spawnReason == org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CHUNK_GEN) return false;
++            if (!com.mohistmc.youer.YouerConfig.spawnForNatural && spawnReason == org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL) return false;
++            if (com.mohistmc.youer.YouerConfig.custom_no_villager && entity instanceof net.minecraft.world.entity.npc.Villager) return false;
++            // Youer end
 +            if (entity instanceof net.minecraft.world.entity.item.ItemEntity itemEntity && itemEntity.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
 +            // Paper start - capture all item additions to the world
 +            if (captureDrops != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) {

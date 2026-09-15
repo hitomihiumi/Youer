@@ -16,4 +16,15 @@ public class EmeraldClose {
             items.removeIf(item -> item.getItem().getItem() == Items.EMERALD);
         }
     }
+
+    /**
+     * Youer - 1.21.8 CraftBukkit collects a mob's drops as Paper's DefaultDrop records and spawns them
+     * itself after EntityDeathEvent, so the raid drops are filtered on that list instead.
+     */
+    public static void initDefaultDrops(LivingEntity livingEntity, Collection<net.minecraft.world.entity.Entity.DefaultDrop> drops) {
+        if (!YouerConfig.custom_raid_no_emerald) return;
+        if (livingEntity instanceof Vindicator || livingEntity instanceof Evoker) {
+            drops.removeIf(drop -> drop.item() == Items.EMERALD);
+        }
+    }
 }

@@ -97,12 +97,18 @@
          thread.setDaemon(true);
          thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
 -        thread.start();
+-        LOGGER.info("Starting minecraft server version {}", SharedConstants.getCurrentVersion().name());
 +        // thread.start(); // Paper - Enhance console tab completions for brigadier commands; moved down
-         LOGGER.info("Starting minecraft server version {}", SharedConstants.getCurrentVersion().name());
++        LOGGER.info(com.mohistmc.youer.util.I18n.as("minecraftserver.minecraftversion", SharedConstants.getCurrentVersion().name()));
          if (Runtime.getRuntime().maxMemory() / 1024L / 1024L < 512L) {
-             LOGGER.warn("To start the server with more ram, launch it as \"java -Xmx1024M -Xms1024M -jar minecraft_server.jar\"");
-         }
- 
+-            LOGGER.warn("To start the server with more ram, launch it as \"java -Xmx1024M -Xms1024M -jar minecraft_server.jar\"");
+-        }
+-
+-        LOGGER.info("Loading properties");
+-        DedicatedServerProperties dedicatedserverproperties = this.settings.getProperties();
++            LOGGER.warn(com.mohistmc.youer.util.I18n.as("minecraftserver.javamemtoolow"));
++        }
++
 +        // Paper start - detect running as root
 +        if (io.papermc.paper.util.ServerEnvironment.userIsRootOrAdmin()) {
 +            LOGGER.warn("****************************");
@@ -113,8 +119,7 @@
 +        }
 +        // Paper end - detect running as root
 +
-         LOGGER.info("Loading properties");
--        DedicatedServerProperties dedicatedserverproperties = this.settings.getProperties();
++        LOGGER.info(com.mohistmc.youer.util.I18n.as("minecraftserver.loadingproperties"));
 +        DedicatedServerProperties properties = this.settings.getProperties();
          if (this.isSingleplayer()) {
              this.setLocalIp("127.0.0.1");
@@ -180,7 +185,7 @@
 +        super.setPlayerIdleTimeout(properties.playerIdleTimeout.get());
 +        this.setEnforceWhitelist(properties.enforceWhitelist);
 +        // this.worldData.setGameType(properties.gamemode); // CraftBukkit - moved to world loading
-+        LOGGER.info("Default game type: {}", properties.gamemode);
++        LOGGER.info(com.mohistmc.youer.util.I18n.as("minecraftserver.defaultgamemode", properties.gamemode));
 +        // Paper start - Unix domain socket support
 +        java.net.SocketAddress bindAddress;
 +        if (this.getLocalIp().startsWith("unix:")) {
@@ -211,17 +216,20 @@
 +        // Paper end - Unix domain socket support
  
          this.initializeKeyPair();
-         LOGGER.info("Starting Minecraft server on {}:{}", this.getLocalIp().isEmpty() ? "*" : this.getLocalIp(), this.getPort());
+-        LOGGER.info("Starting Minecraft server on {}:{}", this.getLocalIp().isEmpty() ? "*" : this.getLocalIp(), this.getPort());
++        LOGGER.info(com.mohistmc.youer.util.I18n.as("minecraftserver.startingserver", this.getLocalIp().isEmpty() ? "*" : this.getLocalIp(), this.getPort()));
  
          try {
 -            this.getConnection().startTcpServerListener(inetaddress, this.getPort());
 -        } catch (IOException ioexception) {
+-            LOGGER.warn("**** FAILED TO BIND TO PORT!");
+-            LOGGER.warn("The exception was: {}", ioexception.toString());
+-            LOGGER.warn("Perhaps a server is already running on that port?");
 +            this.getConnection().startTcpServerListener(bindAddress); // Paper - Unix domain socket support
 +        } catch (IOException var10) {
-             LOGGER.warn("**** FAILED TO BIND TO PORT!");
--            LOGGER.warn("The exception was: {}", ioexception.toString());
-+            LOGGER.warn("The exception was: {}", var10.toString());
-             LOGGER.warn("Perhaps a server is already running on that port?");
++            LOGGER.warn(com.mohistmc.youer.util.I18n.as("minecraftserver.bindport1"));
++            LOGGER.warn(com.mohistmc.youer.util.I18n.as("minecraftserver.bindport2", var10.toString()));
++            LOGGER.warn(com.mohistmc.youer.util.I18n.as("minecraftserver.bindport3", this.getPort()));
 +            if (true) throw new IllegalStateException("Failed to bind to port", var10); // Paper - Propagate failed to bind to port error
              return false;
          }
@@ -262,11 +270,13 @@
 +        String proxyLink = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "https://docs.papermc.io/velocity/security" : "http://www.spigotmc.org/wiki/firewall-guide/";
 +        // Paper end - Add Velocity IP Forwarding Support
          if (!this.usesAuthentication()) {
-             LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
-             LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
+-            LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
+-            LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
 -            LOGGER.warn(
 -                "While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose."
 -            );
++            LOGGER.warn(com.mohistmc.youer.util.I18n.as("minecraftserver.playerauth1"));
++            LOGGER.warn(com.mohistmc.youer.util.I18n.as("minecraftserver.playerauth2"));
 +            // Spigot start
 +            // Paper start - Add Velocity IP Forwarding Support
 +            if (usingProxy) {
@@ -336,7 +346,7 @@
                  Thread thread1 = new Thread(new ServerWatchdog(this));
                  thread1.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
                  thread1.setName("Server Watchdog");
-@@ -211,15 +_,27 @@
+@@ -211,15 +_,31 @@
                  thread1.start();
              }
  
@@ -351,6 +361,10 @@
 +                this.dediLanPinger.start();
 +            }
 +
++            // Youer start - bStats reporting (opt out in plugins/bStats/config.yml) and the Youer watchdog
++            com.mohistmc.youer.Metrics.MohistMetrics.startMetrics();
++            com.mohistmc.youer.WatchMohist.start();
++            // Youer end
 +            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
              return true;
          }

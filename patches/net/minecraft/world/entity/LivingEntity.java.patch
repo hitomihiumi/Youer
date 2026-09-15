@@ -825,7 +825,7 @@
              return true;
          } else {
              return false;
-@@ -1125,177 +_,292 @@
+@@ -1125,177 +_,295 @@
          }
      }
  
@@ -922,6 +922,7 @@
          } else {
 +            this.damageContainers.push(new net.neoforged.neoforge.common.damagesource.DamageContainer(damageSource, amount));
 +            if (net.neoforged.neoforge.common.CommonHooks.onEntityIncomingDamage(this, this.damageContainers.peek())) return false;
++            amount = this.damageContainers.peek().getNewDamage(); // Youer - a mod may have changed the damage; the Bukkit event must see that value
              if (this.isSleeping()) {
                  this.stopSleeping();
              }
@@ -1004,6 +1005,7 @@
 +                // Paper start - only call damage event when actuallyHurt will be called - move call logic down
 +                event = this.handleEntityDamage(damageSource, amount, this.lastHurt); // Paper - fix invulnerability reduction in EntityDamageEvent - pass lastDamage reduction
 +                amount = computeAmountFromEntityDamageEvent(event);
++                this.damageContainers.peek().setNewDamage(amount); // Youer - and a plugin may have changed it back, so mods see the final value
 +                // Paper end - only call damage event when actuallyHurt will be called - move call logic down
 +
 +                // CraftBukkit start
@@ -1022,6 +1024,7 @@
 +                // Paper start - only call damage event when actuallyHurt will be called - move call logic down
 +                event = this.handleEntityDamage(damageSource, amount, 0); // Paper - fix invulnerability reduction in EntityDamageEvent - pass lastDamage reduction (none in this branch)
 +                amount = computeAmountFromEntityDamageEvent(event);
++                this.damageContainers.peek().setNewDamage(amount); // Youer - and a plugin may have changed it back, so mods see the final value
 +                // Paper end - only call damage event when actuallyHurt will be called - move call logic down
 +                // CraftBukkit start
 +                if (!this.actuallyHurt(level, damageSource, (float) event.getFinalDamage(), event)) {
@@ -1427,7 +1430,7 @@
              }
  
              if (this.isSleeping()) {
-@@ -1432,68 +_,148 @@
+@@ -1432,68 +_,149 @@
              }
  
              if (!this.level().isClientSide && this.hasCustomName()) {
@@ -1572,6 +1575,7 @@
  
 -        this.dropEquipment(p_348524_);
 -        this.dropExperience(p_348524_, p_21192_.getEntity());
++        com.mohistmc.youer.util.EmeraldClose.initDefaultDrops(this, this.drops); // Youer - optionally strip the raid emerald drop
 +        // CraftBukkit start - Call death event // Paper start - call advancement triggers with correct entity equipment
 +        org.bukkit.event.entity.EntityDeathEvent deathEvent = CraftEventFactory.callEntityDeathEvent(this, damageSource, this.drops, () -> {
 +            final LivingEntity killer = this.getKillCredit();

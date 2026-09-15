@@ -20,10 +20,19 @@
      }
  
      public boolean is(HolderSet<Item> p_298683_) {
-@@ -355,17 +_,184 @@
+@@ -355,17 +_,202 @@
      }
  
      public InteractionResult useOn(UseOnContext p_41662_) {
++        // Youer start - a banned item is consumed outright when it is a "moshou" ban, otherwise just refused
++        if (p_41662_.getPlayer() != null) {
++            if (com.mohistmc.youer.feature.ban.bans.BanItem.checkMoShou(p_41662_.getPlayer(), p_41662_.getItemInHand())) {
++                p_41662_.getPlayer().setItemInHand(p_41662_.getHand(), ItemStack.EMPTY);
++                return InteractionResult.FAIL;
++            }
++            if (com.mohistmc.youer.feature.ban.bans.BanItem.check(p_41662_.getPlayer(), p_41662_.getItemInHand())) return InteractionResult.FAIL;
++        }
++        // Youer end
 +        var e = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent(p_41662_, net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent.UsePhase.ITEM_AFTER_BLOCK));
 +        if (e.isCanceled()) return e.getCancellationResult();
 +        if (!p_41662_.getLevel().isClientSide) return net.neoforged.neoforge.common.CommonHooks.onPlaceItemIntoWorld(p_41662_);
@@ -38,6 +47,15 @@
 +    }
 +
 +    private InteractionResult onItemUse(UseOnContext p_41662_, java.util.function.Function<UseOnContext, InteractionResult> callback) {
++        // Youer start - a banned item is consumed outright when it is a "moshou" ban, otherwise just refused
++        if (p_41662_.getPlayer() != null) {
++            if (com.mohistmc.youer.feature.ban.bans.BanItem.checkMoShou(p_41662_.getPlayer(), p_41662_.getItemInHand())) {
++                p_41662_.getPlayer().setItemInHand(p_41662_.getHand(), ItemStack.EMPTY);
++                return InteractionResult.FAIL;
++            }
++            if (com.mohistmc.youer.feature.ban.bans.BanItem.check(p_41662_.getPlayer(), p_41662_.getItemInHand())) return InteractionResult.FAIL;
++        }
++        // Youer end
          Player player = p_41662_.getPlayer();
          BlockPos blockpos = p_41662_.getClickedPos();
          if (player != null && !player.getAbilities().mayBuild && !this.canPlaceOnBlockInAdventureMode(new BlockInWorld(p_41662_.getLevel(), blockpos, false))) {

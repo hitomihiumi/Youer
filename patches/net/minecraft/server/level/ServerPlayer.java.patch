@@ -183,7 +183,14 @@
      }
  
      @Override
-@@ -472,15 +_,30 @@
+@@ -466,21 +_,36 @@
+         p_422225_.putBoolean("seenCredits", this.seenCredits);
+         p_422225_.storeNullable("entered_nether_pos", Vec3.CODEC, this.enteredNetherPosition);
+         this.saveParentVehicle(p_422225_);
+-        p_422225_.store("recipeBook", ServerRecipeBook.Packed.CODEC, this.recipeBook.pack());
++        if (!com.mohistmc.youer.YouerConfig.no_recipeBook) p_422225_.store("recipeBook", ServerRecipeBook.Packed.CODEC, this.recipeBook.pack()); // Youer - the recipe book dominates the player file on big modpacks
+         p_422225_.putString("Dimension", this.level().dimension().location().toString());
+         p_422225_.storeNullable("respawn", ServerPlayer.RespawnConfig.CODEC, this.respawnConfig);
          p_422225_.putBoolean("spawn_extra_particles_on_fall", this.spawnExtraParticlesOnFall);
          p_422225_.storeNullable("raid_omen_position", BlockPos.CODEC, this.raidOmenPosition);
          this.saveEnderPearls(p_422225_);
@@ -487,7 +494,7 @@
 +            return;
 +        }
 +        List<DefaultDrop> loot = new java.util.ArrayList<>(this.getInventory().getContainerSize()); // Paper - Restore vanilla drops behavior
-+        boolean keepInventory = this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) || this.isSpectator();
++        boolean keepInventory = com.mohistmc.youer.feature.KeepInventory.inventory(this) || this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) || this.isSpectator(); // Youer
 +        if (!keepInventory) {
 +            for (ItemStack item : this.getInventory().getContents()) {
 +                if (!item.isEmpty() && !EnchantmentHelper.has(item, net.minecraft.world.item.enchantment.EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
@@ -1194,7 +1201,7 @@
          this.connection.send(new ClientboundBlockUpdatePacket(this.level(), p_277909_.getBlockPos()));
          this.connection.send(new ClientboundOpenSignEditorPacket(p_277909_.getBlockPos(), p_277495_));
      }
-@@ -1234,32 +_,95 @@
+@@ -1234,32 +_,103 @@
          this.connection.send(new ClientboundShowDialogPacket(p_425542_));
      }
  
@@ -1284,6 +1291,14 @@
 +                this.containerMenu = abstractContainerMenu; // Moved up
 +                if (!this.isImmobile()) {
 +                    if (extraData.length != 0) {
++                        // Youer - let plugins veto a mod's custom screen before it reaches the client
++                        if (com.mohistmc.youer.api.event.ClientboundOpenScreenEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                            com.mohistmc.youer.api.event.ClientboundOpenScreenEvent openScreenEvent = new com.mohistmc.youer.api.event.ClientboundOpenScreenEvent(this.getBukkitEntity(), abstractContainerMenu);
++                            org.bukkit.Bukkit.getPluginManager().callEvent(openScreenEvent);
++                            if (openScreenEvent.isCancelled()) {
++                                return OptionalInt.empty();
++                            }
++                        }
 +                        this.connection.send(
 +                            new net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload(
 +                                abstractContainerMenu.containerId,
@@ -1338,7 +1353,7 @@
      }
  
      @Override
-@@ -1301,14 +_,35 @@
+@@ -1301,14 +_,36 @@
  
      @Override
      public void closeContainer() {
@@ -1347,6 +1362,7 @@
 +    }
 +    @Override
 +    public void closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
++        com.mohistmc.youer.bukkit.inventory.InventoryOwner.setClose$Reason(reason); // Youer - PlayerContainerEvent.Close reports it
 +        org.bukkit.craftbukkit.event.CraftEventFactory.handleInventoryCloseEvent(this, reason); // CraftBukkit
 +        // Paper end - Inventory close reason
          this.connection.send(new ClientboundContainerClosePacket(this.containerMenu.containerId));
@@ -1370,7 +1386,7 @@
      public void doCloseContainer() {
          this.containerMenu.removed(this);
          this.inventoryMenu.transferState(this.containerMenu);
-+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Close(this, this.containerMenu));
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Close(this, this.containerMenu, com.mohistmc.youer.bukkit.inventory.InventoryOwner.getClose$Reason())); // Youer - carry the Bukkit close reason to mods
          this.containerMenu = this.inventoryMenu;
      }
  
@@ -1522,15 +1538,17 @@
              }
  
              this.getInventory().replaceWith(p_9016_.getInventory());
-@@ -1511,7 +_,7 @@
+@@ -1511,8 +_,8 @@
              this.portalProcess = p_9016_.portalProcess;
          } else {
              this.getAttributes().assignBaseValues(p_9016_.getAttributes());
 -            this.setHealth(this.getMaxHealth());
+-            if (this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) || p_9016_.isSpectator()) {
 +            // this.setHealth(this.getMaxHealth()); // CraftBukkit
-             if (this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) || p_9016_.isSpectator()) {
++            if (com.mohistmc.youer.feature.KeepInventory.inventory(p_9016_) || this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) || p_9016_.isSpectator()) { // Youer
                  this.getInventory().replaceWith(p_9016_.getInventory());
                  this.experienceLevel = p_9016_.experienceLevel;
+                 this.totalExperience = p_9016_.totalExperience;
 @@ -1527,13 +_,22 @@
          this.lastSentExp = -1;
          this.lastSentHealth = -1.0F;
@@ -1764,7 +1782,7 @@
 +        if (msg != null && !msg.isEmpty()) {
 +            String playerName = this.getGameProfile().getName();
 +            if (org.purpurmc.purpur.PurpurConfig.afkBroadcastUseDisplayName) {
-+                net.kyori.adventure.text.Component playerDisplayNameComponent = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(this.getBukkitEntity().getDisplayName());
++                net.kyori.adventure.text.Component playerDisplayNameComponent = com.mohistmc.youer.api.ColorAPI.adventure(this.getBukkitEntity().getDisplayName()); // Youer
 +                playerName = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(playerDisplayNameComponent);
 +            }
 +            server.getPlayerList().broadcastMiniMessage(String.format(msg, playerName), false);
@@ -2213,7 +2231,7 @@
 +    public void reset() {
 +        float exp = 0;
 +
-+        if (this.keepLevel) { // CraftBukkit - SPIGOT-6687: Only use keepLevel (was pre-set with RULE_KEEPINVENTORY value in PlayerDeathEvent)
++        if (com.mohistmc.youer.feature.KeepInventory.exp(this) || this.keepLevel) { // Youer // CraftBukkit - SPIGOT-6687: Only use keepLevel (was pre-set with RULE_KEEPINVENTORY value in PlayerDeathEvent)
 +            exp = this.experienceProgress;
 +            this.newTotalExp = this.totalExperience;
 +            this.newLevel = this.experienceLevel;

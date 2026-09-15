@@ -1894,7 +1894,7 @@
 -        this.server.getPlayerList().remove(this.player);
 +        // Paper start - Adventure
 +        quitMessage = quitMessage == null ? this.server.getPlayerList().remove(this.player) : this.server.getPlayerList().remove(this.player, quitMessage); // Paper - pass in quitMessage to fix kick message not being used
-+        if ((quitMessage != null) && !quitMessage.equals(net.kyori.adventure.text.Component.empty())) {
++        if (com.mohistmc.youer.YouerConfig.quit_message && (quitMessage != null) && !quitMessage.equals(net.kyori.adventure.text.Component.empty())) { // Youer - quit messages are switchable
 +            this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(quitMessage), false);
 +            // Paper end - Adventure
 +        }
@@ -2400,7 +2400,7 @@
      public void switchToConfig() {
          this.waitingForSwitchToConfig = true;
          this.removePlayerFromWorld();
-@@ -1704,33 +_,81 @@
+@@ -1704,33 +_,82 @@
      }
  
      @Override
@@ -2409,6 +2409,7 @@
 +    public void handleInteract(ServerboundInteractPacket packet) {
 +        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
++        if (com.mohistmc.youer.feature.ban.bans.BanItem.check(this.player)) return; // Youer - a player holding a banned item cannot interact
          if (this.player.hasClientLoaded()) {
 -            final ServerLevel serverlevel = this.player.level();
 -            final Entity entity = p_9866_.getTarget(serverlevel);

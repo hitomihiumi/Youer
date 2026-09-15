@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
+@@ -39,6 +_,10 @@
+ import org.slf4j.Logger;
+ 
+ public class PrimaryLevelData implements ServerLevelData, WorldData {
++    // Youer - cached encode of the world generation settings; see setTagData below
++    @Nullable private Tag cachedWorldGenSettingsTag;
++    @Nullable private net.minecraft.core.Registry<net.minecraft.world.level.dimension.LevelStem> cachedWorldGenSettingsRegistry;
++
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final String LEVEL_NAME = "LevelName";
+     protected static final String PLAYER = "Player";
 @@ -73,6 +_,22 @@
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
@@ -55,15 +66,36 @@
      }
  
      @Override
-@@ -228,7 +_,7 @@
+@@ -228,9 +_,26 @@
          p_78547_.put("Version", compoundtag);
          NbtUtils.addCurrentDataVersion(p_78547_);
          DynamicOps<Tag> dynamicops = p_78546_.createSerializationContext(NbtOps.INSTANCE);
 -        WorldGenSettings.encode(dynamicops, this.worldOptions, p_78546_)
-+        WorldGenSettings.encode(dynamicops, this.worldOptions, new net.minecraft.world.level.levelgen.WorldDimensions(this.customDimensions != null ? this.customDimensions : p_78546_.lookupOrThrow(net.minecraft.core.registries.Registries.LEVEL_STEM))) // CraftBukkit
-             .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
-             .ifPresent(p_78574_ -> p_78547_.put("WorldGenSettings", p_78574_));
+-            .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
+-            .ifPresent(p_78574_ -> p_78547_.put("WorldGenSettings", p_78574_));
++        // Youer start - cache the encoded world generation settings
++        // The input (worldOptions plus the LEVEL_STEM registry) never changes while the server runs, yet
++        // every autosave re-encodes the whole registry once per dimension, which dominated saveEverything
++        // on big modpacks. The registry reference comparison invalidates the cache if a plugin ever swaps
++        // the dimensions registry. The tag is read-only once stored, so background level.dat writes can
++        // share it safely.
++        net.minecraft.core.Registry<net.minecraft.world.level.dimension.LevelStem> levelStemRegistry =
++            this.customDimensions != null ? this.customDimensions : p_78546_.lookupOrThrow(net.minecraft.core.registries.Registries.LEVEL_STEM);
++        if (com.mohistmc.youer.YouerConfig.cache_worldgen_settings && this.cachedWorldGenSettingsTag != null && this.cachedWorldGenSettingsRegistry == levelStemRegistry) {
++            p_78547_.put("WorldGenSettings", this.cachedWorldGenSettingsTag);
++        } else {
++            WorldGenSettings.encode(dynamicops, this.worldOptions, new net.minecraft.world.level.levelgen.WorldDimensions(levelStemRegistry)) // CraftBukkit
++                .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
++                .ifPresent(p_78574_ -> {
++                    p_78547_.put("WorldGenSettings", p_78574_);
++                    this.cachedWorldGenSettingsTag = p_78574_;
++                    this.cachedWorldGenSettingsRegistry = levelStemRegistry;
++                });
++        }
++        // Youer end
          p_78547_.putInt("GameType", this.settings.gameType().getId());
+         p_78547_.putInt("SpawnX", this.spawnPos.getX());
+         p_78547_.putInt("SpawnY", this.spawnPos.getY());
 @@ -267,6 +_,12 @@
          p_78547_.putInt("WanderingTraderSpawnDelay", this.wanderingTraderSpawnDelay);
          p_78547_.putInt("WanderingTraderSpawnChance", this.wanderingTraderSpawnChance);

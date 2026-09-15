@@ -1257,6 +1257,10 @@ public final class CraftServer implements Server {
 
         String name = creator.name();
         ChunkGenerator chunkGenerator = creator.generator();
+        // Youer - some mods' flat world presets generate nothing; fall back to Youer's own flat generator
+        if (com.mohistmc.youer.YouerConfig.custom_fix_flat && creator.type() == org.bukkit.WorldType.FLAT) {
+            chunkGenerator = new com.mohistmc.youer.api.WorldAPI.FlatGenerator();
+        }
         BiomeProvider biomeProvider = creator.biomeProvider();
         File folder = new File(this.getWorldContainer(), name);
         World world = this.getWorld(name);
@@ -1438,7 +1442,10 @@ public final class CraftServer implements Server {
         io.papermc.paper.FeatureHooks.tickEntityManager(serverLevel); // SPIGOT-6526: Load pending entities so they are available to the API // Paper - chunk system
 
         new WorldLoadEvent(serverLevel.getWorld()).callEvent();
-        return serverLevel.getWorld();
+        World createdWorld = serverLevel.getWorld();
+        createdWorld.setBukkit(true); // Youer - a world a plugin asked for is a Bukkit world
+        com.mohistmc.youer.util.Level2LevelStem.reloadAndInit(createdWorld); // Youer - track it for /youer and CraftServer#removeWorld
+        return createdWorld;
     }
 
     @Override

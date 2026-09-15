@@ -324,7 +324,7 @@
 +
 +            final net.kyori.adventure.text.Component jm = playerJoinEvent.joinMessage();
 +
-+            if (jm != null && !jm.equals(net.kyori.adventure.text.Component.empty())) { // Paper - Adventure
++            if (com.mohistmc.youer.YouerConfig.join_message && jm != null && !jm.equals(net.kyori.adventure.text.Component.empty())) { // Youer - join messages are switchable // Paper - Adventure
 +                joinMessage = io.papermc.paper.adventure.PaperAdventure.asVanilla(jm); // Paper - Adventure
 +                this.server.getPlayerList().broadcastSystemMessage(joinMessage, false); // Paper - Adventure
 +            }
@@ -1123,7 +1123,7 @@
 +        boolean isOp = this.ops.contains(profile);
 +        boolean isWhitelisted = !this.doWhiteList || isOp || this.whitelist.contains(profile);
 +
-+        final net.kyori.adventure.text.Component configuredMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.whitelistMessage);
++        final net.kyori.adventure.text.Component configuredMessage = com.mohistmc.youer.api.ColorAPI.adventure(org.spigotmc.SpigotConfig.whitelistMessage); // Youer
 +        final com.destroystokyo.paper.event.profile.ProfileWhitelistVerifyEvent event
 +            = new com.destroystokyo.paper.event.profile.ProfileWhitelistVerifyEvent(com.destroystokyo.paper.profile.CraftPlayerProfile.asBukkitMirror(profile), this.doWhiteList, isWhitelisted, isOp, configuredMessage);
 +        event.callEvent();

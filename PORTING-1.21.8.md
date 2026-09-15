@@ -235,13 +235,55 @@ ones - the same trade-off `FeatureHooks` already makes.
 carry over: the login mixin routes Velocity and Fabric-API login payloads
 through `youer$handleCustomQueryPacket`, which does not exist in this patch set
 (Paper 1.21.8 handles plain Velocity natively), and the two Create-compat
-mixins live in `com.mohistmc.youer.mixins`. They come back with the
-`com.mohistmc.youer` glue.
+mixins live in `com.mohistmc.youer.mixins` and are still blocked on Create
+publishing a 1.21.8 artifact (see 5).
 
-**5. `com.mohistmc.youer` is still missing.** The M3 rebase dropped 193 files
-of Youer's own Bukkit/NeoForge bridge, leaving only the four ASM classes the
-boot's `ILaunchPluginService` registers. `gg.pufferfish.pufferfish.I18n` is a
-placeholder for `com.mohistmc.youer.util.I18n` until then.
+**5. `com.mohistmc.youer` is back, minus three compat shims.** The M3 rebase
+had dropped 193 files of Youer's own Bukkit/NeoForge bridge; 188 are restored
+and wired in. The server boots with the bridge live: `/youer`, `/bans`,
+`/infos`, `/shows` and `/youer packetstats` respond, `Youer.versionInfo` and the
+i18n are populated, and the ban lists, config gates and modded fallbacks are
+all on their call sites again.
+
+The three still missing are `mixins/compat/create/*` (two files),
+`LithostitchedCompat` and `SableCompat` - none of those mods publishes a 1.21.8
+`compileOnly` artifact yet. `TerraBlenderCompat` can come back on its own:
+TerraBlender 6.0.0.3 does have a 1.21.8 NeoForge build on
+`api.modrinth.com/maven`.
+
+Not every 1.21.1 call site came back, and the ones that did not are worth
+listing, because a future rebase will see them in the old tree and wonder.
+
+*Already covered by 1.21.8 upstream, so the Youer hook would be dead weight or
+a second copy:* the piston desync fix (`PaperUnsupportedSettings`), the nether
+ceiling void damage (`LambdaFix.checkBelowWorld`), per-world lava flow speed
+(Purpur's `lavaSpeedNether`/`lavaSpeedNotNether` is a superset of Youer's global
+pair), `DiscardedPayload` carrying its payload bytes (Paper's record already
+does), the structure-transformer block hook (`StructureTemplateMixinFix`, now
+inline in `StructureTemplate`), the async pre-login events (`LoginHandler`, now
+inline in `ServerLoginPacketListenerImpl`), the chat and command-suggestion
+lambdas (`LambdaFix`), the damage-modifier simulation (`BukkitDamageHooks` -
+CraftBukkit's own `handleEntityDamage` is now a superset, invulnerability
+reduction included), and the death-drop conversion (`ItemEntityTools` -
+CraftBukkit spawns the drops from the Bukkit list itself).
+
+*Deliberately not carried over because the upstream hook looks wrong:* the
+`doFireTick` game rule default was being initialised from the "ban fire tick"
+config, which turns vanilla fire spread off by default while the config is at
+its default of false - the `FireBlock`/`LavaFluid`/`LightningBolt` guards
+already implement the ban, so only those were ported; and
+`EnchantmentHelper` was filtering candidate enchantments by whether the *stack*
+carried a banned enchantment rather than whether the *candidate* was banned,
+which both blocks legitimate enchanting and lets banned ones through - the
+checks now test the enchantment holder. `ServerPlayer`'s `keepLevel` path and
+`FarmBlock`'s trample guard were both moved a line so that banning a thing no
+longer also cancels the fall damage or the experience that has nothing to do
+with it.
+
+*One behaviour restored on purpose, worth knowing:* `DedicatedServer` calls
+`Metrics.MohistMetrics.startMetrics()` again, which is upstream's bStats
+integration. It reports anonymous server statistics on startup and is opt-out
+through `plugins/bStats/config.yml`, the same as every Paper server.
 
 **6. `src/generated/resources` was synced by hand, not regenerated.** It was
 1.21.1-era datagen output: every one of NeoForge's 190 recipe overrides was
@@ -268,6 +310,16 @@ chunk and p_11277_ saving`). Harmless to the build; worth a sweep before the
 port is called done.
 
 ## Things worth knowing before touching this
+
+**Deleting jars out of a run directory's `libraries/` is not the same as a
+fresh run.** `rm -f libraries/net/neoforged/neoforge/<v>/*.jar` before a boot is
+the right move when you want the installer to re-extract the universal jar
+instead of silently testing a stale one - but the installer only restores the
+universal, not the reobf `neoforge-<v>-server.jar` next to it, and the launch
+then dies in `CommonLaunchHandler.runTarget` with a bare `NoSuchElementException:
+No value present`. That failure is the run directory, not the build. When in
+doubt, boot from an empty directory with just the server jar, `eula.txt`,
+`server.properties`, `plugins/` and `mods/`.
 
 - **An access transformer cannot target a patch-added member.** NeoForge
   applies ATs to the vanilla decompile, before `patches/`. Paper-added or

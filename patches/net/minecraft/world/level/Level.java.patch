@@ -488,7 +488,7 @@
      @Nullable
      @Override
      public ChunkAccess getChunk(int p_46502_, int p_46503_, ChunkStatus p_331611_, boolean p_46505_) {
-@@ -212,52 +_,126 @@
+@@ -212,52 +_,142 @@
      }
  
      @Override
@@ -502,6 +502,22 @@
 -            Block block = p_46606_.getBlock();
 -            BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, p_46607_);
 +    public boolean setBlock(BlockPos pos, BlockState state, int flags, int recursionLeft) {
++        // Youer start - banned blocks, the spawner switch, and a plugin veto on any block change
++        if (com.mohistmc.youer.feature.ban.bans.BanBlock.check(state)) {
++            return false;
++        }
++        if (com.mohistmc.youer.YouerConfig.custom_disabled_spawner && state.getBlock() == net.minecraft.world.level.block.Blocks.SPAWNER) {
++            state = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
++        }
++        if (com.mohistmc.youer.api.event.block.SetBlockEvent.getHandlerList().getRegisteredListeners().length > 0 && this.getWorld() != null) {
++            com.mohistmc.youer.api.event.block.SetBlockEvent event =
++                new com.mohistmc.youer.api.event.block.SetBlockEvent(new org.bukkit.Location(this.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
++            org.bukkit.Bukkit.getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return false;
++            }
++        }
++        // Youer end
 +        // CraftBukkit start - tree generation
 +        if (this.captureTreeGeneration) {
 +            // Paper start - Protect Bedrock and End Portal/Frames from being destroyed

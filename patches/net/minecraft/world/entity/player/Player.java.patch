@@ -887,7 +887,8 @@
 +                            if (target instanceof LivingEntity) {
 +                                float f7 = f3 - ((LivingEntity)target).getHealth();
                                  this.awardStat(Stats.DAMAGE_DEALT, Math.round(f7 * 10.0F));
-                                 if (this.level() instanceof ServerLevel && f7 > 2.0F) {
+-                                if (this.level() instanceof ServerLevel && f7 > 2.0F) {
++                                if (!com.mohistmc.youer.YouerConfig.no_damage_particle && this.level() instanceof ServerLevel && f7 > 2.0F) { // Youer
                                      int i = (int)(f7 * 0.5);
                                      ((ServerLevel)this.level())
 -                                        .sendParticles(
@@ -1064,13 +1065,32 @@
              }
          }
      }
-@@ -1676,8 +_,24 @@
+@@ -1666,6 +_,17 @@
+     }
+ 
+     public boolean mayUseItemAt(BlockPos p_36205_, Direction p_36206_, ItemStack p_36207_) {
++        // Youer start - the ban list, then a plugin veto
++        if (com.mohistmc.youer.feature.ban.bans.BanItem.check(this, p_36207_)) {
++            return false;
++        }
++        if (com.mohistmc.youer.api.event.block.PlayerMayUseItemAtEvent.getHandlerList().getRegisteredListeners().length > 0 && this.getBukkitEntity() instanceof org.bukkit.entity.Player bukkitPlayer) {
++            org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(p_36205_, this.level());
++            if (!new com.mohistmc.youer.api.event.block.PlayerMayUseItemAtEvent(bukkitPlayer, location, p_36207_.getBukkitStack()).callEvent()) {
++                return false;
++            }
++        }
++        // Youer end
+         if (this.abilities.mayBuild) {
+             return true;
+         } else {
+@@ -1676,8 +_,25 @@
      }
  
      @Override
 -    protected int getBaseExperienceReward(ServerLevel p_376359_) {
 -        return !p_376359_.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && !this.isSpectator() ? Math.min(this.experienceLevel * 7, 100) : 0;
 +    protected int getBaseExperienceReward(ServerLevel level) {
++        if (com.mohistmc.youer.feature.KeepInventory.exp(this)) return 0; // Youer - keeping experience means dropping none
 +        // Purpur start - Add player death exp control options
 +        if (!level.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && !this.isSpectator()) {
 +            int toDrop;
