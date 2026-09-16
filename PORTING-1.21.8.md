@@ -295,12 +295,42 @@ since were missing. The tree now matches `neoforge-21.8.54-universal.jar`'s own
 `data/` byte for byte, and the server loads 1,407 recipes with no parse errors.
 
 The reason it was synced rather than regenerated is that `runData` does not
-work: moddevgradle 2.0.107 split the `data` run type into `clientData` and
-`serverData` (fixed here), and the run then fails in FML's module scan, because
-a dev run's classes and resources are separate directories and the service files
-in one name providers in the other. Fixing the dev runs is its own milestone;
-until then, treat this directory as synced-from-upstream rather than generated,
-and re-sync it the same way when NeoForge moves.
+work. moddevgradle 2.0.107 split the `data` run type into `clientData` and
+`serverData`, which is fixed here, and the run then dies before datagen starts:
+
+```
+InvalidModuleDescriptorException: Service provider file
+  /META-INF/services/io.papermc.paper.registry.RegistryAccess contains service
+  that is not in this Jar file: io.papermc.paper.registry.PaperRegistryAccess
+    at ModuleDescriptorFactory.parseServiceFile(ModuleDescriptorFactory.java:148)
+    at ModuleDescriptorFactory.scanAutomaticModule(ModuleDescriptorFactory.java:114)
+    at ModJarMetadata.computeDescriptor(ModJarMetadata.java:43)
+```
+
+An earlier note here blamed the split between a dev run's classes and resources
+directories. That is not it, and the experiments are worth recording so nobody
+repeats them:
+
+* The run does pass both directories as one mod:
+  `-Dfml.modFolders=minecraft%%<classes>:minecraft%%<resources>`.
+* Copying both into a single directory and pointing `fml.modFolders` at that one
+  directory fails identically.
+* Moving just `META-INF/services` into the classes directory, so the service
+  files sit beside the classes they name, fails identically.
+* Cutting the service files down to the single one datagen needs moves the error
+  onto that one: `PaperRegistryAccess` "is not in this Jar file" even though it
+  is in the same directory. So the scan is not missing one package, it is
+  missing all of ours.
+* Removing the service files entirely gets past the module scan and into datagen,
+  which then dies in `BuiltInRegistries.<clinit>` with "No RegistryAccess
+  implementation found" - the service it needs is one of the ones that had to go.
+
+So the mod jar `ModJarMetadata` computes the descriptor for does not contain our
+classes at all, and the next person should start by finding out what that jar
+actually is rather than by rearranging the source sets. Until then, treat this
+directory as synced-from-upstream rather than generated, and re-sync it the same
+way when NeoForge moves - the current contents are byte-identical to
+`neoforge-21.8.54-universal.jar`, so nothing is silently stale.
 
 **7. Legacy plugin remapping is only half-verified.** The reobf server now
 builds, and a Mojang-mapped plugin loads through it. No actual Spigot-mapped
