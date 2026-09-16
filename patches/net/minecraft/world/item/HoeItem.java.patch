@@ -13,13 +13,39 @@
      protected static final Map<Block, Pair<Predicate<UseOnContext>, Consumer<UseOnContext>>> TILLABLES = Maps.newHashMap(
          ImmutableMap.of(
              Blocks.GRASS_BLOCK,
-@@ -45,7 +_,8 @@
+@@ -45,7 +_,34 @@
      public InteractionResult useOn(UseOnContext p_41341_) {
          Level level = p_41341_.getLevel();
          BlockPos blockpos = p_41341_.getClickedPos();
 -        Pair<Predicate<UseOnContext>, Consumer<UseOnContext>> pair = TILLABLES.get(level.getBlockState(blockpos).getBlock());
-+        BlockState toolModifiedState = level.getBlockState(blockpos).getToolModifiedState(p_41341_, net.neoforged.neoforge.common.ItemAbilities.HOE_TILL, false);
-+        Pair<Predicate<UseOnContext>, Consumer<UseOnContext>> pair = toolModifiedState == null ? null : Pair.of(ctx -> true, changeIntoState(toolModifiedState));
++        // Purpur start - Tool actionable options
++        // As with the shovel: the config drives what a hoe tills, and anything it has no entry for
++        // falls through to NeoForge's HOE_TILL ability so modded blocks keep working.
++        Block clickedBlock = level.getBlockState(blockpos).getBlock();
++        org.purpurmc.purpur.tool.Tillable tillable = level.purpurConfig.hoeTillables.get(clickedBlock);
++        Pair<Predicate<UseOnContext>, Consumer<UseOnContext>> pair;
++        if (tillable != null) {
++            pair = Pair.of(
++                tillable.condition().predicate(),
++                p_purpur_ -> {
++                    level.setBlock(blockpos, tillable.into().defaultBlockState(), 11);
++                    tillable.drops()
++                        .forEach(
++                            (p_drop_, p_chance_) -> {
++                                if (level.random.nextDouble() < p_chance_) {
++                                    Block.popResourceFromFace(level, blockpos, p_purpur_.getClickedFace(), new net.minecraft.world.item.ItemStack(p_drop_));
++                                }
++                            }
++                        );
++                }
++            );
++        } else if (TILLABLES.containsKey(clickedBlock)) {
++            pair = null;
++        } else {
++            BlockState toolModifiedState = level.getBlockState(blockpos).getToolModifiedState(p_41341_, net.neoforged.neoforge.common.ItemAbilities.HOE_TILL, false);
++            pair = toolModifiedState == null ? null : Pair.of(p_purpur1_ -> true, changeIntoState(toolModifiedState));
++        }
++        // Purpur end - Tool actionable options
          if (pair == null) {
              return InteractionResult.PASS;
          } else {

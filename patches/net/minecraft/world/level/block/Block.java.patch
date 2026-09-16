@@ -67,7 +67,7 @@
          } else if (voxelshape == Shapes.empty()) {
              return true;
          } else {
-@@ -322,26 +_,61 @@
+@@ -322,28 +_,82 @@
          return p_49875_.getDrops(lootparams$builder);
      }
  
@@ -83,7 +83,7 @@
 +            event.setExpToDrop(block.getExpDrop(state, serverLevel, pos, net.minecraft.world.item.ItemStack.EMPTY, true)); // Paper - Properly handle xp dropping
 +            event.callEvent();
 +            for (org.bukkit.inventory.ItemStack drop : event.getDrops()) {
-+                popResource(serverLevel, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop));
++                popResource(serverLevel, pos, applyLoreFromTile(org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop), blockEntity)); // Purpur - Persistent BlockEntity Lore and DisplayName
 +            }
 +            state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, false); // Paper - Properly handle xp dropping
 +            block.popExperience(serverLevel, pos, event.getExpToDrop()); // Paper - Properly handle xp dropping
@@ -104,9 +104,10 @@
  
      public static void dropResources(BlockState p_49893_, LevelAccessor p_49894_, BlockPos p_49895_, @Nullable BlockEntity p_49896_) {
          if (p_49894_ instanceof ServerLevel) {
-+            beginCapturingDrops();
-             getDrops(p_49893_, (ServerLevel)p_49894_, p_49895_, p_49896_).forEach(p_49859_ -> popResource((ServerLevel)p_49894_, p_49895_, p_49859_));
+-            getDrops(p_49893_, (ServerLevel)p_49894_, p_49895_, p_49896_).forEach(p_49859_ -> popResource((ServerLevel)p_49894_, p_49895_, p_49859_));
 -            p_49893_.spawnAfterBreak((ServerLevel)p_49894_, p_49895_, ItemStack.EMPTY, true);
++            beginCapturingDrops();
++            getDrops(p_49893_, (ServerLevel)p_49894_, p_49895_, p_49896_).forEach(p_49859_ -> popResource((ServerLevel)p_49894_, p_49895_, applyLoreFromTile(p_49859_, p_49896_))); // Purpur - Persistent BlockEntity Lore and DisplayName
 +            List<ItemEntity> captured = stopCapturingDrops();
 +            net.neoforged.neoforge.common.CommonHooks.handleBlockDrops((ServerLevel) p_49894_, p_49895_, p_49893_, p_49896_, captured, null, ItemStack.EMPTY);
          }
@@ -126,14 +127,38 @@
 +    ) {
 +    // Paper end - Properly handle xp dropping
          if (p_49883_ instanceof ServerLevel) {
-+            beginCapturingDrops();
-             getDrops(p_49882_, (ServerLevel)p_49883_, p_49884_, p_49885_, p_49886_, p_49887_).forEach(p_49944_ -> popResource(p_49883_, p_49884_, p_49944_));
+-            getDrops(p_49882_, (ServerLevel)p_49883_, p_49884_, p_49885_, p_49886_, p_49887_).forEach(p_49944_ -> popResource(p_49883_, p_49884_, p_49944_));
 -            p_49882_.spawnAfterBreak((ServerLevel)p_49883_, p_49884_, p_49887_, true);
+-        }
+-    }
++            beginCapturingDrops();
++            getDrops(p_49882_, (ServerLevel)p_49883_, p_49884_, p_49885_, p_49886_, p_49887_).forEach(p_49944_ -> popResource(p_49883_, p_49884_, applyLoreFromTile(p_49944_, p_49885_))); // Purpur - Persistent BlockEntity Lore and DisplayName
 +            List<ItemEntity> captured = stopCapturingDrops();
 +            net.neoforged.neoforge.common.CommonHooks.handleBlockDrops((ServerLevel) p_49883_, p_49884_, p_49882_, p_49885_, captured, p_49886_, p_49887_);
-         }
-     }
++        }
++    }
++
++    // Purpur start - Persistent BlockEntity Lore and DisplayName
++    private static ItemStack applyLoreFromTile(ItemStack stack, @Nullable BlockEntity blockEntity) {
++        if (stack.getItem() instanceof net.minecraft.world.item.BlockItem) {
++            if (blockEntity != null && blockEntity.getLevel() instanceof ServerLevel) {
++                net.minecraft.world.item.component.ItemLore lore = blockEntity.getPersistentLore();
++                net.minecraft.core.component.DataComponentPatch.Builder builder = net.minecraft.core.component.DataComponentPatch.builder();
++                if (blockEntity.getLevel().purpurConfig.persistentTileEntityLore && lore != null) {
++                    builder.set(net.minecraft.core.component.DataComponents.LORE, lore);
++                }
++                if (!blockEntity.getLevel().purpurConfig.persistentTileEntityDisplayName) {
++                    builder.remove(net.minecraft.core.component.DataComponents.CUSTOM_NAME);
++                }
++                stack.applyComponents(builder.build());
++            }
++        }
++        return stack;
++    }
++    // Purpur end - Persistent BlockEntity Lore and DisplayName
  
+     public static void popResource(Level p_49841_, BlockPos p_49842_, ItemStack p_49843_) {
+         double d0 = EntityType.ITEM.getHeight() / 2.0;
 @@ -369,19 +_,32 @@
      }
  

@@ -1,11 +1,22 @@
 --- a/net/minecraft/world/item/ShovelItem.java
 +++ b/net/minecraft/world/item/ShovelItem.java
-@@ -43,18 +_,16 @@
+@@ -43,18 +_,27 @@
              return InteractionResult.PASS;
          } else {
              Player player = p_43119_.getPlayer();
 -            BlockState blockstate1 = FLATTENABLES.get(blockstate.getBlock());
 +            BlockState blockstate1 = blockstate.getToolModifiedState(p_43119_, net.neoforged.neoforge.common.ItemAbilities.SHOVEL_FLATTEN, false);
++            // Purpur start - Tool actionable options
++            // The config drives what a shovel flattens; a block it has no entry for falls through to
++            // NeoForge's SHOVEL_FLATTEN ability, so modded blocks keep working, while dropping a
++            // vanilla block from the config really does stop it being flattened.
++            org.purpurmc.purpur.tool.Flattenable flattenable = level.purpurConfig.shovelFlattenables.get(blockstate.getBlock());
++            if (flattenable != null) {
++                blockstate1 = flattenable.into().defaultBlockState();
++            } else if (FLATTENABLES.containsKey(blockstate.getBlock())) {
++                blockstate1 = null;
++            }
++            // Purpur end - Tool actionable options
              BlockState blockstate2 = null;
              if (blockstate1 != null && level.getBlockState(blockpos.above()).isAir()) {
                  level.playSound(player, blockpos, SoundEvents.SHOVEL_FLATTEN, SoundSource.BLOCKS, 1.0F, 1.0F);

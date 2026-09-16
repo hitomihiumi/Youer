@@ -492,7 +492,7 @@
                  }
  
                  return interactionresult;
-@@ -308,56 +_,110 @@
+@@ -308,56 +_,112 @@
          }
      }
  
@@ -578,7 +578,9 @@
 +            boolean flag = !player.getMainHandItem().isEmpty() || !player.getOffhandItem().isEmpty();
 +            boolean flag1 = (player.isSecondaryUseActive() && flag) && !(player.getMainHandItem().doesSneakBypassUse(level, blockPos, player) && player.getOffhandItem().doesSneakBypassUse(level, blockPos, player));
 +            ItemStack itemStack = stack.copy();
-+            if (neoRightClickEvent.getUseBlock().isTrue() || (neoRightClickEvent.getUseBlock().isDefault() && !flag1)) {
++            if (neoRightClickEvent.getUseBlock().isTrue()
++                || (neoRightClickEvent.getUseBlock().isDefault()
++                    && (!flag1 || player.level().purpurConfig.composterBulkProcess && blockState.is(net.minecraft.world.level.block.Blocks.COMPOSTER)))) { // Purpur - Sneak to bulk process composter
 +                InteractionResult interactionResult = blockState.useItemOn(player.getItemInHand(hand), level, player, hand, hitResult);
 +                if (interactionResult.consumesAction()) {
 +                    CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, blockPos, itemStack);

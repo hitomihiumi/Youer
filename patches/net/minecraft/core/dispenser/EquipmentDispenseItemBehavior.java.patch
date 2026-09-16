@@ -19,10 +19,12 @@
          BlockPos blockpos = p_371324_.pos().relative(p_371324_.state().getValue(DispenserBlock.FACING));
          List<LivingEntity> list = p_371324_.level()
              .getEntitiesOfClass(LivingEntity.class, new AABB(blockpos), p_371713_ -> p_371713_.canEquipWithDispenser(p_371227_));
-@@ -26,6 +_,8 @@
+@@ -25,7 +_,9 @@
+             return false;
          } else {
              LivingEntity livingentity = list.getFirst();
-             EquipmentSlot equipmentslot = livingentity.getEquipmentSlotForItem(p_371227_);
+-            EquipmentSlot equipmentslot = livingentity.getEquipmentSlotForItem(p_371227_);
++            EquipmentSlot equipmentslot = p_371324_.level().purpurConfig.dispenserApplyCursedArmor ? livingentity.getEquipmentSlotForItem(p_371227_) : livingentity.getEquipmentSlotForDispenserItem(p_371227_); if (equipmentslot == null) return false; // Purpur - Dispenser curse of binding protection
 +            // Neo: Respect IItemExtension#canEquip in dispenseArmor
 +            if (!p_371227_.canEquip(equipmentslot, livingentity)) return false;
              ItemStack itemstack = p_371227_.split(1);

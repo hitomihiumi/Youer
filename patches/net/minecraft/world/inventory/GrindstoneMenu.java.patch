@@ -77,14 +77,24 @@
              }
          });
          this.addSlot(new Slot(this.resultSlots, 2, 129, 34) {
-@@ -66,6 +_,7 @@
+@@ -66,9 +_,16 @@
  
              @Override
              public void onTake(Player p_150574_, ItemStack p_150575_) {
 +                if (net.neoforged.neoforge.common.CommonHooks.onGrindstoneTake(GrindstoneMenu.this.repairSlots, p_39568_, p_150574_, this::getExperienceAmount)) return;
++                ItemStack takenItem = GrindstoneMenu.this.activeQuickItem == null ? p_150575_ : GrindstoneMenu.this.activeQuickItem; // Purpur - Grindstone API
                  p_39568_.execute((p_39634_, p_39635_) -> {
                      if (p_39634_ instanceof ServerLevel) {
-                         ExperienceOrb.award((ServerLevel)p_39634_, Vec3.atCenterOf(p_39635_), this.getExperienceAmount(p_39634_));
+-                        ExperienceOrb.award((ServerLevel)p_39634_, Vec3.atCenterOf(p_39635_), this.getExperienceAmount(p_39634_));
++                        // Paper start - Fire BlockExpEvent on grindstone use
++                        org.bukkit.event.block.BlockExpEvent event = new org.bukkit.event.block.BlockExpEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_39634_, p_39635_), this.getExperienceAmount(p_39634_));
++                        event.callEvent();
++                        org.purpurmc.purpur.event.inventory.GrindstoneTakeResultEvent grindstoneTakeResultEvent = new org.purpurmc.purpur.event.inventory.GrindstoneTakeResultEvent(p_150574_.getBukkitEntity(), GrindstoneMenu.this.getBukkitView(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(takenItem), event.getExpToDrop()); grindstoneTakeResultEvent.callEvent(); // Purpur - Grindstone API
++                        ExperienceOrb.awardWithDirection((ServerLevel) p_39634_, Vec3.atCenterOf(p_39635_), Vec3.ZERO, grindstoneTakeResultEvent.getExperienceAmount(), org.bukkit.entity.ExperienceOrb.SpawnReason.GRINDSTONE, p_150574_, null); // Purpur - Grindstone API
++                        // Paper end - Fire BlockExpEvent on grindstone use
+                     }
+ 
+                     p_39634_.levelEvent(1042, p_39635_, 0);
 @@ -78,6 +_,7 @@
              }
  

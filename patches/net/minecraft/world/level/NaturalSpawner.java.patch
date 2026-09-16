@@ -208,7 +208,7 @@
                      double d0 = l + 0.5;
                      double d1 = i1 + 0.5;
 -                    Player player = p_47040_.getNearestPlayer(d0, i, d1, -1.0, false);
-+                    Player player = level.getNearestPlayer(d0, i, d1, -1.0, false);
++                    Player player = level.getNearestPlayer(d0, i, d1, -1.0, level.purpurConfig.mobSpawningIgnoreCreativePlayers); // Purpur - mob spawning option to ignore creative players
                      if (player != null) {
                          double d2 = player.distanceToSqr(d0, i, d1);
 -                        if (isRightDistanceToPlayerAndSpawnPoint(p_47040_, p_47041_, blockpos$mutableblockpos, d2)) {

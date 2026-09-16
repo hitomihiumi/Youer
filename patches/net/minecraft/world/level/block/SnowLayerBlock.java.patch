@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/SnowLayerBlock.java
 +++ b/net/minecraft/world/level/block/SnowLayerBlock.java
+@@ -76,6 +_,7 @@
+     @Override
+     protected boolean canSurvive(BlockState p_56602_, LevelReader p_56603_, BlockPos p_56604_) {
+         BlockState blockstate = p_56603_.getBlockState(p_56604_.below());
++        if (blockstate.is(Blocks.BLUE_ICE) && !p_56603_.getWorldBorder().world.purpurConfig.snowOnBlueIce) return false; // Purpur - Add config for snow on blue ice
+         if (blockstate.is(BlockTags.SNOW_LAYER_CANNOT_SURVIVE_ON)) {
+             return false;
+         } else {
 @@ -105,6 +_,11 @@
      @Override
      protected void randomTick(BlockState p_222448_, ServerLevel p_222449_, BlockPos p_222450_, RandomSource p_222451_) {

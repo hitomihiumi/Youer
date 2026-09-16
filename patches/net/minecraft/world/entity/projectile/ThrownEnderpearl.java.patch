@@ -37,7 +37,7 @@
 -                            Endermite endermite = EntityType.ENDERMITE.create(serverlevel, EntitySpawnReason.TRIGGERED);
 +                if (owner instanceof ServerPlayer serverPlayer) {
 +                    if (serverPlayer.connection.isAcceptingMessages()) {
-+                        net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderPearl event = net.neoforged.neoforge.event.EventHooks.onEnderPearlLand(serverPlayer, this.getX(), this.getY(), this.getZ(), this, 5.0F, result);
++                        net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderPearl event = net.neoforged.neoforge.event.EventHooks.onEnderPearlLand(serverPlayer, this.getX(), this.getY(), this.getZ(), this, this.level().purpurConfig.enderPearlDamage, result); // Purpur - Configurable Ender Pearl damage
 +                        if (!event.isCanceled()) { // Don't indent to lower patch size
 +                        // CraftBukkit start
 +                        // Store pre teleportation position as the teleport has been moved up.

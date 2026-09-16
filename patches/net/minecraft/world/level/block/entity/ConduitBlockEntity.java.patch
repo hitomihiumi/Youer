@@ -8,12 +8,12 @@
 -                            if (blockstate.is(block)) {
 -                                p_155417_.add(blockpos1);
 -                            }
-+                        if (blockstate.isConduitFrame(p_155415_, blockpos1, p_155416_)) {
++                        if (isConduitFrame(p_155415_, blockstate, blockpos1, p_155416_)) { // Purpur - Conduit behavior configuration
 +                            p_155417_.add(blockpos1);
                          }
                      }
                  }
-@@ -162,36 +_,53 @@
+@@ -162,36 +_,74 @@
          return p_155417_.size() >= 16;
      }
  
@@ -29,6 +29,27 @@
 -            for (Player player : list) {
 -                if (p_155445_.closerThan(player.blockPosition(), j) && player.isInWaterOrRain()) {
 -                    player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, 260, 0, true, true));
++    // Purpur start - Conduit behavior configuration
++    // Purpur makes the vanilla frame list configurable while NeoForge lets a modded block opt in
++    // through BlockState#isConduitFrame; honour both, but let the config have the final say over
++    // the four vanilla blocks so that dropping one from the list actually disables it.
++    private static boolean isConduitFrame(Level level, BlockState state, BlockPos pos, BlockPos conduitPos) {
++        for (Block block : level.purpurConfig.conduitBlocks) {
++            if (state.is(block)) {
++                return true;
++            }
++        }
++
++        for (Block block : VALID_BLOCKS) {
++            if (state.is(block)) {
++                return false;
++            }
++        }
++
++        return state.isConduitFrame(level, pos, conduitPos);
++    }
++    // Purpur end - Conduit behavior configuration
++
 +    private static void applyEffects(Level level, BlockPos pos, List<BlockPos> positions) {
 +        // CraftBukkit start
 +        ConduitBlockEntity.applyEffects(level, pos, ConduitBlockEntity.getRange(positions, level)); // Purpur - Conduit behavior configuration

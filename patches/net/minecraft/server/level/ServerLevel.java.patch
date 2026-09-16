@@ -22,7 +22,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -202,95 +_,235 @@
+@@ -202,95 +_,248 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -291,7 +291,20 @@
 +        net.neoforged.neoforge.attachment.LevelAttachmentsSavedData.init(this);
 +        // Neo: Move the initialization of customSpawners to the end of costructor
 +        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
-+        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, customSpawners);
++        // Purpur start - Allow toggling special MobSpawners per world
++        // Filter what the server handed us instead of rebuilding the list from scratch, so that a
++        // spawner some other party contributed still survives the toggles.
++        List<CustomSpawner> enabledSpawners = new java.util.ArrayList<>(customSpawners.size());
++        for (CustomSpawner customspawner : customSpawners) {
++            if (customspawner instanceof net.minecraft.world.level.levelgen.PhantomSpawner && !this.purpurConfig.phantomSpawning) continue;
++            if (customspawner instanceof net.minecraft.world.level.levelgen.PatrolSpawner && !this.purpurConfig.patrolSpawning) continue;
++            if (customspawner instanceof net.minecraft.world.entity.npc.CatSpawner && !this.purpurConfig.catSpawning) continue;
++            if (customspawner instanceof net.minecraft.world.entity.ai.village.VillageSiege && !this.purpurConfig.villageSiegeSpawning) continue;
++            if (customspawner instanceof net.minecraft.world.entity.npc.WanderingTraderSpawner && !this.purpurConfig.villagerTraderSpawning) continue;
++            enabledSpawners.add(customspawner);
++        }
++        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, enabledSpawners);
++        // Purpur end - Allow toggling special MobSpawners per world
 +        // Youer - B3: excised Paper's chunk_system init block (entityLookup/chunkTaskScheduler/
 +        // entityDataController/poiDataController/chunkDataController - all moonrise.patches.chunk_system,
 +        // out of scope)
@@ -507,11 +520,18 @@
      }
  
      protected void tickTime() {
-@@ -435,14 +_,29 @@
+@@ -435,14 +_,36 @@
              this.serverLevelData.getScheduledEvents().tick(this.server, i);
              Profiler.get().pop();
              if (this.serverLevelData.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
 -                this.setDayTime(this.levelData.getDayTime() + 1L);
++                // Purpur start - Configurable daylight cycle
++                int incrementTicks = this.isBrightOutside() ? this.purpurConfig.daytimeTicks : this.purpurConfig.nighttimeTicks;
++                if (incrementTicks != 12000) {
++                    this.preciseTime += 12000 / (double) incrementTicks;
++                    this.setDayTime(this.preciseTime);
++                } else
++                // Purpur end - Configurable daylight cycle
 +                this.setDayTime(this.levelData.getDayTime() + advanceDaytime());
              }
          }
@@ -614,7 +634,7 @@
      }
  
      public void tickThunder(LevelChunk p_401824_) {
-@@ -507,20 +_,20 @@
+@@ -507,20 +_,27 @@
          int j = chunkpos.getMinBlockZ();
          ProfilerFiller profilerfiller = Profiler.get();
          profilerfiller.push("thunder");
@@ -629,9 +649,18 @@
 +                    && this.random.nextDouble() < difficultyinstance.getEffectiveDifficulty() * this.paperConfig().entities.spawning.skeletonHorseThunderSpawnChance.or(0.01) // Paper - Configurable spawn chances for skeleton horses
 +                    && !(this.getBlockState(blockpos.below()).getBlock() instanceof net.minecraft.world.level.block.LightningRodBlock); // Neo: support custom LightningRodBlocks
                  if (flag1) {
-                     SkeletonHorse skeletonhorse = EntityType.SKELETON_HORSE.create(this, EntitySpawnReason.EVENT);
+-                    SkeletonHorse skeletonhorse = EntityType.SKELETON_HORSE.create(this, EntitySpawnReason.EVENT);
++                    // Purpur start - Special mobs naturally spawn
++                    net.minecraft.world.entity.animal.horse.AbstractHorse skeletonhorse;
++                    if (this.purpurConfig.zombieHorseSpawnChance > 0.0D && this.random.nextDouble() <= this.purpurConfig.zombieHorseSpawnChance) {
++                        skeletonhorse = EntityType.ZOMBIE_HORSE.create(this, EntitySpawnReason.EVENT);
++                    } else {
++                        skeletonhorse = EntityType.SKELETON_HORSE.create(this, EntitySpawnReason.EVENT);
++                        if (skeletonhorse != null) ((SkeletonHorse) skeletonhorse).setTrap(true);
++                    }
++                    // Purpur end - Special mobs naturally spawn
                      if (skeletonhorse != null) {
-                         skeletonhorse.setTrap(true);
+-                        skeletonhorse.setTrap(true);
                          skeletonhorse.setAge(0);
                          skeletonhorse.setPos(blockpos.getX(), blockpos.getY(), blockpos.getZ());
 -                        this.addFreshEntity(skeletonhorse);
@@ -700,7 +729,14 @@
                  }
              }
  
-@@ -581,24 +_,31 @@
+@@ -575,30 +_,37 @@
+                 p_215059_ -> p_215059_.is(PoiTypes.LIGHTNING_ROD),
+                 p_184055_ -> p_184055_.getY() == this.getHeight(Heightmap.Types.WORLD_SURFACE, p_184055_.getX(), p_184055_.getZ()) - 1,
+                 p_143249_,
+-                128,
++                org.purpurmc.purpur.PurpurConfig.lightningRodRange, // Purpur - Make lightning rod range configurable
+                 PoiManager.Occupancy.ANY
+             );
          return optional.map(p_184053_ -> p_184053_.above(1));
      }
  
@@ -859,7 +895,7 @@
          if (this.oRainLevel != this.rainLevel) {
              this.server
                  .getPlayerList()
-@@ -717,24 +_,57 @@
+@@ -717,24 +_,59 @@
                  .broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel), this.dimension());
          }
  
@@ -911,6 +947,7 @@
 -        this.serverLevelData.setThunderTime(0);
 -        this.serverLevelData.setThundering(false);
 +        // CraftBukkit start
++        if (this.purpurConfig.rainStopsAfterSleep) // Purpur - Option for if rain and thunder should stop on sleep
 +        this.serverLevelData.setRaining(false); // Youer - B3: vanilla 1-arg setRaining, Cause-tagged overload not merged
 +        // If we stop due to everyone sleeping we should reset the weather duration to some other random value.
 +        // Not that everyone ever manages to get the whole server to sleep at the same time....
@@ -918,6 +955,7 @@
 +            this.serverLevelData.setRainTime(0);
 +        }
 +        // CraftBukkit end
++        if (this.purpurConfig.thunderStopsAfterSleep) // Purpur - Option for if rain and thunder should stop on sleep
 +        this.serverLevelData.setThundering(false); // Youer - B3: vanilla 1-arg setThundering, Cause-tagged overload not merged
 +        // CraftBukkit start
 +        // If we stop due to everyone sleeping we should reset the weather duration to some other random value.

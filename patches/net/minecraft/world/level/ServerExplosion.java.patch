@@ -211,7 +211,7 @@
              this.level
                  .getBlockState(blockpos)
                  .onExplosionHit(this.level, blockpos, this, (p_365090_, p_360493_) -> addOrAppendStack(list, p_365090_, p_360493_));
-@@ -235,15 +_,23 @@
+@@ -235,15 +_,40 @@
      private void createFire(List<BlockPos> p_362665_) {
          for (BlockPos blockpos : p_362665_) {
              if (this.level.random.nextInt(3) == 0 && this.level.getBlockState(blockpos).isAir() && this.level.getBlockState(blockpos.below()).isSolidRender()) {
@@ -230,6 +230,23 @@
 +            this.wasCanceled = true;
 +            return;
 +        }
++        // Purpur start - add PreExplodeEvents
++        if (this.source != null) {
++            org.bukkit.Location location = new org.bukkit.Location(this.level.getWorld(), this.center.x, this.center.y, this.center.z);
++            if (!new org.purpurmc.purpur.event.entity.PreEntityExplodeEvent(this.source.getBukkitEntity(), location, this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F, org.bukkit.craftbukkit.CraftExplosionResult.toExplosionResult(this.getBlockInteraction())).callEvent()) {
++                this.wasCanceled = true;
++                return;
++            }
++        } else {
++            org.bukkit.Location location = new org.bukkit.Location(this.level.getWorld(), this.center.x, this.center.y, this.center.z);
++            org.bukkit.block.Block block = location.getBlock();
++            org.bukkit.block.BlockState blockState = (this.damageSource.causingBlockSnapshot() != null) ? this.damageSource.causingBlockSnapshot() : block.getState();
++            if (!new org.purpurmc.purpur.event.PreBlockExplodeEvent(block, this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F, blockState, org.bukkit.craftbukkit.CraftExplosionResult.toExplosionResult(this.getBlockInteraction())).callEvent()) {
++                this.wasCanceled = true;
++                return;
++            }
++        }
++        // Purpur end - add PreExplodeEvents
          this.level.gameEvent(this.source, GameEvent.EXPLODE, this.center);
          List<BlockPos> list = this.calculateExplodedPositions();
 -        this.hurtEntities();

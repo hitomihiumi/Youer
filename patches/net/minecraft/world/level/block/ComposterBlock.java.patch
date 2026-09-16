@@ -25,18 +25,70 @@
      }
  
      @Override
-@@ -249,9 +_,10 @@
+@@ -249,13 +_,33 @@
          ItemStack p_316332_, BlockState p_316118_, Level p_316624_, BlockPos p_316660_, Player p_316715_, InteractionHand p_316472_, BlockHitResult p_316606_
      ) {
          int i = p_316118_.getValue(LEVEL);
 -        if (i < 8 && COMPOSTABLES.containsKey(p_316332_.getItem())) {
+-            if (i < 7 && !p_316624_.isClientSide) {
+-                BlockState blockstate = addItem(p_316715_, p_316118_, p_316624_, p_316660_, p_316332_);
+-                p_316624_.levelEvent(1500, p_316660_, p_316118_ != blockstate ? 1 : 0);
+-                p_316715_.awardStat(Stats.ITEM_USED.get(p_316332_.getItem()));
+-                p_316332_.consume(1, p_316715_);
+-            }
 +        if (i < 8 && getValue(p_316332_) > 0) {
-             if (i < 7 && !p_316624_.isClientSide) {
-                 BlockState blockstate = addItem(p_316715_, p_316118_, p_316624_, p_316660_, p_316332_);
-+                if (blockstate == null) return InteractionResult.PASS; // Paper - Add CompostItemEvent and EntityCompostItemEvent
-                 p_316624_.levelEvent(1500, p_316660_, p_316118_ != blockstate ? 1 : 0);
-                 p_316715_.awardStat(Stats.ITEM_USED.get(p_316332_.getItem()));
-                 p_316332_.consume(1, p_316715_);
++            // Purpur start - Sneak to bulk process composter
++            BlockState blockstate = process(i, p_316715_, p_316118_, p_316624_, p_316660_, p_316332_);
++            if (blockstate == null) {
++                return InteractionResult.PASS;
++            }
++
++            if (p_316624_.purpurConfig.composterBulkProcess && p_316715_.isShiftKeyDown() && blockstate != p_316118_) {
++                BlockState blockstate1;
++                int j;
++                int k;
++                int l;
++                int i1;
++                do {
++                    blockstate1 = blockstate;
++                    j = p_316332_.getCount();
++                    l = blockstate1.getValue(LEVEL);
++                    blockstate = process(l, p_316715_, blockstate1, p_316624_, p_316660_, p_316332_);
++                    if (blockstate == null) {
++                        return InteractionResult.PASS;
++                    }
++
++                    k = p_316332_.getCount();
++                    i1 = blockstate.getValue(LEVEL);
++                } while (k > 0 && (k != j || i1 != l || blockstate != blockstate1));
++            }
++            // Purpur end - Sneak to bulk process composter
+ 
+             return InteractionResult.SUCCESS;
+         } else {
+@@ -263,6 +_,22 @@
+         }
+     }
+ 
++    // Purpur start - Sneak to bulk process composter
++    @Nullable
++    private static BlockState process(int levelValue, Player player, BlockState state, Level level, BlockPos pos, ItemStack stack) {
++        if (levelValue < 7 && !level.isClientSide) {
++            BlockState blockstate = addItem(player, state, level, pos, stack);
++            if (blockstate == null) return null; // Paper - Add CompostItemEvent and EntityCompostItemEvent
++            level.levelEvent(1500, pos, state != blockstate ? 1 : 0);
++            player.awardStat(Stats.ITEM_USED.get(stack.getItem()));
++            stack.consume(1, player);
++            return blockstate;
++        }
++
++        return state;
++    }
++    // Purpur end - Sneak to bulk process composter
++
+     @Override
+     protected InteractionResult useWithoutItem(BlockState p_316361_, Level p_316271_, BlockPos p_316647_, Player p_316633_, BlockHitResult p_316555_) {
+         int i = p_316361_.getValue(LEVEL);
 @@ -276,8 +_,9 @@
  
      public static BlockState insertItem(Entity p_270919_, BlockState p_270087_, ServerLevel p_270284_, ItemStack p_270253_, BlockPos p_270678_) {

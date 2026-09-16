@@ -217,10 +217,11 @@ Treat "vanilla-safe" as a claim to check, not a property of the label. The
 `getChunkIfLoaded*` substitution carried that comment and deadlocked the server;
 it was thread-safety, not behaviour, that the vanilla equivalent did not have.
 
-**2. Two upstream hunks deliberately skipped**, both rewriting lines added by
-Paper feature patches that are not in this tree: Purpur's `NearestBedSensor`
-search-radius option (rewrites Paper's "optimise POI access") and Purpur's
-`RegionFileStorage` rebrand (inside Paper's oversized-chunk handling).
+**2. One upstream hunk deliberately skipped**: Purpur's `RegionFileStorage`
+rebrand, which rewrites a line Paper's oversized-chunk handling adds and this
+tree does not have. Purpur's `NearestBedSensor` search-radius option was listed
+here for the same reason and that was wrong -- the Paper "optimise POI access"
+line it rewrites *is* in this tree, so the hunk applies and has now been taken.
 
 **3. `PlatformHooks` is a B3 reimplementation.** Upstream's
 `ca.spottedleaf.moonrise.paper.PaperHooks` extends `BaseChunkSystemHooks`,
@@ -378,24 +379,82 @@ read off `LoginProtocols`, `ConfigurationProtocols` and `GameProtocols` - the
 registration order is the id - rather than guessed, which is worth remembering
 when a protocol bump moves them.
 
+Two things about that id derivation cost a round of debugging each, and both
+are easy to get wrong again. First, count *every* `addPacket` call in a
+template, not just the `GamePacketTypes.` ones: `CommonPacketTypes` and
+`CookiePacketTypes` entries sit in the same numbering. Second, this is not a
+vanilla server - **NeoForge registers one extra clientbound play packet ahead
+of the vanilla ones, so every clientbound play id is one higher than the
+decompiled order**. Serverbound is unshifted. A wrong id is not a quiet
+failure: the client echoes some other packet's body back as a keep-alive and
+the server drops the connection on `was larger than I expected`. The cheap
+check is to join with `-v` and line the first few packets up against the
+template - `CLIENTBOUND_CUSTOM_PAYLOAD` then `CLIENTBOUND_LOGIN` - before
+trusting any of them.
+
 ```bash
 # server.properties: online-mode=false, network-compression-threshold=-1
 python3 tools/test/mcclient.py status
 python3 tools/test/mcclient.py login YouerTester -v
 ```
 
-A full session now works end to end: login, configuration, play, `/youer
-version` issued as a player, a clean quit, and the player's data, stats and
-advancements all written (one advancement criterion even fires on the way in,
-so the trigger machinery runs for a live player).
+A full session now works end to end: login, configuration, play, the teleport
+accepted, keep-alives answered, `/youer version` issued as a player, a clean
+quit, and the player's data, stats and advancements all written (one
+advancement criterion even fires on the way in, so the trigger machinery runs
+for a live player). Reconnecting puts the player back at the position the
+previous session saved.
 
 What is still untested is a real Minecraft client, with a real world render and
 a real mod handshake.
 
-**8. Cosmetic residue.** Some files carry comments where the earlier rename
-tool substituted a word inside the comment text (`// Paper - Incremental
-chunk and p_11277_ saving`). Harmless to the build; worth a sweep before the
-port is called done.
+**8. Cosmetic residue - swept.** Some files carried comments where the earlier
+rename tool had substituted a word inside the comment text (`// Paper -
+Incremental chunk and p_11277_ saving`). Harmless to the build, and gone now.
+
+**9. The merge silently dropped API hooks, and a name audit is how to find
+them.** A green compile and a clean boot say nothing about whether a Paper
+event still fires or a Purpur config still does anything: a dropped hunk
+usually leaves behind code that compiles and runs, just vanilla. Two tools in
+`tools/test/` look for these, and only one of them is worth your time.
+
+`audit_paper_hunks.py` compares line signatures between an upstream patch and
+this tree. It is honest about its own noise - roughly three real findings in
+eighteen - because a decompiler renames locals and reflows lines, so most
+"missing" lines are the same code wearing different names.
+
+`audit_api_hooks.py` is the one that works. It only looks for names a
+decompiler cannot rename: `io.papermc.paper.*` / `com.destroystokyo.paper.*` /
+`org.purpurmc.purpur.*` types, `CraftEventFactory.*` calls, anything ending in
+`Event`, and `paperConfig()` / `spigotConfig` / `purpurConfig` field reads. If
+upstream's patch mentions one and this tree does not, that hook is gone.
+Precision is close to perfect - every report it produced was either a real gap
+or a deliberate, documented exclusion.
+
+```bash
+python3 tools/test/audit_api_hooks.py <upstream>/paper-server/patches/sources
+python3 tools/test/audit_api_hooks.py <upstream>/purpur-server/minecraft-patches/sources
+```
+
+It found 16 Paper hooks and 30 Purpur ones that the M2 merge had dropped, all
+since restored. Both sides now report only known exclusions: on the Paper side
+three hooks that live in code this tree deliberately does not carry, and on the
+Purpur side nothing at all.
+
+Restoring these is rarely a straight copy, because NeoForge has usually already
+rewritten the same line for its own extensibility. The pattern that works is to
+keep NeoForge's hook and let the config decide, rather than picking a side:
+`ConduitBlockEntity` consults Purpur's configurable frame list first and falls
+through to NeoForge's `BlockState#isConduitFrame` for anything the config does
+not name; `ShovelItem` and `HoeItem` do the same over `ItemAbilities`;
+`PhantomSpawner` lets NeoForge's `PlayerSpawnPhantomsEvent` decide outright
+when a listener set ALLOW or DENY and applies Purpur's toggles only where the
+event defers; `ServerLevel` filters the spawner list the server handed it
+instead of rebuilding it, so a spawner some other party contributed survives
+the Purpur toggles. Where the config's default reproduces vanilla - as with
+Purpur's phantom min/max per attempt - prefer the event's value until the
+config is actually moved off its default, so a mod that set its own value still
+wins on an unconfigured server.
 
 ## Things worth knowing before touching this
 

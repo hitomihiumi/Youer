@@ -8,6 +8,14 @@
  
      public void setEntityId(EntityType<?> p_253682_, @Nullable Level p_254041_, RandomSource p_254221_, BlockPos p_254050_) {
          this.getOrCreateNextSpawnData(p_254041_, p_254221_, p_254050_)
+@@ -61,6 +_,7 @@
+     }
+ 
+     public boolean isNearPlayer(Level p_151344_, BlockPos p_151345_) {
++        if (p_151344_.purpurConfig.spawnerDeactivateByRedstone && p_151344_.hasNeighborSignal(p_151345_)) return false; // Purpur - Redstone deactivates spawners
+         return p_151344_.hasNearbyAlivePlayer(p_151345_.getX() + 0.5, p_151345_.getY() + 0.5, p_151345_.getZ() + 0.5, this.requiredPlayerRange);
+     }
+ 
 @@ -84,13 +_,25 @@
      }
  

@@ -85,7 +85,13 @@
      }
  
      public static DoubleBlockCombiner.Combiner<ChestBlockEntity, Float2FloatFunction> opennessCombiner(final LidBlockEntity p_51518_) {
-@@ -301,6 +_,11 @@
+@@ -296,11 +_,17 @@
+     }
+ 
+     private static boolean isBlockedChestByBlock(BlockGetter p_51500_, BlockPos p_51501_) {
++        if (p_51500_ instanceof Level level1 && level1.purpurConfig.chestOpenWithBlockOnTop) return false; // Purpur - Option for chests to open even with a solid block on top
+         BlockPos blockpos = p_51501_.above();
+         return p_51500_.getBlockState(blockpos).isRedstoneConductor(p_51500_, blockpos);
      }
  
      private static boolean isCatSittingOnChest(LevelAccessor p_51564_, BlockPos p_51565_) {

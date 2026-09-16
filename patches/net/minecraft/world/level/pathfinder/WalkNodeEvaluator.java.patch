@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/pathfinder/WalkNodeEvaluator.java
 +++ b/net/minecraft/world/level/pathfinder/WalkNodeEvaluator.java
+@@ -244,7 +_,7 @@
+                 if ((node == null || node.costMalus < 0.0F)
+                     && p_164729_ > 0
+                     && (pathtype != PathType.FENCE || this.canWalkOverFences())
+-                    && pathtype != PathType.UNPASSABLE_RAIL
++                    && (this.mob.level().purpurConfig.mobsIgnoreRails || pathtype != PathType.UNPASSABLE_RAIL) // Purpur - Config to allow mobs to pathfind over rails
+                     && pathtype != PathType.TRAPDOOR
+                     && pathtype != PathType.POWDER_SNOW) {
+                     node = this.tryJumpOn(p_164726_, p_164727_, p_164728_, p_164729_, p_164730_, p_164731_, p_326873_, blockpos$mutableblockpos);
 @@ -471,6 +_,12 @@
                  for (int k = -1; k <= 1; k++) {
                      if (i != 0 || k != 0) {

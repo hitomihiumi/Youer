@@ -123,7 +123,7 @@ def login(host, port, username, verbose=False, stay_seconds=0, command=None):
     CFG_CB_PING, CFG_CB_KNOWN_PACKS = 0x05, 0x0E
     CFG_SB_CLIENT_INFORMATION, CFG_SB_FINISH = 0x00, 0x03
     CFG_SB_KEEP_ALIVE, CFG_SB_PONG, CFG_SB_KNOWN_PACKS = 0x04, 0x05, 0x07
-    PLAY_CB_LOGIN = 0x2A
+    PLAY_CB_LOGIN = 0x2B  # see the note on the play ids below
 
     conn = Conn(host, port)
     handshake(conn, host, port, 2)
@@ -166,8 +166,13 @@ def login(host, port, username, verbose=False, stay_seconds=0, command=None):
                 conn.send(CFG_SB_FINISH)
                 state = "play"
         elif state == "play":
-            # play ids, again straight from GameProtocols
-            PLAY_CB_KEEP_ALIVE, PLAY_CB_PLAYER_POSITION = 0x28, 0x43
+            # Play ids come from GameProtocols registration order, counting every addPacket call
+            # including the CommonPacketTypes/CookiePacketTypes ones. The serverbound ids are that
+            # order exactly; every *clientbound* play id is one higher, because NeoForge registers
+            # an extra packet ahead of the vanilla ones. Verified against a live join: the first
+            # packet after configuration finishes is 0x18 = CLIENTBOUND_CUSTOM_PAYLOAD (static
+            # 0x17), and CLIENTBOUND_LOGIN arrives as 0x2b (static 0x2a).
+            PLAY_CB_KEEP_ALIVE, PLAY_CB_PLAYER_POSITION = 0x26, 0x41
             PLAY_SB_ACCEPT_TELEPORTATION, PLAY_SB_CHAT_COMMAND = 0x00, 0x06
             PLAY_SB_KEEP_ALIVE, PLAY_SB_PLAYER_LOADED = 0x1B, 0x2B
             if pid == PLAY_CB_LOGIN and not seen["play_login"]:
@@ -176,7 +181,10 @@ def login(host, port, username, verbose=False, stay_seconds=0, command=None):
                 if not stay_seconds:
                     break
                 stay_until = time.time() + stay_seconds
-            elif pid == PLAY_CB_KEEP_ALIVE:
+            elif pid == PLAY_CB_KEEP_ALIVE and len(data) == 8:
+                # The length check is the cheap guard against a wrong id: a keep-alive body is a
+                # single long, so echoing anything else back would make the server close the
+                # connection on a decoder exception rather than tell us the id was wrong.
                 seen["keep_alive"] = True
                 conn.send(PLAY_SB_KEEP_ALIVE, data)
             elif pid == PLAY_CB_PLAYER_POSITION:

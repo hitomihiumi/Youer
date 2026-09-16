@@ -9,3 +9,13 @@
      }
  
      @Override
+@@ -49,7 +_,9 @@
+     @Override
+     public boolean mayPickup(Player p_345575_) {
+         ItemStack itemstack = this.getItem();
++        // Purpur - Config to remove curse of binding with weakness
+         return !itemstack.isEmpty() && !p_345575_.isCreative() && EnchantmentHelper.has(itemstack, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE)
++                && !(p_345575_.level().purpurConfig.playerRemoveBindingWithWeakness && p_345575_.hasEffect(net.minecraft.world.effect.MobEffects.WEAKNESS))
+             ? false
+             : super.mayPickup(p_345575_);
+     }

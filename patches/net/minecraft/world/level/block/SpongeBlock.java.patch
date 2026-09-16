@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/SpongeBlock.java
 +++ b/net/minecraft/world/level/block/SpongeBlock.java
-@@ -51,7 +_,9 @@
+@@ -51,10 +_,12 @@
      }
  
      private boolean removeWaterBreadthFirstSearch(Level p_56808_, BlockPos p_56809_) {
@@ -9,9 +9,14 @@
 +        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(p_56808_); // CraftBukkit - Use BlockStateListPopulator
 +        BlockPos.breadthFirstTraversal(
                  p_56809_,
-                 6,
-                 65,
-@@ -64,16 +_,18 @@
+-                6,
+-                65,
++                p_56808_.purpurConfig.spongeAbsorptionRadius, // Purpur - Configurable sponge absorption
++                p_56808_.purpurConfig.spongeAbsorptionArea, // Purpur - Configurable sponge absorption
+                 (p_277519_, p_277492_) -> {
+                     for (Direction direction : ALL_DIRECTIONS) {
+                         p_277492_.accept(p_277519_.relative(direction));
+@@ -64,16 +_,24 @@
                      if (p_294069_.equals(p_56809_)) {
                          return BlockPos.TraversalNodeStatus.ACCEPT;
                      } else {
@@ -22,7 +27,9 @@
 +                        BlockState blockstate = blockList.getBlockState(p_294069_);
 +                        FluidState fluidstate = blockList.getFluidState(p_294069_);
 +                        // CraftBukkit end
-+                        if (!spongeState.canBeHydrated(p_56808_, p_56809_, fluidstate, p_294069_)) {
++                        if (!spongeState.canBeHydrated(p_56808_, p_56809_, fluidstate, p_294069_)
++                            && (!p_56808_.purpurConfig.spongeAbsorbsLava || !fluidstate.is(FluidTags.LAVA))
++                            && (!p_56808_.purpurConfig.spongeAbsorbsWaterFromMud || !blockstate.is(Blocks.MUD))) { // Purpur - Option for sponges to work on lava and mud
                              return BlockPos.TraversalNodeStatus.SKIP;
                          } else if (blockstate.getBlock() instanceof BucketPickup bucketpickup
 -                            && !bucketpickup.pickupBlock(null, p_56808_, p_294069_, blockstate).isEmpty()) {
@@ -32,6 +39,10 @@
                              if (blockstate.getBlock() instanceof LiquidBlock) {
 -                                p_56808_.setBlock(p_294069_, Blocks.AIR.defaultBlockState(), 3);
 +                                blockList.setBlock(p_294069_, Blocks.AIR.defaultBlockState(), 3); // CraftBukkit
++                            // Purpur start - Option for sponges to work on lava and mud
++                            } else if (blockstate.is(Blocks.MUD)) {
++                                blockList.setBlock(p_294069_, Blocks.CLAY.defaultBlockState(), 3);
++                            // Purpur end - Option for sponges to work on lava and mud
                              } else {
                                  if (!blockstate.is(Blocks.KELP)
                                      && !blockstate.is(Blocks.KELP_PLANT)

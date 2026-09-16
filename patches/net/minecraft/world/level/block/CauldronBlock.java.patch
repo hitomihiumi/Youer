@@ -1,5 +1,17 @@
 --- a/net/minecraft/world/level/block/CauldronBlock.java
 +++ b/net/minecraft/world/level/block/CauldronBlock.java
+@@ -32,9 +_,9 @@
+ 
+     protected static boolean shouldHandlePrecipitation(Level p_182451_, Biome.Precipitation p_182452_) {
+         if (p_182452_ == Biome.Precipitation.RAIN) {
+-            return p_182451_.getRandom().nextFloat() < 0.05F;
++            return p_182451_.getRandom().nextFloat() < p_182451_.purpurConfig.cauldronRainChance; // Purpur - Cauldron fill chances
+         } else {
+-            return p_182452_ == Biome.Precipitation.SNOW ? p_182451_.getRandom().nextFloat() < 0.1F : false;
++            return p_182452_ == Biome.Precipitation.SNOW ? p_182451_.getRandom().nextFloat() < p_182451_.purpurConfig.cauldronPowderSnowChance : false; // Purpur - Cauldron fill chances
+         }
+     }
+ 
 @@ -42,9 +_,19 @@
      public void handlePrecipitation(BlockState p_152935_, Level p_152936_, BlockPos p_152937_, Biome.Precipitation p_152938_) {
          if (shouldHandlePrecipitation(p_152936_, p_152938_)) {

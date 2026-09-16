@@ -346,7 +346,7 @@
                  Thread thread1 = new Thread(new ServerWatchdog(this));
                  thread1.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
                  thread1.setName("Server Watchdog");
-@@ -211,15 +_,31 @@
+@@ -211,15 +_,33 @@
                  thread1.start();
              }
  
@@ -366,6 +366,8 @@
 +            com.mohistmc.youer.WatchMohist.start();
 +            // Youer end
 +            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
++            org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur - Implement TPSBar
++            if (org.purpurmc.purpur.PurpurConfig.beeCountPayload) org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur - Give bee counts in beehives to Purpur clients
              return true;
          }
      }
