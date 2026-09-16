@@ -246,7 +246,7 @@
                  }
              }
  
-@@ -220,18 +_,113 @@
+@@ -220,18 +_,174 @@
                      ? ((InetSocketAddress)socketaddress).getAddress()
                      : null;
              }
@@ -308,19 +308,76 @@
 +        return gameprofile; // Paper - Add more fields to AsyncPlayerPreLoginEvent
 +    }
 +    // CraftBukkit end
++
++    // Youer start - Velocity forwarding under Sinytra Connector
++    // Paper reads the answer straight off ServerboundCustomQueryAnswerPacket.QueryAnswerPayload.
++    // With Fabric's networking API loaded the payload is its own type instead, and casting blows
++    // up with a ClassCastException in the middle of a login, so read the buffer off whichever
++    // shape arrived and let the caller report a clean "velocity.requires" for anything else.
++    @Nullable
++    private net.minecraft.network.FriendlyByteBuf youer$velocityAnswerBuffer(ServerboundCustomQueryAnswerPacket packet) {
++        if (packet.payload() instanceof ServerboundCustomQueryAnswerPacket.QueryAnswerPayload payload) {
++            return payload.buffer;
++        }
++
++        if (packet.payload() == null) {
++            return null;
++        }
++
++        try {
++            Class<?> fabricPayload = Class.forName("net.fabricmc.fabric.impl.networking.payload.PacketByteBufLoginQueryResponse");
++            if (!fabricPayload.isInstance(packet.payload())) {
++                return null;
++            }
++
++            java.lang.reflect.Field data = fabricPayload.getDeclaredField("data");
++            data.setAccessible(true);
++            // Same contents as QueryAnswerPayload#buffer - Fabric only changes the wrapper.
++            return (net.minecraft.network.FriendlyByteBuf) data.get(packet.payload());
++        } catch (ReflectiveOperationException | ClassCastException e) {
++            LOGGER.warn("Could not read a Fabric-shaped Velocity login answer", e);
++            return null;
++        }
++    }
++
++    // Fabric's ServerLoginNetworkAddon records every login query it sent and refuses to finish the
++    // login while one is outstanding. The Velocity query is ours, not its, so drop our transaction
++    // id from its map before proceeding. Adapted from NeoVelocity.
++    private boolean youer$releaseFabricLoginChannel() {
++        try {
++            Class<?> extensions = Class.forName("net.fabricmc.fabric.impl.networking.NetworkHandlerExtensions");
++            Object addon = extensions.getMethod("getAddon").invoke(this);
++
++            Class<?> addonClass = Class.forName("net.fabricmc.fabric.impl.networking.server.ServerLoginNetworkAddon");
++            java.lang.reflect.Field channels = addonClass.getDeclaredField("channels");
++            channels.setAccessible(true);
++
++            @SuppressWarnings("unchecked")
++            java.util.Map<Integer, net.minecraft.resources.ResourceLocation> byId =
++                (java.util.Map<Integer, net.minecraft.resources.ResourceLocation>) channels.get(addon);
++            byId.remove(this.velocityLoginMessageId);
++            return true;
++        } catch (ReflectiveOperationException | ClassCastException e) {
++            LOGGER.error("Failed to apply the Fabric networking API workaround for Velocity forwarding", e);
++            this.disconnect(Component.literal(
++                "Server encountered an error applying the Fabric Networking API workaround.\nThis is a server-side issue. Please contact an administrator."));
++            return false;
++        }
++    }
++    // Youer end - Velocity forwarding under Sinytra Connector
  
      @Override
 -    public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket p_295398_) {
 +    public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket packet) {
 +        // Paper start - Add Velocity IP Forwarding Support
 +        if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled && packet.transactionId() == this.velocityLoginMessageId) {
-+            ServerboundCustomQueryAnswerPacket.QueryAnswerPayload payload = (ServerboundCustomQueryAnswerPacket.QueryAnswerPayload)packet.payload();
-+            if (payload == null) {
++            // Youer start - a Fabric-API login query answer is a different payload type
++            net.minecraft.network.FriendlyByteBuf buf = this.youer$velocityAnswerBuffer(packet);
++            if (buf == null) {
 +                this.disconnect(com.mohistmc.youer.util.I18n.as("velocity.requires")); // Youer
 +                return;
 +            }
-+
-+            net.minecraft.network.FriendlyByteBuf buf = payload.buffer;
++            // Youer end
 +            if (!com.destroystokyo.paper.proxy.VelocityProxy.checkIntegrity(buf)) {
 +                this.disconnect("Unable to verify player details");
 +                return;
@@ -338,6 +395,10 @@
 +            }
 +            this.connection.address = new java.net.InetSocketAddress(com.destroystokyo.paper.proxy.VelocityProxy.readAddress(buf), port);
 +
++            // Youer - Fabric's networking API claims this transaction id for itself; hand it back
++            if (net.neoforged.fml.ModList.get().isLoaded("fabric_networking_api_v1") && !this.youer$releaseFabricLoginChannel()) {
++                return;
++            }
 +            this.authenticatedProfile = com.destroystokyo.paper.proxy.VelocityProxy.createProfile(buf);
 +
 +            //TODO Update handling for lazy sessions, might not even have to do anything?

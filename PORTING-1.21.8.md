@@ -237,14 +237,29 @@ queries read vanilla's maps, the chunk-state callbacks are Moonrise bookkeeping
 and become no-ops, and per-player view distances fall back to the server-wide
 ones - the same trade-off `FeatureHooks` already makes.
 
-**4. Two mixins were dropped, not ported.**
-`neoforge.mixins.json` no longer lists `ServerLoginPacketListenerImplMixin` and
-`youer.mixins.json` is empty. Both referred to classes the M3 rebase did not
-carry over: the login mixin routes Velocity and Fabric-API login payloads
-through `youer$handleCustomQueryPacket`, which does not exist in this patch set
-(Paper 1.21.8 handles plain Velocity natively), and the two Create-compat
-mixins live in `com.mohistmc.youer.mixins` and are still blocked on Create
-publishing a 1.21.8 artifact (see 5).
+**4. The login mixin is back as a patch; the Create mixins are still out.**
+`youer.mixins.json` is empty and `neoforge.mixins.json` no longer lists
+`ServerLoginPacketListenerImplMixin`, and for the login one that is now the
+right shape rather than a gap. In 1.21.1 the behaviour lived in two places: a
+`ServerLoginPacketListenerImpl` patch defining `youer$handleCustomQueryPacket`
+and `fixFabricNetworkingIssue`, and a mixin that `@Shadow`ed the first of those.
+The merge dropped the patch, which left the mixin shadowing a method that did
+not exist. Paper 1.21.8 handles plain Velocity natively and inline, so the two
+pieces the merge really lost are folded back into that same method:
+
+* `youer$velocityAnswerBuffer` reads the answer off either payload shape. Paper
+  casts straight to `ServerboundCustomQueryAnswerPacket.QueryAnswerPayload`;
+  with Fabric's networking API loaded (Sinytra Connector) the payload is
+  `PacketByteBufLoginQueryResponse` instead and that cast throws a
+  `ClassCastException` in the middle of a login. Anything else still gets a
+  clean `velocity.requires` disconnect.
+* `youer$releaseFabricLoginChannel` drops our transaction id from Fabric's
+  `ServerLoginNetworkAddon.channels`, which otherwise refuses to finish a login
+  while it thinks a query of its own is outstanding. Adapted from NeoVelocity,
+  and only reached when `fabric_networking_api_v1` is loaded.
+
+The two Create-compat mixins in `com.mohistmc.youer.mixins` stay out, blocked
+on Create publishing a 1.21.8 artifact (see 5).
 
 **5. `com.mohistmc.youer` is back, minus three compat shims.** The M3 rebase
 had dropped 193 files of Youer's own Bukkit/NeoForge bridge; 188 are restored
@@ -254,8 +269,18 @@ i18n are populated, and the ban lists, config gates and modded fallbacks are
 all on their call sites again.
 
 The four still missing are `mixins/compat/create/*` (two files),
-`LithostitchedCompat` and `SableCompat` - none of those mods publishes a 1.21.8
-`compileOnly` artifact yet. `TerraBlenderCompat` is back, compiled against
+`LithostitchedCompat` and `SableCompat`. Re-checked against the registries
+rather than assumed:
+
+* Create and Ponder publish 1.21.1 and nothing newer on `maven.createmod.net`;
+  Sable has no 1.21.8 build on `maven.ryanhcode.dev` or Modrinth either.
+* Lithostitched is the interesting one, because it *does* have 1.21.8 NeoForge
+  builds - and they are still no use. Its 1.21.8 line stops at `1.5.0+beta5`,
+  which predates the biome-injector API entirely: the jar has no
+  `dev.worldgen.lithostitched.api` or `.impl` packages and no `BiomeInjector`.
+  The line that has them, `1.7.x`/`1.8.x`, went from 1.21.1 straight to 26.x
+  and skipped 1.21.8. So the blocker is not "no artifact", it is "no artifact
+  with the API the shim is written against", and waiting will not fix it. `TerraBlenderCompat` is back, compiled against
 TerraBlender 6.0.0.3 from `api.modrinth.com/maven`, and called from
 `CraftServer#createWorld` behind the `terrablender_compat` config and a
 `ServerAPI.hasMod("terrablender")` check, so the class is never loaded on a
