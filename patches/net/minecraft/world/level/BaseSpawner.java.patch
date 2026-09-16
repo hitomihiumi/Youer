@@ -58,7 +58,7 @@
                              Entity entity = EntityType.loadEntityRecursive(valueinput, p_151312_, EntitySpawnReason.SPAWNER, p_404552_ -> {
                                  p_404552_.snapTo(vec3.x, vec3.y, vec3.z, p_404552_.getYRot(), p_404552_.getXRot());
                                  return p_404552_;
-@@ -158,16 +_,14 @@
+@@ -158,21 +_,32 @@
  
                              entity.snapTo(entity.getX(), entity.getY(), entity.getZ(), randomsource.nextFloat() * 360.0F, 0.0F);
                              if (entity instanceof Mob mob) {
@@ -78,6 +78,25 @@
 +                                net.neoforged.neoforge.event.EventHooks.finalizeMobSpawnSpawner(mob, p_151312_, p_151312_.getCurrentDifficultyAt(entity.blockPosition()), EntitySpawnReason.SPAWNER, null, this, flag1);
  
                                  spawndata.getEquipment().ifPresent(mob::equip);
++                                // Spigot start
++                                if (mob.level().spigotConfig.nerfSpawnerMobs) {
++                                    mob.aware = false;
++                                }
++                                // Spigot end
+                             }
+ 
+-                            if (!p_151312_.tryAddFreshEntityWithPassengers(entity)) {
++                            // Paper start
++                            entity.spawnedViaMobSpawner = true;
++                            entity.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER;
++                            flag = true;
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callSpawnerSpawnEvent(entity, p_151313_).isCancelled()) {
++                                continue;
++                            }
++                            if (!p_151312_.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER)) {
++                                // Paper end
+                                 this.delay(p_151312_, p_151313_);
+                                 return;
                              }
 @@ -183,7 +_,7 @@
                                  ((Mob)entity).spawnAnim();

@@ -142,7 +142,7 @@
          p_157586_.setLevelCallback(EntityInLevelCallback.NULL);
      }
  
-@@ -232,7 +_,10 @@
+@@ -232,12 +_,20 @@
      public void processPendingLoads() {
          ChunkEntities<T> chunkentities;
          while ((chunkentities = this.loadingInbox.poll()) != null) {
@@ -152,12 +152,23 @@
 +                if (p_157593_ instanceof Entity entity) entity.onAddedToLevel();
 +            });
              this.chunkLoadStatuses.put(chunkentities.getPos().toLong(), PersistentEntitySectionManager.ChunkLoadStatus.LOADED);
++            // CraftBukkit start - call entity load event
++            List<Entity> entities = this.getEntities(chunkentities.getPos());
++            org.bukkit.craftbukkit.event.CraftEventFactory.callEntitiesLoadEvent(((net.minecraft.world.level.chunk.storage.EntityStorage) this.permanentStorage).level, chunkentities.getPos(), entities);
++            // CraftBukkit end
          }
      }
-@@ -255,6 +_,7 @@
+ 
+     public void tick() {
++        org.spigotmc.AsyncCatcher.catchOp("Entity manager tick"); // Paper
+         this.processPendingLoads();
+         this.processUnloads();
+     }
+@@ -255,6 +_,8 @@
      }
  
      public void autoSave() {
++        org.spigotmc.AsyncCatcher.catchOp("Entity manager autosave"); // Paper
 +        org.spigotmc.AsyncCatcher.catchOp("Entity manager autosave"); // Paper
          this.getAllChunksToSave().forEach(p_157579_ -> {
              boolean flag = this.chunkVisibility.get(p_157579_) == Visibility.HIDDEN;

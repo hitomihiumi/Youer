@@ -25,7 +25,7 @@
      }
  
      @Override
-@@ -249,7 +_,7 @@
+@@ -249,9 +_,10 @@
          ItemStack p_316332_, BlockState p_316118_, Level p_316624_, BlockPos p_316660_, Player p_316715_, InteractionHand p_316472_, BlockHitResult p_316606_
      ) {
          int i = p_316118_.getValue(LEVEL);
@@ -33,16 +33,21 @@
 +        if (i < 8 && getValue(p_316332_) > 0) {
              if (i < 7 && !p_316624_.isClientSide) {
                  BlockState blockstate = addItem(p_316715_, p_316118_, p_316624_, p_316660_, p_316332_);
++                if (blockstate == null) return InteractionResult.PASS; // Paper - Add CompostItemEvent and EntityCompostItemEvent
                  p_316624_.levelEvent(1500, p_316660_, p_316118_ != blockstate ? 1 : 0);
-@@ -276,7 +_,7 @@
+                 p_316715_.awardStat(Stats.ITEM_USED.get(p_316332_.getItem()));
+                 p_316332_.consume(1, p_316715_);
+@@ -276,8 +_,9 @@
  
      public static BlockState insertItem(Entity p_270919_, BlockState p_270087_, ServerLevel p_270284_, ItemStack p_270253_, BlockPos p_270678_) {
          int i = p_270087_.getValue(LEVEL);
 -        if (i < 7 && COMPOSTABLES.containsKey(p_270253_.getItem())) {
 +        if (i < 7 && getValue(p_270253_) > 0) {
              BlockState blockstate = addItem(p_270919_, p_270087_, p_270284_, p_270678_, p_270253_);
++            if (blockstate == null) return p_270087_; // Paper - Add CompostItemEvent and EntityCompostItemEvent
              p_270253_.shrink(1);
              return blockstate;
+         } else {
 @@ -286,6 +_,14 @@
      }
  
@@ -58,15 +63,49 @@
          if (!p_52000_.isClientSide) {
              Vec3 vec3 = Vec3.atLowerCornerWithOffset(p_52001_, 0.5, 1.01, 0.5).offsetRandom(p_52000_.random, 0.7F);
              ItemEntity itementity = new ItemEntity(p_52000_, vec3.x(), vec3.y(), vec3.z(), new ItemStack(Items.BONE_MEAL));
-@@ -307,7 +_,7 @@
+@@ -305,14 +_,40 @@
+         return blockstate;
+     }
  
++    @Nullable // Paper
      static BlockState addItem(@Nullable Entity p_270464_, BlockState p_270603_, LevelAccessor p_270151_, BlockPos p_270547_, ItemStack p_270354_) {
++        // CraftBukkit start
++        return ComposterBlock.addItem(p_270464_, p_270603_, p_270151_, p_270547_, p_270354_, p_270151_.getRandom().nextDouble());
++    }
++
++    @Nullable // Paper - make it nullable
++    static BlockState addItem(@Nullable Entity p_270464_, BlockState p_270603_, LevelAccessor p_270151_, BlockPos p_270547_, ItemStack p_270354_, double rand) {
          int i = p_270603_.getValue(LEVEL);
 -        float f = COMPOSTABLES.getFloat(p_270354_.getItem());
+-        if ((i != 0 || !(f > 0.0F)) && !(p_270151_.getRandom().nextDouble() < f)) {
 +        float f = getValue(p_270354_);
-         if ((i != 0 || !(f > 0.0F)) && !(p_270151_.getRandom().nextDouble() < f)) {
++        // Paper start - Add CompostItemEvent and EntityCompostItemEvent
++        boolean willRaiseLevel = !((i != 0 || f <= 0.0F) && rand >= (double) f);
++        final io.papermc.paper.event.block.CompostItemEvent event;
++        if (p_270464_ == null) {
++            event = new io.papermc.paper.event.block.CompostItemEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_270151_, p_270547_), p_270354_.getBukkitStack(), willRaiseLevel);
++        } else {
++            event = new io.papermc.paper.event.entity.EntityCompostItemEvent(p_270464_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_270151_, p_270547_), p_270354_.getBukkitStack(), willRaiseLevel);
++        }
++        if (!event.callEvent()) { // check for cancellation of entity event (non entity event can't be cancelled cause of hoppers)
++            return null;
++        }
++        willRaiseLevel = event.willRaiseLevel();
++
++        if (!willRaiseLevel) {
++            // Paper end - Add CompostItemEvent and EntityCompostItemEvent
              return p_270603_;
          } else {
+             int j = i + 1;
+             BlockState blockstate = p_270603_.setValue(LEVEL, j);
++            // Paper start - move the EntityChangeBlockEvent here to avoid conflict later for the compost events
++            if (p_270464_ != null && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_270464_, p_270547_, blockstate)) {
++                return null;
++            }
++            // Paper end
+             p_270151_.setBlock(p_270547_, blockstate, 3);
+             p_270151_.gameEvent(GameEvent.BLOCK_CHANGE, p_270547_, GameEvent.Context.of(p_270464_, blockstate));
+             if (j == 7) {
 @@ -357,13 +_,14 @@
          if (i == 8) {
              return new ComposterBlock.OutputContainer(p_51956_, p_51957_, p_51958_, new ItemStack(Items.BONE_MEAL));

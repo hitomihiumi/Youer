@@ -1,6 +1,25 @@
 --- a/net/minecraft/world/level/block/FarmBlock.java
 +++ b/net/minecraft/world/level/block/FarmBlock.java
-@@ -108,15 +_,51 @@
+@@ -95,28 +_,68 @@
+     @Override
+     protected void randomTick(BlockState p_221139_, ServerLevel p_221140_, BlockPos p_221141_, RandomSource p_221142_) {
+         int i = p_221139_.getValue(MOISTURE);
++        // Paper start - Configurable random tick rates for blocks
++        if (i > 0 && p_221140_.paperConfig().tickRates.wetFarmland != 1 && (p_221140_.paperConfig().tickRates.wetFarmland < 1 || (net.minecraft.server.MinecraftServer.currentTick + p_221141_.hashCode()) % p_221140_.paperConfig().tickRates.wetFarmland != 0)) { return; }
++        if (i == 0 && p_221140_.paperConfig().tickRates.dryFarmland != 1 && (p_221140_.paperConfig().tickRates.dryFarmland < 1 || (net.minecraft.server.MinecraftServer.currentTick + p_221141_.hashCode()) % p_221140_.paperConfig().tickRates.dryFarmland != 0)) { return; }
++        // Paper end - Configurable random tick rates for blocks
+         if (!isNearWater(p_221140_, p_221141_) && !p_221140_.isRainingAt(p_221141_.above())) {
+             if (i > 0) {
+-                p_221140_.setBlock(p_221141_, p_221139_.setValue(MOISTURE, i - 1), 2);
++                org.bukkit.craftbukkit.event.CraftEventFactory.handleMoistureChangeEvent(p_221140_, p_221141_, p_221139_.setValue(MOISTURE, i - 1), 2); // CraftBukkit
+             } else if (!shouldMaintainFarmland(p_221140_, p_221141_)) {
+                 turnToDirt(null, p_221139_, p_221140_, p_221141_);
+             }
+         } else if (i < 7) {
+-            p_221140_.setBlock(p_221141_, p_221139_.setValue(MOISTURE, 7), 2);
++            org.bukkit.craftbukkit.event.CraftEventFactory.handleMoistureChangeEvent(p_221140_, p_221141_, p_221139_.setValue(MOISTURE, 7), 2); // CraftBukkit
+         }
+     }
  
      @Override
      public void fallOn(Level p_153227_, BlockState p_153228_, BlockPos p_153229_, Entity p_153230_, double p_397639_) {

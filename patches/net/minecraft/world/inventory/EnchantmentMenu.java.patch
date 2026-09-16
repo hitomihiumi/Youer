@@ -153,22 +153,64 @@
                      this.broadcastChanges();
                  });
              } else {
-@@ -152,14 +_,10 @@
+@@ -148,18 +_,53 @@
+                 this.access
+                     .execute(
+                         (p_347276_, p_347277_) -> {
+-                            ItemStack itemstack2 = itemstack;
++                            ItemStack itemstack2 = itemstack; // Paper - diff on change
                              List<EnchantmentInstance> list = this.getEnchantmentList(p_347276_.registryAccess(), itemstack, p_39466_, this.costs[p_39466_]);
-                             if (!list.isEmpty()) {
-                                 p_39465_.onEnchantmentPerformed(itemstack, i);
+-                            if (!list.isEmpty()) {
+-                                p_39465_.onEnchantmentPerformed(itemstack, i);
 -                                if (itemstack.is(Items.BOOK)) {
 -                                    itemstack2 = itemstack.transmuteCopy(Items.ENCHANTED_BOOK);
--                                    this.enchantSlots.setItem(0, itemstack2);
--                                }
--
++                            // CraftBukkit start - relax the condition, EnchantItemEvent decides what is applied
++                            net.minecraft.core.IdMap<net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment>> registry =
++                                p_347276_.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).asHolderIdMap();
++                            if (true || !list.isEmpty()) {
++                                java.util.Map<org.bukkit.enchantments.Enchantment, Integer> enchants = new java.util.HashMap<>();
++                                for (EnchantmentInstance instance : list) {
++                                    enchants.put(org.bukkit.craftbukkit.enchantments.CraftEnchantment.minecraftHolderToBukkit(instance.enchantment()), instance.level());
++                                }
++
++                                org.bukkit.craftbukkit.inventory.CraftItemStack craftItemStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack);
++                                net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment> holder = registry.byId(this.enchantClue[p_39466_]);
++                                if (holder == null) return;
++                                org.bukkit.enchantments.Enchantment hintedEnchantment = org.bukkit.craftbukkit.enchantments.CraftEnchantment.minecraftHolderToBukkit(holder);
++                                int hintedEnchantmentLevel = this.levelClue[p_39466_];
++                                org.bukkit.event.enchantment.EnchantItemEvent event = new org.bukkit.event.enchantment.EnchantItemEvent(
++                                    (org.bukkit.entity.Player) p_39465_.getBukkitEntity(), this.getBukkitView(), this.access.getLocation().getBlock(),
++                                    craftItemStack, this.costs[p_39466_], enchants, hintedEnchantment, hintedEnchantmentLevel, p_39466_);
++                                p_347276_.getCraftServer().getPluginManager().callEvent(event);
++                                int itemLevel = event.getExpLevelCost();
++                                if (event.isCancelled() || (itemLevel > p_39465_.experienceLevel && !p_39465_.getAbilities().instabuild) || event.getEnchantsToAdd().isEmpty()) {
++                                    return;
++                                }
++                                // CraftBukkit end
++
++                                // Paper - a plugin may have swapped the item out from under us
++                                itemstack2 = org.bukkit.craftbukkit.inventory.CraftItemStack.getOrCloneOnMutation(craftItemStack, event.getItem());
++                                if (itemstack2 != itemstack) {
+                                     this.enchantSlots.setItem(0, itemstack2);
+                                 }
+ 
 -                                for (EnchantmentInstance enchantmentinstance : list) {
 -                                    itemstack2.enchant(enchantmentinstance.enchantment(), enchantmentinstance.level());
--                                }
-+                                // Neo: Allow items to transform themselves when enchanted, instead of relying on hardcoded transformations for Items.BOOK
-+                                itemstack2 = itemstack.getItem().applyEnchantments(itemstack, list);
++                                // Youer - apply what the event settled on, not the list the table rolled, and keep
++                                // NeoForge's transform hook, which covers the vanilla BOOK -> ENCHANTED_BOOK case
++                                List<EnchantmentInstance> toAdd = new java.util.ArrayList<>();
++                                for (java.util.Map.Entry<org.bukkit.enchantments.Enchantment, Integer> entry : event.getEnchantsToAdd().entrySet()) {
++                                    net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment> enchant =
++                                        org.bukkit.craftbukkit.enchantments.CraftEnchantment.bukkitToMinecraftHolder(entry.getKey());
++                                    if (enchant != null) {
++                                        toAdd.add(new EnchantmentInstance(enchant, entry.getValue()));
++                                    }
+                                 }
++
++                                p_39465_.onEnchantmentPerformed(itemstack, i);
++                                itemstack2 = itemstack2.getItem().applyEnchantments(itemstack2, toAdd);
 +                                this.enchantSlots.setItem(0, itemstack2);
-+                                net.neoforged.neoforge.common.CommonHooks.onPlayerEnchantItem(p_39465_, itemstack2, list);
++                                net.neoforged.neoforge.common.CommonHooks.onPlayerEnchantItem(p_39465_, itemstack2, toAdd);
  
                                  itemstack1.consume(i, p_39465_);
                                  if (itemstack1.isEmpty()) {

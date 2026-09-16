@@ -83,16 +83,16 @@
 -                    this.checkBurnOut(p_221161_, p_221162_.above(), 250 + k, p_221163_, i);
 -                    this.checkBurnOut(p_221161_, p_221162_.north(), 300 + k, p_221163_, i);
 -                    this.checkBurnOut(p_221161_, p_221162_.south(), 300 + k, p_221163_, i);
-+                    this.checkBurnOut(p_221161_, p_221162_.east(), 300 + k, p_221163_, i, Direction.WEST);
-+                    this.checkBurnOut(p_221161_, p_221162_.west(), 300 + k, p_221163_, i, Direction.EAST);
-+                    this.checkBurnOut(p_221161_, p_221162_.below(), 250 + k, p_221163_, i, Direction.UP);
-+                    this.checkBurnOut(p_221161_, p_221162_.above(), 250 + k, p_221163_, i, Direction.DOWN);
-+                    this.checkBurnOut(p_221161_, p_221162_.north(), 300 + k, p_221163_, i, Direction.SOUTH);
-+                    this.checkBurnOut(p_221161_, p_221162_.south(), 300 + k, p_221163_, i, Direction.NORTH);
++                    this.checkBurnOut(p_221161_, p_221162_.east(), 300 + k, p_221163_, i, Direction.WEST, p_221162_); // CraftBukkit
++                    this.checkBurnOut(p_221161_, p_221162_.west(), 300 + k, p_221163_, i, Direction.EAST, p_221162_); // CraftBukkit
++                    this.checkBurnOut(p_221161_, p_221162_.below(), 250 + k, p_221163_, i, Direction.UP, p_221162_); // CraftBukkit
++                    this.checkBurnOut(p_221161_, p_221162_.above(), 250 + k, p_221163_, i, Direction.DOWN, p_221162_); // CraftBukkit
++                    this.checkBurnOut(p_221161_, p_221162_.north(), 300 + k, p_221163_, i, Direction.SOUTH, p_221162_); // CraftBukkit
++                    this.checkBurnOut(p_221161_, p_221162_.south(), 300 + k, p_221163_, i, Direction.NORTH, p_221162_); // CraftBukkit
                      BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
  
                      for (int l = -1; l <= 1; l++) {
-@@ -229,33 +_,32 @@
+@@ -229,33 +_,54 @@
              || p_53429_.isRainingAt(p_53430_.south());
      }
  
@@ -112,10 +112,32 @@
  
 -    private void checkBurnOut(Level p_221151_, BlockPos p_221152_, int p_221153_, RandomSource p_221154_, int p_221155_) {
 -        int i = this.getBurnOdds(p_221151_.getBlockState(p_221152_));
-+    private void checkBurnOut(Level p_221151_, BlockPos p_221152_, int p_221153_, RandomSource p_221154_, int p_221155_, Direction face) {
++    private void checkBurnOut(Level p_221151_, BlockPos p_221152_, int p_221153_, RandomSource p_221154_, int p_221155_, Direction face, BlockPos sourcePos) { // CraftBukkit - add sourcePos
 +        int i = p_221151_.getBlockState(p_221152_).getFlammability(p_221151_, p_221152_, face);
          if (p_221154_.nextInt(p_221153_) < i) {
              BlockState blockstate = p_221151_.getBlockState(p_221152_);
++
++            // CraftBukkit start
++            org.bukkit.block.Block burnBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_221151_, p_221152_);
++            org.bukkit.block.Block sourceBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_221151_, sourcePos);
++
++            org.bukkit.event.block.BlockBurnEvent event = new org.bukkit.event.block.BlockBurnEvent(burnBlock, sourceBlock);
++            if (!event.callEvent()) {
++                return;
++            }
++
++            // Youer - TNT lit by spreading fire goes through onCaughtFire below, which is NeoForge's
++            // dispatch and has no idea what lit it, so the prime events are raised here instead
++            if (blockstate.getBlock() instanceof TntBlock) {
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(p_221151_, p_221152_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourcePos)) {
++                    return;
++                }
++                if (!new com.destroystokyo.paper.event.block.TNTPrimeEvent(burnBlock, com.destroystokyo.paper.event.block.TNTPrimeEvent.PrimeReason.FIRE, null).callEvent()) {
++                    return;
++                }
++            }
++            // CraftBukkit end
++
 +            blockstate.onCaughtFire(p_221151_, p_221152_, face, null);
 +
              if (p_221154_.nextInt(p_221155_ + 10) < 5 && !p_221151_.isRainingAt(p_221152_)) {

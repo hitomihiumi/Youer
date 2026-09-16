@@ -110,15 +110,27 @@
      }
  
      @Override
-@@ -116,6 +_,8 @@
+@@ -112,11 +_,19 @@
+         super.slotsChanged(p_39570_);
+         if (p_39570_ == this.repairSlots) {
+             this.createResult();
++            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, RESULT_SLOT); // Paper - Add PrepareResultEvent
+         }
      }
  
      private void createResult() {
+-        this.resultSlots.setItem(0, this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1)));
 +        this.xp = net.neoforged.neoforge.common.CommonHooks.onGrindstoneChange(this.repairSlots.getItem(0), this.repairSlots.getItem(1), this.resultSlots, -1);
-+        if (this.xp == Integer.MIN_VALUE)
-         this.resultSlots.setItem(0, this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1)));
++        // Youer - a mod that handles the grindstone has already filled the result slot; either way the
++        // result goes through callPrepareGrindstoneEvent so plugins see the same slot write
++        org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareGrindstoneEvent(
++            this.getBukkitView(),
++            this.xp == Integer.MIN_VALUE ? this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1)) : this.resultSlots.getItem(0)
++        ); // CraftBukkit
++        this.sendAllDataToRemote(); // CraftBukkit - SPIGOT-6686: Always send completed inventory to stay in sync with client
          this.broadcastChanges();
      }
+ 
 @@ -146,7 +_,7 @@
              int k = p_332686_.getMaxDamage() - p_332686_.getDamageValue();
              int l = j + k + i * 5 / 100;
