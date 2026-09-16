@@ -245,11 +245,13 @@ and wired in. The server boots with the bridge live: `/youer`, `/bans`,
 i18n are populated, and the ban lists, config gates and modded fallbacks are
 all on their call sites again.
 
-The three still missing are `mixins/compat/create/*` (two files),
+The four still missing are `mixins/compat/create/*` (two files),
 `LithostitchedCompat` and `SableCompat` - none of those mods publishes a 1.21.8
-`compileOnly` artifact yet. `TerraBlenderCompat` can come back on its own:
-TerraBlender 6.0.0.3 does have a 1.21.8 NeoForge build on
-`api.modrinth.com/maven`.
+`compileOnly` artifact yet. `TerraBlenderCompat` is back, compiled against
+TerraBlender 6.0.0.3 from `api.modrinth.com/maven`, and called from
+`CraftServer#createWorld` behind the `terrablender_compat` config and a
+`ServerAPI.hasMod("terrablender")` check, so the class is never loaded on a
+server without the mod.
 
 Not every 1.21.1 call site came back, and the ones that did not are worth
 listing, because a future rebase will see them in the old tree and wonder.

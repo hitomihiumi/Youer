@@ -275,6 +275,8 @@ dependencies {
     // compileOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     // compileOnly("net.createmod.ponder:Ponder-NeoForge-${minecraft_version}:${ponder_version}")
     // compileOnly("dev.ryanhcode.sable:sable-common-${minecraft_version}:${sable_version}")
+    // Youer: TerraBlender does publish a 1.21.8 NeoForge build, so its compat shim is back.
+    compileOnly("maven.modrinth:terrablender:${project.terrablender_version}")
 }
 
 neoDev {

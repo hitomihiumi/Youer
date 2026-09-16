@@ -1391,6 +1391,15 @@ public final class CraftServer implements Server {
         );
         LevelStem customStem = contextLevelStemRegistry.getValue(actualDimension);
 
+        // Youer start - TerraBlender rebuilds a world's biome layout from its own regions, and it only
+        // does so for worlds the server created itself; a world a plugin adds has to be registered here
+        boolean skipTerrablenderForWorld = com.mohistmc.youer.YouerConfig.terrablender_compat.skip_worlds.stream().anyMatch(name::startsWith);
+        if (com.mohistmc.youer.YouerConfig.terrablender_compat.enable && !skipTerrablenderForWorld && com.mohistmc.youer.api.ServerAPI.hasMod("terrablender")) {
+            com.mohistmc.youer.neoforge.compat.TerraBlenderCompat.initializeBiomes(
+                this.console.registryAccess(), customStem.type(), actualDimension, customStem.generator(), primaryLevelData.worldGenOptions().seed());
+        }
+        // Youer end
+
         WorldInfo worldInfo = new CraftWorldInfo(primaryLevelData, levelStorageAccess, creator.environment(), customStem.type().value(), customStem.generator(), this.getHandle().getServer().registryAccess()); // Paper - Expose vanilla BiomeProvider from WorldInfo
         if (biomeProvider == null && chunkGenerator != null) {
             biomeProvider = chunkGenerator.getDefaultBiomeProvider(worldInfo);
