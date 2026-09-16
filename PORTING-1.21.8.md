@@ -332,9 +332,30 @@ directory as synced-from-upstream rather than generated, and re-sync it the same
 way when NeoForge moves - the current contents are byte-identical to
 `neoforge-21.8.54-universal.jar`, so nothing is silently stale.
 
-**7. Legacy plugin remapping is only half-verified.** The reobf server now
-builds, and a Mojang-mapped plugin loads through it. No actual Spigot-mapped
-plugin has been tried, and no client has connected to the server.
+**7. Legacy plugin remapping works; no client has connected.** A plugin written
+entirely in Spigot names loads and runs: it calls `MinecraftServer.aw()` and
+`.L()`, and reaches CraftBukkit through the relocated
+`org.bukkit.craftbukkit.v1_21_R5` package. On load the remapper rewrites it and
+it reports
+
+```
+LEGACY: absoluteMaxWorldSize=29999984
+LEGACY: levels=3
+LEGACY: SystemUtils -> net.minecraft.Util
+LEGACY: EntityPlayer -> net.minecraft.server.level.ServerPlayer
+LEGACY: WorldServer -> net.minecraft.server.level.ServerLevel
+LEGACY: CraftServer -> org.bukkit.craftbukkit.CraftServer
+```
+
+To build such a plugin again: boot once, then compile against
+`plugins/.paper-remapped/remap-classpath/<mappings hash>.jar`, which is the
+reobf server the remapper produced - Spigot class names, Spigot member names and
+the versioned CraftBukkit package, i.e. exactly what a Spigot-mapped plugin sees.
+Package it with a `plugin.yml`, no `paper-plugin.yml`, and no
+`paperweight-mappings-namespace` manifest attribute, which is what makes
+`PluginRemapper` treat it as legacy.
+
+What is still untested is a real client connecting to the server.
 
 **8. Cosmetic residue.** Some files carry comments where the earlier rename
 tool substituted a word inside the comment text (`// Paper - Incremental
