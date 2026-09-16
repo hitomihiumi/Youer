@@ -15,7 +15,7 @@
  
      private LevelChunkSection(LevelChunkSection p_365080_) {
          this.nonEmptyBlockCount = p_365080_.nonEmptyBlockCount;
-@@ -32,15 +_,23 @@
+@@ -32,15 +_,21 @@
          this.biomes = p_365080_.biomes.copy();
      }
  
@@ -31,15 +31,14 @@
 +    // Paper start - Anti-Xray - Add parameters
 +    @Deprecated @io.papermc.paper.annotation.DoNotUse
      public LevelChunkSection(Registry<Biome> p_282873_) {
+-        this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
+-        this.biomes = new PalettedContainer<>(p_282873_.asHolderIdMap(), p_282873_.getOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES);
 +        this(p_282873_, null, null, 0);
 +    }
 +    public LevelChunkSection(Registry<Biome> biomeRegistry, net.minecraft.world.level.Level level, net.minecraft.world.level.ChunkPos chunkPos, int chunkSectionY) {
 +        // Paper end - Anti-Xray
-+        // Youer - B3: deferred - PalettedContainer's Anti-Xray preset-states constructor overload isn't merged
-+        // yet (a real obfuscation subsystem, not a trivial gap); using the vanilla 3-arg constructor instead
-         this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
--        this.biomes = new PalettedContainer<>(p_282873_.asHolderIdMap(), p_282873_.getOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES);
-+        this.biomes = new PalettedContainer<>(biomeRegistry.asHolderIdMap(), biomeRegistry.getOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES);
++        this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES, level == null || level.chunkPacketBlockController == null ? null : level.chunkPacketBlockController.getPresetBlockStates(level, chunkPos, chunkSectionY)); // Paper - Anti-Xray - Add preset block states
++        this.biomes = new PalettedContainer<>(biomeRegistry.asHolderIdMap(), biomeRegistry.getOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES, null); // Paper - Anti-Xray - Add preset biomes
      }
  
      public BlockState getBlockState(int p_62983_, int p_62984_, int p_62985_) {
@@ -91,7 +90,7 @@
                      this.nonEmptyBlockCount += p_204445_;
                      if (p_204444_.isRandomlyTicking()) {
                          this.tickingBlockCount += p_204445_;
-@@ -167,10 +_,18 @@
+@@ -167,10 +_,16 @@
          this.biomes = palettedcontainer;
      }
  
@@ -104,11 +103,9 @@
 +        this.write(p_63012_, null, 0);
 +    }
 +    public void write(FriendlyByteBuf buffer, io.papermc.paper.antixray.ChunkPacketInfo<BlockState> chunkPacketInfo, int chunkSectionIndex) {
-+        // Youer - B3: deferred - PalettedContainer's Anti-Xray-aware write() overload isn't merged yet;
-+        // falls back to the vanilla single-arg write (loses Anti-Xray obfuscation, not a correctness issue)
 +        buffer.writeShort(this.nonEmptyBlockCount);
-+        this.states.write(buffer);
-+        this.biomes.write(buffer);
++        this.states.write(buffer, chunkPacketInfo, chunkSectionIndex);
++        this.biomes.write(buffer, null, chunkSectionIndex);
 +    // Paper end - Anti-Xray - Add chunk packet info
      }
  

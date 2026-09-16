@@ -222,6 +222,33 @@ Treat "vanilla-safe" as a claim to check, not a property of the label. The
 `getChunkIfLoaded*` substitution carried that comment and deadlocked the server;
 it was thread-safety, not behaviour, that the vanilla equivalent did not have.
 
+Treat the `B3:` label itself the same way. Auditing the markers one by one took
+them from 41 to 19, because nine of them were not about the chunk system at all
+and three more were simply wrong about what this tree already has:
+
+* **Six weather sites** said `PrimaryLevelData`'s `Cause`-tagged
+  `setRaining`/`setThundering` overloads "are not merged". They are, and
+  `ServerLevel.serverLevelData` is typed `PrimaryLevelData` exactly as upstream,
+  so they were reachable all along. Every `WeatherChangeEvent` and
+  `ThunderChangeEvent` this server fired reported `Cause.UNKNOWN` instead of
+  `NATURAL`, `COMMAND` or `SLEEP`. Fixed; the Paper name audit stopped reporting
+  those two events as a result.
+* **Both `LevelChunkSection` sites** said Paper's Anti-Xray `PalettedContainer`
+  overloads "are not merged yet". They are - preset-values constructor, the
+  three-argument `write`, `Level.chunkPacketBlockController`, and both call
+  sites already passing the arguments through. Only the two method bodies had
+  been stubbed out, so Anti-Xray was configurable and inert. Restored.
+* **`ServerChunkCache#close(boolean)`** said the same, and it too exists;
+  `save(..., skipSave, close)` now passes `!skipSave` as upstream does, instead
+  of always saving on the way out.
+
+What is left under the label really is the chunk system: the `ChunkSystem*`
+interfaces, `moonrise$getEntityLookup` versus the vanilla `entityManager`,
+`moonrise$midTickTasks`, `loadChunksAsync`, the ticket spiral, the collision
+rewrite, and `StructureCheck`'s `Synchronised*` caches. All 32 of upstream's
+`ca/spottedleaf/moonrise` source files are present; it is the call sites into
+them that are not.
+
 **2. One upstream hunk deliberately skipped**: Purpur's `RegionFileStorage`
 rebrand, which rewrites a line Paper's oversized-chunk handling adds and this
 tree does not have. Purpur's `NearestBedSensor` search-radius option was listed

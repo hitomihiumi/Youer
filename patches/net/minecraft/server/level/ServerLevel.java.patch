@@ -327,8 +327,8 @@
          this.serverLevelData.setThunderTime(p_8608_);
 -        this.serverLevelData.setRaining(p_8609_);
 -        this.serverLevelData.setThundering(p_8610_);
-+        this.serverLevelData.setRaining(p_8609_); // Youer - B3: vanilla 1-arg setRaining, PrimaryLevelData's Cause-tagged overload not merged
-+        this.serverLevelData.setThundering(p_8610_); // Youer - B3: vanilla 1-arg setThundering, PrimaryLevelData's Cause-tagged overload not merged
++        this.serverLevelData.setRaining(p_8609_, org.bukkit.event.weather.WeatherChangeEvent.Cause.COMMAND); // Paper - Add cause to Weather/ThunderChangeEvents not merged
++        this.serverLevelData.setThundering(p_8610_, org.bukkit.event.weather.ThunderChangeEvent.Cause.COMMAND); // Paper - Add cause to Weather/ThunderChangeEventserload not merged
      }
  
      @Override
@@ -882,8 +882,8 @@
 +                this.serverLevelData.setThunderTime(thunderTime);
 +                this.serverLevelData.setRainTime(rainTime);
 +                this.serverLevelData.setClearWeatherTime(clearWeatherTime);
-+                this.serverLevelData.setThundering(isThundering); // Youer - B3: vanilla 1-arg setThundering, Cause-tagged overload not merged
-+                this.serverLevelData.setRaining(isRaining1); // Youer - B3: vanilla 1-arg setRaining, Cause-tagged overload not merged
++                this.serverLevelData.setThundering(isThundering, org.bukkit.event.weather.ThunderChangeEvent.Cause.NATURAL); // Paper - Add cause to Weather/ThunderChangeEvents not merged
++                this.serverLevelData.setRaining(isRaining1, org.bukkit.event.weather.WeatherChangeEvent.Cause.NATURAL); // Paper - Add cause to Weather/ThunderChangeEventsged
              }
  
              this.oThunderLevel = this.thunderLevel;
@@ -948,7 +948,7 @@
 -        this.serverLevelData.setThundering(false);
 +        // CraftBukkit start
 +        if (this.purpurConfig.rainStopsAfterSleep) // Purpur - Option for if rain and thunder should stop on sleep
-+        this.serverLevelData.setRaining(false); // Youer - B3: vanilla 1-arg setRaining, Cause-tagged overload not merged
++        this.serverLevelData.setRaining(false, org.bukkit.event.weather.WeatherChangeEvent.Cause.SLEEP); // Paper - Add cause to Weather/ThunderChangeEvents
 +        // If we stop due to everyone sleeping we should reset the weather duration to some other random value.
 +        // Not that everyone ever manages to get the whole server to sleep at the same time....
 +        if (!this.serverLevelData.isRaining()) {
@@ -956,7 +956,7 @@
 +        }
 +        // CraftBukkit end
 +        if (this.purpurConfig.thunderStopsAfterSleep) // Purpur - Option for if rain and thunder should stop on sleep
-+        this.serverLevelData.setThundering(false); // Youer - B3: vanilla 1-arg setThundering, Cause-tagged overload not merged
++        this.serverLevelData.setThundering(false, org.bukkit.event.weather.ThunderChangeEvent.Cause.SLEEP); // Paper - Add cause to Weather/ThunderChangeEvents
 +        // CraftBukkit start
 +        // If we stop due to everyone sleeping we should reset the weather duration to some other random value.
 +        // Not that everyone ever manages to get the whole server to sleep at the same time....
@@ -1172,7 +1172,7 @@
 +        // Paper start - add close param
 +        if (close) {
 +            try {
-+                chunkSource.close(); // Youer - B3: vanilla ServerChunkCache#close() has no skipSave-flush arg (Paper's close(boolean) variant not merged)
++                chunkSource.close(!skipSave); // Paper - add close param
 +            } catch (IOException never) {
 +                throw new RuntimeException(never);
 +            }
