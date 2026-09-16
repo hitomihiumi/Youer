@@ -36,6 +36,7 @@ tests/src/generated/resources/.cache/
 changelog.txt
 *.py
 !tools/port/*.py
+!tools/test/*.py
 __pycache__/
 *.pyc
 *.7z

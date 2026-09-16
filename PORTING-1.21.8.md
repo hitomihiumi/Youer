@@ -355,7 +355,40 @@ Package it with a `plugin.yml`, no `paper-plugin.yml`, and no
 `paperweight-mappings-namespace` manifest attribute, which is what makes
 `PluginRemapper` treat it as legacy.
 
-What is still untested is a real client connecting to the server.
+A client connects too, and finding that out turned up a defect that a
+headless boot could never have shown: **nobody could join.** `PlayerList`
+sets `ServerPlayer.supressTrackerForLogin` around the join so that the player
+is tracked after the player-list packets rather than before, and then calls
+`ChunkMap#addEntity` itself - but the flag was set and never read, because the
+only thing that reads it is a guard in `ChunkMap#addEntity` that the M2 merge
+did not carry over. The player got tracked on the way in, the explicit call
+then hit `IllegalStateException: Entity is already tracked!`, and the server
+logged "Couldn't place player in world" and kicked with "Invalid player data" -
+one line after "joined the game". That guard is restored, along with the rest
+of the hunk it belongs to (the async catcher, Paper's illegal-call warning, and
+Spigot's per-entity tracking range).
+
+`tools/test/mcclient.py` is what found it: a minimal protocol client, about 200
+lines and no dependencies. It does a server list ping, or an offline-mode login
+carried through the configuration phase into play, where it accepts the
+teleport, answers keep-alives, runs a command and disconnects. Packet ids are
+read off `LoginProtocols`, `ConfigurationProtocols` and `GameProtocols` - the
+registration order is the id - rather than guessed, which is worth remembering
+when a protocol bump moves them.
+
+```bash
+# server.properties: online-mode=false, network-compression-threshold=-1
+python3 tools/test/mcclient.py status
+python3 tools/test/mcclient.py login YouerTester -v
+```
+
+A full session now works end to end: login, configuration, play, `/youer
+version` issued as a player, a clean quit, and the player's data, stats and
+advancements all written (one advancement criterion even fires on the way in,
+so the trigger machinery runs for a live player).
+
+What is still untested is a real Minecraft client, with a real world render and
+a real mod handshake.
 
 **8. Cosmetic residue.** Some files carry comments where the earlier rename
 tool substituted a word inside the comment text (`// Paper - Incremental
