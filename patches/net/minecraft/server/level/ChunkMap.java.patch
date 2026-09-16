@@ -270,14 +270,24 @@
              if (chunkholder != null) {
                  LevelChunk levelchunk = chunkholder.getTickingChunk();
 -                if (levelchunk != null && this.anyPlayerCloseEnoughForSpawningInternal(chunkholder.getPos())) {
-+                if (levelchunk != null && (this.anyPlayerCloseEnoughForSpawningInternal(chunkholder.getPos()) || ticketStorage.shouldForceNaturalSpawning(chunkholder.getPos()))) {// Neo: Force natural spawning in other chunks
++                if (levelchunk != null && (this.anyPlayerCloseEnoughForSpawningInternal(chunkholder.getPos(), true) || ticketStorage.shouldForceNaturalSpawning(chunkholder.getPos()))) {// Spigot // Neo: Force natural spawning in other chunks
                      p_401784_.add(levelchunk);
                  }
              }
-@@ -971,9 +_,21 @@
-         return tristate == TriState.DEFAULT ? this.anyPlayerCloseEnoughForSpawningInternal(p_183880_) : tristate.toBoolean(true);
+@@ -967,13 +_,44 @@
      }
  
+     boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_) {
++        return this.anyPlayerCloseEnoughForSpawning(p_183880_, false); // Spigot
++    }
++
++    // Spigot - reducedRange narrows the search to what PlayerNaturallySpawnCreaturesEvent allows
++    boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_, boolean reducedRange) {
+         TriState tristate = this.distanceManager.hasPlayersNearby(p_183880_.toLong());
+-        return tristate == TriState.DEFAULT ? this.anyPlayerCloseEnoughForSpawningInternal(p_183880_) : tristate.toBoolean(true);
++        return tristate == TriState.DEFAULT ? this.anyPlayerCloseEnoughForSpawningInternal(p_183880_, reducedRange) : tristate.toBoolean(true);
++    }
++
 +    void collectForceTickingChunks(List<LevelChunk> list) {
 +        for (long l : distanceManager.ticketStorage.getForceLoadedChunks()) {
 +            ChunkHolder holder = this.visibleChunkMap.get(l);
@@ -288,12 +298,26 @@
 +                }
 +            }
 +        }
+     }
+ 
+     private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos p_363995_) {
++        return this.anyPlayerCloseEnoughForSpawningInternal(p_363995_, false); // Spigot
 +    }
 +
-     private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos p_363995_) {
++    private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos p_363995_, boolean reducedRange) {
++        double blockRange; // Paper - use from event
          for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
 -            if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_)) {
-+            if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_, 16384.0D)) {
++            // Paper start - PlayerNaturallySpawnCreaturesEvent
++            com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent event;
++            blockRange = 16384.0D;
++            if (reducedRange) {
++                event = serverplayer.playerNaturallySpawnedEvent;
++                if (event == null || event.isCancelled()) continue;
++                blockRange = (double) ((event.getSpawnRadius() << 4) * (event.getSpawnRadius() << 4));
++            }
++            if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_, blockRange)) {
++                // Paper end - PlayerNaturallySpawnCreaturesEvent
                  return true;
              }
          }
@@ -379,8 +403,12 @@
      class DistanceManager extends net.minecraft.server.level.DistanceManager {
          protected DistanceManager(TicketStorage p_394597_, Executor p_140459_, Executor p_140460_) {
              super(p_394597_, p_140459_, p_140460_);
-@@ -1291,7 +_,7 @@
-         public final Set<ServerPlayerConnection> seenBy = Sets.newIdentityHashSet();
+@@ -1288,10 +_,10 @@
+         final Entity entity;
+         private final int range;
+         SectionPos lastSectionPos;
+-        public final Set<ServerPlayerConnection> seenBy = Sets.newIdentityHashSet();
++        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
  
          public TrackedEntity(Entity p_140478_, int p_140479_, int p_140480_, boolean p_140481_) {
 -            this.serverEntity = new ServerEntity(ChunkMap.this.level, p_140478_, p_140480_, p_140481_, this::broadcast, this::broadcastIgnorePlayers);
