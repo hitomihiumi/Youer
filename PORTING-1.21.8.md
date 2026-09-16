@@ -111,6 +111,12 @@ java -jar youer-1.21.8-<id>-server.jar --nogui
 the merge started. `genPatches` round-trips the tree unchanged, and the build
 produces the server, universal, joined, installer, userdev and sources jars.
 
+The moddevgradle *dev runs* are the exception: `:youer:runServer` and
+`:youer:runData` both die before the game starts, on the same
+`InvalidModuleDescriptorException`. It is one cause, it is understood, and it
+is written up under item 6 below - test against the built server jar until it
+is fixed.
+
 The dedicated server installs itself, generates all three dimensions, reaches
 the console prompt and holds 20 TPS. A Bukkit plugin loads, enables, and its
 scheduler, event registration and world API all work; a NeoForge mod loads,
@@ -297,43 +303,85 @@ rejected at load (the pre-1.21.2 `{"tag": "c:rods/wooden"}` ingredient form),
 since were missing. The tree now matches `neoforge-21.8.54-universal.jar`'s own
 `data/` byte for byte, and the server loads 1,407 recipes with no parse errors.
 
-The reason it was synced rather than regenerated is that `runData` does not
-work. moddevgradle 2.0.107 split the `data` run type into `clientData` and
-`serverData`, which is fixed here, and the run then dies before datagen starts:
+The reason it was synced rather than regenerated is that **`runData` cannot
+regenerate it in a server-only tree, and this is upstream's design rather than
+a defect here.** In NeoForge 21.8 the `neoforge` mod registers every one of its
+data providers - the server-side ones included - from
+`ClientNeoForgeMod.onGatherData(GatherDataEvent.Client)`, a class annotated
+`@Mod(value = "neoforge", dist = Dist.CLIENT)`. Upstream says why in a comment
+on that method: "We perform client and server datagen in a single clientData
+run to avoid having to juggle two generated resources folders and two runs for
+no additional benefit." Youer has no client source set and its run is declared
+`serverData()`, so `GatherDataEvent.Server` is fired, nothing listens, and
+`DataGenerator` reports `All providers took: 0 ms`.
+
+That last part is a live footgun, so it is worth stating on its own: a datagen
+run with no providers does not no-op. It treats the whole output directory as
+stale. Running it deletes all 917 files
+(`HashCache: total files: 917, old count: 0, new count: 1, removed stale: 917,
+written: 0`) and writes nothing back. `git checkout src/generated/resources`
+is the undo.
+
+So keep treating this directory as synced-from-upstream, and re-sync it the
+same way when NeoForge moves - the current contents are byte-identical to
+`neoforge-21.8.54-universal.jar`, so nothing is silently stale. Regenerating
+locally could at best reproduce those same bytes.
+
+### The dev-run module split, which also breaks `runServer`
+
+Getting far enough to learn the above meant getting past a different failure,
+and that one is not cosmetic: **`./gradlew :youer:runServer` is broken by it
+too**, with the same stack.
 
 ```
 InvalidModuleDescriptorException: Service provider file
-  /META-INF/services/io.papermc.paper.registry.RegistryAccess contains service
-  that is not in this Jar file: io.papermc.paper.registry.PaperRegistryAccess
+  /META-INF/services/net.kyori.adventure.text.event.ClickCallback$Provider
+  contains service that is not in this Jar file:
+  io.papermc.paper.adventure.providers.ClickCallbackProviderImpl
     at ModuleDescriptorFactory.parseServiceFile(ModuleDescriptorFactory.java:148)
-    at ModuleDescriptorFactory.scanAutomaticModule(ModuleDescriptorFactory.java:114)
     at ModJarMetadata.computeDescriptor(ModJarMetadata.java:43)
 ```
 
 An earlier note here blamed the split between a dev run's classes and resources
-directories. That is not it, and the experiments are worth recording so nobody
-repeats them:
+directories and, when that was disproved, said the next person should find out
+what jar `ModJarMetadata` is computing over. It is the **`neoforge` mod file**,
+and the reason is in `NeoForgeDevProvider.findCandidates`: FML splits one dev
+source set into two mod files with a pair of complementary `UnionPathFilter`s,
+keyed on three prefixes - `net/neoforged/neoforge/`, `META-INF/services/` and
+`META-INF/neoforge.mods.toml`.
 
-* The run does pass both directories as one mod:
-  `-Dfml.modFolders=minecraft%%<classes>:minecraft%%<resources>`.
-* Copying both into a single directory and pointing `fml.modFolders` at that one
-  directory fails identically.
-* Moving just `META-INF/services` into the classes directory, so the service
-  files sit beside the classes they name, fails identically.
-* Cutting the service files down to the single one datagen needs moves the error
-  onto that one: `PaperRegistryAccess` "is not in this Jar file" even though it
-  is in the same directory. So the scan is not missing one package, it is
-  missing all of ours.
-* Removing the service files entirely gets past the module scan and into datagen,
-  which then dies in `BuiltInRegistries.<clinit>` with "No RegistryAccess
-  implementation found" - the service it needs is one of the ones that had to go.
+* the **minecraft** mod file takes, from the dev directories, *only* files
+  ending in `.class` that do not start with one of those prefixes - plus
+  everything in the Minecraft resources jar, unfiltered.
+* the **neoforge** mod file takes *every non-class file* plus the
+  `net/neoforged/neoforge/**` classes.
 
-So the mod jar `ModJarMetadata` computes the descriptor for does not contain our
-classes at all, and the next person should start by finding out what that jar
-actually is rather than by rearranging the source sets. Until then, treat this
-directory as synced-from-upstream rather than generated, and re-sync it the same
-way when NeoForge moves - the current contents are byte-identical to
-`neoforge-21.8.54-universal.jar`, so nothing is silently stale.
+Upstream that partition is exact, because its dev source set holds only
+NeoForge's own classes and service files. Youer's holds Minecraft, NeoForge,
+Bukkit, Paper and Purpur together, so all thirty of Paper's `META-INF/services`
+files land in a module that contains none of the classes they name, and the
+automatic-module scan rejects it. The earlier experiments were all consistent
+with this and none of them could have worked: the filter routes by path, so no
+amount of moving files between the two dev directories changes which mod file a
+service file lands in.
+
+The one lever that does work is `path.equals(minecraftJar)`, which waves
+anything in the Minecraft resources jar straight into the minecraft module -
+the module that has our classes. Verified end to end:
+
+1. split `build/resources/main/META-INF/services/` by the package of the
+   providers each file names. Exactly one file names
+   `net.neoforged.neoforge.*` (`net.neoforged.fml.IBindingsProvider`); it has
+   to stay where it is, or the minecraft module gains a service file whose
+   provider lives in the neoforge module and it fails the same way in reverse.
+2. add the other twenty-nine to `build/neodev/artifacts/minecraft-resources.jar`.
+3. run with the resources directory that no longer carries them.
+
+With that, both module descriptors are valid and the run reaches
+`DatagenModLoader`. It is written up here rather than wired into the build
+because doing it properly means the shipped jar and the dev runs disagree about
+where those service files live, and that is a change to resource packaging that
+should be made deliberately, not as a side effect of chasing a datagen run.
 
 **7. Legacy plugin remapping works; no client has connected.** A plugin written
 entirely in Spigot names loads and runs: it calls `MinecraftServer.aw()` and
