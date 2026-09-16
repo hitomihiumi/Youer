@@ -23,7 +23,7 @@
 -        Optional<RecipeHolder<CraftingRecipe>> optional = p_379963_.getServer()
 -            .getRecipeManager()
 -            .getRecipeFor(RecipeType.CRAFTING, craftinginput, p_379963_, p_345124_);
-+        // Paper start - Perf: Improve mass crafting; check last p_345124_ used first
++        // Paper start - Perf: Improve mass crafting; check last recipe used first
 +        /*
 +        When the server crafts all available items in CraftingMenu or InventoryMenu the game
 +        checks either 4 or 9 times for each individual craft for a matching p_345124_ for that container.
@@ -46,7 +46,7 @@
 +        if (p_345124_ == null) {
 +            p_345124_ = p_150550_.getCurrentRecipe();
 +        }
-+        // Paper end - Perf: Improve mass crafting; check last p_345124_ used first
++        // Paper end - Perf: Improve mass crafting; check last recipe used first
 +        Optional<RecipeHolder<CraftingRecipe>> optional = p_379963_.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, craftinginput, p_379963_, p_345124_);
 +        p_150550_.setCurrentRecipe(optional.orElse(null)); // CraftBukkit
          if (optional.isPresent()) {

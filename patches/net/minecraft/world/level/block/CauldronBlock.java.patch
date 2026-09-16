@@ -30,7 +30,7 @@
 -            p_152941_.setBlockAndUpdate(p_152942_, blockstate);
 -            p_152941_.gameEvent(GameEvent.BLOCK_CHANGE, p_152942_, GameEvent.Context.of(blockstate));
 +            BlockState blockState = Blocks.WATER_CAULDRON.defaultBlockState();
-+            // Paper start - Call CauldronLevelChangeEvent; don't send p_152941_ event or game event if cancelled
++            // Paper start - Call CauldronLevelChangeEvent; don't send level event or game event if cancelled
 +            if (!LayeredCauldronBlock.changeLevel(p_152941_, p_152942_, blockState, null, org.bukkit.event.block.CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) { // CraftBukkit
 +                return;
 +            }
@@ -41,7 +41,7 @@
 -            p_152941_.setBlockAndUpdate(p_152942_, blockstate1);
 -            p_152941_.gameEvent(GameEvent.BLOCK_CHANGE, p_152942_, GameEvent.Context.of(blockstate1));
 +            BlockState blockState = Blocks.LAVA_CAULDRON.defaultBlockState();
-+            // Paper start - Call CauldronLevelChangeEvent; don't send p_152941_ event or game event if cancelled
++            // Paper start - Call CauldronLevelChangeEvent; don't send level event or game event if cancelled
 +            if (!LayeredCauldronBlock.changeLevel(p_152941_, p_152942_, blockState, null, org.bukkit.event.block.CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) { // CraftBukkit
 +                return;
 +            }

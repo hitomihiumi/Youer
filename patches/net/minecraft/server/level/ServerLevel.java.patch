@@ -2054,7 +2054,7 @@
              }
  
              p_143371_.updateDynamicGameEventListener(DynamicGameEventListener::add);
-+            p_143371_.inWorld = true; // CraftBukkit - Mark p_143371_ as in world
++            p_143371_.inWorld = true; // CraftBukkit - Mark entity as in world
 +            p_143371_.valid = true; // CraftBukkit
 +            ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server
 +            // Paper start - Entity origin API

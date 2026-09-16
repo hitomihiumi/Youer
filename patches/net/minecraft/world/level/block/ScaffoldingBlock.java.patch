@@ -5,7 +5,7 @@
          int i = getDistance(p_222020_, p_222021_);
          BlockState blockstate = p_222019_.setValue(DISTANCE, i).setValue(BOTTOM, this.isBottom(p_222020_, p_222021_, i));
 -        if (blockstate.getValue(DISTANCE) == 7) {
-+        if (blockstate.getValue(DISTANCE) == 7 && !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_222020_, p_222021_, blockstate.getFluidState().createLegacyBlock()).isCancelled()) { // CraftBukkit - BlockFadeEvent // Paper - fix wrong block p_222019_
++        if (blockstate.getValue(DISTANCE) == 7 && !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_222020_, p_222021_, blockstate.getFluidState().createLegacyBlock()).isCancelled()) { // CraftBukkit - BlockFadeEvent // Paper - fix wrong block state
              if (p_222019_.getValue(DISTANCE) == 7) {
                  FallingBlockEntity.fall(p_222020_, p_222021_, blockstate);
              } else {

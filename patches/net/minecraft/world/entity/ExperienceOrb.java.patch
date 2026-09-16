@@ -201,11 +201,11 @@
      }
  
      private void merge(ExperienceOrb p_147101_) {
-+        // Paper start - call p_147101_ merge event
++        // Paper start - call orb merge event
 +        if (!new com.destroystokyo.paper.event.entity.ExperienceOrbMergeEvent((org.bukkit.entity.ExperienceOrb) this.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) p_147101_.getBukkitEntity()).callEvent()) {
 +            return;
 +        }
-+        // Paper end - call p_147101_ merge event
++        // Paper end - call orb merge event
          this.count = this.count + p_147101_.count;
          this.age = Math.min(this.age, p_147101_.age);
 -        p_147101_.discard();

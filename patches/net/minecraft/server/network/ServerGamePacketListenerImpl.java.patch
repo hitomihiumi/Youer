@@ -1905,7 +1905,7 @@
      public void ackBlockChangesUpTo(int p_215202_) {
          if (p_215202_ < 0) {
 -            throw new IllegalArgumentException("Expected packet sequence nr >= 0");
-+            this.disconnect(Component.literal("Expected packet p_215202_ nr >= 0"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - Treat p_215202_ violations like they should be
++            this.disconnect(Component.literal("Expected packet p_215202_ nr >= 0"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - Treat sequence violations like they should be
 +            throw new IllegalArgumentException("Expected packet p_215202_ nr >= 0");
          } else {
              this.ackBlockChangesUpTo = Math.max(p_215202_, this.ackBlockChangesUpTo);

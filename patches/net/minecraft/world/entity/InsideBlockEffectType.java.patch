@@ -29,7 +29,7 @@
 +    private final Applier effect; // Paper - track position inside effect was triggered on
 +
 +    private InsideBlockEffectType(final Consumer<Entity> p_405275_) {
-+    // Paper start - track position inside p_405275_ was triggered on
++    // Paper start - track position inside effect was triggered on
 +        this((entity, block) -> p_405275_.accept(entity));
 +    }
 +    private InsideBlockEffectType(final Applier effect) {

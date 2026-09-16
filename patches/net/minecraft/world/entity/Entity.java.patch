@@ -260,7 +260,7 @@
  
      public boolean addTag(String p_20050_) {
 -        return this.tags.size() >= 1024 ? false : this.tags.add(p_20050_);
-+        return this.tags.add(p_20050_); // Paper - fully limit p_20050_ size - replace set impl
++        return this.tags.add(p_20050_); // Paper - fully limit tag size - replace set impl
      }
  
      public boolean removeTag(String p_20138_) {

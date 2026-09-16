@@ -4,7 +4,7 @@
              return RecipeBookMenu.PostPlaceAction.NOTHING;
          } else {
              StackedItemContents stackeditemcontents = new StackedItemContents();
-+            stackeditemcontents.initializeExtras(p_363024_.value(), null); // Paper - Improve exact choice p_363024_ ingredients
++            stackeditemcontents.initializeExtras(p_363024_.value(), null); // Paper - Improve exact choice recipe ingredients
              p_364618_.fillStackedContents(stackeditemcontents);
              p_361341_.fillCraftSlotsStackedContents(stackeditemcontents);
              return serverplacerecipe.tryPlaceRecipe(p_363024_, stackeditemcontents);

@@ -457,7 +457,7 @@
      protected void save(ServerPlayer p_11277_) {
 +        if (p_11277_.connection == null) return;
 +        if (!p_11277_.getBukkitEntity().isPersistent()) return; // CraftBukkit
-+        p_11277_.lastSave = MinecraftServer.currentTick; // Paper - Incremental chunk and p_11277_ saving
++        p_11277_.lastSave = MinecraftServer.currentTick; // Paper - Incremental chunk and player saving
          this.playerIo.save(p_11277_);
 -        ServerStatsCounter serverstatscounter = this.stats.get(p_11277_.getUUID());
 +        ServerStatsCounter serverstatscounter = p_11277_.getStats(); // CraftBukkit
@@ -1163,7 +1163,7 @@
      ) {
          for (int i = 0; i < this.players.size(); i++) {
              ServerPlayer serverplayer = this.players.get(i);
-+            // CraftBukkit start - Test if player receiving p_11248_ can see the source of the p_11248_
++            // CraftBukkit start - Test if player receiving packet can see the source of the packet
 +            if (p_11242_ != null && !serverplayer.getBukkitEntity().canSee(p_11242_.getBukkitEntity())) {
 +               continue;
 +            }
@@ -1229,7 +1229,7 @@
 -            p_11230_.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.START_RAINING, 0.0F));
 -            p_11230_.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, p_11231_.getRainLevel(1.0F)));
 -            p_11230_.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, p_11231_.getThunderLevel(1.0F)));
-+            // CraftBukkit start - handle p_11230_ weather
++            // CraftBukkit start - handle player weather
 +            // p_11230_.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.START_RAINING, 0.0F));
 +            // p_11230_.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, p_11231_.getRainLevel(1.0F)));
 +            // p_11230_.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, p_11231_.getThunderLevel(1.0F)));

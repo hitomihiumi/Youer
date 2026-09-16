@@ -22,7 +22,7 @@
          }
  
 -        p_405060_.apply(InsideBlockEffectType.EXTINGUISH);
-+        // p_405060_.apply(InsideBlockEffectType.EXTINGUISH); // Paper - manually applied above - cauldron p_153535_ change event - delay to not extinguish when event is cancelled
++        // p_405060_.apply(InsideBlockEffectType.EXTINGUISH); // Paper - manually applied above - cauldron level change event - delay to not extinguish when event is cancelled
      }
  
 -    private void handleEntityOnFireInside(BlockState p_153556_, Level p_153557_, BlockPos p_153558_) {

@@ -87,7 +87,7 @@
              if (structurecheckresult != null) {
                  return structurecheckresult;
 -            } else if (!p_321610_.applyAdditionalChunkRestrictions(p_226730_.x, p_226730_.z, this.seed)) {
-+            } else if (!p_321610_.applyAdditionalChunkRestrictions(p_226730_.x, p_226730_.z, this.seed, this.getSaltOverride(p_226731_))) { // Paper - add missing p_226731_ seed configs
++            } else if (!p_321610_.applyAdditionalChunkRestrictions(p_226730_.x, p_226730_.z, this.seed, this.getSaltOverride(p_226731_))) { // Paper - add missing structure seed configs
                  return StructureCheckResult.START_NOT_PRESENT;
              } else {
                  boolean flag = this.featureChecks

@@ -190,7 +190,7 @@
      }
  
      private void onItemChanged(ItemStack p_218866_) {
-+        this.cachedMapId = p_218866_.getComponents().get(net.minecraft.core.component.DataComponents.MAP_ID); // Paper - Perf: Cache map ids on p_218866_ frames
++        this.cachedMapId = p_218866_.getComponents().get(net.minecraft.core.component.DataComponents.MAP_ID); // Paper - Perf: Cache map ids on item frames
          if (!p_218866_.isEmpty() && p_218866_.getFrame() != this) {
              p_218866_.setEntityRepresentation(this);
          }

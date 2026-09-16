@@ -8,7 +8,7 @@
          super.entityInside(p_58164_, p_58165_, p_58166_, p_58167_, p_405495_);
          if (p_58165_ instanceof ServerLevel && p_58167_ instanceof AbstractBoat) {
 +            // CraftBukkit start
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_58167_, p_58166_, p_58164_.getFluidState().createLegacyBlock())) { // Paper - fix wrong block p_58164_
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_58167_, p_58166_, p_58164_.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
 +                return;
 +            }
 +            // CraftBukkit end
