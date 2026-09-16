@@ -1,3 +1,4 @@
+import org.gradle.process.CommandLineArgumentProvider
 import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
@@ -311,6 +312,167 @@ neoDev {
         }
     }
 }
+
+// Youer start - make the moddevgradle dev runs launchable
+//
+// FML's NeoForgeDevProvider splits one dev source set into two mod files with a pair of
+// complementary path filters, keyed on the prefixes `net/neoforged/neoforge/`,
+// `META-INF/services/` and `META-INF/neoforge.mods.toml`. The `minecraft` mod file takes only
+// `.class` files from the run's mod folders; the `neoforge` one takes every *non-class* file
+// plus the `net/neoforged/neoforge/**` classes. Upstream that partition is exact, because its
+// dev source set holds only NeoForge. Ours also holds Bukkit, Paper and Purpur, so Paper's
+// service files land in a module holding none of the classes they name, and the automatic-module
+// scan rejects it before the game starts - which is why runServer and runData both died on
+// `InvalidModuleDescriptorException`.
+//
+// The filter routes by path, so moving files between the two mod folders cannot help. The one
+// lever that can is `path.equals(minecraftJar)`, which waves everything in the Minecraft
+// resources jar straight into the `minecraft` module - the module that has our classes. So for
+// dev runs only we hand FML a mod folder with those service files removed and a Minecraft
+// resources jar with them added. Nothing here touches what `processResources` produces, so the
+// shipped jars keep all thirty service files exactly where they were.
+
+// A service file belongs to the `neoforge` module when every provider it names does; every other
+// one has to travel with our classes instead.
+def devRunNeoForgeService = { File file ->
+    file.readLines()*.trim()
+            .findAll { !it.isEmpty() && !it.startsWith("#") }
+            .every { it.startsWith("net.neoforged.neoforge.") }
+}
+
+def devRunObjects = objects
+def devRunResourcesDir = layout.buildDirectory.dir("devrun/resources")
+def devRunServicesDir = layout.buildDirectory.dir("devrun/services")
+def devRunSparkDir = layout.buildDirectory.dir("devrun/spark")
+def devRunJar = layout.buildDirectory.file("devrun/minecraft-resources.jar")
+def mainResourcesDir = sourceSets.main.output.resourcesDir
+
+// Half one: the mod folder FML reads, with the service files that cannot live in the `neoforge`
+// module taken out. Everything else stays, so the `neoforge` module keeps its own resources.
+def devRunResources = tasks.register("devRunResources", Sync) {
+    description = "Main resources with the non-NeoForge service files held back, for dev runs only."
+    from(tasks.named("processResources"))
+    into(devRunResourcesDir)
+    doLast {
+        def services = new File(devRunResourcesDir.get().asFile, "META-INF/services")
+        (services.listFiles() ?: new File[0]).findAll { !devRunNeoForgeService(it) }*.delete()
+    }
+}
+
+// Sync's output directory *is* META-INF/services, so the copy below has to put the prefix back.
+def devRunServices = tasks.register("devRunServices", Sync) {
+    description = "The service files that have to travel with our classes rather than NeoForge's."
+    from(tasks.named("processResources").map { new File(it.destinationDir, "META-INF/services") })
+    into(devRunServicesDir.map { it.dir("META-INF/services") })
+    doLast {
+        def dir = devRunServicesDir.get().asFile.toPath().resolve("META-INF/services").toFile()
+        (dir.listFiles() ?: new File[0]).findAll { devRunNeoForgeService(it) }*.delete()
+    }
+}
+
+// Half two: the `minecraft` module gets a copy of everything its classes might read. The split
+// leaves Paper's classes in that module while every resource goes to the other one, so without
+// this a plain `getResourceAsStream` inside Paper code returns null - PaperConfigurations dies on
+// `/config-data/packet-limiter-upgrade-data.json` before the server finishes starting.
+//
+// Zip, not Jar: Jar would generate a fresh manifest, and the original carries `Minecraft-Dists`
+// plus a per-entry `Minecraft-Dist` section for every client-only file. FML reads those to mask
+// the wrong dist's files and rejects the whole mod file when the attribute is missing, which in
+// the log looks exactly like the minecraft mod silently not existing.
+//
+// `META-INF`, the mixin configs and the root `pack.mcmeta` are left out: those identify the
+// `neoforge` mod file to FML and to the resource-pack loader, and a second copy of them inside
+// the vanilla pack would be read as the vanilla pack's own.
+tasks.register("devRunMinecraftResources", Zip) {
+    description = "Minecraft's resources jar with our resources folded in, for dev runs only."
+    dependsOn(tasks.named("createSourceArtifacts"))
+    archiveFileName = "minecraft-resources.jar"
+    destinationDirectory = layout.buildDirectory.dir("devrun")
+    from(layout.buildDirectory.file("neodev/artifacts/minecraft-resources.jar").map { project.zipTree(it) })
+    from(tasks.named("processResources")) {
+        exclude "META-INF/**"
+        exclude "*.mixins.json"
+        exclude "pack.mcmeta"
+    }
+    from(devRunServices) { into("META-INF/services") }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+// `universalJar` merges spark-paper's classes in so that spark shares a module layer with
+// org.bukkit (see the comment on that task). A dev run has no universal jar, so spark goes in as
+// another `minecraft` mod folder, which puts it in the same module for the same reason.
+tasks.register("devRunSpark", Sync) {
+    description = "spark-paper's classes as a mod folder, mirroring what universalJar merges in."
+    // Resolved at configuration time, exactly as universalJar already does with this configuration.
+    from(zipTree(configurations.sparkBundle.singleFile)) {
+        exclude "META-INF/**"
+    }
+    into(devRunSparkDir)
+}
+
+// FML locates the Minecraft resources jar with
+// `ClassLoader.getSystemClassLoader().getResources("data/.mcassetsroot")` and errors out when it
+// finds more than one copy, so the augmented jar has to take the original's place on the
+// classpath. RunGameTask assigns `classpath` from its own `classpathProvider` in `exec()`, after
+// every doFirst has run, and that property is final by then - so the swap happens here, at
+// configuration time.
+// runData now launches, and that is a trap rather than a feature: in 21.8 the neoforge mod
+// registers all of its data providers - the server-side ones included - from ClientNeoForgeMod on
+// GatherDataEvent.Client, so a server-only tree fires GatherDataEvent.Server, nothing listens, and
+// DataGenerator treats every one of the 917 files in src/generated/resources as stale and deletes
+// them. That directory is synced from neoforge-<version>-universal.jar instead; see
+// PORTING-1.21.8.md. Pass -PallowRunData if you really mean to.
+def allowRunData = providers.gradleProperty("allowRunData").isPresent()
+tasks.matching { it.name == "runData" }.configureEach {
+    doFirst {
+        if (!allowRunData) {
+            throw new GradleException(
+                    "runData cannot regenerate src/generated/resources in a server-only tree: NeoForge " +
+                    "registers its data providers on GatherDataEvent.Client, so this run would find no " +
+                    "providers and delete all of src/generated/resources. That directory is synced from " +
+                    "neoforge-<version>-universal.jar; see PORTING-1.21.8.md. Re-run with -PallowRunData " +
+                    "to override.")
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.matching { it.name in ["runServer", "runData", "runGameTestServer", "runClient"] }.configureEach {
+        dependsOn("devRunResources", "devRunSpark", "devRunMinecraftResources")
+
+        def classpathProperty = it.classpathProvider
+        def unswapped = devRunObjects.fileCollection().from(classpathProperty.from.toList())
+        classpathProperty.setFrom(provider {
+            unswapped.files.collect { file ->
+                file.name == "minecraft-resources.jar" ? devRunJar.get().asFile : file
+            }
+        })
+
+        doFirst { Task self ->
+            def filtered = devRunResourcesDir.get().asFile.absolutePath
+            def original = mainResourcesDir.absolutePath
+            def spark = devRunSparkDir.get().asFile.absolutePath
+
+            // `-Dfml.modFolders` is built by an internal moddevgradle argument provider, so
+            // rewrite whatever it produced rather than reconstructing the whole value.
+            def rewritten = self.jvmArgumentProviders.collect { provider ->
+                def args = provider.asArguments().toList()
+                if (!args.any { it.startsWith("-Dfml.modFolders=") }) {
+                    return provider
+                }
+                def replaced = args.collect { arg ->
+                    arg.startsWith("-Dfml.modFolders=")
+                            ? arg.replace(original, filtered) + ":minecraft%%" + spark
+                            : arg
+                }
+                return { replaced } as CommandLineArgumentProvider
+            }
+            self.jvmArgumentProviders.clear()
+            self.jvmArgumentProviders.addAll(rewritten)
+        }
+    }
+}
+// Youer end - make the moddevgradle dev runs launchable
 
 tasks.withType(JavaCompile.class).configureEach {
     // Increase memory used during compilation, to avoid OutOfMemoryErrors

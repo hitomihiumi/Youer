@@ -200,12 +200,34 @@ def login(host, port, username, verbose=False, stay_seconds=0, command=None):
     return seen
 
 
+USAGE = """usage: mcclient.py status [host] [port]
+       mcclient.py login  [host] [port] [username] [-v]
+
+host defaults to 127.0.0.1, port to 25565, username to YouerTester. The server
+needs online-mode=false and network-compression-threshold=-1."""
+
+
 if __name__ == "__main__":
-    host, port = "127.0.0.1", 25565
     what = sys.argv[1] if len(sys.argv) > 1 else "status"
+    if what in ("-h", "--help", "help"):
+        print(USAGE)
+        raise SystemExit(0)
+
+    # host and port are positional and optional, so take them off the front only when they look
+    # like a host and a port. Reading argv[0] as the username is what made an early run report a
+    # player called "127.0.0.1" while quietly talking to the default port.
+    args = [a for a in sys.argv[2:] if not a.startswith("-")]
+    host, port = "127.0.0.1", 25565
+    if args and ("." in args[0] or args[0] == "localhost"):
+        host = args.pop(0)
+    if args and args[0].isdigit():
+        port = int(args.pop(0))
+
     if what == "status":
         print(json.dumps(status(host, port), indent=2)[:2000])
-    else:
-        args = [a for a in sys.argv[2:] if not a.startswith("-")]
+    elif what == "login":
         print(login(host, port, args[0] if args else "YouerTester", verbose="-v" in sys.argv,
                     stay_seconds=15, command="youer version"))
+    else:
+        print(USAGE)
+        raise SystemExit(2)

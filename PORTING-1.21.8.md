@@ -111,11 +111,10 @@ java -jar youer-1.21.8-<id>-server.jar --nogui
 the merge started. `genPatches` round-trips the tree unchanged, and the build
 produces the server, universal, joined, installer, userdev and sources jars.
 
-The moddevgradle *dev runs* are the exception: `:youer:runServer` and
-`:youer:runData` both die before the game starts, on the same
-`InvalidModuleDescriptorException`. It is one cause, it is understood, and it
-is written up under item 6 below - test against the built server jar until it
-is fixed.
+`:youer:runServer` works as well, and a player can join it; getting there
+meant working around the way FML splits a dev source set into two modules,
+which is written up under item 6 below. `:youer:runData` is deliberately
+refused - same item.
 
 The dedicated server installs itself, generates all three dimensions, reaches
 the console prompt and holds 20 TPS. A Bukkit plugin loads, enables, and its
@@ -367,21 +366,50 @@ service file lands in.
 
 The one lever that does work is `path.equals(minecraftJar)`, which waves
 anything in the Minecraft resources jar straight into the minecraft module -
-the module that has our classes. Verified end to end:
+the module that has our classes. `projects/youer/build.gradle` pulls that lever
+for dev runs only, in four `devRun*` tasks; **`./gradlew :youer:runServer` now
+boots to `Done` and a player can join it.** Nothing there touches
+`processResources` or any jar task, so the shipped artifacts keep all thirty
+service files exactly where they were.
 
-1. split `build/resources/main/META-INF/services/` by the package of the
-   providers each file names. Exactly one file names
-   `net.neoforged.neoforge.*` (`net.neoforged.fml.IBindingsProvider`); it has
-   to stay where it is, or the minecraft module gains a service file whose
-   provider lives in the neoforge module and it fails the same way in reverse.
-2. add the other twenty-nine to `build/neodev/artifacts/minecraft-resources.jar`.
-3. run with the resources directory that no longer carries them.
+What the four tasks do, and why each is needed:
 
-With that, both module descriptors are valid and the run reaches
-`DatagenModLoader`. It is written up here rather than wired into the build
-because doing it properly means the shipped jar and the dev runs disagree about
-where those service files live, and that is a change to resource packaging that
-should be made deliberately, not as a side effect of chasing a datagen run.
+1. `devRunResources` is the mod folder FML actually reads: `build/resources/main`
+   minus the service files whose providers are not `net.neoforged.neoforge.*`.
+   Exactly one file is (`net.neoforged.fml.IBindingsProvider`) and it stays, or
+   the minecraft module gains a service file whose provider lives in the
+   neoforge module and it fails the same way in reverse.
+2. `devRunServices` stages those other twenty-nine, and
+   `devRunMinecraftResources` folds them - plus a copy of every other resource -
+   into Minecraft's resources jar. The whole-resources copy is not optional:
+   Paper's classes sit in the minecraft module while all of Paper's resources
+   were going to the other one, so a plain `getResourceAsStream` inside Paper
+   code returned null and `PaperConfigurations` died on
+   `/config-data/packet-limiter-upgrade-data.json` before startup finished.
+   `META-INF`, the mixin configs and the root `pack.mcmeta` are excluded -
+   those identify the neoforge mod file to FML and to the resource-pack loader.
+3. `devRunSpark` unpacks spark-paper as another `minecraft` mod folder. In
+   production `universalJar` merges spark's classes in so spark shares a module
+   layer with `org.bukkit`; a dev run has no universal jar, and without this it
+   dies on `ClassNotFoundException: me.lucko.spark.paper.api.PaperClassLookup`.
+
+Two things about the wiring are worth knowing before changing it. The jar is
+built with `Zip`, not `Jar`, because `Jar` generates a fresh manifest and the
+original carries `Minecraft-Dists` plus a per-entry `Minecraft-Dist` section
+for every client-only file; drop it and FML rejects the whole mod file, which
+in the log looks exactly like the minecraft mod silently not existing. And the
+classpath swap happens at configuration time, because `RunGameTask.exec()`
+assigns `classpath` from its own `classpathProvider` after every `doFirst` has
+run - assigning `classpath` in a `doFirst` is silently discarded, and the
+property is already final by then.
+
+Verified: `runServer` reaches `Done (19.5s)` with the same 1,407 recipes and
+1,520 advancements the production jar loads, and `tools/test/mcclient.py login
+127.0.0.1 25566 DevRunTester` joins it, is teleported, answers keep-alives,
+runs `/youer version` and quits cleanly.
+
+`runData` launches now too, and that is a trap rather than a feature, so the
+build refuses to run it without `-PallowRunData` and says why.
 
 **7. Legacy plugin remapping works; no client has connected.** A plugin written
 entirely in Spigot names loads and runs: it calls `MinecraftServer.aw()` and
@@ -443,8 +471,13 @@ trusting any of them.
 ```bash
 # server.properties: online-mode=false, network-compression-threshold=-1
 python3 tools/test/mcclient.py status
-python3 tools/test/mcclient.py login YouerTester -v
+python3 tools/test/mcclient.py login 127.0.0.1 25565 YouerTester -v
 ```
+
+Host and port are positional and optional. They did not used to be parsed at
+all, so `login 127.0.0.1 25565 Tester` read the host as the username and talked
+to the default port anyway - which is why early logs report a player called
+`127.0.0.1`.
 
 A full session now works end to end: login, configuration, play, the teleport
 accepted, keep-alives answered, `/youer version` issued as a player, a clean
