@@ -223,8 +223,8 @@ Treat "vanilla-safe" as a claim to check, not a property of the label. The
 it was thread-safety, not behaviour, that the vanilla equivalent did not have.
 
 Treat the `B3:` label itself the same way. Auditing the markers one by one took
-them from 41 to 19, because nine of them were not about the chunk system at all
-and three more were simply wrong about what this tree already has:
+them from 41 to 32: nine were not about the chunk system at all, and every one
+of those nine was wrong about what this tree already has.
 
 * **Six weather sites** said `PrimaryLevelData`'s `Cause`-tagged
   `setRaining`/`setThundering` overloads "are not merged". They are, and
@@ -242,12 +242,18 @@ and three more were simply wrong about what this tree already has:
   `save(..., skipSave, close)` now passes `!skipSave` as upstream does, instead
   of always saving on the way out.
 
-What is left under the label really is the chunk system: the `ChunkSystem*`
+Of the 32 that remain, 31 really are the chunk system: the `ChunkSystem*`
 interfaces, `moonrise$getEntityLookup` versus the vanilla `entityManager`,
 `moonrise$midTickTasks`, `loadChunksAsync`, the ticket spiral, the collision
 rewrite, and `StructureCheck`'s `Synchronised*` caches. All 32 of upstream's
 `ca/spottedleaf/moonrise` source files are present; it is the call sites into
 them that are not.
+
+The odd one out is `ServerLevel#getTypeKey`, which derives the `LevelStem` key
+from the dimension location because `LevelStorageAccess#dimensionType` has not
+been merged (`LevelStorageSource.java` is NeoForge-only here). It has nothing
+to do with moonrise and is mislabelled; it is also the only remaining marker
+that could be cleared without adopting the chunk system.
 
 **2. One upstream hunk deliberately skipped**: Purpur's `RegionFileStorage`
 rebrand, which rewrites a line Paper's oversized-chunk handling adds and this
