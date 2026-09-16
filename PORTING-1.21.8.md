@@ -115,9 +115,11 @@ The dedicated server installs itself, generates all three dimensions, reaches
 the console prompt and holds 20 TPS. A Bukkit plugin loads, enables, and its
 scheduler, event registration and world API all work; a NeoForge mod loads,
 receives `ServerStartingEvent`/`ServerStartedEvent`, and can see the Bukkit
-plugin list from inside the mod - the two layers reach each other. `/stop`
-shuts down cleanly with every dimension saved, and a restart loads the saved
-world back.
+plugin list from inside the mod - the two layers reach each other. A
+Spigot-mapped plugin loads through the remapper, and **a player can join**:
+login, configuration, play, a command issued as a player, a clean quit, and
+their data, stats and advancements written. `/stop` shuts down cleanly with
+every dimension saved, and a restart loads the saved world back.
 
 ### What the boot cost
 
