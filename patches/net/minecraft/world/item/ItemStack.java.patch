@@ -1,5 +1,29 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
+@@ -193,12 +_,20 @@
+             }
+ 
+             public void encode(RegistryFriendlyByteBuf p_320527_, ItemStack p_320873_) {
+-                if (p_320873_.isEmpty()) {
++                if (p_320873_.isEmpty() || p_320873_.getItem() == null) { // CraftBukkit - NPE fix itemstack.getItem()
+                     p_320527_.writeVarInt(0);
+                 } else {
+-                    p_320527_.writeVarInt(p_320873_.getCount());
++                    p_320527_.writeVarInt(io.papermc.paper.util.sanitizer.ItemComponentSanitizer.sanitizeCount(io.papermc.paper.util.sanitizer.ItemObfuscationSession.currentSession(), p_320873_, p_320873_.getCount())); // Paper - potentially sanitize count
+                     Item.STREAM_CODEC.encode(p_320527_, p_320873_.getItemHolder());
+-                    p_412358_.encode(p_320527_, p_320873_.components.asPatch());
++                    // Paper start - adventure; conditionally render translatable components
++                    boolean prev = net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.get();
++                    try (final io.papermc.paper.util.SafeAutoClosable ignored = io.papermc.paper.util.sanitizer.ItemObfuscationSession.withContext(c -> c.itemStack(p_320873_))) { // pass the itemstack as context to the obfuscation session
++                        net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(true);
++                        p_412358_.encode(p_320527_, p_320873_.components.asPatch());
++                    } finally {
++                        net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(prev);
++                    }
++                    // Paper end - adventure; conditionally render translatable components
+                 }
+             }
+         };
 @@ -247,6 +_,10 @@
          return !this.isEmpty() && this.components.hasNonDefault(p_389426_);
      }
@@ -282,11 +306,12 @@
      }
  
      public boolean isBroken() {
-@@ -448,16 +_,35 @@
+@@ -448,16 +_,55 @@
      }
  
      public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable ServerPlayer p_220160_, Consumer<Item> p_348596_) {
 -        int i = this.processDurabilityChange(p_220158_, p_346256_, p_220160_);
+-        if (i != 0) {
 +        this.hurtAndBreak(p_220158_, p_346256_, (LivingEntity) p_220160_, p_348596_);
 +    }
 +
@@ -297,9 +322,29 @@
 +
 +    public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable LivingEntity p_220160_, Consumer<Item> p_348596_, boolean force) {
 +        // Paper end - add force boolean overload
++        final int originalDamage = p_220158_; // Paper - Expand PlayerItemDamageEvent
 +        p_220158_ = getItem().damageItem(this, p_220158_, p_220160_, p_348596_);
 +        int i = this.processDurabilityChange(p_220158_, p_346256_, p_220160_, force);
-         if (i != 0) {
++        // CraftBukkit start
++        if (i > 0 && p_220160_ instanceof final ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent - limit to positive damage and run for player
++            org.bukkit.event.player.PlayerItemDamageEvent event = new org.bukkit.event.player.PlayerItemDamageEvent(serverPlayer.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this), i, originalDamage); // Paper - Add EntityDamageItemEvent
++            event.getPlayer().getServer().getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return;
++            }
++
++            i = event.getDamage();
++            // Paper start - Add EntityDamageItemEvent
++        } else if (i > 0 && p_220160_ != null) {
++            io.papermc.paper.event.entity.EntityDamageItemEvent event = new io.papermc.paper.event.entity.EntityDamageItemEvent(p_220160_.getBukkitLivingEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this), i);
++            if (!event.callEvent()) {
++                return;
++            }
++            i = event.getDamage();
++            // Paper end - Add EntityDamageItemEvent
++        }
++        // CraftBukkit end
++        if (i != 0) { // Paper - Add EntityDamageItemEvent - diff on change for above event ifs.
              this.applyDamage(this.getDamageValue() + i, p_220160_, p_348596_);
          }
      }
