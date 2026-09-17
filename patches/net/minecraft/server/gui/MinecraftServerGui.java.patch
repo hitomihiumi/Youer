@@ -12,7 +12,7 @@
  
      public static MinecraftServerGui showFrameFor(final DedicatedServer p_139922_) {
          try {
-@@ -47,18 +_,25 @@
+@@ -47,18 +_,31 @@
          } catch (Exception exception) {
          }
  
@@ -26,8 +26,14 @@
          jframe.setVisible(true);
 +        // Paper start - Improve ServerGUI
 +        jframe.setName("Purpur Minecraft server"); // Purpur - Improve GUI
-+        try {
-+            jframe.setIconImage(javax.imageio.ImageIO.read(java.util.Objects.requireNonNull(MinecraftServerGui.class.getClassLoader().getResourceAsStream("logo.png"))));
++        // Youer - a window icon is decoration, so it must not be able to stop the server starting.
++        // Paper wraps this in catch(IOException) and relies on logo.png being on the classpath; this
++        // jar does not ship one, so requireNonNull threw an NPE straight through that catch and out
++        // of DedicatedServer#showGui, killing startup with "Failed to start the minecraft server".
++        try (java.io.InputStream logo = MinecraftServerGui.class.getClassLoader().getResourceAsStream("logo.png")) {
++            if (logo != null) {
++                jframe.setIconImage(javax.imageio.ImageIO.read(logo));
++            }
 +        } catch (java.io.IOException ignore) {
 +        }
 +        // Paper end - Improve ServerGUI

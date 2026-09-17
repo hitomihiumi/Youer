@@ -93,6 +93,12 @@ public class Main {
             forgeArgs.add(arg.split(" ")[0]);
             forgeArgs.add(arg.split(" ")[1]);
         }
+        // Youer - hand the user's own arguments to the game as well. The filter above keeps only the
+        // FML arguments out of the packaged args file, so without this everything typed on the
+        // command line - --nogui, --port, --world, --bukkit-settings - was silently dropped before
+        // net.minecraft.server.Main ever parsed it. Appending them after the FML arguments is what
+        // NeoForge's own run scripts do with "$@".
+        forgeArgs.addAll(mainArgs);
         YouerModuleManager.INSTANCE.init(DataParser.launchArgs);
 
         if (!MojangEulaUtil.hasAcceptedEULA() && OSUtil.getOS().isWindows()) {
