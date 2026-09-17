@@ -51,15 +51,13 @@ jobs:
           df -h /
 
       - name: Apply patches
-        run: |
-          chmod +x ./gradlew
-          ./gradlew setup --stacktrace
+        run: .github/scripts/gradle.sh setup --stacktrace
 
       - name: Build
-        run: ./gradlew build --stacktrace
+        run: .github/scripts/gradle.sh build --stacktrace
 
       - name: Assemble server jar
-        run: ./gradlew :youer:youerJar --stacktrace
+        run: .github/scripts/gradle.sh :youer:youerJar --stacktrace
 
       - name: Report artifacts
         run: ls -lh projects/youer/build/libs/
@@ -109,9 +107,8 @@ jobs:
       # `setup` gets a diff they did not make.
       - name: Regenerate patches from a clean tree
         run: |
-          chmod +x ./gradlew
-          ./gradlew setup --stacktrace
-          ./gradlew :youer:genPatches --stacktrace
+          .github/scripts/gradle.sh setup --stacktrace
+          .github/scripts/gradle.sh :youer:genPatches --stacktrace
 
       - name: Fail if patches changed
         run: |

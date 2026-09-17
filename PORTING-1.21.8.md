@@ -626,7 +626,13 @@ is an authoritative answer to "is it the branch or is it me".
 
 **CI.** `.github/workflows/build.yml` runs `setup`, `build` and `youerJar` on
 pushes and pull requests and uploads the jars; `release.yml` builds a `v*` tag
-and attaches them to a GitHub Release. Both cache `~/.gradle/caches`, which is
+and attaches them to a GitHub Release. Both go through
+`.github/scripts/gradle.sh`, which retries **only** on transient artifact
+resolution: `net.neoforged.moddev.repositories` injects `maven.neoforged.net`
+ahead of the repositories declared in `settings.gradle`, and that host proxies
+Maven Central, so every dependency is asked of it first - the very first CI run
+died on a 502 from it while fetching `com.mysql:mysql-connector-j`, an artifact
+Central serves perfectly well. A compile error is never retried. Both cache `~/.gradle/caches`, which is
 where the NeoForm runtime keeps the decompiled Minecraft sources - a cold run
 pays for the decompile, a warm one does not. `build.yml` also carries a
 `patch-drift` job that runs `setup` then `genPatches` and fails if `patches/`

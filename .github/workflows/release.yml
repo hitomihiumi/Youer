@@ -42,9 +42,8 @@ jobs:
 
       - name: Build
         run: |
-          chmod +x ./gradlew
-          ./gradlew setup --stacktrace
-          ./gradlew build :youer:youerJar --stacktrace
+          .github/scripts/gradle.sh setup --stacktrace
+          .github/scripts/gradle.sh build :youer:youerJar --stacktrace
 
       - name: Publish release
         env:
